@@ -107,7 +107,7 @@ def create_initial_param_dict(base_hot_dict):
                             if param_list[2] not in resource_info:
                                 resource_info[param_list[2]] = {}
 
-    LOG.info('initial_param_dict: %s', initial_param_dict)
+    LOG.debug('initial_param_dict: %s', initial_param_dict)
     return initial_param_dict
 
 
@@ -178,7 +178,7 @@ def create_initial_param_server_port_dict(base_hot_dict):
                             if param_list[2] not in resource_info:
                                 resource_info[param_list[2]] = {}
 
-    LOG.info('initial_param_dict: %s', initial_param_dict)
+    LOG.debug('initial_param_dict: %s', initial_param_dict)
     return initial_param_dict
 
 
@@ -210,7 +210,7 @@ def create_final_param_dict(param_dict, vdu_flavor_dict,
                 for fixed_ip in cpd_vl_dict.get(target_cp).get("fixed_ips"):
                     cps[target_cp]['fixed_ips'].append(fixed_ip)
 
-    LOG.info('final_param_dict: %s', final_param_dict)
+    LOG.debug('final_param_dict: %s', final_param_dict)
     return final_param_dict
 
 
@@ -244,7 +244,7 @@ def create_vdu_flavor_dict(vnfd_dict):
                         val[0]['size_of_storage'], 'GiB')
             vdu_flavor_dict[vdu_name] = flavor_dict
 
-    LOG.info('vdu_flavor_dict: %s', vdu_flavor_dict)
+    LOG.debug('vdu_flavor_dict: %s', vdu_flavor_dict)
     return vdu_flavor_dict
 
 
@@ -259,7 +259,7 @@ def create_vdu_image_dict(grant_info):
         for vnf_resource in resources:
             vdu_image_dict[vdu_name] = vnf_resource.resource_identifier
 
-    LOG.info('vdu_image_dict: %s', vdu_image_dict)
+    LOG.debug('vdu_image_dict: %s', vdu_image_dict)
     return vdu_image_dict
 
 
@@ -285,7 +285,7 @@ def create_cpd_vl_dict(base_hot_dict, inst_req_info):
                     cpd_vl_dict[ext_cp.cpd_id] = vl_uuid
                     break
 
-    LOG.info('cpd_vl_dict: %s', cpd_vl_dict)
+    LOG.debug('cpd_vl_dict: %s', cpd_vl_dict)
     return cpd_vl_dict
 
 
@@ -337,7 +337,7 @@ def create_vdu_flavor_capability_name_dict(vnfd_dict):
                                 "requested_additional"
                                 "_capability_name"]
 
-    LOG.info('vdu_flavor_dict: %s', vdu_flavor_dict)
+    LOG.debug('vdu_flavor_dict: %s', vdu_flavor_dict)
     return vdu_flavor_dict
 
 
@@ -359,7 +359,7 @@ def create_sw_image_dict(vnfd_dict):
             if 'name' in sw_image_data_props.keys():
                 sw_image_data[vdu_name] = sw_image_data_props['name']
 
-    LOG.info('sw_image_data: %s', sw_image_data)
+    LOG.debug('sw_image_data: %s', sw_image_data)
     return sw_image_data
 
 
@@ -382,7 +382,7 @@ def create_network_dict(inst_req_info, param_dict):
                 cp_data[ext_cp.cpd_id]["fixed_ips"] =\
                     _create_fixed_ips_list(ext_cp)
 
-    LOG.info('cp_data: %s', cp_data)
+    LOG.debug('cp_data: %s', cp_data)
     return cp_data
 
 
@@ -455,7 +455,7 @@ def create_desired_capacity_dict(base_hot_dict, vnfd_dict, inst_req_info):
         for name, value in scale_group_dict['scaleGroupDict'].items():
             param_dict[name] = value['default']
 
-    LOG.info("desired_capacity dict: %s", param_dict)
+    LOG.debug("desired_capacity dict: %s", param_dict)
     return param_dict
 
 
@@ -493,5 +493,5 @@ def get_desired_capacity_dict(base_hot_dict, vnfd_dict, inst_vnf_info):
             if desired_capacity is not None:
                 param_dict[name] = desired_capacity
 
-    LOG.info("desired_capacity dict: %s", param_dict)
+    LOG.debug("desired_capacity dict: %s", param_dict)
     return param_dict

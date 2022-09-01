@@ -232,7 +232,7 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                                 vim_id, ex)
             return vim_obj
         except Exception as ex:
-            LOG.debug("Got exception when update_vim %s due to %s",
+            LOG.error("Got exception when update_vim %s due to %s",
                       vim_id, ex)
             with excutils.save_and_reraise_exception():
                 if new_auth_created:
@@ -596,7 +596,7 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
 
         f = fernet.Fernet(vim_key)
         if not f:
-            LOG.warning('Unable to decode VIM auth')
+            LOG.error('Unable to decode VIM auth')
             raise nfvo.VimNotFoundException(vim_id=vim_id)
         return f.decrypt(cred).decode('utf-8')
 
@@ -608,7 +608,7 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
             with open(key_file, 'r') as f:
                 return f.read()
         except Exception:
-            LOG.warning('VIM id invalid or key not found for  %s', vim_id)
+            LOG.error('VIM id invalid or key not found for  %s', vim_id)
             raise nfvo.VimKeyNotFoundException(vim_id=vim_id)
 
     def _vim_resource_name_to_id(self, context, resource, name, vnf_id):
@@ -906,7 +906,7 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                     if value['get_input'] in paramvalues:
                         original[key] = paramvalues[value['get_input']]
                     else:
-                        LOG.debug('Key missing Value: %s', key)
+                        LOG.error('Key missing Value: %s', key)
                         raise cs.InputValuesMissing(key=key)
                 else:
                     self._update_params(value, paramvalues)

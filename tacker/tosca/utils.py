@@ -724,9 +724,9 @@ def convert_inst_req_info(heat_dict, inst_req_info, tosca):
                                   aspect_vdu_dict, vdu_delta_dict,
                                   heat_dict)
     else:
-        LOG.info('Because instLevelId is not defined and '
-                 'there is no default level in TOSCA, '
-                 'the conversion of desired_capacity is skipped.')
+        LOG.debug('Because instLevelId is not defined and '
+                  'there is no default level in TOSCA, '
+                  'the conversion of desired_capacity is skipped.')
 
 
 @log.log

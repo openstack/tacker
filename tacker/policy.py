@@ -71,10 +71,10 @@ def authorize(context, action, target, do_raise=True, exc=None):
                                      do_raise=do_raise, exc=exc, action=action)
     except policy.PolicyNotRegistered:
         with excutils.save_and_reraise_exception():
-            LOG.debug('Policy not registered')
+            LOG.error('Policy not registered')
     except Exception:
         with excutils.save_and_reraise_exception():
-            LOG.debug('Policy check for %(action)s failed with credentials '
+            LOG.error('Policy check for %(action)s failed with credentials '
                       '%(credentials)s',
                       {'action': action, 'credentials': credentials})
 
@@ -428,7 +428,7 @@ def enforce(context, action, target, plugin=None, pluralized=None):
     except policy.PolicyNotAuthorized:
         with excutils.save_and_reraise_exception():
             log_rule_list(rule)
-            LOG.debug("Failed policy check for '%s'", action)
+            LOG.error("Failed policy check for '%s'", action)
     return result
 
 

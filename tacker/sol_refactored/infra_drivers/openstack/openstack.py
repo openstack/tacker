@@ -94,24 +94,24 @@ class Openstack(object):
         vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
         heat_client = heat_utils.HeatClient(vim_info)
         stack_name = heat_utils.get_stack_name(inst)
-        status, _ = heat_client.get_status(stack_name)
-        if status is None:
+        stack_id = heat_client.get_stack_id(stack_name)
+        if stack_id is None:
             fields['stack_name'] = stack_name
-            heat_client.create_stack(fields)
+            stack_id = heat_client.create_stack(fields)
         else:
-            heat_client.update_stack(stack_name, fields)
+            heat_client.update_stack(f'{stack_name}/{stack_id}', fields)
 
         # make instantiated_vnf_info
         self._make_instantiated_vnf_info(req, inst, grant_req, grant, vnfd,
-            heat_client)
+            heat_client, stack_id=stack_id)
 
     def instantiate_rollback(self, req, inst, grant_req, grant, vnfd):
         vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
         heat_client = heat_utils.HeatClient(vim_info)
         stack_name = heat_utils.get_stack_name(inst)
-        status, _ = heat_client.get_status(stack_name)
-        if status is not None:
-            heat_client.delete_stack(stack_name)
+        stack_id = heat_client.get_stack_id(stack_name)
+        if stack_id is not None:
+            heat_client.delete_stack(f'{stack_name}/{stack_id}')
 
     def terminate(self, req, inst, grant_req, grant, vnfd):
         if req.terminationType == 'GRACEFUL':
@@ -270,11 +270,11 @@ class Openstack(object):
                 fields["template"] = heat_client.get_template(stack_name)
             if "files" not in fields:
                 fields["files"] = heat_client.get_files(stack_name)
-            fields["stack_name"] = stack_name
+            fields["stack_name"] = stack_name.split('/')[0]
 
             # stack delete and create
             heat_client.delete_stack(stack_name)
-            heat_client.create_stack(fields)
+            stack_id = heat_client.create_stack(fields)
         else:
             # mark unhealthy to target resources.
             # As the target resources has been already selected in
@@ -301,10 +301,11 @@ class Openstack(object):
 
             # update stack
             heat_client.update_stack(stack_name, fields)
+            stack_id = inst.instantiatedVnfInfo.metadata['stack_id']
 
         # make instantiated_vnf_info
         self._make_instantiated_vnf_info(req, inst, grant_req, grant, vnfd,
-            heat_client)
+            heat_client, stack_id=stack_id)
 
     def change_vnfpkg(self, req, inst, grant_req, grant, vnfd):
         # make HOT
@@ -980,9 +981,11 @@ class Openstack(object):
                     metadata[f'image-{vdu_name}'] = image
 
     def _make_instantiated_vnf_info(self, req, inst, grant_req, grant, vnfd,
-            heat_client, is_rollback=False):
+            heat_client, is_rollback=False, stack_id=None):
         # get heat resources
-        stack_name = heat_utils.get_stack_name(inst)
+        stack_id = stack_id if stack_id else inst.instantiatedVnfInfo.metadata[
+            'stack_id']
+        stack_name = heat_utils.get_stack_name(inst, stack_id)
         heat_reses = heat_client.get_resources(stack_name)
         nfv_dict = json.loads(heat_client.get_parameters(stack_name)['nfv'])
 
@@ -1206,4 +1209,7 @@ class Openstack(object):
 
             inst_vnf_info.vnfcInfo = vnfc_infos
 
+        # store stack_id into metadata
+        metadata = {"stack_id": stack_id}
+        inst_vnf_info.metadata = metadata
         inst.instantiatedVnfInfo = inst_vnf_info

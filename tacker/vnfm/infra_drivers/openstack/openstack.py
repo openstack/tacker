@@ -660,7 +660,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                 raise exception_class(reason=error_reason)
             elif stack_retries != 0 and status != wait_status:
                 error_reason = stack.stack_status_reason
-                LOG.warning(error_reason)
+                LOG.error(error_reason)
                 raise exception_class(reason=error_reason)
 
     def _find_mgmt_ips(self, outputs):
@@ -701,7 +701,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
             if not update_values:
                 error_reason = _("at vnf_id {} because all parameters "
                                  "match the existing one.").format(vnf_id)
-                LOG.warning(error_reason)
+                LOG.error(error_reason)
                 raise vnfm.VNFUpdateInvalidInput(reason=error_reason)
 
             # update vnf_dict
@@ -719,7 +719,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
         elif not update_param_yaml and not update_config_yaml:
             error_reason = _("at vnf_id {} because the target "
                              "yaml is empty.").format(vnf_id)
-            LOG.warning(error_reason)
+            LOG.error(error_reason)
             raise vnfm.VNFUpdateInvalidInput(reason=error_reason)
 
         # update config attribute
@@ -893,7 +893,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                                 "status %(status)s") % {
                                 'stack': policy['instance_id'],
                                 'status': rsc.resource_status}
-                            LOG.warning(error_reason)
+                            LOG.error(error_reason)
                             raise vnfm.VNFScaleWaitFailed(
                                 vnf_id=policy['vnf']['id'],
                                 reason=error_reason)
@@ -916,7 +916,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                                  "error %(error)s") % {
                                      'stack': policy['instance_id'],
                                      'error': str(e)}
-                LOG.warning(error_reason)
+                LOG.error(error_reason)
                 raise vnfm.VNFScaleWaitFailed(vnf_id=policy['vnf']['id'],
                                               reason=error_reason)
 
@@ -925,7 +925,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                     "VNF scaling failed to complete within %{wait}s seconds "
                     "while waiting for the stack %(stack)s to be "
                     "scaled.")
-                LOG.warning(error_reason, {
+                LOG.error(error_reason, {
                     'stack': stack_id,
                     'wait': (
                         self.STACK_RETRIES * self.STACK_RETRY_WAIT)})
@@ -1121,11 +1121,11 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                  "name": vnf_resource.resource_name,
                  "id": vnf_instance.id})
         except Exception:
-            LOG.info("Failed to delete resource '%(name)s' of type"
-                    " %(type)s' for vnf %(id)s",
-                    {"type": vnf_resource.resource_type,
-                     "name": vnf_resource.resource_name,
-                     "id": vnf_instance.id})
+            LOG.debug("Failed to delete resource '%(name)s' of type"
+                      " %(type)s' for vnf %(id)s",
+                      {"type": vnf_resource.resource_type,
+                      "name": vnf_resource.resource_name,
+                      "id": vnf_instance.id})
 
     def instantiate_vnf(self, context, vnf_instance, vnfd_dict,
                         vim_connection_info, instantiate_vnf_req,

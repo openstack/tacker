@@ -95,7 +95,7 @@ class Kubernetes_Driver(abstract_vim_driver.VimAbstractDriver):
             k8s_info = core_api_client.get_api_versions()
             LOG.info(k8s_info)
         except Exception as e:
-            LOG.info('VIM Kubernetes authentication is wrong.')
+            LOG.error('VIM Kubernetes authentication is wrong.')
             # delete temp file
             self.clean_authenticate_vim(auth_dict, file_descriptor)
             raise nfvo.VimUnauthorizedException(message=str(e))
@@ -175,9 +175,8 @@ class Kubernetes_Driver(abstract_vim_driver.VimAbstractDriver):
                     LOG.debug('VIM key deleted successfully for vim %s',
                               vim_id)
                 except Exception as exception:
-                    LOG.warning('VIM key deletion failed for vim %s due to %s',
-                                vim_id,
-                                exception)
+                    LOG.error('VIM key deletion failed for vim %s due to %s',
+                              vim_id, exception)
                     raise
             else:
                 raise nfvo.VimEncryptKeyError(vim_id=vim_id)
@@ -218,9 +217,8 @@ class Kubernetes_Driver(abstract_vim_driver.VimAbstractDriver):
                 LOG.debug('VIM auth successfully stored for vim %s',
                           vim_id)
             except Exception as exception:
-                LOG.warning('VIM key creation failed for vim %s due to %s',
-                            vim_id,
-                            exception)
+                LOG.error('VIM key creation failed for vim %s due to %s',
+                          vim_id, exception)
                 raise
         else:
             raise nfvo.VimEncryptKeyError(vim_id=vim_id)

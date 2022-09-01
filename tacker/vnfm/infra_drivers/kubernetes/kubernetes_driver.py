@@ -188,8 +188,8 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                             self.STACK_RETRIES *
                             self.STACK_RETRY_WAIT),
                         stack=vnf_id)
-                    LOG.warning("VNF Creation failed: %(reason)s",
-                                {'reason': error_reason})
+                    LOG.error("VNF Creation failed: %(reason)s",
+                              {'reason': error_reason})
                     raise vnfm.VNFCreateWaitFailed(reason=error_reason)
                 elif stack_retries != 0 and status != 'Running':
                     raise vnfm.VNFCreateWaitFailed(reason=error_reason)
@@ -2357,8 +2357,8 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
 
                 if status == 'Unknown':
                     error_reason = _("Pod status is found Unknown")
-                    LOG.warning("CNF Healing failed: %(reason)s",
-                                {'reason': error_reason})
+                    LOG.error("CNF Healing failed: %(reason)s",
+                              {'reason': error_reason})
                     raise vnfm.CNFHealWaitFailed(reason=error_reason)
                 elif status == 'Pending' or is_unmatch_pods_num:
                     time.sleep(self.STACK_RETRY_WAIT)

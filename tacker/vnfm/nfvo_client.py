@@ -63,13 +63,13 @@ class _Connect:
             LOG.info("Connecting to <{ip}:{port}>, count=<{count}>".format(
                 ip=args[0], port=args[1], count=retry_cnt))
             if 'headers' in kwargs:
-                LOG.info("[REQ] HEADERS={}".format(kwargs['headers']))
+                LOG.debug("[REQ] HEADERS={}".format(kwargs['headers']))
 
             if 'data' in kwargs:
-                LOG.info("[REQ] BODY={}".format(kwargs['data']))
+                LOG.debug("[REQ] BODY={}".format(kwargs['data']))
 
             elif 'json' in kwargs:
-                LOG.info("[REQ] BODY={}".format(kwargs['json']))
+                LOG.debug("[REQ] BODY={}".format(kwargs['json']))
 
             try:
                 response = request_function(*args, **kwargs)

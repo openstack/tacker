@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    Improve performance of Tacker by refactoring some code, and corrects
+    the output level of log.
+
+    At the same time, the redirection when V2 calls HEAT's API is
+    removed instead of direct call, and the subcription filter when sends
+    notification is improved in V1 code.

@@ -257,9 +257,9 @@ def grant_error_common(function):
                     vnf_lcm_op_occs.state_entered_time = timestamp
                     vnf_lcm_op_occs.save()
                 except Exception as e:
-                    LOG.warning("Failed to update vnf_lcm_op_occ for vnf "
-                                "instance %(id)s. Error: %(error)s",
-                                {"id": vnf_instance.id, "error": e})
+                    LOG.error("Failed to update vnf_lcm_op_occ for vnf "
+                              "instance %(id)s. Error: %(error)s",
+                              {"id": vnf_instance.id, "error": e})
 
                 try:
                     notification = {}
@@ -285,9 +285,9 @@ def grant_error_common(function):
                     notification['_links']['vnfLcmOpOcc']['href'] = vnflcm_url
                     self.send_notification(context, notification)
                 except Exception as e:
-                    LOG.warning("Failed notification for vnf "
-                                "instance %(id)s. Error: %(error)s",
-                                {"id": vnf_instance.id, "error": e})
+                    LOG.error("Failed notification for vnf "
+                              "instance %(id)s. Error: %(error)s",
+                              {"id": vnf_instance.id, "error": e})
 
     return decorated_function
 
@@ -863,10 +863,10 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
                     shutil.rmtree(csar_zip_temp_path)
                     os.remove(csar_path)
             except OSError:
-                LOG.warning("Failed to delete csar zip %(zip)s and"
-                            " folder $(folder)s for vnf package %(uuid)s.",
-                            {'zip': csar_path, 'folder': csar_zip_temp_path,
-                             'uuid': vnf_pack.id})
+                LOG.error("Failed to delete csar zip %(zip)s and"
+                          " folder $(folder)s for vnf package %(uuid)s.",
+                          {'zip': csar_path, 'folder': csar_zip_temp_path,
+                          'uuid': vnf_pack.id})
 
     def _get_vnf_link_ports_by_vl(self, vnf_info, ext_vl_id,
             resource_id):
@@ -1654,9 +1654,9 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
             vnf_instance_id = vnf_instance.id
 
         try:
-            LOG.debug("Update vnf lcm %s %s",
-                      vnf_lcm_op_occs_id,
-                      operation_state)
+            LOG.info("Update vnf lcm %s %s",
+                     vnf_lcm_op_occs_id,
+                     operation_state)
             vnf_lcm_op_occ = objects.VnfLcmOpOcc.get_by_id(context,
                     vnf_lcm_op_occs_id)
             vnf_lcm_op_occ.operation_state = operation_state
@@ -1767,8 +1767,8 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
         """
 
         try:
-            LOG.debug("send_notification start notification[%s]"
-                      % notification)
+            LOG.info("send_notification start notification[%s]"
+                     % notification)
 
             notification = utils.convert_snakecase_to_camelcase(notification)
 
@@ -1820,7 +1820,7 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
 
                     for num in range(CONF.vnf_lcm.retry_num):
                         try:
-                            LOG.info("send notify[%s]" %
+                            LOG.debug("send notify[%s]" %
                                 json.dumps(notification))
                             auth_client = auth.auth_manager.get_auth_client(
                                 notification['subscriptionId'])
@@ -1830,7 +1830,7 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
                                 timeout=CONF.vnf_lcm.retry_timeout,
                                 verify=CONF.vnf_lcm.verify_notification_ssl)
                             if response.status_code == 204:
-                                LOG.info(
+                                LOG.debug(
                                     "send success notify[%s]",
                                     json.dumps(notification))
                                 break
@@ -1877,6 +1877,15 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
 
         for subscription in vnf_lcm_subscriptions:
             if subscription.tenant_id == vnf_instance.get("tenant_id"):
+                if subscription.filter:
+                    filter_values = jsonutils.loads(subscription.filter)
+                    filter_vnfdids = filter_values.get(
+                        'vnfInstanceSubscriptionFilter', {}).get(
+                            'vnfdIds')
+                    if filter_vnfdids:
+                        if vnf_instance.get("vnfd_id") in filter_vnfdids:
+                            extract_vnf_lcm_subscriptions.append(subscription)
+                        continue
                 extract_vnf_lcm_subscriptions.append(subscription)
 
         return extract_vnf_lcm_subscriptions

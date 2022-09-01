@@ -55,7 +55,7 @@ def lock_vnf_instance(inst_arg, delay=False):
             # NOTE: 'with lock' is not used since it can't handle
             # lock failed exception well.
             if not lock.acquire(blocking=blocking):
-                LOG.debug("Locking vnfInstance %s failed.", inst_id)
+                LOG.error("Locking vnfInstance %s failed.", inst_id)
                 raise sol_ex.OtherOperationInProgress(inst_id=inst_id)
 
             try:

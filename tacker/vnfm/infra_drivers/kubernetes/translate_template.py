@@ -95,7 +95,7 @@ class TOSCAToKubernetes(object):
                     if value['get_input'] in paramvalues:
                         original[key] = paramvalues[value['get_input']]
                     else:
-                        LOG.debug('Key missing Value: %s', key)
+                        LOG.error('Key missing Value: %s', key)
                         raise cs.InputValuesMissing(key=key)
                 else:
                     self._update_params(value, paramvalues)
@@ -112,7 +112,7 @@ class TOSCAToKubernetes(object):
                     if 'get_input' in str(node):
                         self._update_params(node, param_vattrs_dict)
             except Exception as e:
-                LOG.debug("Not Well Formed: %s", str(e))
+                LOG.error("Not Well Formed: %s", str(e))
                 raise vnfm.ParamYAMLNotWellFormed(
                     error_msg_details=str(e))
             else:

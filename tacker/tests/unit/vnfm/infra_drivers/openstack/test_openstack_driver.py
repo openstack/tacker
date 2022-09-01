@@ -1435,7 +1435,7 @@ class TestOpenStack(base.FixturedTestCase):
         self.assertRaises(vnfm.VNFDeleteWaitFailed,
                           self.openstack.delete_wait,
                           None, None, self.instance_uuid, None, None)
-        self.mock_log.warning.assert_called_once()
+        self.mock_log.error.assert_called_once()
 
     def test_update_wait(self):
         self._response_in_wait_until_stack_ready(["CREATE_COMPLETE"])
@@ -1666,7 +1666,7 @@ class TestOpenStack(base.FixturedTestCase):
                           policy=fd_utils.get_dummy_policy_dict(),
                           region_name=None,
                           last_event_id=fd_utils.get_dummy_event()['id'])
-        mock_log.warning.assert_called_once()
+        mock_log.error.assert_called_once()
 
     def _response_in_resource_metadata(self, metadata=None):
         # response for heat_client's resource_metadata()
@@ -1693,7 +1693,7 @@ class TestOpenStack(base.FixturedTestCase):
                           policy=fd_utils.get_dummy_policy_dict(),
                           region_name=None,
                           last_event_id=uuidsentinel.event_id)
-        self.mock_log.warning.assert_called_once()
+        self.mock_log.error.assert_called_once()
 
     def test_scale_wait_without_resource_metadata(self):
         dummy_event = fd_utils.get_dummy_event("CREATE_IN_PROGRESS")

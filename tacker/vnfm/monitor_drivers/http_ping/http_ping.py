@@ -75,7 +75,7 @@ class VNFMonitorHTTPPing(abstract_driver.VNFMonitorAbstractDriver):
                 urlreq.urlopen(url, timeout=timeout)
                 return True
             except urlerr.URLError:
-                LOG.warning('Unable to reach to the url %s', url)
+                LOG.error('Unable to reach to the url %s', url)
         return 'failure'
 
     @log.log

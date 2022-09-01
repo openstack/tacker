@@ -89,7 +89,7 @@ class VNFMonitorPing(abstract_driver.VNFMonitorAbstractDriver):
                 linux_utils.execute(ping_cmd, check_exit_code=True)
                 return True
             except RuntimeError:
-                LOG.warning("Cannot ping ip address: %s", mgmt_ip)
+                LOG.error("Cannot ping ip address: %s", mgmt_ip)
         return 'failure'
 
     @log.log

@@ -55,7 +55,7 @@ class VnfNoop(abstract_driver.VnfAbstractDriver):
     @log.log
     def update(self, plugin, context, vnf_id, vnf_dict, vnf):
         if vnf_id not in self._instances:
-            LOG.debug('not found')
+            LOG.error('Not found')
             raise ValueError('No instance %s' % vnf_id)
 
     @log.log

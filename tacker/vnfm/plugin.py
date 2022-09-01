@@ -184,7 +184,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
 
         service_types = vnfd_data.get('service_types')
         if not attributes.is_attr_set(service_types):
-            LOG.debug('service type must be specified')
+            LOG.error('service type must be specified')
             raise vnfm.ServiceTypesNotSpecified()
         for service_type in service_types:
             # TODO(yamahata):
@@ -392,7 +392,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
                 driver_name, 'create', plugin=self,
                 context=context, vnf=vnf_dict, auth_attr=vim_auth)
         except Exception:
-            LOG.debug('Fail to create vnf %s in infra_driver, '
+            LOG.error('Fail to create vnf %s in infra_driver, '
                       'so delete this vnf',
                       vnf_dict['id'])
             with excutils.save_and_reraise_exception():
@@ -417,7 +417,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
 
         infra_driver, vim_auth = self._get_infra_driver(context, vnf_info)
         if infra_driver not in self._vnf_manager:
-            LOG.debug('unknown vim driver '
+            LOG.error('unknown vim driver '
                       '%(infra_driver)s in %(drivers)s',
                       {'infra_driver': infra_driver,
                        'drivers': cfg.CONF.tacker.infra_driver})
@@ -723,7 +723,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
         if vnf and vnf['vnf'].get('attributes').get('force'):
             force_delete = vnf['vnf'].get('attributes').get('force')
         if force_delete and not context.is_admin:
-            LOG.warning("force delete is admin only operation")
+            LOG.error("force delete is admin only operation")
             raise exceptions.AdminRequired(reason="Admin only operation")
 
         self._delete_vnf(context, vnf_id, force_delete=force_delete)
@@ -748,7 +748,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
                     policy=policy['name']
                 )
 
-            LOG.debug("Policy %s is validated successfully", policy['name'])
+            LOG.info("Policy %s is validated successfully", policy['name'])
 
         def _get_status():
             if policy['action'] == constants.ACTION_SCALE_IN:

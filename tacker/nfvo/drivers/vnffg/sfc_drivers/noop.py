@@ -47,7 +47,7 @@ class VNFFGNoop(abstract_vnffg_driver.VnffgAbstractDriver):
     @log.log
     def update_chain(self, chain_id, fc_ids, vnfs, auth_attr=None):
         if chain_id not in self._instances:
-            LOG.debug('Chain not found')
+            LOG.error('Chain not found')
             raise ValueError('No chain instance %s' % chain_id)
 
     @log.log
@@ -63,7 +63,7 @@ class VNFFGNoop(abstract_vnffg_driver.VnffgAbstractDriver):
     @log.log
     def update_flow_classifier(self, fc_id, fc, auth_attr=None):
         if fc_id not in self._instances:
-            LOG.debug('FC not found')
+            LOG.error('FC not found')
             raise ValueError('No FC instance %s' % fc_id)
 
     @log.log

@@ -43,7 +43,7 @@ class TackerKeystoneContext(base.ConfigurableMiddleware):
         ctx = context.Context.from_environ(req.environ)
 
         if not ctx.user_id:
-            LOG.debug("X_USER_ID is not found in request")
+            LOG.error("X_USER_ID is not found in request")
             return webob.exc.HTTPUnauthorized()
 
         # Inject the context...
@@ -104,8 +104,8 @@ class _ClientCredentialsGrant(_OAuth2GrantBase):
         LOG.info(
             "Get Access Token, Connecting to <GET:{}>".format(
                 self.token_endpoint))
-        LOG.info("Request Headers={}".format(kwargs.get('headers')))
-        LOG.info("Request Body={}".format(kwargs.get('data')))
+        LOG.debug("[REQ] Headers={}".format(kwargs.get('headers')))
+        LOG.debug("[RES] Body={}".format(kwargs.get('data')))
 
         response = basic_auth_request.post(
             self.token_endpoint,
@@ -114,8 +114,8 @@ class _ClientCredentialsGrant(_OAuth2GrantBase):
         response.raise_for_status()
 
         response_body = response.json()
-        LOG.info("[RES] Headers={}".format(response.headers))
-        LOG.info("[RES] Body={}".format(response_body))
+        LOG.debug("[RES] Headers={}".format(response.headers))
+        LOG.debug("[RES] Body={}".format(response_body))
 
         return response_body
 
@@ -279,7 +279,7 @@ class _AuthManager:
             client = _OAuth2Session(grant)
             client.apply_access_token_info()
 
-        LOG.info(
+        LOG.debug(
             "Add to Auth management, id=<{}>, type=<{}>, class=<{}>".format(
                 id, auth_type, client.__class__.__name__))
 

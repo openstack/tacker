@@ -59,5 +59,5 @@ class GlanceClient(object):
         try:
             return self.connection.image.get_image(image_id)
         except exc.HTTPNotFound:
-            LOG.warning("Image %(image)s created not found ",
-                        {'image': image_id})
+            LOG.error("Image %(image)s created not found ",
+                      {'image': image_id})

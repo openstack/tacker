@@ -565,9 +565,9 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                 self._update_vnf_status_db(
                     context, vnf_info['id'], previous_statuses, 'ERROR')
         except Exception as e:
-            LOG.warning("Failed to revert scale info for vnf "
-                        "instance %(id)s. Error: %(error)s",
-                        {"id": vnf_info['id'], "error": e})
+            LOG.error("Failed to revert scale info for vnf "
+                      "instance %(id)s. Error: %(error)s",
+                      {"id": vnf_info['id'], "error": e})
         self._cos_db_plg.create_event(
             context, res_id=vnf_info['id'],
             res_type=constants.RES_TYPE_VNF,
@@ -799,7 +799,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                     filter(~VNF.status.in_(exclude_status)).
                     with_for_update().one())
             except orm_exc.NoResultFound:
-                LOG.warning('no vnf found %s', vnf_id)
+                LOG.error('no vnf found %s', vnf_id)
                 return False
 
             vnf_db.update({'status': new_status})

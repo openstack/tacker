@@ -552,9 +552,9 @@ class ExtensionManager(object):
                     new_ext = new_ext_class()
                     self.add_extension(new_ext)
             except Exception as exception:
-                LOG.warning("Extension file %(f)s wasn't loaded due to "
-                            "%(exception)s",
-                            {'f': f, 'exception': exception})
+                LOG.error("Extension file %(f)s wasn't loaded due to "
+                          "%(exception)s",
+                          {'f': f, 'exception': exception})
 
     def add_extension(self, ext):
         # Do nothing if the extension doesn't check out
@@ -562,7 +562,6 @@ class ExtensionManager(object):
             return
 
         alias = ext.get_alias()
-        LOG.info('Loaded extension: %s', alias)
 
         if alias in self.extensions:
             raise exceptions.DuplicatedExtension(alias=alias)

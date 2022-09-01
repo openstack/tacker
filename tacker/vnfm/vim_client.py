@@ -47,7 +47,7 @@ class VimClient(object):
             try:
                 vim_info = nfvo_plugin.get_default_vim(context)
             except Exception as ex:
-                LOG.debug('Fail to get default vim due to %s', ex)
+                LOG.error('Fail to get default vim due to %s', ex)
                 raise nfvo.VimDefaultNotDefined()
         else:
             try:
@@ -131,7 +131,7 @@ class VimClient(object):
 
         f = fernet.Fernet(vim_key)
         if not f:
-            LOG.warning('Unable to decode VIM auth')
+            LOG.error('Unable to decode VIM auth')
             raise nfvo.VimNotFoundException(vim_id=vim_id)
         return f.decrypt(cred).decode('utf-8')
 
@@ -143,5 +143,5 @@ class VimClient(object):
             with open(key_file, 'r') as f:
                 return f.read()
         except Exception:
-            LOG.warning('VIM id invalid or key not found for  %s', vim_id)
+            LOG.error('VIM id invalid or key not found for  %s', vim_id)
             raise nfvo.VimKeyNotFoundException(vim_id=vim_id)
