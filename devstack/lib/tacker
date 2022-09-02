@@ -466,10 +466,6 @@ function tacker_setup_default_vim_resources {
     echo "The content of VIM config file $VIM_CONFIG_FILE :"
     cat $VIM_CONFIG_FILE
 
-    # TODO(tpatil): Remove installing python-tackerclient using pip once
-    # a solution is available to install it using requirements.
-    pip_install python-tackerclient
-
     echo "Set up target openstack vim resources ..."
     openstack --os-cloud=devstack-admin quota set \
               --class --instances -1 --cores -1 --ram -1 default
