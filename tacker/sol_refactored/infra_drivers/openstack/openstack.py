@@ -50,10 +50,12 @@ CP_INFO_PREFIX = 'cp-'
 def _make_link_port_id(link_port_id):
     # prepend 'req-' to distinguish from ports which are
     # created by heat.
+    # NOTE: used for extManagedVL
     return '{}{}'.format(LINK_PORT_PREFIX, link_port_id)
 
 
 def _is_link_port(link_port_id):
+    # NOTE: used for extManagedVL
     return link_port_id.startswith(LINK_PORT_PREFIX)
 
 
@@ -570,7 +572,7 @@ class Openstack(object):
 
         for req_link_port in req_ext_vl.extLinkPorts:
             link_port = objects.ExtLinkPortInfoV2(
-                id=_make_link_port_id(req_link_port.id),
+                id=req_link_port.id,
                 resourceHandle=req_link_port.resourceHandle,
             )
             ext_cp_info = objects.VnfExtCpInfoV2(
@@ -638,6 +640,15 @@ class Openstack(object):
                 return ext_cp
         # never reach here
 
+    def _is_ext_vl_link_port(self, port_id, ext_cp_data):
+        ext_port_ids = []
+        for ext_cp in ext_cp_data:
+            for cp_config in ext_cp.cpConfig.values():
+                if cp_config.obj_attr_is_set('linkPortId'):
+                    ext_port_ids.append(cp_config.linkPortId)
+
+        return port_id in ext_port_ids
+
     def _make_ext_vl_info_from_inst(self, old_inst_vnf_info, ext_cp_infos):
         # make extVirtualLinkInfo from old inst.extVirtualLinkInfo
         ext_vls = []
@@ -653,7 +664,8 @@ class Openstack(object):
                 continue
             new_link_ports = []
             for link_port in ext_vl.extLinkPorts:
-                if _is_link_port(link_port.id):
+                if self._is_ext_vl_link_port(link_port.id,
+                                             ext_vl.currentVnfExtCpData):
                     new_link_ports.append(link_port)
                     ext_cp_infos.append(self._find_ext_cp_info(link_port,
                                                                old_cp_infos))
@@ -706,7 +718,8 @@ class Openstack(object):
             for link_port in old_link_ports:
                 ext_cp = self._find_ext_cp_info(link_port, old_cp_infos)
                 if (ext_cp.cpdId not in req_all_cp_names and
-                        _is_link_port(link_port.id)):
+                        self._is_ext_vl_link_port(link_port.id,
+                                                  ext_vl.currentVnfExtCpData)):
                     new_link_ports.append(link_port)
                     ext_cp_infos.append(ext_cp)
 

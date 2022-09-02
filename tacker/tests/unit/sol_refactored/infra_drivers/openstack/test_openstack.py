@@ -1258,10 +1258,10 @@ _expected_inst_info = {
     "vnfState": "STARTED",
     "extCpInfo": [
         {
-            'id': 'cp-req-link_port_id_VDU2_CP2',
+            'id': 'cp-link_port_id_VDU2_CP2',
             'cpdId': 'VDU2_CP2',
             'cpConfigId': 'VDU2_CP2_1',
-            'extLinkPortId': 'req-link_port_id_VDU2_CP2',
+            'extLinkPortId': 'link_port_id_VDU2_CP2',
         },
         {
             "id": "cp-res_id_VDU1_CP1_1",
@@ -1455,11 +1455,11 @@ _expected_inst_info = {
             },
             "extLinkPorts": [
                 {
-                    "id": "req-link_port_id_VDU2_CP2",
+                    "id": "link_port_id_VDU2_CP2",
                     "resourceHandle": {
                         "resourceId": "res_id_VDU2_CP2",
                     },
-                    "cpInstanceId": "cp-req-link_port_id_VDU2_CP2"
+                    "cpInstanceId": "cp-link_port_id_VDU2_CP2"
                 },
                 {
                     "id": "res_id_VDU1_CP2_1",
@@ -1850,10 +1850,10 @@ _expected_inst_info_change_ext_conn = {
     "vnfState": "STARTED",
     "extCpInfo": [
         {
-            'id': 'cp-req-link_port_id_VDU2_CP2_modified',
+            'id': 'cp-link_port_id_VDU2_CP2_modified',
             'cpdId': 'VDU2_CP2',
             'cpConfigId': 'VDU2_CP2_1',
-            'extLinkPortId': 'req-link_port_id_VDU2_CP2_modified',
+            'extLinkPortId': 'link_port_id_VDU2_CP2_modified',
         },
         {
             "id": "cp-res_id_VDU1_CP1_1",
@@ -2057,11 +2057,11 @@ _expected_inst_info_change_ext_conn = {
             },
             "extLinkPorts": [
                 {
-                    "id": "req-link_port_id_VDU2_CP2_modified",
+                    "id": "link_port_id_VDU2_CP2_modified",
                     "resourceHandle": {
                         "resourceId": "res_id_VDU2_CP2_modified",
                     },
-                    "cpInstanceId": "cp-req-link_port_id_VDU2_CP2_modified"
+                    "cpInstanceId": "cp-link_port_id_VDU2_CP2_modified"
                 },
                 {
                     "id": "res_id_VDU1_CP2_1_modified",
