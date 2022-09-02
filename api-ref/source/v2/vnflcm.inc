@@ -348,6 +348,14 @@ Response Parameters
   - instantiatedVnfInfo: instantiated_vnf_info
   - flavourId: flavour_id_response
   - vnfState: vnf_state
+  - scaleStatus: scale_status
+  - aspectId: aspect_id
+  - vnfdId: scaleinfo_vnfd_id
+  - scaleLevel: scale_level
+  - maxScaleLevels: max_scale_levels
+  - aspectId: aspect_id
+  - vnfdId: scaleinfo_vnfd_id
+  - scaleLevel: scale_level
   - extCpInfo: ext_cp_info
   - id: ext_cp_info_id
   - cpdId: ext_cp_info_cpd_id
@@ -504,6 +512,14 @@ Response Parameters
   - instantiatedVnfInfo: instantiated_vnf_info
   - flavourId: flavour_id_response
   - vnfState: vnf_state
+  - scaleStatus: scale_status
+  - aspectId: aspect_id
+  - vnfdId: scaleinfo_vnfd_id
+  - scaleLevel: scale_level
+  - maxScaleLevels: max_scale_levels
+  - aspectId: aspect_id
+  - vnfdId: scaleinfo_vnfd_id
+  - scaleLevel: scale_level
   - extCpInfo: ext_cp_info
   - id: ext_cp_info_id
   - cpdId: ext_cp_info_cpd_id

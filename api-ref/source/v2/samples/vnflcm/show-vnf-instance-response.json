@@ -283,6 +283,18 @@
             }
         ],
         "flavourId": "simple",
+        "maxScaleLevels": [
+            {
+                "aspectId": "VDU1_scale",
+                "scaleLevel": 2
+            }
+        ],
+        "scaleStatus": [
+            {
+                "aspectId": "VDU1_scale",
+                "scaleLevel": 0
+            }
+        ],
         "virtualStorageResourceInfo": [
             {
                 "id": "0357ecab-bdd8-403f-a91b-b80f287b536f",

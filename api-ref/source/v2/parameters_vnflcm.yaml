@@ -910,6 +910,12 @@ max_address:
   in: body
   required: true
   type: string
+max_scale_levels:
+  description: |
+    Maximum allowed scale levels of the VNF, one entry per aspect.
+  in: body
+  required: false
+  type: object
 min_address:
   description: |
     Lowest IP address belonging to the range.
@@ -1042,6 +1048,21 @@ scale_additional_params:
   in: body
   required: false
   type: key value pairs
+scale_level:
+  description: |
+    Indicates the scale level. The minimum value shall be 0 and the maximum value
+    shall be ≤ maxScaleLevel as described in the VNFD.
+  in: body
+  required: true
+  type: integer
+scale_status:
+  description: |
+    Scale status of the VNF, one entry per aspect.
+    Represents for every scaling aspect how "big" the VNF has been scaled
+    w.r.t. that aspect.
+  in: body
+  required: false
+  type: object
 scale_type:
   description: |
     Indicates the type of the scale operation requested.
@@ -1052,6 +1073,15 @@ scale_type:
     SCALE_IN: removing VNFC instances from the VNF in order to release unused capacity.
   in: body
   required: true
+  type: string
+scaleinfo_vnfd_id:
+  description: |
+    Identifier of the VNFD.
+    Shall be present in case the value differs from the vnfdId attribute of the
+    VnfInstance (e.g. during a "Change current VNF package" operation or due to its
+    final failure).
+  in: body
+  required: false
   type: string
 segmentation_id:
   description: |
@@ -1544,7 +1574,7 @@ vnf_state:
   description: |
     State of the VNF instance.
   in: body
-  required: false
+  required: true
   type: string
 vnf_subscription_create_request_verbosity:
   description: |
