@@ -76,8 +76,11 @@ def async_call(func):
 @async_call
 def send_notification(subsc, notif_data):
     auth_handle = _get_notification_auth_handle(subsc)
+    connect_retries = (CONF.v2_vnfm.notify_connect_retries
+        if CONF.v2_vnfm.notify_connect_retries else None)
     client = http_client.HttpClient(auth_handle,
-        version=api_version.CURRENT_VERSION)
+        version=api_version.CURRENT_VERSION,
+        connect_retries=connect_retries)
 
     url = subsc.callbackUri
     try:
