@@ -2000,6 +2000,10 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
                 operation_state=fields.LcmOccsOperationState.COMPLETED)
 
         except Exception as ex:
+            LOG.warning(traceback.format_exc())
+            LOG.warning("Exception occured in instantiation for vnf "
+                        "instance %(id)s. Error: %(error)s",
+                        {"id": vnf_instance.id, "error": ex})
             self._change_vnf_status(context, vnf_instance.id,
                                     constants.ALL_STATUSES, 'ERROR')
 
