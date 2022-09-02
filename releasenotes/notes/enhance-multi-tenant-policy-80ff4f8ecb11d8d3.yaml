@@ -1,0 +1,6 @@
+---
+other:
+  - |
+    Added negative functional test cases for the multi-tenant environment,
+    to validate that Tacker disallows deletion operation and sharing
+    subscription and VNF package details of different tenants.
