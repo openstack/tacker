@@ -93,14 +93,17 @@ EOF
     done
 }
 
+# When executing terminate cnf, it will operate on haproxy.cfg.
+# Find two lines that exactly match the specified strings $start_str
+# and $end_str, and then delete all the content between the two lines.
 function delete_haproxy_conf {
     for(( i=0;i<${#NODEPORTS[@]};i++)); do
         split_node_port=(${NODEPORTS[i]//,/ })
         start_str=${split_node_port[0]}_${split_node_port[1]}
         end_str='default_backend      kubernetes-nodeport'
-        start_line_no=`grep -n "$start_str" /etc/haproxy/haproxy.cfg | \
+        start_line_no=`grep -w -n "$start_str" /etc/haproxy/haproxy.cfg | \
         cut -d ":" -f 1`
-        end_line_no=`grep -n "$end_str" /etc/haproxy/haproxy.cfg | head -1 |\
+        end_line_no=`grep -w -n "$end_str" /etc/haproxy/haproxy.cfg | head -1 |\
         cut -d ":" -f 1`
         sudo sed -i "${start_line_no},${end_line_no}d" /etc/haproxy/haproxy.cfg
     done

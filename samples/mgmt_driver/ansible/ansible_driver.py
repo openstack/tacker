@@ -196,7 +196,7 @@ class AnsibleDriver(object):
         ]
 
         if action in scaling_actions:
-            stack_id = kwargs["scale_stack_id"]
+            stack_id = kwargs["scale_out_id_list"]
         else:
             stack_id = self._vnf_instance.instantiated_vnf_info.instance_id
 

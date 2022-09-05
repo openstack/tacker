@@ -783,3 +783,13 @@ class Free5gcMgmtDriverCnf(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
             change_ext_conn_request, grant,
             grant_request, **kwargs):
         pass
+
+    @log.log
+    def modify_information_start(self, context, vnf_instance,
+                                 modify_vnf_request, **kwargs):
+        pass
+
+    @log.log
+    def modify_information_end(self, context, vnf_instance,
+                               modify_vnf_request, **kwargs):
+        pass
