@@ -1744,7 +1744,11 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
                         or operation_state == \
                         fields.LcmOccsOperationState.FAILED:
                     notification_data['error'] = error
+        except Exception as ex:
+            LOG.error("Error in getting resources for op id - {}.\
+                    Details: {}".format(vnf_lcm_op_occs_id, str(ex)))
 
+        try:
             # send notification
             self.send_notification(context, notification_data)
         except Exception as ex:
@@ -2000,29 +2004,33 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
                 operation_state=fields.LcmOccsOperationState.COMPLETED)
 
         except Exception as ex:
-            LOG.warning(traceback.format_exc())
-            LOG.warning("Exception occured in instantiation for vnf "
-                        "instance %(id)s. Error: %(error)s",
-                        {"id": vnf_instance.id, "error": ex})
-            self._change_vnf_status(context, vnf_instance.id,
+            try:
+                LOG.warning(traceback.format_exc())
+                LOG.warning("Exception occured in instantiation for vnf "
+                            "instance %(id)s. Error: %(error)s",
+                            {"id": vnf_instance.id, "error": ex})
+                self._change_vnf_status(context, vnf_instance.id,
                                     constants.ALL_STATUSES, 'ERROR')
-
-            self._build_instantiated_vnf_info(context, vnf_instance,
-                instantiate_vnf)
-            self.vnflcm_driver._vnf_instance_update(context, vnf_instance,
+                self._build_instantiated_vnf_info(context, vnf_instance,
+                    instantiate_vnf)
+                self.vnflcm_driver._vnf_instance_update(context, vnf_instance,
                         task_state=None)
-
-            # Update vnf_lcm_op_occs table and send notification "FAILED_TEMP"
-            self._send_lcm_op_occ_notification(
-                context=context,
-                vnf_lcm_op_occs_id=vnf_lcm_op_occs_id,
-                old_vnf_instance=None,
-                vnf_instance=vnf_instance,
-                operation=fields.LcmOccsOperationType.INSTANTIATE,
-                operation_state=fields.LcmOccsOperationState.FAILED_TEMP,
-                error=str(ex),
-                error_point=vnf_dict['current_error_point']
-            )
+            except Exception as exception:
+                LOG.warning("Failed to change VNF status to ERROR.\
+                        Exception : %s", str(exception))
+            finally:
+                # Update vnf_lcm_op_occs table
+                # and send notification "FAILED_TEMP"
+                self._send_lcm_op_occ_notification(
+                    context=context,
+                    vnf_lcm_op_occs_id=vnf_lcm_op_occs_id,
+                    old_vnf_instance=None,
+                    vnf_instance=vnf_instance,
+                    operation=fields.LcmOccsOperationType.INSTANTIATE,
+                    operation_state=fields.LcmOccsOperationState.FAILED_TEMP,
+                    error=str(ex),
+                    error_point=vnf_dict['current_error_point']
+                )
 
     @coordination.synchronized('{vnf_instance[id]}')
     def terminate(self, context, vnf_lcm_op_occs_id,
@@ -2080,24 +2088,29 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
             )
 
         except Exception as exc:
-            # set vnf_status to error
-            self._change_vnf_status(context, vnf_instance.id,
+            try:
+                # set vnf_status to error
+                self._change_vnf_status(context, vnf_instance.id,
                                     constants.ALL_STATUSES, 'ERROR')
 
-            self.vnflcm_driver._vnf_instance_update(
-                context, vnf_instance, task_state=None)
-
-            # Update vnf_lcm_op_occs table and send notification "FAILED_TEMP"
-            self._send_lcm_op_occ_notification(
-                context=context,
-                vnf_lcm_op_occs_id=vnf_lcm_op_occs_id,
-                old_vnf_instance=old_vnf_instance,
-                vnf_instance=None,
-                operation=fields.LcmOccsOperationType.TERMINATE,
-                operation_state=fields.LcmOccsOperationState.FAILED_TEMP,
-                error=str(exc),
-                error_point=vnf_dict['current_error_point']
-            )
+                self.vnflcm_driver._vnf_instance_update(
+                    context, vnf_instance, task_state=None)
+            except Exception as exception:
+                LOG.warning("Failed to change VNF status to ERROR.\
+                        Exception : %s", str(exception))
+            finally:
+                # Update vnf_lcm_op_occs table and send
+                # notification "FAILED_TEMP"
+                self._send_lcm_op_occ_notification(
+                    context=context,
+                    vnf_lcm_op_occs_id=vnf_lcm_op_occs_id,
+                    old_vnf_instance=old_vnf_instance,
+                    vnf_instance=None,
+                    operation=fields.LcmOccsOperationType.TERMINATE,
+                    operation_state=fields.LcmOccsOperationState.FAILED_TEMP,
+                    error=str(exc),
+                    error_point=vnf_dict['current_error_point']
+                )
 
     def _update_vnf_attributes_stack_param(self, context, vnf_dict, vnf_id,
                                            heal_vnf_request, inst_vnf_info):
@@ -2183,25 +2196,30 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
                 operation_state=fields.LcmOccsOperationState.COMPLETED
             )
         except Exception as ex:
-            # update vnf_status to 'ERROR' and create event with 'ERROR' status
-            self._change_vnf_status(context, vnf_instance.id,
+            try:
+                # update vnf_status to 'ERROR' and create
+                # event with 'ERROR' status
+                self._change_vnf_status(context, vnf_instance.id,
                                     constants.ALL_STATUSES, constants.ERROR)
 
-            # call _update_instantiated_vnf_info for notification
-            self._update_instantiated_vnf_info(context, vnf_instance,
+                # call _update_instantiated_vnf_info for notification
+                self._update_instantiated_vnf_info(context, vnf_instance,
                                                heal_vnf_request)
-
-            # update vnf_lcm_op_occs and send notification "FAILED_TEMP"
-            self._send_lcm_op_occ_notification(
-                context=context,
-                vnf_lcm_op_occs_id=vnf_lcm_op_occs_id,
-                old_vnf_instance=old_vnf_instance,
-                vnf_instance=vnf_instance,
-                operation=fields.LcmOccsOperationType.HEAL,
-                operation_state=fields.LcmOccsOperationState.FAILED_TEMP,
-                error=str(ex),
-                error_point=vnf_dict['current_error_point']
-            )
+            except Exception as exception:
+                LOG.warning("Failed to change VNF status to ERROR.\
+                        Exception : %s", str(exception))
+            finally:
+                # update vnf_lcm_op_occs and send notification "FAILED_TEMP"
+                self._send_lcm_op_occ_notification(
+                    context=context,
+                    vnf_lcm_op_occs_id=vnf_lcm_op_occs_id,
+                    old_vnf_instance=old_vnf_instance,
+                    vnf_instance=vnf_instance,
+                    operation=fields.LcmOccsOperationType.HEAL,
+                    operation_state=fields.LcmOccsOperationState.FAILED_TEMP,
+                    error=str(ex),
+                    error_point=vnf_dict['current_error_point']
+                )
 
     @coordination.synchronized('{vnf_instance[id]}')
     def scale(self, context, vnf_info, vnf_instance, scale_vnf_request):
@@ -2452,27 +2470,32 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
                 operation_state=fields.LcmOccsOperationState.COMPLETED
             )
         except Exception as e:
-            # update vnf_status to 'ERROR' and create event with 'ERROR' status
-            self._change_vnf_status(context, vnf_instance.id,
+            try:
+                # update vnf_status to 'ERROR' and create
+                # event with 'ERROR' status
+                self._change_vnf_status(context, vnf_instance.id,
                                     constants.ALL_STATUSES, constants.ERROR)
 
-            LOG.error('Failed to execute operation. error={}'.format(e))
-            if vnf_dict['current_error_point'] in [EP.INTERNAL_PROCESSING,
-                    EP.VNF_CONFIG_END]:
-                self._update_instantiated_vnf_info_change_ext_conn(
-                    context, vnf_instance, change_ext_conn_req)
-
-            # update vnf_lcm_op_occs and send notification "FAILED_TEMP"
-            self._send_lcm_op_occ_notification(
-                context=context,
-                vnf_lcm_op_occs_id=vnf_lcm_op_occs_id,
-                old_vnf_instance=old_vnf_instance,
-                vnf_instance=vnf_instance,
-                operation=fields.LcmOccsOperationType.CHANGE_EXT_CONN,
-                operation_state=fields.LcmOccsOperationState.FAILED_TEMP,
-                error=str(e),
-                error_point=vnf_dict['current_error_point']
-            )
+                LOG.error('Failed to execute operation. error={}'.format(e))
+                if vnf_dict['current_error_point'] in [EP.INTERNAL_PROCESSING,
+                        EP.VNF_CONFIG_END]:
+                    self._update_instantiated_vnf_info_change_ext_conn(
+                        context, vnf_instance, change_ext_conn_req)
+            except Exception as exception:
+                LOG.warning("Failed to change VNF status to ERROR.\
+                        Exception : %s", str(exception))
+            finally:
+                # update vnf_lcm_op_occs and send notification "FAILED_TEMP"
+                self._send_lcm_op_occ_notification(
+                    context=context,
+                    vnf_lcm_op_occs_id=vnf_lcm_op_occs_id,
+                    old_vnf_instance=old_vnf_instance,
+                    vnf_instance=vnf_instance,
+                    operation=fields.LcmOccsOperationType.CHANGE_EXT_CONN,
+                    operation_state=fields.LcmOccsOperationState.FAILED_TEMP,
+                    error=str(e),
+                    error_point=vnf_dict['current_error_point']
+                )
 
 
 def init(args, **kwargs):
