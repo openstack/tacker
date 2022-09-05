@@ -2178,6 +2178,12 @@ class TestOpenStack(base.FixturedTestCase):
         inst_vnf_info = fd_utils.get_vnf_instantiated_info(
             virtual_storage_resource_info=[v_s_resource_info],
             vnfc_resource_info=[vnfc_resource_info])
+
+        mock_get_vnf_package_path.return_value = os.path.abspath(
+            os.path.join(os.path.dirname(__file__),
+                         "../../../../etc/samples/etsi/nfv",
+                         "stack_update_in_heal"))
+
         vnf_instance = fd_utils.get_vnf_instance_object(
             instantiated_vnf_info=inst_vnf_info)
 
@@ -2318,6 +2324,11 @@ class TestOpenStack(base.FixturedTestCase):
         inst_vnf_info = fd_utils.get_vnf_instantiated_info(
             virtual_storage_resource_info=[v_s_resource_info],
             vnfc_resource_info=[vnfc_resource_info])
+
+        mock_get_vnf_package_path.return_value = os.path.abspath(
+            os.path.join(os.path.dirname(__file__),
+                         "../../../../etc/samples/etsi/nfv",
+                         "stack_update_in_heal"))
 
         vnf_instance = fd_utils.get_vnf_instance_object(
             instantiated_vnf_info=inst_vnf_info)
