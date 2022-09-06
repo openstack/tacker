@@ -18,6 +18,7 @@ import json
 import os
 import pickle
 import subprocess
+import yaml
 
 from dateutil import parser
 import eventlet
@@ -67,6 +68,19 @@ def _make_combination_id(a, b):
     return '{}-{}'.format(a, b)
 
 
+def _get_vdu_idx(vdu_with_idx):
+    part = vdu_with_idx.rpartition('-')
+    if part[1] == '':
+        return None
+    return int(part[2])
+
+
+def _vdu_with_idx(vdu, vdu_idx):
+    if vdu_idx is None:
+        return vdu
+    return f'{vdu}-{vdu_idx}'
+
+
 class Openstack(object):
 
     def __init__(self):
@@ -75,7 +89,6 @@ class Openstack(object):
     def instantiate(self, req, inst, grant_req, grant, vnfd):
         # make HOT
         fields = self._make_hot(req, inst, grant_req, grant, vnfd)
-        LOG.debug("stack fields: %s", fields)
 
         # create or update stack
         vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
@@ -113,21 +126,27 @@ class Openstack(object):
         stack_name = heat_utils.get_stack_name(inst)
         heat_client.delete_stack(stack_name)
 
-    def _update_nfv_dict(self, heat_client, stack_name, fields):
-        parameters = heat_client.get_parameters(stack_name)
-        LOG.debug("ORIG parameters: %s", parameters)
-        # NOTE: parameters['nfv'] is string
-        orig_nfv_dict = json.loads(parameters.get('nfv', '{}'))
-        if 'nfv' in fields['parameters']:
+    def _update_fields(self, heat_client, stack_name, fields):
+        if 'nfv' in fields.get('parameters', {}):
+            parameters = heat_client.get_parameters(stack_name)
+            LOG.debug("ORIG parameters: %s", parameters)
+            # NOTE: parameters['nfv'] is string
+            orig_nfv_dict = json.loads(parameters.get('nfv', '{}'))
             fields['parameters']['nfv'] = inst_utils.json_merge_patch(
                 orig_nfv_dict, fields['parameters']['nfv'])
-        LOG.debug("NEW parameters: %s", fields['parameters'])
+
+        if 'template' in fields:
+            orig_template = heat_client.get_template(stack_name)
+            template = inst_utils.json_merge_patch(
+                orig_template, yaml.safe_load(fields['template']))
+            fields['template'] = yaml.safe_dump(template)
+
+        LOG.debug("NEW fields: %s", fields)
         return fields
 
     def scale(self, req, inst, grant_req, grant, vnfd):
         # make HOT
         fields = self._make_hot(req, inst, grant_req, grant, vnfd)
-        LOG.debug("stack fields: %s", fields)
 
         vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
         heat_client = heat_utils.HeatClient(vim_info)
@@ -139,17 +158,19 @@ class Openstack(object):
                             if res_def.type == 'COMPUTE']
             for vnfc in inst.instantiatedVnfInfo.vnfcResourceInfo:
                 if vnfc.computeResource.resourceId in vnfc_res_ids:
-                    if 'parent_stack_id' not in vnfc.metadata:
+                    if 'parent_stack_id' in vnfc.metadata:
+                        # AutoScalingGroup
+                        heat_client.mark_unhealthy(
+                            vnfc.metadata['parent_stack_id'],
+                            vnfc.metadata['parent_resource_name'])
+                    elif 'vdu_idx' not in vnfc.metadata:
                         # It means definition of VDU in the BaseHOT
                         # is inappropriate.
                         raise sol_ex.UnexpectedParentResourceDefinition()
-                    heat_client.mark_unhealthy(
-                        vnfc.metadata['parent_stack_id'],
-                        vnfc.metadata['parent_resource_name'])
 
         # update stack
         stack_name = heat_utils.get_stack_name(inst)
-        fields = self._update_nfv_dict(heat_client, stack_name, fields)
+        fields = self._update_fields(heat_client, stack_name, fields)
         heat_client.update_stack(stack_name, fields)
 
         # make instantiated_vnf_info
@@ -158,6 +179,10 @@ class Openstack(object):
 
     def scale_rollback(self, req, inst, grant_req, grant, vnfd):
         # NOTE: rollback is supported for scale out only
+        # make HOT
+        fields = self._make_hot(req, inst, grant_req, grant, vnfd,
+                                is_rollback=True)
+
         vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
         heat_client = heat_utils.HeatClient(vim_info)
         stack_name = heat_utils.get_stack_name(inst)
@@ -169,19 +194,18 @@ class Openstack(object):
         for res in heat_utils.get_server_reses(heat_reses):
             if res['physical_resource_id'] not in vnfc_ids:
                 metadata = self._make_vnfc_metadata(res, heat_reses)
-                if 'parent_stack_id' not in metadata:
+                if 'parent_stack_id' in metadata:
+                    # AutoScalingGroup
+                    heat_client.mark_unhealthy(
+                        metadata['parent_stack_id'],
+                        metadata['parent_resource_name'])
+                elif 'vdu_idx' not in metadata:
                     # It means definition of VDU in the BaseHOT
                     # is inappropriate.
                     raise sol_ex.UnexpectedParentResourceDefinition()
-                heat_client.mark_unhealthy(
-                    metadata['parent_stack_id'],
-                    metadata['parent_resource_name'])
 
         # update (put back) 'desired_capacity' parameter
-        fields = self._update_nfv_dict(heat_client, stack_name,
-            userdata_default.DefaultUserData.scale_rollback(
-                req, inst, grant_req, grant, vnfd.csar_dir))
-
+        fields = self._update_fields(heat_client, stack_name, fields)
         heat_client.update_stack(stack_name, fields)
 
         # NOTE: instantiatedVnfInfo is not necessary to update since it
@@ -190,13 +214,12 @@ class Openstack(object):
     def change_ext_conn(self, req, inst, grant_req, grant, vnfd):
         # make HOT
         fields = self._make_hot(req, inst, grant_req, grant, vnfd)
-        LOG.debug("stack fields: %s", fields)
 
         # update stack
         vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
         heat_client = heat_utils.HeatClient(vim_info)
         stack_name = heat_utils.get_stack_name(inst)
-        fields = self._update_nfv_dict(heat_client, stack_name, fields)
+        fields = self._update_fields(heat_client, stack_name, fields)
         heat_client.update_stack(stack_name, fields)
 
         # make instantiated_vnf_info
@@ -204,31 +227,33 @@ class Openstack(object):
             heat_client)
 
     def change_ext_conn_rollback(self, req, inst, grant_req, grant, vnfd):
+        # make HOT
+        fields = self._make_hot(req, inst, grant_req, grant, vnfd,
+                                is_rollback=True)
+
+        # update stack
         vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
         heat_client = heat_utils.HeatClient(vim_info)
         stack_name = heat_utils.get_stack_name(inst)
-        fields = self._update_nfv_dict(heat_client, stack_name,
-            userdata_default.DefaultUserData.change_ext_conn_rollback(
-                req, inst, grant_req, grant, vnfd.csar_dir))
+        fields = self._update_fields(heat_client, stack_name, fields)
         heat_client.update_stack(stack_name, fields)
 
         # NOTE: it is necessary to re-create instantiatedVnfInfo because
         # ports may be changed.
         self._make_instantiated_vnf_info(req, inst, grant_req, grant, vnfd,
-            heat_client)
+            heat_client, is_rollback=True)
 
     def heal(self, req, inst, grant_req, grant, vnfd):
         # make HOT
         # NOTE: _make_hot() is called as other operations, but it returns
-        # empty 'nfv' dict by default. Therefore _update_nfv_dict() returns
+        # empty 'nfv' dict by default. Therefore _update_fields() returns
         # current heat parameters as is.
         fields = self._make_hot(req, inst, grant_req, grant, vnfd)
-        LOG.debug("stack fields: %s", fields)
 
         vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
         heat_client = heat_utils.HeatClient(vim_info)
         stack_name = heat_utils.get_stack_name(inst)
-        fields = self._update_nfv_dict(heat_client, stack_name, fields)
+        fields = self._update_fields(heat_client, stack_name, fields)
 
         # "re_create" is set to True only when SOL003 heal(without
         # vnfcInstanceId) and "all=True" in additionalParams.
@@ -284,7 +309,6 @@ class Openstack(object):
     def change_vnfpkg(self, req, inst, grant_req, grant, vnfd):
         # make HOT
         fields = self._make_hot(req, inst, grant_req, grant, vnfd)
-        LOG.debug("stack fields: %s", fields)
 
         vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
         heat_client = heat_utils.HeatClient(vim_info)
@@ -298,12 +322,34 @@ class Openstack(object):
 
         # update stack
         stack_name = heat_utils.get_stack_name(inst)
-        fields = self._update_nfv_dict(heat_client, stack_name, fields)
+        fields = self._update_fields(heat_client, stack_name, fields)
         heat_client.update_stack(stack_name, fields)
 
         # make instantiated_vnf_info
         self._make_instantiated_vnf_info(req, inst, grant_req, grant, vnfd,
             heat_client)
+
+    def _get_flavor_from_vdu_dict(self, vnfc, vdu_dict):
+        vdu_name = _vdu_with_idx(vnfc.vduId, vnfc.metadata.get('vdu_idx'))
+        return vdu_dict.get(vdu_name, {}).get('computeFlavourId')
+
+    def _get_images_from_vdu_dict(self, vnfc, storage_infos, vdu_dict):
+        vdu_idx = vnfc.metadata.get('vdu_idx')
+        vdu_name = _vdu_with_idx(vnfc.vduId, vdu_idx)
+        vdu_names = [vdu_name]
+        if vnfc.obj_attr_is_set('storageResourceIds'):
+            vdu_names += [
+                _vdu_with_idx(storage_info.virtualStorageDescId, vdu_idx)
+                for storage_info in storage_infos
+                if storage_info.id in vnfc.storageResourceIds
+            ]
+        images = {}
+        for vdu_name in vdu_names:
+            image = vdu_dict.get(vdu_name, {}).get('vcImageId')
+            if image:
+                images[vdu_name] = image
+
+        return images
 
     def _change_vnfpkg_rolling_update(self, req, inst, grant_req, grant,
             vnfd, fields, heat_client, is_rollback):
@@ -348,30 +394,25 @@ class Openstack(object):
                 LOG.debug("stack fields: %s", vdu_fields)
                 heat_client.update_stack(parent_stack_id, vdu_fields)
             else:
-                # handle single VM
-                # pickup 'vcImageId' and 'computeFlavourId'
+                # pickup 'vcImageId' and 'computeFlavourId' from vdu_dict
+                vdu_name = _vdu_with_idx(vnfc.vduId,
+                                         vnfc.metadata.get('vdu_idx'))
                 params = {}
-                if vdu_dict[vnfc.vduId].get('computeFlavourId'):
-                    params[vnfc.vduId] = {'computeFlavourId':
-                        vdu_dict[vnfc.vduId]['computeFlavourId']}
-                vdu_names = [vnfc.vduId]
-                if vnfc.obj_attr_is_set('storageResourceIds'):
-                    storage_infos = (
-                        inst.instantiatedVnfInfo.virtualStorageResourceInfo)
-                    vdu_names += [
-                        storage_info.virtualStorageDescId
-                        for storage_info in storage_infos
-                        if storage_info.id in vnfc.storageResourceIds
-                    ]
-                for vdu_name in vdu_names:
-                    image = vdu_dict.get(vdu_name, {}).get('vcImageId')
-                    if image:
-                        params.setdefault(vdu_name, {})
-                        params[vdu_name]['vcImageId'] = image
+                flavor = self._get_flavor_from_vdu_dict(vnfc, vdu_dict)
+                if flavor:
+                    params[vdu_name] = {'computeFlavourId': flavor}
+                storage_infos = (
+                    inst.instantiatedVnfInfo.virtualStorageResourceInfo
+                    if vnfc.obj_attr_is_set('storageResourceIds') else [])
+                images = self._get_images_from_vdu_dict(vnfc,
+                    storage_infos, vdu_dict)
+                for vdu_name, image in images.items():
+                    params.setdefault(vdu_name, {})
+                    params[vdu_name]['vcImageId'] = image
                 update_nfv_dict = {'nfv': {'VDU': params}}
                 update_fields = {'parameters': update_nfv_dict}
 
-                update_fields = self._update_nfv_dict(heat_client, stack_name,
+                update_fields = self._update_fields(heat_client, stack_name,
                         update_fields)
                 LOG.debug("stack fields: %s", update_fields)
                 heat_client.update_stack(stack_name, update_fields)
@@ -429,8 +470,9 @@ class Openstack(object):
 
     def change_vnfpkg_rollback(self, req, inst, grant_req, grant, vnfd,
             lcmocc):
-        fields = userdata_default.DefaultUserData.change_vnfpkg_rollback(
-            req, inst, grant_req, grant, vnfd.csar_dir)
+        # make HOT
+        fields = self._make_hot(req, inst, grant_req, grant, vnfd,
+                                is_rollback=True)
 
         vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
         heat_client = heat_utils.HeatClient(vim_info)
@@ -444,15 +486,15 @@ class Openstack(object):
 
         # stack update
         stack_name = heat_utils.get_stack_name(inst)
-        fields = self._update_nfv_dict(heat_client, stack_name, fields)
+        fields = self._update_fields(heat_client, stack_name, fields)
         heat_client.update_stack(stack_name, fields)
 
         # NOTE: it is necessary to re-create instantiatedVnfInfo because
         # some resources may be changed.
         self._make_instantiated_vnf_info(req, inst, grant_req, grant, vnfd,
-            heat_client)
+            heat_client, is_rollback=True)
 
-    def _make_hot(self, req, inst, grant_req, grant, vnfd):
+    def _make_hot(self, req, inst, grant_req, grant, vnfd, is_rollback=False):
         if grant_req.operation == v2fields.LcmOperationType.INSTANTIATE:
             flavour_id = req.flavourId
         else:
@@ -470,10 +512,12 @@ class Openstack(object):
                 'lcm-operation-user-data-class')
 
         if userdata is None and userdata_class is None:
-            LOG.debug("Processing default userdata %s", grant_req.operation)
+            operation = grant_req.operation.lower()
+            if is_rollback:
+                operation = operation + '_rollback'
+            LOG.debug("Processing default userdata %s", operation)
             # NOTE: objects used here are dict compat.
-            method = getattr(userdata_default.DefaultUserData,
-                             grant_req.operation.lower())
+            method = getattr(userdata_default.DefaultUserData, operation)
             fields = method(req, inst, grant_req, grant, vnfd.csar_dir)
         elif userdata is None or userdata_class is None:
             # Both must be specified.
@@ -488,7 +532,8 @@ class Openstack(object):
                 'vnf_instance': inst.to_dict(),
                 'grant_request': grant_req.to_dict(),
                 'grant_response': grant.to_dict(),
-                'tmp_csar_dir': tmp_csar_dir
+                'tmp_csar_dir': tmp_csar_dir,
+                'is_rollback': is_rollback
             }
             script_path = os.path.join(
                 os.path.dirname(__file__), "userdata_main.py")
@@ -509,6 +554,8 @@ class Openstack(object):
 
         fields['timeout_mins'] = (
             CONF.v2_vnfm.openstack_vim_stack_create_timeout)
+
+        LOG.debug("stack fields: %s", fields)
 
         return fields
 
@@ -895,9 +942,16 @@ class Openstack(object):
         }
         parent_res = heat_utils.get_parent_resource(server_res, heat_reses)
         if parent_res:
-            metadata['parent_stack_id'] = (
-                heat_utils.get_resource_stack_id(parent_res))
-            metadata['parent_resource_name'] = parent_res['resource_name']
+            parent_parent_res = heat_utils.get_parent_resource(parent_res,
+                                                               heat_reses)
+            if (parent_parent_res and
+                    parent_parent_res['resource_type'] ==
+                    'OS::Heat::AutoScalingGroup'):
+                metadata['parent_stack_id'] = (
+                    heat_utils.get_resource_stack_id(parent_res))
+                metadata['parent_resource_name'] = parent_res['resource_name']
+            else:
+                metadata['vdu_idx'] = _get_vdu_idx(parent_res['resource_name'])
 
         return metadata
 
@@ -917,22 +971,16 @@ class Openstack(object):
                     if k.startswith('image-'):
                         metadata[k] = v
             else:
-                properties = nfv_dict['VDU'][vnfc_res_info.vduId]
-                metadata['flavor'] = properties['computeFlavourId']
-                vdu_names = [vnfc_res_info.vduId]
-                if vnfc_res_info.obj_attr_is_set('storageResourceIds'):
-                    vdu_names += [
-                        storage_info.virtualStorageDescId
-                        for storage_info in storage_infos
-                        if storage_info.id in vnfc_res_info.storageResourceIds
-                    ]
-                for vdu_name in vdu_names:
-                    image = nfv_dict['VDU'].get(vdu_name, {}).get('vcImageId')
-                    if image:
-                        metadata[f'image-{vdu_name}'] = image
+                # assume it is found
+                metadata['flavor'] = self._get_flavor_from_vdu_dict(
+                    vnfc_res_info, nfv_dict['VDU'])
+                images = self._get_images_from_vdu_dict(vnfc_res_info,
+                    storage_infos, nfv_dict['VDU'])
+                for vdu_name, image in images.items():
+                    metadata[f'image-{vdu_name}'] = image
 
     def _make_instantiated_vnf_info(self, req, inst, grant_req, grant, vnfd,
-            heat_client):
+            heat_client, is_rollback=False):
         # get heat resources
         stack_name = heat_utils.get_stack_name(inst)
         heat_reses = heat_client.get_resources(stack_name)
@@ -1029,7 +1077,8 @@ class Openstack(object):
                 flavour_id, req, grant)
         else:
             old_inst_vnf_info = inst.instantiatedVnfInfo
-            if op == v2fields.LcmOperationType.CHANGE_EXT_CONN:
+            if (op == v2fields.LcmOperationType.CHANGE_EXT_CONN and
+                    not is_rollback):
                 ext_vl_infos = self._make_ext_vl_info_from_req_and_inst(
                     req, grant, old_inst_vnf_info, ext_cp_infos)
             else:
@@ -1107,7 +1156,9 @@ class Openstack(object):
             # grant request.
 
             def _get_key(vnfc):
-                return parser.isoparse(vnfc.metadata['creation_time'])
+                vdu_idx = vnfc.metadata.get('vdu_idx', 0)
+                creation_time = parser.isoparse(vnfc.metadata['creation_time'])
+                return (vdu_idx, creation_time)
 
             sorted_vnfc_res_infos = sorted(vnfc_res_infos, key=_get_key,
                                            reverse=True)

@@ -46,10 +46,30 @@ class AbstractUserData(metaclass=abc.ABCMeta):
 
     @staticmethod
     @abc.abstractmethod
+    def scale_rollback(req, inst, grant_req, grant, tmp_csar_dir):
+        raise sol_ex.UserDataClassNotImplemented()
+
+    @staticmethod
+    @abc.abstractmethod
     def change_ext_conn(req, inst, grant_req, grant, tmp_csar_dir):
         raise sol_ex.UserDataClassNotImplemented()
 
     @staticmethod
     @abc.abstractmethod
+    def change_ext_conn_rollback(req, inst, grant_req, grant, tmp_csar_dir):
+        raise sol_ex.UserDataClassNotImplemented()
+
+    @staticmethod
+    @abc.abstractmethod
     def heal(req, inst, grant_req, grant, tmp_csar_dir):
+        raise sol_ex.UserDataClassNotImplemented()
+
+    @staticmethod
+    @abc.abstractmethod
+    def change_vnfpkg(req, inst, grant_req, grant, tmp_csar_dir):
+        raise sol_ex.UserDataClassNotImplemented()
+
+    @staticmethod
+    @abc.abstractmethod
+    def change_vnfpkg_rollback(req, inst, grant_req, grant, tmp_csar_dir):
         raise sol_ex.UserDataClassNotImplemented()

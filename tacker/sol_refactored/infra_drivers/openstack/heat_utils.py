@@ -94,7 +94,7 @@ class HeatClient(object):
                 LOG.info("%s %s done.", operation, stack_name)
                 raise loopingcall.LoopingCallDone()
             elif status in failed_status:
-                LOG.error("% %s failed.", operation, stack_name)
+                LOG.error("%s %s failed.", operation, stack_name)
                 sol_title = "%s failed" % operation
                 raise sol_ex.StackOperationFailed(sol_title=sol_title,
                                                   sol_detail=status_reason)
