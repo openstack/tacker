@@ -25,8 +25,10 @@ from zipfile import ZipFile
 from glance_store import exceptions as store_exceptions
 from oslo_config import cfg
 from oslo_log import log as logging
+from oslo_serialization import jsonutils
 from oslo_utils import encodeutils
 from oslo_utils import excutils
+from oslo_utils import timeutils
 from oslo_utils import uuidutils
 
 from tacker._i18n import _
@@ -57,6 +59,7 @@ class VnfPkgmController(wsgi.Controller):
         super(VnfPkgmController, self).__init__()
         self.rpc_api = vnf_pkgm_rpc.VNFPackageRPCAPI()
         glance_store.initialize_glance_store()
+        self._nextpages = {}
 
     def _get_vnf_package(self, id, request):
         # check if id is of type uuid format
@@ -71,6 +74,13 @@ class VnfPkgmController(wsgi.Controller):
             msg = _("Can not find requested vnf package: %s") % id
             raise webob.exc.HTTPNotFound(explanation=msg)
         return vnf_package
+
+    def _delete_expired_nextpages(self, nextpages):
+        for k, v in nextpages.items():
+            if timeutils.is_older_than(v['created_time'],
+                    CONF.vnf_package.nextpage_expiration_time):
+                LOG.debug('Old nextpages are deleted. id: %s' % k)
+                nextpages.pop(k)
 
     @wsgi.response(http_client.CREATED)
     @wsgi.expected_errors((http_client.BAD_REQUEST, http_client.FORBIDDEN))
@@ -120,8 +130,9 @@ class VnfPkgmController(wsgi.Controller):
     @wsgi.expected_errors((http_client.BAD_REQUEST, http_client.FORBIDDEN))
     @validation.query_schema(vnf_packages.query_params_v1)
     def index(self, request):
-        context = request.environ['tacker.context']
-        context.can(vnf_package_policies.VNFPKGM % 'index')
+        if 'tacker.context' in request.environ:
+            context = request.environ['tacker.context']
+            context.can(vnf_package_policies.VNFPKGM % 'index')
 
         search_opts = {}
         search_opts.update(request.GET)
@@ -139,6 +150,8 @@ class VnfPkgmController(wsgi.Controller):
         fields = request.GET.get('fields')
         exclude_fields = request.GET.get('exclude_fields')
         filters = request.GET.get('filter')
+        nextpage = request.GET.get('nextpage_opaque_marker')
+        allrecords = request.GET.get('all_records')
         if not (all_fields or fields or exclude_fields):
             exclude_default = True
 
@@ -148,14 +161,45 @@ class VnfPkgmController(wsgi.Controller):
 
         filters = self._view_builder.validate_filter(filters)
 
-        vnf_packages = vnf_package_obj.VnfPackagesList.get_by_filters(
-            request.context, read_deleted='no', filters=filters)
+        results = []
 
-        return self._view_builder.index(vnf_packages,
-                                        all_fields=all_fields,
-                                        exclude_fields=exclude_fields,
-                                        fields=fields,
-                                        exclude_default=exclude_default)
+        if allrecords != 'yes' and nextpage:
+            self._delete_expired_nextpages(self._nextpages)
+
+            if nextpage in self._nextpages:
+                results = self._nextpages.pop(
+                    nextpage)['nextpage']
+        else:
+            vnf_packages = vnf_package_obj.VnfPackagesList.get_by_filters(
+                request.context, read_deleted='no', filters=filters)
+
+            results = self._view_builder.index(vnf_packages,
+                                               all_fields=all_fields,
+                                               exclude_fields=exclude_fields,
+                                               fields=fields,
+                                               exclude_default=exclude_default)
+
+        res = webob.Response(content_type='application/json')
+        res.status_int = 200
+
+        if (allrecords != 'yes' and
+                len(results) > CONF.vnf_package.vnf_package_num):
+            nextpageid = uuidutils.generate_uuid()
+            links = ('Link', '<%s?nextpage_opaque_marker=%s>; rel="next"' % (
+                request.path_url, nextpageid))
+            res.headerlist.append(links)
+            res.body = jsonutils.dump_as_bytes(
+                results[: CONF.vnf_package.vnf_package_num], default=str)
+
+            self._delete_expired_nextpages(self._nextpages)
+
+            remain = results[CONF.vnf_package.vnf_package_num:]
+            self._nextpages.update({nextpageid:
+                {'created_time': timeutils.utcnow(), 'nextpage': remain}})
+        else:
+            res.body = jsonutils.dump_as_bytes(results, default=str)
+
+        return res
 
     @wsgi.response(http_client.NO_CONTENT)
     @wsgi.expected_errors((http_client.FORBIDDEN, http_client.NOT_FOUND,
