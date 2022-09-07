@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    Support CNF Heal/Scale/Rollback operation in v2 LCM API.
+    This feature provides the following CNF operations in
+    v2 LCM API based on ETSI NFV specifications and
+    instantiatiationLevel parameter to determine
+    the initial number of Pods.
+    * Scale VNF task
+    * Heal VNF task
+    * Rollback operation task (instantiate and scale-out)

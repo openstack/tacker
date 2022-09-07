@@ -447,14 +447,16 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
             raise sol_ex.NotSupportUpgradeType(upgrade_type=upgrade_type)
         vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
         vdu_params = additional_params.get('vdu_params')
-        if (vim_info.vimType == 'ETSINFV.OPENSTACK_KEYSTONE.V_3' and
-                vdu_params is None):
+        if vdu_params is None:
             raise sol_ex.SolValidationError(
                 detail="'vdu_params' must exist in additionalParams")
-        if vdu_params:
-            self._check_vdu_params(inst, vdu_params, vim_info.vimType,
-                additional_params.get('lcm-operation-coordinate-new-vnf'),
-                additional_params.get('lcm-operation-coordinate-old-vnf'))
+        self._check_vdu_params(inst, vdu_params, vim_info.vimType,
+            additional_params.get('lcm-operation-coordinate-new-vnf'),
+            additional_params.get('lcm-operation-coordinate-old-vnf'))
+        if (vim_info.vimType == "kubernetes" and
+                not additional_params.get('lcm-kubernetes-def-files')):
+            raise sol_ex.SolValidationError(
+                detail="'lcm-kubernetes-def-files' must be specified")
 
         lcmocc = self._new_lcmocc(id, v2fields.LcmOperationType.CHANGE_VNFPKG,
                                   body)
@@ -609,9 +611,6 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
             inst = inst_utils.get_inst(context, lcmocc.vnfInstanceId)
             vim_infos = inst.vimConnectionInfo
         vim_info = inst_utils.select_vim_info(vim_infos)
-        if lcmocc.operation != 'CHANGE_VNFPKG' and (
-                vim_info.vimType == 'kubernetes'):
-            raise sol_ex.NotSupportOperationType
 
         self.conductor_rpc.retry_lcm_op(context, lcmocc.id)
 
@@ -641,9 +640,6 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
             inst = inst_utils.get_inst(context, lcmocc.vnfInstanceId)
             vim_infos = inst.vimConnectionInfo
         vim_info = inst_utils.select_vim_info(vim_infos)
-        if lcmocc.operation != 'CHANGE_VNFPKG' and (
-                vim_info.vimType == 'kubernetes'):
-            raise sol_ex.NotSupportOperationType
 
         self.conductor_rpc.rollback_lcm_op(context, lcmocc.id)
 

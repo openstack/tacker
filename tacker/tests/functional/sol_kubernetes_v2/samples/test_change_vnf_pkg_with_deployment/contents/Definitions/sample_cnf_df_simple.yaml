@@ -40,6 +40,33 @@ topology_template:
       type: company.provider.VNF
       properties:
         flavour_description: A simple flavour
+      interfaces:
+        Vnflcm:
+          instantiate_start:
+            implementation: sample-script
+          instantiate_end:
+            implementation: sample-script
+          terminate_start:
+            implementation: sample-script
+          terminate_end:
+            implementation: sample-script
+          scale_start:
+            implementation: sample-script
+          scale_end:
+            implementation: sample-script
+          heal_start:
+            implementation: sample-script
+          heal_end:
+            implementation: sample-script
+          modify_information_start:
+            implementation: sample-script
+          modify_information_end:
+            implementation: sample-script
+      artifacts:
+        sample-script:
+          description: Sample script
+          type: tosca.artifacts.Implementation.Python
+          file: ../Scripts/sample_script.py
 
     VDU1:
       type: tosca.nodes.nfv.Vdu.Compute
@@ -63,10 +90,28 @@ topology_template:
       type: tosca.nodes.nfv.Vdu.Compute
       properties:
         name: vdu3
-        description: VDU2 compute node
+        description: VDU3 compute node
         vdu_profile:
           min_number_of_instances: 1
           max_number_of_instances: 3
+
+    VDU5:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: vdu5
+        description: VDU5 compute node
+        vdu_profile:
+          min_number_of_instances: 1
+          max_number_of_instances: 3
+
+    VDU6:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: vdu6
+        description: VDU6 compute node
+        vdu_profile:
+          min_number_of_instances: 1
+          max_number_of_instances: 1
 
   policies:
     - scaling_aspects:
@@ -85,12 +130,18 @@ topology_template:
               max_scale_level: 2
               step_deltas:
                 - delta_1
+            vdu5_aspect:
+              name: vdu5_aspect
+              description: vdu5 scaling aspect
+              max_scale_level: 2
+              step_deltas:
+                - delta_1
 
     - VDU2_initial_delta:
         type: tosca.policies.nfv.VduInitialDelta
         properties:
           initial_delta:
-            number_of_instances: 1
+            number_of_instances: 2
         targets: [ VDU2 ]
 
     - VDU2_scaling_aspect_deltas:
@@ -118,6 +169,22 @@ topology_template:
               number_of_instances: 1
         targets: [ VDU3 ]
 
+    - VDU5_initial_delta:
+        type: tosca.policies.nfv.VduInitialDelta
+        properties:
+          initial_delta:
+            number_of_instances: 1
+        targets: [ VDU5 ]
+
+    - VDU5_scaling_aspect_deltas:
+        type: tosca.policies.nfv.VduScalingAspectDeltas
+        properties:
+          aspect: vdu5_aspect
+          deltas:
+            delta_1:
+              number_of_instances: 1
+        targets: [ VDU5 ]
+
     - instantiation_levels:
         type: tosca.policies.nfv.InstantiationLevels
         properties:
@@ -126,8 +193,10 @@ topology_template:
               description: Smallest size
               scale_info:
                 vdu2_aspect:
-                  scale_level: 0
+                  scale_level: 1
                 vdu3_aspect:
+                  scale_level: 0
+                vdu5_aspect:
                   scale_level: 0
             instantiation_level_2:
               description: Largest size
@@ -135,6 +204,8 @@ topology_template:
                 vdu2_aspect:
                   scale_level: 2
                 vdu3_aspect:
+                  scale_level: 2
+                vdu5_aspect:
                   scale_level: 2
           default_level: instantiation_level_1
 
@@ -153,7 +224,7 @@ topology_template:
         properties:
           levels:
             instantiation_level_1:
-              number_of_instances: 1
+              number_of_instances: 2
             instantiation_level_2:
               number_of_instances: 3
         targets: [ VDU2 ]
@@ -167,3 +238,13 @@ topology_template:
             instantiation_level_2:
               number_of_instances: 3
         targets: [ VDU3 ]
+
+    - VDU5_instantiation_levels:
+        type: tosca.policies.nfv.VduInstantiationLevels
+        properties:
+          levels:
+            instantiation_level_1:
+              number_of_instances: 1
+            instantiation_level_2:
+              number_of_instances: 3
+        targets: [ VDU5 ]

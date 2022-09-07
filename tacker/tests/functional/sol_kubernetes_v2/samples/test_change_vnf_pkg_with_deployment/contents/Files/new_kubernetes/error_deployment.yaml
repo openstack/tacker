@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: vdu3
+  name: vdu2
   namespace: default
 spec:
   replicas: 2
@@ -20,9 +20,5 @@ spec:
         ports:
         - containerPort: 80
           protocol: TCP
-      volumes:
-        - name: config
-          configMap:
-            name: nginx-app-original
   strategy:
     type: RollingUpdate

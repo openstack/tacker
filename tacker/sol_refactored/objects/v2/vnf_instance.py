@@ -84,6 +84,9 @@ class VnfInstanceV2_InstantiatedVnfInfo(base.TackerObject,
             'VirtualStorageResourceInfoV2', nullable=True),
         # NOTE: vnfcInfo exists in SOL002 only.
         'vnfcInfo': fields.ListOfObjectsField('VnfcInfoV2', nullable=True),
+        # NOTE: metadata is not defined in SOL003. it is original
+        # definition of Tacker.
+        'metadata': fields.KeyValuePairsField(nullable=True),
     }
 
 

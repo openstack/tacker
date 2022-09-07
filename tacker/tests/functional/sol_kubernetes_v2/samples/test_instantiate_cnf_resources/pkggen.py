@@ -44,6 +44,9 @@ max_sample_instantiate = paramgen.max_sample_instantiate(
     auth_url, bearer_token)
 
 max_sample_terminate = paramgen.max_sample_terminate()
+max_sample_scale_out = paramgen.max_sample_scale_out()
+max_sample_scale_in = paramgen.max_sample_scale_in()
+max_sample_heal = paramgen.max_sample_heal(["replace real vnfc ids"])
 
 # if you instantiate with only one resource
 # please change vim_id to your k8s's vim id
@@ -55,6 +58,11 @@ min_sample_terminate = paramgen.min_sample_terminate()
 change_vnfpkg_instantiate = paramgen.change_vnfpkg_instantiate(
     auth_url, bearer_token)
 
+error_handling_instantiate = paramgen.error_handling_instantiate(
+    auth_url, bearer_token)
+error_handling_scale_out = paramgen.error_handling_scale_out()
+error_handling_terminate = paramgen.error_handling_terminate()
+
 with open("create_req", "w", encoding='utf-8') as f:
     f.write(json.dumps(create_req, indent=2))
 
@@ -64,6 +72,15 @@ with open("max_sample_instantiate", "w", encoding='utf-8') as f:
 with open("max_sample_terminate", "w", encoding='utf-8') as f:
     f.write(json.dumps(max_sample_terminate, indent=2))
 
+with open("max_sample_scale_out", "w", encoding='utf-8') as f:
+    f.write(json.dumps(max_sample_scale_out, indent=2))
+
+with open("max_sample_scale_in", "w", encoding='utf-8') as f:
+    f.write(json.dumps(max_sample_scale_in, indent=2))
+
+with open("max_sample_heal", "w", encoding='utf-8') as f:
+    f.write(json.dumps(max_sample_heal, indent=2))
+
 with open("min_sample_instantiate", "w", encoding='utf-8') as f:
     f.write(json.dumps(min_sample_instantiate, indent=2))
 
@@ -72,3 +89,12 @@ with open("min_sample_terminate", "w", encoding='utf-8') as f:
 
 with open("change_vnfpkg_instantiate", "w", encoding='utf-8') as f:
     f.write(json.dumps(change_vnfpkg_instantiate, indent=2))
+
+with open("error_handling_instantiate", "w", encoding='utf-8') as f:
+    f.write(json.dumps(error_handling_instantiate, indent=2))
+
+with open("error_handling_scale_out", "w", encoding='utf-8') as f:
+    f.write(json.dumps(error_handling_scale_out, indent=2))
+
+with open("error_handling_terminate", "w", encoding='utf-8') as f:
+    f.write(json.dumps(error_handling_terminate, indent=2))

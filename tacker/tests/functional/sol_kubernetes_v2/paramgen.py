@@ -138,6 +138,28 @@ def max_sample_terminate():
     }
 
 
+def max_sample_scale_out():
+    return {
+        "type": "SCALE_OUT",
+        "aspectId": "vdu3_aspect",
+        "numberOfSteps": 2
+    }
+
+
+def max_sample_scale_in():
+    return {
+        "type": "SCALE_IN",
+        "aspectId": "vdu3_aspect",
+        "numberOfSteps": 1
+    }
+
+
+def max_sample_heal(vnfc_ids):
+    return {
+        "vnfcInstanceId": vnfc_ids
+    }
+
+
 def min_sample_instantiate(vim_id_1):
     vim_1 = {
         "vimId": vim_id_1,
@@ -166,14 +188,7 @@ def min_sample_terminate():
     }
 
 
-def change_vnfpkg_instantiate(auth_url, bearer_token):
-    # All attributes are set.
-    # NOTE: All of the following cardinality attributes are set.
-    # In addition, 0..N or 1..N attributes are set to 2 or more.
-    #  - 0..1 (1)
-    #  - 0..N (2 or more)
-    #  - 1
-    #  - 1..N (2 or more)
+def error_handling_instantiate(auth_url, bearer_token):
     vim_id_1 = uuidutils.generate_uuid()
     vim_1 = {
         "vimId": vim_id_1,
@@ -193,77 +208,65 @@ def change_vnfpkg_instantiate(auth_url, bearer_token):
         },
         "additionalParams": {
             "lcm-kubernetes-def-files": [
-                "Files/kubernetes/deployment.yaml",
-                "Files/kubernetes/namespace.yaml"
-            ],
-            "namespace": "curry"
-        }
-    }
-
-
-def change_vnfpkg_all_params(vnfd_id):
-    return {
-        "vnfdId": vnfd_id,
-        "additionalParams": {
-            "upgrade_type": "RollingUpdate",
-            "lcm-operation-coordinate-old-vnf":
-                "Scripts/coordinate_old_vnf.py",
-            "lcm-operation-coordinate-new-vnf":
-                "Scripts/coordinate_new_vnf.py",
-            "lcm-kubernetes-def-files": [
-                "Files/new_kubernetes/new_deployment.yaml"],
-            "vdu_params": [{
-                "vdu_id": "VDU2"
-            }]
-        }
-    }
-
-
-def change_vnfpkg_instantiate_min(vim_id_1):
-    vim_1 = {
-        "vimId": vim_id_1,
-        "vimType": "kubernetes",
-    }
-    return {
-        "flavourId": "simple",
-        "vimConnectionInfo": {
-            "vim1": vim_1,
-        },
-        "additionalParams": {
-            "lcm-kubernetes-def-files": [
                 "Files/kubernetes/deployment.yaml"
             ]
         }
     }
 
 
-def change_vnfpkg_min(vnfd_id):
+def error_handling_scale_out():
     return {
-        "vnfdId": vnfd_id,
+        "type": "SCALE_OUT",
+        "aspectId": "vdu2_aspect",
+        "numberOfSteps": 1
+    }
+
+
+def error_handling_terminate():
+    return {
+        "terminationType": "FORCEFUL"
+    }
+
+
+def change_vnfpkg_instantiate(auth_url, bearer_token):
+    vim_id_1 = uuidutils.generate_uuid()
+    vim_1 = {
+        "vimId": vim_id_1,
+        "vimType": "kubernetes",
+        "interfaceInfo": {"endpoint": auth_url},
+        "accessInfo": {
+            "bearer_token": bearer_token,
+            "region": "RegionOne",
+        },
+        "extra": {"dummy-key": "dummy-val"}
+    }
+
+    return {
+        "flavourId": "simple",
+        "vimConnectionInfo": {
+            "vim1": vim_1
+        },
         "additionalParams": {
-            "upgrade_type": "RollingUpdate",
-            "lcm-operation-coordinate-old-vnf":
-                "Scripts/coordinate_old_vnf.py",
-            "lcm-operation-coordinate-new-vnf":
-                "Scripts/coordinate_new_vnf.py",
+            "lcm-kubernetes-def-files": [
+                "Files/kubernetes/namespace.yaml",
+                "Files/kubernetes/deployment.yaml"
+            ],
+            "namespace": "curry"
         }
     }
 
 
-def change_vnfpkg_instantiate_error_handing(vim_id_1):
-    vim_1 = {
-        "vimId": vim_id_1,
-        "vimType": "kubernetes",
-    }
+def change_vnfpkg(vnfd_id):
     return {
-        "flavourId": "simple",
-        "vimConnectionInfo": {
-            "vim1": vim_1,
-        },
+        "vnfdId": vnfd_id,
         "additionalParams": {
+            "upgrade_type": "RollingUpdate",
             "lcm-kubernetes-def-files": [
-                "Files/kubernetes/deployment_fail_test.yaml"
-            ]
+                "Files/kubernetes/namespace.yaml",
+                "Files/new_kubernetes/new_deployment.yaml"],
+            "vdu_params": [{
+                "vdu_id": "VDU2"
+            }]
         }
     }
 
@@ -273,11 +276,17 @@ def change_vnfpkg_error(vnfd_id):
         "vnfdId": vnfd_id,
         "additionalParams": {
             "upgrade_type": "RollingUpdate",
-            "lcm-operation-coordinate-old-vnf":
-                "Scripts/coordinate_old_vnf.py",
-            "lcm-operation-coordinate-new-vnf":
-                "Scripts/coordinate_new_vnf.py",
             "lcm-kubernetes-def-files": [
-                "Files/new_kubernetes/error_deployment.yaml"]
+                "Files/kubernetes/namespace.yaml",
+                "Files/new_kubernetes/not_exist_deployment.yaml"],
+            "vdu_params": [{
+                "vdu_id": "VDU2"
+            }]
         }
+    }
+
+
+def change_vnfpkg_terminate():
+    return {
+        "terminationType": "FORCEFUL"
     }

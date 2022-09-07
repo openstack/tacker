@@ -338,3 +338,21 @@ class MalformedRequestBody(SolHttpError400):
 
 class InvalidPagingMarker(SolHttpError400):
     message = _("Paging marker value %(marker)s is invalid.")
+
+
+class K8sOperationFailed(SolHttpError422):
+    # title and detail are set in the code from kubernetes operation
+    pass
+
+
+class K8sOperaitionTimeout(SolHttpError422):
+    message = _("Kubernetes operation did not complete within"
+                " the timeout period.")
+
+
+class K8sResourceNotFound(SolHttpError404):
+    message = _("Kubernetes resource %(rsc_name)s is not found.")
+
+
+class K8sInvalidManifestFound(SolHttpError400):
+    message = _("Invalid manifest found.")
