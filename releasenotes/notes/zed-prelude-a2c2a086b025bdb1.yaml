@@ -1,0 +1,19 @@
+---
+prelude: |
+    The 8.0.0 release includes many new features and bug fixes. Please be sure
+    to read the upgrade section which describes the required actions to upgrade
+    your cloud from 7.0.0 (Yoga) to 8.0.0 (Zed).
+    There are a few major updates introduced in Zed.
+
+    - ETSI NFV V2 APIs for CNF Heal, Scale and Rollback operation.
+
+    - VNF AutoHealing triggered by FaultNotification.
+
+    - Individual VNFc management using HOT.
+
+    - OpenID for Kubernetes VIM Authentication.
+
+    - Robot framework for ETSI NFV based auto testing.
+
+    - Database synchronization between Tacker and Kubernetes to enable
+      maintainers to get status of pods from Tacker.
