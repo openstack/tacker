@@ -72,6 +72,11 @@
     and none of the range-specifier values in this field overlap the current
     extent of the selected resource, and the request did not include an
     If-Range request-header field.
+422:
+  default: |
+    The content type of the payload body is supported and the payload body of a
+    request contains syntactically correct data (e.g. well-formed JSON) but the data
+    cannot be processed (e.g. because it fails validation against a schema).
 500:
   default: |
     Something went wrong inside the service. This should not happen usually.

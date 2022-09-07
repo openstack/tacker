@@ -55,6 +55,15 @@
   fault_notification: |
     The fault notification API is not enabled.
     (CONF.server_notification.server_notification)
+  prometheus_plugin_pm: |
+    The Prometheus Plugin API is not enabled.
+    (CONF.prometheus_plugin.performance_management)
+  prometheus_plugin_fm: |
+    The Prometheus Plugin API is not enabled.
+    (CONF.prometheus_plugin.fault_management)
+  prometheus_plugin_auto_scale: |
+    The Prometheus Plugin API is not enabled.
+    (CONF.prometheus_plugin.auto_scaling)
 405:
   default: |
     Method is not valid for this endpoint.
@@ -77,9 +86,9 @@
     If-Range request-header field.
 422:
   default: |
-     The content type of the payload body is supported and the payload body of a
-     request contains syntactically correct data (e.g. well-formed JSON) but the data
-     cannot be processed (e.g. because it fails validation against a schema).
+    The content type of the payload body is supported and the payload body of a
+    request contains syntactically correct data (e.g. well-formed JSON) but the
+    data cannot be processed (e.g. because it fails validation against a schema).
 500:
   default: |
     Something went wrong inside the service. This should not happen usually.

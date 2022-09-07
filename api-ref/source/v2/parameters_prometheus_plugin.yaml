@@ -1,0 +1,150 @@
+alert:
+  description: alert message
+  in: body
+  required: true
+  type: array(inlined)
+annotations:
+  description: |
+    dynamic properties.
+  in: body
+  required: true
+  type: object (inlined)
+aspect_id:
+  description: |
+    aspectId of the scaling target.
+  in: body
+  required: true
+  type: string
+auto_scale_type:
+  description: |
+    'SCALE_OUT' for scaling out, 'SCALE_IN' for scaling in.
+  in: body
+  required: true
+  type: string
+endsAt:
+  description: |
+    alert expiration time.
+  in: body
+  required: true
+  type: string
+event_type:
+  description: |
+    eventType value defined in ETSI FM interface.
+  in: body
+  required: true
+  type: string
+fault_details:
+  description: |
+    faultDetails defined in ETSI FM interface.
+  in: body
+  required: true
+  type: string
+fault_type:
+  description: |
+    faultType defined in ETSI FM interface.
+  in: body
+  required: true
+  type: string
+fingerprint:
+  description: |
+    id to identify alert.
+  in: body
+  required: true
+  type: string
+function_type_auto_scale:
+  description: |
+    must be "auto_scale".
+  in: body
+  required: true
+  type: string
+function_type_fm:
+  description: |
+    must be "vnffm".
+  in: body
+  required: true
+  type: string
+function_type_pm:
+  description: |
+    must be "vnfpm".
+  in: body
+  required: true
+  type: string
+job_id:
+  description: |
+    PM job id defined in ETSI PM interface.
+  in: body
+  required: true
+  type: string
+labels:
+  description: |
+    static properties.
+  in: body
+  required: true
+  type: object (inlined)
+metric:
+  description: |
+    PerformanceMetric defined in ETSI PM interface.
+  in: body
+  required: true
+  type: string
+object_instance_id:
+  description: |
+    objectInstanceId defined in ETSI PM interface.
+  in: body
+  required: true
+  type: string
+perceived_severity:
+  description: |
+    perceivedSeverity value defined in ETSI FM interface.
+  in: body
+  required: true
+  type: string
+pod:
+  description: |
+    Regex string that matches pods of Healing target.
+    For example, 'test\-test1\-[0-9a-f]{1,10}-[0-9a-z]{5}'
+  in: body
+  required: true
+  type: string
+probable_cause:
+  description: |
+    probableCause defined in ETSI FM interface.
+  in: body
+  required: true
+  type: string
+receiver_type:
+  description: |
+    must be "tacker".
+  in: body
+  required: true
+  type: string
+startsAt:
+  description: |
+    alert firing time.
+  in: body
+  required: true
+  type: string
+status:
+  description: |
+    'firing': alert is fired, 'resolved': alert is cleared.
+  in: body
+  required: true
+  type: String
+sub_object_instance_id:
+  description: |
+    subObjectInstanceId defined in ETSI PM interface.
+  in: body
+  required: true
+  type: string
+value:
+  description: |
+    aspectId of the scaling target.
+  in: body
+  required: true
+  type: number
+vnf_instance_id:
+  description: |
+    Vnf Instance id.
+  in: body
+  required: true
+  type: string

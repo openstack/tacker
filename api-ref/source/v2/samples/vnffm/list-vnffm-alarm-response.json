@@ -1,0 +1,41 @@
+[
+  {
+    "id": "78a39661-60a8-4824-b989-88c1b0c3534a",
+    "managedObjectId": "c61314d0-f583-4ab3-a457-46426bce02d3",
+    "rootCauseFaultyResource": {
+        "faultyResource": {
+            "vimConnectionId": "0d57e928-86a4-4445-a4bd-1634edae73f3",
+            "resourceId": "4e6ccbe1-38ec-4b1b-a278-64de09ba01b3",
+            "vimLevelResourceType": "OS::Nova::Server"
+        },
+        "faultyResourceType": "COMPUTE"
+    },
+    "alarmRaisedTime": "2021-09-06T10:21:03Z",
+    "alarmChangedTime": "2021-09-06T10:21:03Z",
+    "alarmClearedTime": "2021-09-06T10:21:03Z",
+    "alarmAcknowledgedTime": "2021-09-06T10:21:03Z",
+    "ackState": "UNACKNOWLEDGED",
+    "perceivedSeverity": "WARNING",
+    "eventTime": "2021-09-06T10:21:03Z",
+    "eventType": "EQUIPMENT_ALARM",
+    "faultType": "Fault Type",
+    "probableCause": "The server cannot be connected.",
+    "isRootCause": false,
+    "correlatedAlarmIds": [
+        "c88b624e-e997-4b17-b674-10ca2bab62e0",
+        "c16d41fd-12e2-49a6-bb17-72faf702353f"
+    ],
+    "faultDetails": [
+        "Fault",
+        "Details"
+    ],
+    "_links": {
+        "self": {
+            "href": "/vnffm/v1/alarms/78a39661-60a8-4824-b989-88c1b0c3534a"
+        },
+        "objectInstance": {
+            "href": "/vnflcm/v1/vnf_instances/0e5f3086-4e79-47ed-a694-54c29155fa26"
+        }
+    }
+  }
+]

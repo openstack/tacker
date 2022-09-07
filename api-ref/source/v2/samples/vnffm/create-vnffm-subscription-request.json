@@ -1,0 +1,57 @@
+{
+  "filter": {
+        "vnfInstanceSubscriptionFilter": {
+            "vnfdIds": [
+                "dummy-vnfdId-1"
+            ],
+            "vnfProductsFromProviders": [
+                {
+                    "vnfProvider": "Company",
+                    "vnfProducts": [
+                        {
+                            "vnfProductName": "Sample VNF",
+                            "versions": [
+                                {
+                                    "vnfSoftwareVersion": "1.0",
+                                    "vnfdVersions": ["1.0", "2.0"]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "vnfInstanceIds": [
+                "b0314420-0c9e-40e0-975e-4bf23b07d0c1"
+            ],
+            "vnfInstanceNames": [
+                "test"
+            ]
+        },
+        "notificationTypes": [
+            "AlarmNotification",
+            "AlarmClearedNotification"
+        ],
+        "faultyResourceTypes": [
+            "COMPUTE"
+        ],
+        "perceivedSeverities": [
+            "WARNING"
+        ],
+        "eventTypes": [
+            "PROCESSING_ERROR_ALARM"
+        ],
+        "probableCauses": [
+            "Process Terminated"
+        ]
+    },
+    "callbackUri": "/nfvo/notify/alarm",
+    "authentication": {
+        "authType": [
+            "BASIC"
+        ],
+        "paramsBasic": {
+            "password": "ubuntu",
+            "userName": "ubuntu"
+        }
+    }
+}

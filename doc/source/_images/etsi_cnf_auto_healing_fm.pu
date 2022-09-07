@@ -1,0 +1,45 @@
+@startuml
+
+frame "Prometheus" {
+    component "Prometheus" as prom
+}
+
+frame "NFVO" {
+    component "NFVO" as nfvo
+}
+
+frame "tacker" {
+    component "tacker-server" {
+        component "VnffmControllerV2" as fm_ctl
+        component "PrometheusPlugin" as plugin
+        component "VnflcmControllerV2" as lcm_ctl
+    }
+    component "tacker-conductor" {
+        component "Vnffm\ndriver" as fm_driver
+        component "Kubernetes\ninfra-driver" as infra
+    }
+}
+
+node "Kubernetes Cluster\n(Master)" as k8s_m
+cloud "Hardware Resources" as hw {
+    node "Kubernetes Cluster\n(Worker)" as k8s_w {
+        node "Pod" as ins1
+        node "Pod" as ins2
+    }
+}
+
+'# Relationships
+
+nfvo --> fm_ctl: 1. Create subscription\n(Notification Mode)
+ins1 --> prom: 2. Collect metrics
+prom --> plugin: 3. POST alert
+plugin --> fm_driver: 4. Convert alert to alarm
+nfvo --> fm_ctl: 5. Get Alarms\n(Polling Mode)
+fm_driver --> nfvo: 6. Send alarm notification\n(Notification Mode)
+nfvo --> lcm_ctl: 7. Heal
+lcm_ctl --> infra
+infra --> k8s_m: 8. Call Kubernetes API
+k8s_m --> ins2: 9. Create a new pod
+k8s_m --> ins1: 10. Delete the old pod
+
+@enduml

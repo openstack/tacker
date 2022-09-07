@@ -1,0 +1,335 @@
+# variables in header
+alarm_id_path:
+  description: |
+    Identifier of this Alarm information element.
+  in: path
+  required: true
+  type: string
+subscription_id_path:
+  description: |
+    Identifier of this subscription.
+  in: path
+  required: true
+  type: string
+
+# variables in body
+ack_state:
+  description: |
+    Acknowledgement state of the alarm. Permitted values: UNACKNOWLEDGED,
+    ACKNOWLEDGED.
+  in: body
+  required: true
+  type: string
+alarm_acknowledged_time:
+  description: |
+    Time stamp indicating when the alarm was acknowledged. It shall be present
+    if the alarm has been acknowledged.
+  in: body
+  required: false
+  type: string
+alarm_changed_time:
+  description: |
+    Time stamp indicating when the alarm was last changed. It shall be present
+    if the alarm has been updated.
+  in: body
+  required: false
+  type: string
+alarm_cleared_time:
+  description: |
+    Time stamp indicating when the alarm was cleared. It shall be present if
+    the alarm has been cleared.
+  in: body
+  required: false
+  type: string
+alarm_id:
+  description: |
+    Identifier of this Alarm information element.
+  in: body
+  required: true
+  type: string
+alarm_links:
+  description: |
+    Links for this resource.
+  in: body
+  required: true
+  type: array
+alarm_raised_time:
+  description: |
+    Time stamp indicating when the alarm is raised by the managed object.
+  in: body
+  required: true
+  type: string
+alarm_self:
+  description: |
+    URI of this resource.
+  in: body
+  required: true
+  type: object
+authentication:
+  description: |
+    Authentication parameters to configure the use of Authorization when
+    sending notifications corresponding to this subscription.
+  in: body
+  required: false
+  type: string
+callback_uri:
+  description: |
+    The URI of the endpoint to send the notification to.
+  in: body
+  required: true
+  type: string
+correlated_alarm_ids:
+  description: |
+    List of identifiers of other alarms correlated to this fault.
+  in: body
+  required: false
+  type: string
+event_time:
+  description: |
+    Time stamp indicating when the fault was observed.
+  in: body
+  required: true
+  type: string
+event_type:
+  description: |
+    Type of event.
+  in: body
+  required: true
+  type: object
+fault_details:
+  description: |
+    Provides additional information about the fault.
+  in: body
+  required: false
+  type: string
+fault_type:
+  description: |
+    Additional information to clarify the type of the fault.
+  in: body
+  required: false
+  type: string
+faulty_resource:
+  description: |
+    Information that identifies the faulty resource instance and its managing
+    entity.
+  in: body
+  required: true
+  type: object
+faulty_resource_id:
+  description: |
+    Identifier of the resource in the scope of the VIM or the resource provider.
+  in: body
+  required: true
+  type: string
+faulty_resource_info:
+  description: |
+    The virtualised resources that are causing the VNF fault. Shall be present
+    if the alarm affects virtualised resources.
+  in: body
+  required: false
+  type: object
+faulty_resource_provider_id:
+  description: |
+    Identifier of the entity responsible for the management of the resource.
+    This attribute shall only be supported and present when VNF-related
+    resource management in indirect mode is applicable. The identification
+    scheme is outside the scope of the present document.
+  in: body
+  required: false
+  type: string
+faulty_resource_type:
+  description: |
+    Type of the faulty resource. COMPUTE: Virtual compute resource, STORAGE:
+    Virtual storage resource, NETWORK: Virtual network resource.
+  in: body
+  required: true
+  type: object
+faulty_resource_vim_connection_id:
+  description: |
+    Identifier of the VIM connection to manage the resource. This attribute
+    shall only be supported and present if VNFrelated resource management in
+    direct mode is applicable. The applicable “VimConnectionInfo” structure,
+    which is referenced by vimConnectionId, can be obtained from the
+    “vimConnectionInfo” attribute of the “VnfInstance” structure.
+  in: body
+  required: false
+  type: string
+faulty_resource_vim_level_resource_type:
+  description: |
+    Identifier of the resource in the scope of the VIM or the resource provider.
+  in: body
+  required: false
+  type: string
+filter_event_types:
+  description: |
+    Match VNF alarms with an event type. COMMUNICATIONS_ALARM,
+    PROCESSING_ERROR_ALARM, ENVIRONMENTAL_ALARM, QOS_ALARM, EQUIPMENT_ALARM.
+  in: body
+  required: false
+  type: array
+filter_faulty_resource_types:
+  description: |
+    Match VNF alarms with a faulty resource type. COMPUTE, STORAGE, NETWORK.
+  in: body
+  required: false
+  type: array
+filter_notification_types:
+  description: |
+    Match particular notification types. Permitted values: AlarmNotification,
+    AlarmClearedNotification, AlarmListRebuiltNotification.
+  in: body
+  required: false
+  type: array
+filter_perceived_severities:
+  description: |
+    Match VNF alarms with a perceived severity. CRITICAL,MAJOR,MINOR,WARNING,
+    INDETERMINATE,CLEARED.
+  in: body
+  required: false
+  type: array
+filter_probable_causes:
+  description: |
+    Match VNF alarms with a probable cause listed in this attribute.
+  in: body
+  required: false
+  type: array
+filter_subscription_filter:
+  description: |
+    Filter criteria to select VNF instances about which to notify.
+  in: body
+  required: false
+  type: object
+fm_notification_filter:
+  description: |
+    Filter settings for this subscription, to define the subset of all
+    notifications this subscription relates to. A particular notification is
+    sent to the subscriber if the filter matches, or if there is no filter.
+  in: body
+  required: false
+  type: object
+is_root_cause:
+  description: |
+    Attribute indicating if this fault is the root of other correlated alarms.
+    If true, then the alarms listed in the attribute “correlatedAlarmIds” are
+    caused by this fault.
+  in: body
+  required: true
+  type: bool
+managed_object_id:
+  description: |
+    Identifier of the affected VNF instance.
+  in: body
+  required: true
+  type: string
+object_instance:
+  description: |
+    Link to the resource representing the VNF instance to which the notified
+    alarm is correlated. Shall be present if the VNF instance information is
+    accessible as a resource.
+  in: body
+  required: false
+  type: object
+perceived_severity:
+  description: |
+    Perceived severity of the managed object failure. CRITICAL,MAJOR,MINOR,
+    WARNING,INDETERMINATE,CLEARED.
+  in: body
+  required: true
+  type: object
+probable_cause:
+  description: |
+    Information about the probable cause of the fault.
+  in: body
+  required: true
+  type: string
+products_versions:
+  description: |
+    If present, match VNF instances that belong to VNF products with certain
+    versions and a certain product name, from one particular provider.
+  in: body
+  required: false
+  type: array
+products_vnf_product_name:
+  description: |
+    Name of the VNF product to match.
+  in: body
+  required: true
+  type: string
+subscription_filter_vnf_instance_ids:
+  description: |
+    If present, match VNF instances with an instance identifier listed in this
+    attribute.
+  in: body
+  required: false
+  type: array
+subscription_filter_vnf_instance_names:
+  description: |
+    If present, match VNF instances with a VNF Instance Name listed in this
+    attribute.
+  in: body
+  required: false
+  type: array
+subscription_filter_vnf_products_from_providers:
+  description: |
+    If present, match VNF instances that belong to VNF products from certain
+    providers.
+  in: body
+  required: false
+  type: array
+subscription_filter_vnfd_ids:
+  description: |
+    If present, match VNF instances that were created based on a VNFD
+    identified by one of the vnfdId values listed in this attribute.
+  in: body
+  required: false
+  type: array
+subscription_id:
+  description: |
+    Identifier of this subscription.
+  in: body
+  required: true
+  type: string
+subscription_links:
+  description: |
+    Links for this resource.
+  in: body
+  required: true
+  type: array
+subscription_self:
+  description: |
+    URI of this resource.
+  in: body
+  required: true
+  type: object
+versions_vnf_software_version:
+  description: |
+    Software version to match.
+  in: body
+  required: true
+  type: object
+versions_vnfd_versions:
+  description: |
+    Software version to match.
+  in: body
+  required: false
+  type: array
+vnf_products_from_providers_vnf_products:
+  description: |
+    If present, match VNF instances that belong to VNF products from certain
+    providers.
+  in: body
+  required: false
+  type: array
+vnf_products_from_providers_vnf_provider:
+  description: |
+    If present, match VNF instances that belong to VNF products from certain
+    providers.
+  in: body
+  required: true
+  type: string
+vnfc_instance_ids:
+  description: |
+    Identifiers of the affected VNFC instances.
+  in: body
+  required: false
+  type: array
