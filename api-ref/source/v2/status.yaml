@@ -52,6 +52,9 @@
 404:
   default: |
     The requested resource could not be found.
+  fault_notification: |
+    The fault notification API is not enabled.
+    (CONF.server_notification.server_notification)
 405:
   default: |
     Method is not valid for this endpoint.

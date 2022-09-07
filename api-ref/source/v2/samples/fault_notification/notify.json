@@ -1,0 +1,11 @@
+{
+    "notification": {
+        "host_id": "host1",
+        "alarm_id": "e8e97eaf-ba85-4b92-aeb9-f2b2c712ca4f",
+        "fault_id": "1234",
+        "fault_type": "10",
+        "fault_option": {
+            "message": "Server is down."
+        }
+    }
+}

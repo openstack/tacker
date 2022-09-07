@@ -1,0 +1,50 @@
+server_id:
+  description: |
+    Identifier of the virtual machine.
+  in: path
+  required: true
+  type: string
+vnf_instance_id:
+  description: |
+    Identifier of Vnf instance related to this notification.
+  in: path
+  required: true
+  type: string
+alarm_id:
+  description: |
+    ID to identify alarm.
+  in: body
+  required: true
+  type: Identifier
+fault_id:
+  description: |
+    Target fault ID.
+  in: body
+  required: true
+  type: String
+fault_option:
+  description: |
+    Optional information about this fault event.
+  in: body
+  required: false
+  type: KeyValuePairs
+fault_type:
+  description: |
+    Fault type.
+    “10”: Physical server fault, “11”: Physical server OUS,
+    “20”: Inconsistency of VM status, “21”: VM reboot detection.
+  in: body
+  required: true
+  type: String
+host_id:
+  description: |
+    Physical server ID. This is for future use and ignored for now.
+  in: body
+  required: false
+  type: Identifier
+notification:
+  description: |
+    Fault notification event.
+  in: body
+  required: true
+  type: Structure (inlined)
