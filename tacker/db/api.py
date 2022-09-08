@@ -18,6 +18,9 @@ from oslo_db.sqlalchemy import enginefacade
 
 
 context_manager = enginefacade.transaction_context()
+# FIXME(ueha): we need to remove reliance on autocommit semantics ASAP
+# since it's not compatible with SQLAlchemy 2.0
+context_manager.configure(__autocommit=True)
 
 _FACADE = None
 
