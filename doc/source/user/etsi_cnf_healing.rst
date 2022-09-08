@@ -417,6 +417,11 @@ In the example of this procedure, specify the ID
 ``686b356f-8096-4e24-99e5-3c81d36341be`` of the first ``vnfcResourceInfo`` as
 ``VNFC_INATANCE_ID``.
 
+.. note:: In the case of version 1 API,
+          ``VNFC_INSTANCE_ID`` is ``instantiatedVnfInfo.vnfcResourceInfo.id``.
+          In the case of version 2 API,
+          ``VNFC_INSTANCE_ID`` is ``instantiatedVnfInfo.vnfcInfo.id``.
+
 .. code-block:: console
 
   $ openstack vnflcm heal 92cf0ccb-e575-46e2-9c0d-30c67e75aaf6 --vnfc-instance 686b356f-8096-4e24-99e5-3c81d36341be

@@ -44,37 +44,20 @@ procedure to instantiate VNF.
 You can refer to :doc:`./vnf-package` for the operation of uploading
 VNF package.
 
-The sample packages for the following four cases can be obtained from
-the following links.
-
-* `VNF Package for Common instantiate`_
-
-* `change from image to image`_ flavour_id=image
-
-* `change from image to volume`_ flavour_id=image
-
-* `change from volume to image`_ flavour_id=volume
-
-* `change from volume to volume`_ flavour_id=volume
 
 .. note::
-   You can deploy a VM directly by image, or you can create a volume by image
-   first, and then create a VM by the volume. Therefore, when updating the
-   image of the VM, there will be four cases. The above four links correspond
-   to four cases respectively.
+   You can deploy a VM directly by image or volume.
+   Therefore, when updating the
+   image of the VM, there will be two cases.
 
-   Use the common VNF package and the flavor_id after the above four links to
-   instantiate, and then use the VNF package in the corresponding link to
-   execute ``change current vnf package`` operation, you can update the image
-   of the VM in the following four ways.
+   Use the common VNF package and the flavor_id to instantiate,
+   and then use the VNF package in the corresponding link to
+   execute ``change current vnf package`` operation,
+   you can update the image of the VM in the following two ways.
 
    1. change VM created by image to VM created by new image
 
-   2. change VM created by image to VM created by volume
-
-   3. change VM created by volume to VM created by image
-
-   4. change VM created by volume to VM created by new volume
+   2. change VM created by volume to VM created by new volume
 
 Change Current VNF Package
 --------------------------
@@ -100,9 +83,7 @@ definition file before running command for changing the VNF package.
     "additionalParams": {
       "upgrade_type": "RollingUpdate",
       "lcm-operation-coordinate-old-vnf": "./Scripts/coordinate_old_vnf.py",
-      "lcm-operation-coordinate-old-vnf-class": "CoordinateOldVnf",
       "lcm-operation-coordinate-new-vnf": "./Scripts/coordinate_new_vnf.py",
-      "lcm-operation-coordinate-new-vnf-class": "CoordinateNewVnf",
       "vdu_params": [{
         "vdu_id": "VDU1",
         "old_vnfc_param": {
@@ -140,9 +121,7 @@ definition file before running command for changing the VNF package.
     "additionalParams": {
       "upgrade_type": "RollingUpdate",
       "lcm-operation-coordinate-old-vnf": "./Scripts/coordinate_old_vnf.py",
-      "lcm-operation-coordinate-old-vnf-class": "CoordinateOldVnf",
       "lcm-operation-coordinate-new-vnf": "./Scripts/coordinate_new_vnf.py",
-      "lcm-operation-coordinate-new-vnf-class": "CoordinateNewVnf",
       "vdu_params": [{
         "vdu_id": "VDU2",
         "old_vnfc_param": {
@@ -174,15 +153,9 @@ You can set following parameter in additionalParams:
   * - lcm-operation-coordinate-old-vnf
     - 1
     - The file path of the script that simulates the behavior of CoordinateVNF for old VNF.
-  * - lcm-operation-coordinate-old-vnf-class
-    - 1
-    - The class name of CoordinateVNF for old VNF.
   * - lcm-operation-coordinate-new-vnf
     - 1
     - The file path of the script that simulates the behavior of CoordinateVNF for new VNF.
-  * - lcm-operation-coordinate-new-vnf-class
-    - 1
-    - The class name of CoordinateVNF for new VNF.
   * - vdu_params
     - 0..N
     - VDU information of target VDU to update. Specifying a vdu_params is required for OpenStack VIM and not required for Kubernetes VIM.
@@ -246,18 +219,20 @@ You can set following parameter in additionalParams:
      supports ``RollingUpdate`` type. You can set it via ``upgrade_type``
      param.
 
-   * Currently only support update images of VMs.
+   * Currently only support update images of VMs and modify external networks..
 
    * Currently unsupported updates:
 
      * This API currently does not support increasing or decreasing the number
        of VNFcs according to the VNF package.
      * The add and delete operations of the entire VDU are not supported.
-     * In the definition of ETSI, external networks (e.g. extVirtualLinks,
-       extManagedVirtualLinks) can be modified. This API currently does not
-       support the operations of modifying, adding, and deleting these
-       networks.
+     * In the definition of ETSI, external and internal networks
+       (e.g. extVirtualLinks, extManagedVirtualLinks) can be modified.
+       This current API supports the operations of modifying external
+       networks only and does not support the following operations.
 
+       * Adding and deleting external networks.
+       * Modifying, adding, and deleting internal networks.
 
 How to Change VM created by image to VM created by new image
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -598,381 +573,6 @@ See `Heat CLI reference`_. for details on Heat CLI commands.
   .. note:: You can check 'image'->'id' has changed from
     '3f87132d-0c98-42a6-aa7b-b7db1f25e4fa' to
     '18fd7e66-c81f-48bb-bf18-d523996ce59c'.
-
-How to Change VM created by image to VM created by volume
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Execute Change Current VNF Package CLI command. After complete this change
-operation you should check resource status by Heat CLI commands.
-
-1. check 'ID' and 'Stack Status' of the stack before and after operation.
-This is to confirm that stack 'ID' has changed before and after operation,
-and that the Stack update has been updated successfully.
-
-2. check 'physical_resource_id' and 'resource_status' of the VDU.
-This is to confirm that 'physical_resource_id' of VDU has
-changed before and after operation, and that the 'resource_status' of VDU has
-been created successfully.
-
-3. check 'image' information of VDU before and after operation. This is to
-confirm that VDU's has changed from created by image to created by volume.
-
-.. note:: Only single VM support change from image to volume.
-
-* Check point 1 before operation
-
-  Stack information before operation:
-
-  .. code-block:: console
-
-    $ openstack stack list -c 'ID' -c 'Stack Name' -c 'Stack Status'
-
-  Result:
-
-  .. code-block:: console
-
-    +--------------------------------------+------------------------------------------+-----------------+
-    | ID                                   | Stack Name                               | Stack Status    |
-    +--------------------------------------+------------------------------------------+-----------------+
-    | 26c0d3fe-4e9d-4059-8b60-4f407fc268ee | vnf-679131c9-9f66-4930-a74c-1d382610d3c4 | CREATE_COMPLETE |
-    +--------------------------------------+------------------------------------------+-----------------+
-
-* Check point 2 before operation
-
-  VDU(single) information before operation:
-
-  .. code-block:: console
-
-    $ openstack stack resource list 26c0d3fe-4e9d-4059-8b60-4f407fc268ee
-
-  Result:
-
-  .. code-block:: console
-
-    +----------------+--------------------------------------+----------------------------+-----------------+----------------------+
-    | resource_name  | physical_resource_id                 | resource_type              | resource_status | updated_time         |
-    +----------------+--------------------------------------+----------------------------+-----------------+----------------------+
-    | VDU1_scale_in  | 2e9275cb862a40a3915339666ea9496d     | OS::Heat::ScalingPolicy    | CREATE_COMPLETE | 2022-03-18T02:51:12Z |
-    | VDU1_scale_out | ff4186d24bc74f0ca6723f277739d232     | OS::Heat::ScalingPolicy    | CREATE_COMPLETE | 2022-03-18T02:51:12Z |
-    | VDU1_scale     | 657c5b64-753e-43b5-b1e7-1ce929b21278 | OS::Heat::AutoScalingGroup | CREATE_COMPLETE | 2022-03-18T02:51:13Z |
-    | VDU2           | 256ed8f8-b051-4bb5-8d3b-b0056c571d10 | OS::Nova::Server           | CREATE_COMPLETE | 2022-03-18T02:51:13Z |
-    | VDU2_CP1       | 70c383f8-97ee-4ed4-82c8-68e87fbb1a0f | OS::Neutron::Port          | CREATE_COMPLETE | 2022-03-18T02:51:13Z |
-    +----------------+--------------------------------------+----------------------------+-----------------+----------------------+
-
-* Check point 3 before operation
-
-  VDU(single) detailed information before operation:
-
-  .. code-block:: console
-
-    $ openstack stack resource show 26c0d3fe-4e9d-4059-8b60-4f407fc268ee VDU2 \
-      -c attributes --fit-width
-
-  Result:
-
-  .. code-block:: console
-
-    +------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    | Field                  | Value                                                                                                                                                                                                                            |
-    +------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    | attributes             | {'id': '256ed8f8-b051-4bb5-8d3b-b0056c571d10', 'name': 'vn-31c9-9f66-4930-a74c-1d382610d3c4-VDU2-exts43f5p4dn', 'status': 'ACTIVE', 'tenant_id': 'b7457dcef9374c2fa72e22c452bb04e9', 'user_id':                                  |
-    |                        | 'ed6a354ef25041ac92c0e445e91cc9a9', 'metadata': {}, 'hostId': 'd2de6a234a80a445a7ee385f445e6084358f3aef2e110d7bc888ccf2', 'image': {'id': 'de5e0908-2e07-4250-a788-d3b693425f9f', 'links': [{'rel': 'bookmark', 'href':          |
-    |                        | 'http://192.168.2.100/compute/images/de5e0908-2e07-4250-a788-d3b693425f9f'}]}, 'flavor': {'vcpus': 1, 'ram': 512, 'disk': 1, 'ephemeral': 0, 'swap': 0, 'original_name': 'm1.tiny', 'extra_specs': {'hw_rng:allowed': 'True'}},  |
-    |                        | 'created': '2022-03-18T02:51:17Z', 'updated': '2022-03-18T02:51:26Z', 'addresses': {'net0': [{'version': 4, 'addr': '10.10.0.101', 'OS-EXT-IPS:type': 'fixed', 'OS-EXT-IPS-MAC:mac_addr': 'fa:16:3e:13:2a:61'}]}, 'accessIPv4':  |
-    |                        | '', 'accessIPv6': '', 'links': [{'rel': 'self', 'href': 'http://192.168.2.100/compute/v2.1/servers/256ed8f8-b051-4bb5-8d3b-b0056c571d10'}, {'rel': 'bookmark', 'href':                                                           |
-    |                        | 'http://192.168.2.100/compute/servers/256ed8f8-b051-4bb5-8d3b-b0056c571d10'}], 'OS-DCF:diskConfig': 'MANUAL', 'progress': 0, 'OS-EXT-AZ:availability_zone': 'nova', 'config_drive': '', 'key_name': None, 'OS-SRV-               |
-    |                        | USG:launched_at': '2022-03-18T02:51:40.000000', 'OS-SRV-USG:terminated_at': None, 'security_groups': [{'name': 'default'}], 'OS-EXT-SRV-ATTR:host': 'compute101', 'OS-EXT-SRV-ATTR:instance_name': 'instance-000007bb', 'OS-EXT- |
-    |                        | SRV-ATTR:hypervisor_hostname': 'compute101', 'OS-EXT-SRV-ATTR:reservation_id': 'r-2gt4gvxy', 'OS-EXT-SRV-ATTR:launch_index': 0, 'OS-EXT-SRV-ATTR:hostname': 'vn-31c9-9f66-4930-a74c-1d382610d3c4-vdu2-exts43f5p4dn', 'OS-EXT-    |
-    |                        | SRV-ATTR:kernel_id': '', 'OS-EXT-SRV-ATTR:ramdisk_id': '', 'OS-EXT-SRV-ATTR:root_device_name': '/dev/vda', 'OS-EXT-SRV-ATTR:user_data': '...'                                                                                    |
-    +------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-
-* Execute Change Current VNF Package
-
-  Change Current VNF Package execution of the entire VNF:
-
-  .. code-block:: console
-
-    $ openstack vnflcm change-vnfpkg VNF_INSTANCE_ID \
-         ./sample_param_file_for_single_resource.json \
-         --os-tacker-api-version 2
-
-  Result:
-
-  .. code-block:: console
-
-    Change Current VNF Package for VNF Instance 679131c9-9f66-4930-a74c-1d382610d3c4 has been accepted.
-
-* Check point 1 after operation
-
-  Stack information after operation:
-
-  .. code-block:: console
-
-    $ openstack stack list -c 'ID' -c 'Stack Name' -c 'Stack Status'
-
-  Result:
-
-  .. code-block:: console
-
-    +--------------------------------------+------------------------------------------+-----------------+
-    | ID                                   | Stack Name                               | Stack Status    |
-    +--------------------------------------+------------------------------------------+-----------------+
-    | 26c0d3fe-4e9d-4059-8b60-4f407fc268ee | vnf-679131c9-9f66-4930-a74c-1d382610d3c4 | UPDATE_COMPLETE |
-    +--------------------------------------+------------------------------------------+-----------------+
-
-  .. note::
-         'Stack Status' transitions to UPDATE_COMPLETE.
-
-* Check point 2 after operation
-
-  VDU(single) information after operation:
-
-  .. code-block:: console
-
-    $ openstack stack resource list 26c0d3fe-4e9d-4059-8b60-4f407fc268ee
-
-  Result:
-
-  .. code-block:: console
-
-    +---------------------+--------------------------------------+----------------------------+-----------------+----------------------+
-    | resource_name       | physical_resource_id                 | resource_type              | resource_status | updated_time         |
-    +---------------------+--------------------------------------+----------------------------+-----------------+----------------------+
-    | VDU1_scale_in       | 2e9275cb862a40a3915339666ea9496d     | OS::Heat::ScalingPolicy    | CREATE_COMPLETE | 2022-03-18T02:51:12Z |
-    | VDU1_scale_out      | ff4186d24bc74f0ca6723f277739d232     | OS::Heat::ScalingPolicy    | CREATE_COMPLETE | 2022-03-18T02:51:12Z |
-    | VDU1_scale          | 657c5b64-753e-43b5-b1e7-1ce929b21278 | OS::Heat::AutoScalingGroup | UPDATE_COMPLETE | 2022-03-18T03:02:27Z |
-    | VDU2_CP1            | 70c383f8-97ee-4ed4-82c8-68e87fbb1a0f | OS::Neutron::Port          | CREATE_COMPLETE | 2022-03-18T02:51:13Z |
-    | VDU2-VirtualStorage | ea8a15c2-45f8-4230-94b0-b79dce28f3dd | OS::Cinder::Volume         | CREATE_COMPLETE | 2022-03-18T03:01:42Z |
-    | multi               | 90b16501-bbb2-4f59-bbb8-96dcf74de13c | OS::Cinder::VolumeType     | CREATE_COMPLETE | 2022-03-18T03:01:42Z |
-    | VDU2                | 3bd7c3eb-7d9d-4861-9ea3-052286f3238f | OS::Nova::Server           | CREATE_COMPLETE | 2022-03-18T03:01:59Z |
-    +---------------------+--------------------------------------+----------------------------+-----------------+----------------------+
-
-  .. note::
-         'resource_status' transitions to CREATE_COMPLETE.
-         'physical_resource_id' changes from
-         '256ed8f8-b051-4bb5-8d3b-b0056c571d10' to
-         '3bd7c3eb-7d9d-4861-9ea3-052286f3238f'.
-
-* Check point 3 after operation
-
-  VDU(single) detailed information after operation:
-
-  .. code-block:: console
-
-    $ openstack stack resource show 26c0d3fe-4e9d-4059-8b60-4f407fc268ee VDU2 \
-      -c attributes --fit-width
-
-  Result:
-
-  .. code-block:: console
-
-    +------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    | Field                  | Value                                                                                                                                                                                                                            |
-    +------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    | attributes             | {'id': '3bd7c3eb-7d9d-4861-9ea3-052286f3238f', 'name': 'vn-31c9-9f66-4930-a74c-1d382610d3c4-VDU2-f2fjfnlznq2l', 'status': 'ACTIVE', 'tenant_id': 'b7457dcef9374c2fa72e22c452bb04e9', 'user_id':                                  |
-    |                        | 'ed6a354ef25041ac92c0e445e91cc9a9', 'metadata': {}, 'hostId': 'd2de6a234a80a445a7ee385f445e6084358f3aef2e110d7bc888ccf2', 'image': '', 'flavor': {'vcpus': 2, 'ram': 2048, 'disk': 10, 'ephemeral': 0, 'swap': 0,                |
-    |                        | 'original_name': 'ds2G', 'extra_specs': {'hw_rng:allowed': 'True'}}, 'created': '2022-03-18T03:02:00Z', 'updated': '2022-03-18T03:02:14Z', 'addresses': {'net0': [{'version': 4, 'addr': '10.10.0.101', 'OS-EXT-IPS:type':       |
-    |                        | 'fixed', 'OS-EXT-IPS-MAC:mac_addr': 'fa:16:3e:13:2a:61'}]}, 'accessIPv4': '', 'accessIPv6': '', 'links': [{'rel': 'self', 'href': 'http://192.168.2.100/compute/v2.1/servers/3bd7c3eb-7d9d-4861-9ea3-052286f3238f'}, {'rel':     |
-    |                        | 'bookmark', 'href': 'http://192.168.2.100/compute/servers/3bd7c3eb-7d9d-4861-9ea3-052286f3238f'}], 'OS-DCF:diskConfig': 'MANUAL', 'progress': 0, 'OS-EXT-AZ:availability_zone': 'nova', 'config_drive': '', 'key_name': None,    |
-    |                        | 'OS-SRV-USG:launched_at': '2022-03-18T03:02:28.000000', 'OS-SRV-USG:terminated_at': None, 'security_groups': [{'name': 'default'}], 'OS-EXT-SRV-ATTR:host': 'compute101', 'OS-EXT-SRV-ATTR:instance_name': 'instance-000007bd',  |
-    |                        | 'OS-EXT-SRV-ATTR:hypervisor_hostname': 'compute101', 'OS-EXT-SRV-ATTR:reservation_id': 'r-bi7mipxi', 'OS-EXT-SRV-ATTR:launch_index': 0, 'OS-EXT-SRV-ATTR:hostname': 'vn-31c9-9f66-4930-a74c-1d382610d3c4-vdu2-f2fjfnlznq2l',     |
-    |                        | 'OS-EXT-SRV-ATTR:kernel_id': '', 'OS-EXT-SRV-ATTR:ramdisk_id': '', 'OS-EXT-SRV-ATTR:root_device_name': '/dev/vda', 'OS-EXT-SRV-ATTR:user_data': '...', 'OS-EXT-STS:task_state': None, 'OS-EXT-STS:vm_state': 'active',           |
-    |                        | 'OS-EXT-STS:power_state': 1, 'os-extended-volumes:volumes_attached': [{'id': 'ea8a15c2-45f8-4230-94b0-b79dce28f3dd', 'delete_on_termination':                                                                                    |
-    |                        | False}], 'host_status': 'UP', 'locked': False, 'locked_reason': None, 'description': None, 'tags': [], 'trusted_image_certificates': None, 'server_groups': [], 'os_collect_config': {}}                                         |
-    +------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-
-  .. note:: You can check VDU has changed from created by image
-    'de5e0908-2e07-4250-a788-d3b693425f9f' to created by volume
-    'ea8a15c2-45f8-4230-94b0-b79dce28f3dd'.
-
-How to Change VM created by volume to VM created by image
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Execute Change Current VNF Package CLI command. After complete this change
-operation you should check resource status by Heat CLI commands.
-
-1. check 'ID' and 'Stack Status' of the stack before and after operation.
-This is to confirm that stack 'ID' has changed before and after operation,
-and that the Stack update has been updated successfully.
-
-2. check 'physical_resource_id' and 'resource_status' of the VDU.
-This is to confirm that 'physical_resource_id' of VDU has
-changed before and after operation, and that the 'resource_status' of VDU has
-been created successfully.
-
-3. check 'image' and 'volume' information of VDU before and after operation.
-This is to confirm that VDU's has changed from created by volume to created
-by image.
-
-.. note:: Only single VM support change from image to volume.
-
-* Check point 1 before operation
-
-  Stack information before operation:
-
-  .. code-block:: console
-
-    $ openstack stack list -c 'ID' -c 'Stack Name' -c 'Stack Status'
-
-  Result:
-
-  .. code-block:: console
-
-    +--------------------------------------+------------------------------------------+-----------------+
-    | ID                                   | Stack Name                               | Stack Status    |
-    +--------------------------------------+------------------------------------------+-----------------+
-    | ba66ff3f-cb83-403a-b75a-4ef24f67afea | vnf-e4d76bde-1a4c-40f5-8405-5536403e73d5 | CREATE_COMPLETE |
-    +--------------------------------------+------------------------------------------+-----------------+
-
-* Check point 2 before operation
-
-  VDU(single) information before operation:
-
-  .. code-block:: console
-
-    $ openstack stack resource list ba66ff3f-cb83-403a-b75a-4ef24f67afea
-
-  Result:
-
-  .. code-block:: console
-
-    +---------------------+--------------------------------------+----------------------------+-----------------+----------------------+
-    | resource_name       | physical_resource_id                 | resource_type              | resource_status | updated_time         |
-    +---------------------+--------------------------------------+----------------------------+-----------------+----------------------+
-    | VDU1_scale_in       | 26696adeb09b401982afb626b8f6a332     | OS::Heat::ScalingPolicy    | CREATE_COMPLETE | 2022-03-18T04:57:21Z |
-    | VDU1_scale_out      | 8edd5b6d76d44843b3a2b6798288f256     | OS::Heat::ScalingPolicy    | CREATE_COMPLETE | 2022-03-18T04:57:21Z |
-    | VDU1_scale          | 592c21ca-ed4f-4a4d-bbbd-7c9e80d0f6b0 | OS::Heat::AutoScalingGroup | CREATE_COMPLETE | 2022-03-18T04:57:21Z |
-    | VDU2                | d6bf000e-021a-4c0c-b043-7936331ed22a | OS::Nova::Server           | CREATE_COMPLETE | 2022-03-18T04:57:21Z |
-    | VDU2-VirtualStorage | 60db6ba6-d637-4ba5-9c18-fa5d64930123 | OS::Cinder::Volume         | CREATE_COMPLETE | 2022-03-18T04:57:21Z |
-    | multi               | 69c67ded-71d5-4d44-9c9f-ba988643c27e | OS::Cinder::VolumeType     | CREATE_COMPLETE | 2022-03-18T04:57:21Z |
-    | VDU2_CP1            | 62af0f3a-bcf9-40b6-a12e-fc56152f156c | OS::Neutron::Port          | CREATE_COMPLETE | 2022-03-18T04:57:21Z |
-    +---------------------+--------------------------------------+----------------------------+-----------------+----------------------+
-
-* Check point 3 before operation
-
-  VDU(single) detailed information before operation:
-
-  .. code-block:: console
-
-    $ openstack stack resource show ba66ff3f-cb83-403a-b75a-4ef24f67afea VDU2 \
-      -c attributes --fit-width
-
-  Result:
-
-  .. code-block:: console
-
-    +------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    | Field                  | Value                                                                                                                                                                                                                            |
-    +------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    | attributes             | {'id': 'd6bf000e-021a-4c0c-b043-7936331ed22a', 'name': 'vn-6bde-1a4c-40f5-8405-5536403e73d5-VDU2-m7zwdqixjkpi', 'status': 'ACTIVE', 'tenant_id': 'b7457dcef9374c2fa72e22c452bb04e9', 'user_id':                                  |
-    |                        | 'ed6a354ef25041ac92c0e445e91cc9a9', 'metadata': {}, 'hostId': 'd2de6a234a80a445a7ee385f445e6084358f3aef2e110d7bc888ccf2', 'image': '', 'flavor': {'vcpus': 1, 'ram': 512, 'disk': 1, 'ephemeral': 0, 'swap': 0, 'original_name': |
-    |                        | 'm1.tiny', 'extra_specs': {'hw_rng:allowed': 'True'}}, 'created': '2022-03-18T04:57:35Z', 'updated': '2022-03-18T04:57:49Z', 'addresses': {'net0': [{'version': 4, 'addr': '10.10.0.101', 'OS-EXT-IPS:type': 'fixed', 'OS-EXT-   |
-    |                        | IPS-MAC:mac_addr': 'fa:16:3e:2f:ca:38'}]}, 'accessIPv4': '', 'accessIPv6': '', 'links': [{'rel': 'self', 'href': 'http://192.168.2.100/compute/v2.1/servers/d6bf000e-021a-4c0c-b043-7936331ed22a'}, {'rel': 'bookmark', 'href':  |
-    |                        | 'http://192.168.2.100/compute/servers/d6bf000e-021a-4c0c-b043-7936331ed22a'}], 'OS-DCF:diskConfig': 'MANUAL', 'progress': 0, 'OS-EXT-AZ:availability_zone': 'nova', 'config_drive': '', 'key_name': None, 'OS-SRV-               |
-    |                        | USG:launched_at': '2022-03-18T04:58:03.000000', 'OS-SRV-USG:terminated_at': None, 'security_groups': [{'name': 'default'}], 'OS-EXT-SRV-ATTR:host': 'compute101', 'OS-EXT-SRV-ATTR:instance_name': 'instance-000007be', 'OS-EXT- |
-    |                        | SRV-ATTR:hypervisor_hostname': 'compute101', 'OS-EXT-SRV-ATTR:reservation_id': 'r-ddim06pv', 'OS-EXT-SRV-ATTR:launch_index': 0, 'OS-EXT-SRV-ATTR:hostname': 'vn-6bde-1a4c-40f5-8405-5536403e73d5-vdu2-m7zwdqixjkpi', 'OS-EXT-    |
-    |                        | SRV-ATTR:kernel_id': '', 'OS-EXT-SRV-ATTR:ramdisk_id': '', 'OS-EXT-SRV-ATTR:root_device_name': '/dev/vda', 'OS-EXT-SRV-ATTR:user_data': 'Q29udGVudC1UeXBlOiBtdWx0aXBhcnQvbWl4ZWQ7IGJvdW5kYXJ5PSI9PT09PT09PT09PT09PT0yODc5ODU4MTc |
-    |                        | 5', 'OS-EXT-STS:task_state': None, 'OS-EXT-STS:vm_state': 'active', 'OS-EXT-STS:power_state': 1, 'os-extended-volumes:volumes_attached': [{'id': '60db6ba6-d637-4ba5-9c18-fa5d64930123', 'delete_on_termination': False}],       |
-    |                        | 'host_status': 'UP', 'locked': False, 'locked_reason': None, 'description': None, 'tags': [], 'trusted_image_certificates': None, 'server_groups': [], 'os_collect_config': {}}                                                  |
-    +------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-
-* Execute Change Current VNF Package
-
-  Change Current VNF Package execution of the entire VNF:
-
-  .. code-block:: console
-
-    $ openstack vnflcm change-vnfpkg VNF_INSTANCE_ID \
-         ./sample_param_file_for_single_resource.json \
-         --os-tacker-api-version 2
-
-  Result:
-
-  .. code-block:: console
-
-    Change Current VNF Package for VNF Instance e4d76bde-1a4c-40f5-8405-5536403e73d5 has been accepted.
-
-* Check point 1 after operation
-
-  Stack information after operation:
-
-  .. code-block:: console
-
-    $ openstack stack list -c 'ID' -c 'Stack Name' -c 'Stack Status'
-
-  Result:
-
-  .. code-block:: console
-
-    +--------------------------------------+------------------------------------------+-----------------+
-    | ID                                   | Stack Name                               | Stack Status    |
-    +--------------------------------------+------------------------------------------+-----------------+
-    | ba66ff3f-cb83-403a-b75a-4ef24f67afea | vnf-e4d76bde-1a4c-40f5-8405-5536403e73d5 | UPDATE_COMPLETE |
-    +--------------------------------------+------------------------------------------+-----------------+
-
-  .. note::
-         'Stack Status' transitions to UPDATE_COMPLETE.
-
-* Check point 2 after operation
-
-  VDU(single) information after operation:
-
-  .. code-block:: console
-
-    $ openstack stack resource list ba66ff3f-cb83-403a-b75a-4ef24f67afea
-
-  Result:
-
-  .. code-block:: console
-
-    +----------------+--------------------------------------+----------------------------+-----------------+----------------------+
-    | resource_name  | physical_resource_id                 | resource_type              | resource_status | updated_time         |
-    +----------------+--------------------------------------+----------------------------+-----------------+----------------------+
-    | VDU1_scale_in  | 26696adeb09b401982afb626b8f6a332     | OS::Heat::ScalingPolicy    | CREATE_COMPLETE | 2022-03-18T04:57:21Z |
-    | VDU1_scale_out | 8edd5b6d76d44843b3a2b6798288f256     | OS::Heat::ScalingPolicy    | CREATE_COMPLETE | 2022-03-18T04:57:21Z |
-    | VDU1_scale     | 592c21ca-ed4f-4a4d-bbbd-7c9e80d0f6b0 | OS::Heat::AutoScalingGroup | UPDATE_COMPLETE | 2022-03-18T05:03:55Z |
-    | VDU2_CP1       | 62af0f3a-bcf9-40b6-a12e-fc56152f156c | OS::Neutron::Port          | CREATE_COMPLETE | 2022-03-18T04:57:21Z |
-    | VDU2           | 7687d229-d3c7-4c88-9783-1b0a09bb169f | OS::Nova::Server           | CREATE_COMPLETE | 2022-03-18T05:03:23Z |
-    +----------------+--------------------------------------+----------------------------+-----------------+----------------------+
-
-  .. note::
-         'resource_status' transitions to CREATE_COMPLETE.
-         'physical_resource_id' changes from
-         'd6bf000e-021a-4c0c-b043-7936331ed22a' to
-         '7687d229-d3c7-4c88-9783-1b0a09bb169f'.
-
-* Check point 3 after operation
-
-  VDU(single) detailed information after operation:
-
-  .. code-block:: console
-
-    $ openstack stack resource show 5330ea82-0fd6-4a29-a796-0646e7c6815f VDU2 \
-      -c attributes --fit-width
-
-  Result:
-
-  .. code-block:: console
-
-    +------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    | Field                  | Value                                                                                                                                                                                                                            |
-    +------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    | attributes             | {'id': '7687d229-d3c7-4c88-9783-1b0a09bb169f', 'name': 'vn-6bde-1a4c-40f5-8405-5536403e73d5-VDU2-jexec2twpgpp', 'status': 'ACTIVE', 'tenant_id': 'b7457dcef9374c2fa72e22c452bb04e9', 'user_id':                                  |
-    |                        | 'ed6a354ef25041ac92c0e445e91cc9a9', 'metadata': {}, 'hostId': 'd2de6a234a80a445a7ee385f445e6084358f3aef2e110d7bc888ccf2', 'image': {'id': '6fbf2395-5140-406b-abfe-b80fc0ff7ead', 'links': [{'rel': 'bookmark', 'href':          |
-    |                        | 'http://192.168.2.100/compute/images/6fbf2395-5140-406b-abfe-b80fc0ff7ead'}]}, 'flavor': {'vcpus': 1, 'ram': 512, 'disk': 1, 'ephemeral': 0, 'swap': 0, 'original_name': 'm1.tiny', 'extra_specs': {'hw_rng:allowed': 'True'}},  |
-    |                        | 'created': '2022-03-18T05:03:23Z', 'updated': '2022-03-18T05:03:32Z', 'addresses': {'net0': [{'version': 4, 'addr': '10.10.0.101', 'OS-EXT-IPS:type': 'fixed', 'OS-EXT-IPS-MAC:mac_addr': 'fa:16:3e:2f:ca:38'}]}, 'accessIPv4':  |
-    |                        | '', 'accessIPv6': '', 'links': [{'rel': 'self', 'href': 'http://192.168.2.100/compute/v2.1/servers/7687d229-d3c7-4c88-9783-1b0a09bb169f'}, {'rel': 'bookmark', 'href':                                                           |
-    |                        | 'http://192.168.2.100/compute/servers/7687d229-d3c7-4c88-9783-1b0a09bb169f'}], 'OS-DCF:diskConfig': 'MANUAL', 'progress': 0, 'OS-EXT-AZ:availability_zone': 'nova', 'config_drive': '', 'key_name': None, 'OS-SRV-               |
-    |                        | USG:launched_at': '2022-03-18T05:03:46.000000', 'OS-SRV-USG:terminated_at': None, 'security_groups': [{'name': 'default'}], 'OS-EXT-SRV-ATTR:host': 'compute101', 'OS-EXT-SRV-ATTR:instance_name': 'instance-000007c0', 'OS-EXT- |
-    |                        | SRV-ATTR:hypervisor_hostname': 'compute101', 'OS-EXT-SRV-ATTR:reservation_id': 'r-rqd3rep5', 'OS-EXT-SRV-ATTR:launch_index': 0, 'OS-EXT-SRV-ATTR:hostname': 'vn-6bde-1a4c-40f5-8405-5536403e73d5-vdu2-jexec2twpgpp', 'OS-EXT-    |
-    |                        | SRV-ATTR:kernel_id': '', 'OS-EXT-SRV-ATTR:ramdisk_id': '', 'OS-EXT-SRV-ATTR:root_device_name': '/dev/vda', 'OS-EXT-SRV-ATTR:user_data': 'Q29udGVudC1UeXBlOiBtdWx0aXBhcnQvbWl4ZWQ7IGJvdW5kYXJ5PSI9PT09PT09PT09PT09PT02NzkzNzUxNjg |
-    |                        | 2', 'OS-EXT-STS:task_state': None, 'OS-EXT-STS:vm_state': 'active', 'OS-EXT-STS:power_state': 1, 'os-extended-volumes:volumes_attached': [], 'host_status': 'UP', 'locked': False, 'locked_reason': None, 'description': None,   |
-    |                        | 'tags': [], 'trusted_image_certificates': None, 'server_groups': [], 'os_collect_config': {}}                                                                                                                                    |
-    +------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-
-  .. note:: You can check VDU has changed from created by volume
-    '60db6ba6-d637-4ba5-9c18-fa5d64930123' to created by image
-    '6fbf2395-5140-406b-abfe-b80fc0ff7ead'.
 
 How to Change VM created by volume to VM created by volume
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

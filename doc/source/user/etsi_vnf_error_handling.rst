@@ -295,8 +295,6 @@ Rollback VNF LCM Operation
       the IP address and Port Id will be recovered by its rollback operation.
     | Otherwise, dynamic IP address and Port Id are not recovered
       by rollback operation.
-    | Currently, Instantiate VNF with kubernetes vim does not support rollback
-      operation when using v2 API.
 
 This manual describes the following operations as use cases for
 rollback operations.
@@ -513,10 +511,6 @@ Retry VNF LCM Operation
      - COMPLETED or FAILED_TEMP
      -
      - X
-
-.. note::
-    | Currently, Instantiate VNF with kubernetes vim does not support retry
-      operation when using v2 API.
 
 This manual describes the following operations as use cases for
 retry operations.

@@ -2,6 +2,15 @@
 How to use a Sample VNF Package for practical use cases
 =======================================================
 
+.. warning::
+   This document shows a sample VNF Package and
+   VNF operations with v1 VNF LCM API.
+   Note that v2 API and CNF operations have
+   different requirements for a VNF Package
+   and API parameters.
+   See the API reference and other use case guides
+   for details on requirements.
+
 Overview
 --------
 

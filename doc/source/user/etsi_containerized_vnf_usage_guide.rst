@@ -1,6 +1,6 @@
-===================================================================
+===============================================
 ETSI NFV-SOL CNF (Containerized VNF) Deployment
-===================================================================
+===============================================
 
 This section covers how to deploy ETSI NFV-SOL containerized VNF
 in Tacker using Kubernetes VIM.
@@ -41,7 +41,7 @@ The following figure shows an overview of the CNF deployment.
 Prepare Kubernetes VIM
 =======================
 1. Create a Config File
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
 
 Before register a Kubernetes VIM to tacker, we should create config file.
 The following ``vim-k8s.yaml`` file provides necessary information to
@@ -51,28 +51,13 @@ parameters that can be obtained from the Kubernetes Master-node.
 For specific methods of obtaining "bearer_token" and "ssl_ca_cert",
 please refer to [#first]_.
 
-By using ``extra`` field, we can register VIM with Helm installed as
-the control target of Tacker.
-
-.. note::
-
-    * ``extra`` is an optional parameter.
-    * For VIM using Helm, the following preconditions need to be met:
-
-      * Use the specified user to login through ssh to execute the CLI
-        command of Helm.
-      * The specified user has sudo execution permissions for the
-        mkdir/chown/rm commands and does not require a password.
-      * Create the /var/tacker/helm directory on VIM as the transfer
-        destination for Helm chart files.
-
 .. code-block:: console
 
     $ cat vim-k8s.yaml
     auth_url: "https://192.168.33.100:6443"
     project_name: "default"
     bearer_token: "eyJhbGciOiJSUzI1NiIsImtpZCI6IlBRVDgxQkV5VDNVR1M1WGEwUFYxSXFkZFhJWDYzNklvMEp2WklLMnNFdk0ifQ.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJrdWJlLXN5c3RlbSIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VjcmV0Lm5hbWUiOiJhZG1pbi10b2tlbi12cnpoaiIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50Lm5hbWUiOiJhZG1pbiIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50LnVpZCI6ImNhY2VmMzEzLTMzYjYtNDQ5MS1iMWUyLTg0NmQ2N2E0OTdkNSIsInN1YiI6InN5c3RlbTpzZXJ2aWNlYWNjb3VudDprdWJlLXN5c3RlbTphZG1pbiJ9.R76VIWVZnQxa9NG02HIqux1xTJG4i7dkXsp52T4UU8bvNfsfi18kW_p3ZvaNTxw0yABBcmkYZoOBe4MNP5cTP6TtR_ERZoA5QCViasW_u36rSTBT0-MHRPbkXjJYetzYaFYUO-DlJd3194yOtVHtrxUd8D31qw0f1FlP8BHxblDjZkYlgYSjHCxcwEdwlnYaa0SiH2kl6_oCBRFg8cUfXDeTOmH9XEfdrJ6ubJ4OyqG6YjfiKDDiEHgIehy7s7vZGVwVIPy6EhT1YSOIhY5aF-G9nQSg-GK1V9LIq7petFoW_MIEt0yfNQVXy2D1tBhdJEa1bgtVsLmdlrNVf-m3uA"
-    ssl_ca_cert: "-----BEGIN CERTIFICATE-----nID
+    ssl_ca_cert: "-----BEGIN CERTIFICATE-----
     MIICwjCCAaqgAwIBAgIBADANBgkqhkiG9w0BAQsFADASMRAwDgYDVQQDEwdrdWJl
     LWNhMB4XDTIwMDgyNjA5MzIzMVoXDTMwMDgyNDA5MzIzMVowEjEQMA4GA1UEAxMH
     a3ViZS1jYTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBALxkeE16lPAd
@@ -90,72 +75,6 @@ the control target of Tacker.
     2ZrqgOcTmyFzFh9h2dj1DJWvCvExybRmzWK1e8JMzTb40MEApyY=
     -----END CERTIFICATE-----"
     type: "kubernetes"
-    extra:
-      helm_info:
-        masternode_ip:
-        - "192.168.33.100"
-        masternode_username: "helm_user"
-        masternode_password: "helm_pass"
-
-In addition to using ``bearer_token`` to authenticate with Kubernetes ,
-OpenID token [#sixth]_ is also supported. The following sample specifies
-``oidc_token_url``, ``client_id``, ``client_secret``, ``username``, ``password``
-instead of ``bearer_token`` for OpenID token authentication.
-
-Before using OpenID token authentication, additional settings are required.
-Please refer to [#seventh]_, and how to get the values of the ``oidc_token_url``,
-``client_id``, ``client_secret``, ``username``, ``password`` and ``ssl_ca_cert``
-parameters is documented.
-
-The SSL certificates of Kubernetes and OpenID provider are concatenated
-in ``ssl_ca_cert``.
-
-.. code-block:: console
-
-   $ cat vim-k8s.yaml
-   auth_url: "https://192.168.33.100:6443"
-   project_name: "default"
-   oidc_token_url: "https://192.168.33.100:8443/realms/oidc/protocol/openid-connect/token"
-   client_id: "tacker"
-   client_secret: "A93HfOUpySm6BjPug9PJdJumjEGUJMhc"
-   username: "end-user"
-   password: "end-user"
-   ssl_ca_cert: "-----BEGIN CERTIFICATE-----
-   MIICwjCCAaqgAwIBAgIBADANBgkqhkiG9w0BAQsFADASMRAwDgYDVQQDEwdrdWJl
-   LWNhMB4XDTIwMDgyNjA5MzIzMVoXDTMwMDgyNDA5MzIzMVowEjEQMA4GA1UEAxMH
-   a3ViZS1jYTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBALxkeE16lPAd
-   pfJj5GJMvZJFcX/CD6EB/LUoKwGmqVoOUQPd3b/NGy+qm+3bO9EU73epUPsVaWk2
-   Lr+Z1ua7u+iib/OMsfsSXMZ5OEPgd8ilrTGhXOH8jDkif9w1NtooJxYSRcHEwxVo
-   +aXdIJhqKdw16NVP/elS9KODFdRZDfQ6vU5oHSg3gO49kgv7CaxFdkF7QEHbchsJ
-   0S1nWMPAlUhA5b8IAx0+ecPlMYUGyGQIQgjgtHgeawJebH3PWy32UqfPhkLPzxsy
-   TSxk6akiXJTg6mYelscuxPLSe9UqNvHRIUoad3VnkF3+0CJ1z0qvfWIrzX3w92/p
-   YsDBZiP6vi8CAwEAAaMjMCEwDgYDVR0PAQH/BAQDAgKkMA8GA1UdEwEB/wQFMAMB
-   Af8wDQYJKoZIhvcNAQELBQADggEBAIbv2ulEcQi019jKz4REy7ZyH8+ExIUBBuIz
-   InAkfxNNxV83GkdyA9amk+LDoF/IFLMltAMM4b033ZKO5RPrHoDKO+xCA0yegYqU
-   BViaUiEXIvi/CcDpT9uh2aNO8wX5T/B0WCLfWFyiK+rr9qcosFYxWSdU0kFeg+Ln
-   YAaeFY65ZWpCCyljGpr2Vv11MAq1Tws8rEs3rg601SdKhBmkgcTAcCzHWBXR1P8K
-   rfzd6h01HhIomWzM9xrP2/2KlYRvExDLpp9qwOdMSanrszPDuMs52okXgfWnEqlB
-   2ZrqgOcTmyFzFh9h2dj1DJWvCvExybRmzWK1e8JMzTb40MEApyY=
-   -----END CERTIFICATE-----
-   -----BEGIN CERTIFICATE-----
-   MIIC7TCCAdWgAwIBAgIUQK2k5uNvlRLx43LI/t3a2/A/3iQwDQYJKoZIhvcNAQEL
-   BQAwFTETMBEGA1UEAxMKa3ViZXJuZXRlczAeFw0yMjA4MDQwNjIwNTFaFw0yMzA4
-   MDQwNjIwNTFaMBMxETAPBgNVBAMMCEtleWNsb2FrMIIBIjANBgkqhkiG9w0BAQEF
-   AAOCAQ8AMIIBCgKCAQEAni7HWLn2IpUImGO1sbBf/XuqATkXSeIIRuQuFymwYPoX
-   BP7RowzrbfF9KUwdIKlz9IXjqb1hplumiqNy1Sc7MmrTY9Fj87MNAMlnCIvyWkjE
-   XVXWxGef49mqc85P2K1iuAsr2R7sDrv7SC0ch+lHclOjGDmCjKOk8qF3kD1LATWg
-   zf42aXb4nNF9kyIOPEbI+jX4PWhAQpEz5nIG+xIRjTHGfacjpeg0+XOK21wLAuQB
-   fqebJ6GxX4OzB37ZtLLgrKyBYWaWuYkWbexVRM3wEvQu8ENkvhV017iPuPHSxNWx
-   Y8z072XMs9j8XRQD65EVqObXyizotPRJF4slEJ9qMQIDAQABozcwNTAJBgNVHRME
-   AjAAMAsGA1UdDwQEAwIF4DAbBgNVHREEFDAShwR/AAABhwTAqAIhhwQKCgCMMA0G
-   CSqGSIb3DQEBCwUAA4IBAQBebjmNHd8sJXjvPQc3uY/3KSDpk9AYfYzhUZvcvLNg
-   z0llFqXHaFlMqHTsz1tOH4Ns4PDKKoRT0JIKC1FkvjzqgL+X2jWFS0NRoNyd3W3B
-   yHLEL7MdQqDR+tZX02EGfaGXjuy8GHIU4J2hXhohmpn6ntfiRONfY8jaEjIecPFS
-   IwZWXNhsDESa1zuDe0PatES/Ati8bAUpN2rb/7rsE/AeM5GXpQfOKV0XxdIeBZ82
-   Vf5cUDWPipvq2Q9KS+yrTvEObGtA6gKhQ4bpz3MieU3N8AtQpEKtROH7mJWMHyl2
-   roD1k8KeJlfvR/XcVTGFcgIdNLfKIdd99Xfi4gSaIKuw
-   -----END CERTIFICATE-----"
-   type: "kubernetes"
 
 2. Register Kubernetes VIM
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -205,7 +124,6 @@ the [1. Create a config file] chapter.
     | auth_url       | https://192.168.33.100:6443                                                                                     |
     | created_at     | 2020-10-19 08:08:12.116040                                                                                      |
     | description    |                                                                                                                 |
-    | extra          | helm_info=masternode_ip=['192.168.33.100'], masternode_password=helm_user, masternode_username=helm_pass        |
     | id             | 8d8373fe-6977-49ff-83ac-7756572ed186                                                                            |
     | is_default     | False                                                                                                           |
     | name           | test-vim-k8s                                                                                                    |
@@ -240,9 +158,6 @@ Also we can check if the status of VIM is REACHABLE by
 
 Prepare VNF Package
 ===================
-
-If we want to deploy CNF through helm, we can refer to `Prepare VNF Package`_.
-
 1. Create Directories of VNF Package
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 TOSCA YAML CSAR file is an archive file using the ZIP file format whose
@@ -256,7 +171,7 @@ Here is a sample of building a VNF Package CSAR directory:
 .. _Create a Kubernetes Object File:
 
 2. Create a Kubernetes Object File
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 A CSAR VNF package shall have a object file that defines Kubernetes resources
 to be deployed.
 The file name shall have an extension of ".yaml".
@@ -266,7 +181,7 @@ different yaml files.
 .. note:: Please refer to Kubernetes api resource [#second]_ for an example yaml file of
           each resource.
 
-For the types of resources that can be deployed in Victoria, please refer to
+For the types of resources that can be deployed, please refer to
 following link Kubernetes resource kind support [#third]_.
 
 The following is a simple example of ``deployment`` resource.
@@ -734,9 +649,6 @@ After the command is executed, the generated ID is ``VNF instance ID``.
 
 Instantiate VNF
 ===============
-
-If we want to deploy CNF through helm, we can refer to `Instantiate VNF`_.
-
 1. Set the Value to the Request Parameter File
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Get the ID of target VIM.
@@ -799,9 +711,28 @@ vimId and vimType.
       ]
     }
 
+
+.. note::
+
+    There is a difference in resource creation
+    depending on the API version.
+    version 1 API creates the resources in order sorted by `kinds`.
+    version 2 API creates the resources in the order of
+    `lcm-kubernetes-def-files` list.
+    Therefore, version 2 API requires users to specify the
+    `lcm-kubernetes-def-files` list in the correct order.
+
+In the case of version 1 API,
 `additionalParams` can also contain `vdu_mapping` parameter.
 In this case, specify the type and name of the resource corresponding to the
 `VDU ID`` defined in the VNFD as follows:
+
+.. note::
+
+    version 2 API does not support `vdu_mapping` parameter.
+    Although specifying it does not cause an error,
+    it is meaningless.
+
 
 .. code-block:: console
 
@@ -844,7 +775,7 @@ chapter.
     Instantiate request for VNF Instance 92cf0ccb-e575-46e2-9c0d-30c67e75aaf6 has been accepted.
 
 3. Check the Instantiation State
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 We could check the Instantiation State by running the following command.
 When the Instantiation State is INSTANTIATED, indicate the instantiation is
 successful.
@@ -945,7 +876,3 @@ References
 .. [#third] https://specs.openstack.org/openstack/tacker-specs/specs/victoria/container-network-function.html#kubernetes-resource-kind-support
 .. [#fourth] https://docs.openstack.org/tacker/latest/user/vnfd-sol001.html
 .. [#fifth] https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#dns-subdomain-names
-.. [#sixth] https://kubernetes.io/docs/reference/access-authn-authz/authentication/#openid-connect-tokens
-.. [#seventh] https://docs.openstack.org/tacker/latest/reference/kubernetes_openid_token_auth_usage_guide.html
-.. _Prepare VNF Package : https://docs.openstack.org/tacker/latest/user/mgmt_driver_deploy_k8s_and_cnf_with_helm.html#prepare-vnf-package
-.. _Instantiate VNF : https://docs.openstack.org/tacker/latest/user/mgmt_driver_deploy_k8s_and_cnf_with_helm.html#instantiate-vnf

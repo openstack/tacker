@@ -74,10 +74,6 @@ definition file before running command for changing the VNF package.
     "vnfdId": "c6595341-a5bb-8246-53c4-7aeb843d60c5",
     "additionalParams": {
       "upgrade_type": "RollingUpdate",
-      "lcm-operation-coordinate-old-vnf": "./Scripts/coordinate_old_vnf.py",
-      "lcm-operation-coordinate-old-vnf-class": "CoordinateOldVnf",
-      "lcm-operation-coordinate-new-vnf": "./Scripts/coordinate_new_vnf.py",
-      "lcm-operation-coordinate-new-vnf-class": "CoordinateNewVnf",
       "lcm-kubernetes-def-files": ["Files/new_kubernetes/new_deployment.yaml"],
       "vdu_params": [{
         "vdu_id": "VDU1"
@@ -93,12 +89,14 @@ definition file before running command for changing the VNF package.
     "vnfdId": "c6595341-a5bb-8246-53c4-7aeb843d60c5",
     "additionalParams": {
       "upgrade_type": "RollingUpdate",
-      "lcm-operation-coordinate-old-vnf": "./Scripts/coordinate_old_vnf.py",
-      "lcm-operation-coordinate-old-vnf-class": "CoordinateOldVnf",
-      "lcm-operation-coordinate-new-vnf": "./Scripts/coordinate_new_vnf.py",
-      "lcm-operation-coordinate-new-vnf-class": "CoordinateNewVnf"
     }
   }
+
+.. note::
+   Unlike Change Current Vnf Package for VNF,
+   coordination scripts are not supported for CNF.
+   Therefore, lcm-operation-coordinate files need not be
+   specified by `additionalParams`.
 
 You can set following parameter in additionalParams:
 
@@ -112,60 +110,12 @@ You can set following parameter in additionalParams:
   * - upgrade_type
     - 1
     - Type of file update operation method. Specify Blue-Green or Rolling update.
-  * - lcm-operation-coordinate-old-vnf
-    - 1
-    - The file path of the script that simulates the behavior of CoordinateVNF for old VNF.
-  * - lcm-operation-coordinate-old-vnf-class
-    - 1
-    - The class name of CoordinateVNF for old VNF.
-  * - lcm-operation-coordinate-new-vnf
-    - 1
-    - The file path of the script that simulates the behavior of CoordinateVNF for new VNF.
-  * - lcm-operation-coordinate-new-vnf-class
-    - 1
-    - The class name of CoordinateVNF for new VNF.
   * - vdu_params
-    - 0..N
-    - VDU information of target VDU to update. Specifying a vdu_params is required for OpenStack VIM and not required for Kubernetes VIM.
+    - 1..N
+    - VDU information of target VDU to update.
   * - > vdu_id
     - 1
     - VDU name of target VDU to update.
-  * - > old_vnfc_param
-    - 0..1
-    - Old VNFC connection information. Required for ssh connection in CoordinateVNF operation for application configuration to VNFC.
-  * - >> cp-name
-    - 1
-    - Connection point name of old VNFC to update.
-  * - >> username
-    - 1
-    - User name of old VNFC to update.
-  * - >> password
-    - 1
-    - Password of old VNFC to update.
-  * - > new_vnfc_param
-    - 0..1
-    - New VNFC connection information. Required for ssh connection in CoordinateVNF operation for application configuration to VNFC.
-  * - >> cp-name
-    - 1
-    - Connection point name of new VNFC to update.
-  * - >> username
-    - 1
-    - User name of new VNFC to update.
-  * - >> password
-    - 1
-    - Password of new VNFC to update.
-  * - external_lb_param
-    - 0..1
-    - Load balancer information that requires configuration changes. Required only for the Blue-Green deployment process of OpenStack VIM.
-  * - > ip_address
-    - 1
-    - IP address of load balancer server.
-  * - > username
-    - 1
-    - User name of load balancer server.
-  * - > password
-    - 1
-    - Password of load balancer server.
 
 .. note:: ``sample_param_file_for_specified_resources.json`` contains
    all optional parameters.
@@ -175,13 +125,6 @@ You can set following parameter in additionalParams:
      OpenStack VIM. And you only need to set this parameter when you need to
      update the path of the manifest file of the deployment resource.
    * ``vdu_params`` is VDU information of target VDU to update.
-     Specifying a ``vdu_params`` is required for OpenStack VIM and not
-     required for Kubernetes VIM.
-   * ``lcm-operation-coordinate-old-vnf`` and
-     ``lcm-operation-coordinate-new-vnf`` are unique implementations of Tacker
-     to simulate the coordination interface in `ETSI SOL002 v3.5.1`_. Mainly a
-     script that can communicate with the VM after the VM is created, perform
-     special customization of the VM or confirm the status of the VM.
 
 .. note:: Currently, this operation only supports some functions of
    ``Change Current VNF Package``.
