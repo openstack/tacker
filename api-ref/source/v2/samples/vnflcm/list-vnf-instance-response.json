@@ -462,7 +462,10 @@
                         }
                     ]
                 }
-            ]
+            ],
+            "metadata": {
+                "stack_id": "74350884-fcfd-43f3-a425-2eb007180bc4"
+            }
         },
         "instantiationState": "INSTANTIATED",
         "metadata": {},

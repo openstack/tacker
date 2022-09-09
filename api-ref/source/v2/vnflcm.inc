@@ -435,6 +435,7 @@ Response Parameters
   - vimConnectionId: vim_connection_id
   - resourceId: resource_handle_resource_id
   - vimLevelResourceType: resource_handle_vim_level_resource_type
+  - metadata: instantiated_vnf_info_metadata
   - metadata: vnf_instance_metadata
   - vnfcInfo: vnfc_info
   - id: vnfc_info_id
@@ -599,6 +600,7 @@ Response Parameters
   - vimConnectionId: vim_connection_id
   - resourceId: resource_handle_resource_id
   - vimLevelResourceType: resource_handle_vim_level_resource_type
+  - metadata: instantiated_vnf_info_metadata
   - metadata: vnf_instance_metadata
   - vnfcInfo: vnfc_info
   - id: vnfc_info_id
