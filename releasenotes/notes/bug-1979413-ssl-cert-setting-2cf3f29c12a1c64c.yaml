@@ -1,0 +1,7 @@
+fixes:
+  - |
+      Fixes `bug 1979413`_, create temp ssl cert file and set it to
+      k8s client config if 'ssl_ca_cert' exists in
+      ``VimConnectionInfo.interfaceInfo``.
+
+      .. _bug 1979413: https://bugs.launchpad.net/tacker/+bug/1979413
