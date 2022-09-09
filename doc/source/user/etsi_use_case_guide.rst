@@ -115,6 +115,7 @@ VM
    :maxdepth: 1
 
    etsi_vnf_error_handling
+   db_sync_error_handling
 
 .. TODO(h-asahina): add `Action Driver`
   * https://etherpad.opendev.org/p/tacker-wallaby-revise-docs
