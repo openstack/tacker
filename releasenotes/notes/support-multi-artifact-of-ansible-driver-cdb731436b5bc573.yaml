@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    The Ansible driver can only run specific script files.
+    Due to multi artifact support of mgmt driver, it will be
+    extended to specify script files to be executed in each life cycle.
+    This will be achieved by implementing primary and dependencies
+    keys defined by TOSCA, primary can define the primary script,
+    dependencies can define a secondary script that will be referenced
+    by the primary script.
