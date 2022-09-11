@@ -11,13 +11,12 @@ resources:
     properties:
       min_size: 1
       max_size: 3
-      desired_capacity: { get_param: [ nfv, VDU, VDU1, desired_capacity ] }
+      desired_capacity: 1
       resource:
         type: VDU1.yaml
         properties:
           flavor: { get_param: [ nfv, VDU, VDU1, computeFlavourId ] }
           image: { get_param: [ nfv, VDU, VirtualStorage, vcImageId ] }
-          zone: { get_param: [ nfv, VDU, VDU1, locationConstraints] }
           net1: { get_param: [ nfv, CP, VDU1_CP1, network ] }
           net2: { get_param: [ nfv, CP, VDU1_CP2, network ] }
           subnet: { get_param: [nfv, CP, VDU1_CP2, fixed_ips, 0, subnet ]}

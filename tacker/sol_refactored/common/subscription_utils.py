@@ -171,7 +171,7 @@ def match_inst_subsc_filter(inst_filter, inst):
             return False
 
     if inst_filter.obj_attr_is_set('vnfInstanceNames'):
-        if inst.vnfInstanceNames not in inst_filter.vnfInstanceNames:
+        if inst.vnfInstanceName not in inst_filter.vnfInstanceNames:
             return False
 
     return True

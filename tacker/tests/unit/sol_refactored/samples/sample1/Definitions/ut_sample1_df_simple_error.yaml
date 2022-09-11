@@ -1,0 +1,310 @@
+tosca_definitions_version: tosca_simple_yaml_1_2
+
+description: Simple deployment flavour for Sample VNF
+
+imports:
+  - etsi_nfv_sol001_common_types.yaml
+  - etsi_nfv_sol001_vnfd_types.yaml
+  - v2_sample2_types.yaml
+
+topology_template:
+  inputs:
+    descriptor_id:
+      type: string
+    descriptor_version:
+      type: string
+    provider:
+      type: string
+    product_name:
+      type: string
+    software_version:
+      type: string
+    vnfm_info:
+      type: list
+      entry_schema:
+        type: string
+    flavour_id:
+      type: string
+    flavour_description:
+      type: string
+
+  substitution_mappings:
+    node_type: company.provider.VNF
+    properties:
+      flavour_id: error
+    requirements:
+      virtual_link_external1_1: [ VDU1_CP1, virtual_link ]
+      virtual_link_external1_2: [ VDU2_CP1, virtual_link ]
+      virtual_link_external2_1: [ VDU1_CP2, virtual_link ]
+      virtual_link_external2_2: [ VDU2_CP2, virtual_link ]
+
+  node_templates:
+
+    VDU1:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: VDU1
+        description: VDU1 compute node
+        vdu_profile:
+          min_number_of_instances: 1
+          max_number_of_instances: 3
+      capabilities:
+        virtual_compute:
+          properties:
+            requested_additional_capabilities:
+              properties:
+                requested_additional_capability_name: m1.tiny
+                support_mandatory: true
+                target_performance_parameters:
+                  entry_schema: test
+            virtual_memory:
+              virtual_mem_size: 512 MB
+            virtual_cpu:
+              num_virtual_cpu: 1
+            virtual_local_storage:
+              - size_of_storage: 3 GB
+      requirements:
+        - virtual_storage: VirtualStorage
+
+    VNF:
+      type: company.provider.VNF
+      properties:
+        flavour_description: A simple flavour
+      interfaces:
+        Vnflcm:
+          instantiate_start:
+            implementation:
+          instantiate_end:
+            implementation: sample-script
+          terminate_start:
+            implementation: error-script
+          terminate_end:
+            implementation: sample-script
+          scale_start: [ ]
+      artifacts:
+        sample-script:
+          description: Sample script
+          type: tosca.artifacts.Implementation.Python
+          file:
+        error-script:
+          description: Sample script
+          type: tosca.artifacts.Implementation.Error
+          file: 'test/sample_script.sh'
+
+    VDU2:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: VDU1
+        description: VDU1 compute node
+        vdu_profile:
+          min_number_of_instances: 1
+          max_number_of_instances: 3
+      capabilities:
+        virtual_compute:
+          properties:
+            requested_additional_capabilities:
+              properties:
+                requested_additional_capability_name: m1.tiny
+                support_mandatory: true
+                target_performance_parameters:
+                  entry_schema: test
+            virtual_memory:
+              virtual_mem_size: 512 MB
+            virtual_cpu:
+              num_virtual_cpu: 1
+            virtual_local_storage:
+              - size_of_storage: 3 GB
+      requirements:
+        - virtual_storage: VirtualStorage-2
+
+    VirtualStorage:
+      type: tosca.nodes.nfv.Vdu.VirtualBlockStorage
+      properties:
+        virtual_block_storage_data:
+          size_of_storage: 1gb GB
+          rdma_enabled: true
+
+    VirtualStorage-2:
+      type: tosca.nodes.nfv.Vdu.VirtualBlockStorage
+      properties:
+        virtual_block_storage_data:
+          size_of_storage: 1gb GB
+          rdma_enabled: true
+        sw_image_data:
+          name: image-1.0.0-x86_64-disk
+          version: '1.0.0'
+          checksum:
+            algorithm: sha-256
+            hash: a8dd75ecffd4cdd96072d60c2237b448e0c8b2bc94d57f10fdbc8c481d9005b8
+          container_format: bare
+          disk_format: qcow2
+          min_disk: 0 GB
+          min_ram: 256 MB
+          size: 12 GB
+
+    VDU1_CP1:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        order: 0
+      requirements:
+        - virtual_binding: VDU1
+
+    VDU1_CP2:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        order: 1
+      requirements:
+        - virtual_binding: VDU1
+
+    VDU1_CP3:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        order: 2
+      requirements:
+        - virtual_binding: VDU1
+        - virtual_link: internalVL1
+
+    VDU1_CP4:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        order: 3
+      requirements:
+        - virtual_binding: VDU1
+        - virtual_link: internalVL2
+
+    VDU1_CP5:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        order: 4
+      requirements:
+        - virtual_binding: VDU1
+        - virtual_link: internalVL3
+
+    VDU2_CP1:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        order: 0
+      requirements:
+        - virtual_binding: VDU2
+
+    VDU2_CP2:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        order: 1
+      requirements:
+        - virtual_binding: VDU2
+
+    VDU2_CP3:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        order: 2
+      requirements:
+        - virtual_binding: VDU2
+        - virtual_link: internalVL1
+
+    VDU2_CP4:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        order: 3
+      requirements:
+        - virtual_binding: VDU2
+        - virtual_link: internalVL2
+
+    VDU2_CP5:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        order: 4
+      requirements:
+        - virtual_binding: VDU2
+        - virtual_link: internalVL3
+
+    internalVL1:
+      type: tosca.nodes.nfv.VnfVirtualLink
+      properties:
+        connectivity_type:
+          layer_protocols: [ ipv4 ]
+        description: External Managed Virtual link in the VNF
+        vl_profile:
+          max_bitrate_requirements:
+            root: 1048576
+            leaf: 1048576
+          min_bitrate_requirements:
+            root: 1048576
+            leaf: 1048576
+          virtual_link_protocol_data:
+            - associated_layer_protocol: ipv4
+              l3_protocol_data:
+                ip_version: ipv4
+                cidr: 192.168.3.0/24
+
+    internalVL2:
+      type: tosca.nodes.nfv.VnfVirtualLink
+      properties:
+        connectivity_type:
+          layer_protocols: [ ipv4 ]
+        description: External Managed Virtual link in the VNF
+        vl_profile:
+          max_bitrate_requirements:
+            root: 1048576
+            leaf: 1048576
+          min_bitrate_requirements:
+            root: 1048576
+            leaf: 1048576
+          virtual_link_protocol_data:
+            - associated_layer_protocol: ipv4
+              l3_protocol_data:
+                ip_version: ipv4
+                cidr: 192.168.4.0/24
+
+    internalVL3:
+      type: tosca.nodes.nfv.VnfVirtualLink
+      properties:
+        connectivity_type:
+          layer_protocols: [ ipv4 ]
+        description: Internal Virtual link in the VNF
+        vl_profile:
+          max_bitrate_requirements:
+            root: 1048576
+            leaf: 1048576
+          min_bitrate_requirements:
+            root: 1048576
+            leaf: 1048576
+          virtual_link_protocol_data:
+            - associated_layer_protocol: ipv4
+              l3_protocol_data:
+                ip_version: ipv4
+                cidr: 192.168.5.0/24
+
+  groups:
+    affinityOrAntiAffinityGroup1:
+      type: tosca.groups.nfv.PlacementGroup
+      members: [ VDU1, VDU2 ]
+
+  policies:
+    policy_antiaffinity_group:
+      type: tosca.policies.nfv.AntiAffinityRule
+      targets: [ affinityOrAntiAffinityGroup1 ]
+      properties:
+        scope: nfvi_node
+
+    policy_affinity_group:
+      type: tosca.policies.nfv.AffinityRule
+      targets: [ affinityOrAntiAffinityGroup1 ]
+      properties:
+        scope: error
+
+    policy_affinity_group_2:
+      type: tosca.policies.nfv.AffinityRule
+      targets: [VDU3]
+      properties:
+        scope: zone

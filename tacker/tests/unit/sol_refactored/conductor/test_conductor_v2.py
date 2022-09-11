@@ -39,8 +39,9 @@ class TestConductorV2(db_base.SqlTestCase):
         self.conductor = conductor_v2.ConductorV2()
         self.context = context.get_admin_context()
 
-    def _create_inst_and_lcmocc(self,
-            op_state=fields.LcmOperationStateType.STARTING):
+    def _create_inst_and_lcmocc(
+            self, op_state=fields.LcmOperationStateType.STARTING,
+            is_change_vnfpkg=False):
         inst = objects.VnfInstanceV2(
             # required fields
             id=uuidutils.generate_uuid(),
@@ -64,6 +65,9 @@ class TestConductorV2(db_base.SqlTestCase):
             isAutomaticInvocation=False,
             isCancelPending=False,
             operationParams=req)
+
+        if is_change_vnfpkg:
+            lcmocc.operation = fields.LcmOperationType.CHANGE_VNFPKG
 
         inst.create(self.context)
         lcmocc.create(self.context)
@@ -530,3 +534,98 @@ class TestConductorV2(db_base.SqlTestCase):
         lcmocc = lcmocc_utils.get_lcmocc(self.context, lcmocc.id)
         expected = ex.make_problem_details()
         self.assertEqual(expected, lcmocc.error.to_dict())
+
+    def test_start_lcm_op_abnormal(self):
+        # prepare
+        lcmocc = self._create_inst_and_lcmocc(
+            op_state=fields.LcmOperationStateType.PROCESSING)
+
+        result = self.conductor.start_lcm_op(self.context, lcmocc.id)
+        self.assertEqual(None, result)
+
+    @mock.patch.object(nfvo_client.NfvoClient, 'send_lcmocc_notification')
+    @mock.patch.object(nfvo_client.NfvoClient, 'get_vnfd')
+    @mock.patch.object(vnflcm_driver_v2.VnfLcmDriverV2, 'post_grant')
+    @mock.patch.object(vnflcm_driver_v2.VnfLcmDriverV2, 'process')
+    def test_retry_lcm_op_abnormal(self, mocked_process, mocked_post_grant,
+            mocked_get_vnfd, mocked_send_lcmocc_notification):
+        # operation state incorrect
+        lcmocc = self._create_inst_and_lcmocc(
+            op_state=fields.LcmOperationStateType.PROCESSING)
+        result = self.conductor.retry_lcm_op(self.context, lcmocc.id)
+        self.assertEqual(None, result)
+
+        # operation is change_vnfpkg
+        # prepare
+        lcmocc = self._create_inst_and_lcmocc(
+            op_state=fields.LcmOperationStateType.FAILED_TEMP)
+        lcmocc.operation = fields.LcmOperationType.CHANGE_VNFPKG
+        lcmocc.operationParams = objects.ChangeCurrentVnfPkgRequest(
+            vnfdId='test-vnfdid')
+        self._create_grant_req_and_grant(lcmocc)
+        mocked_get_vnfd.return_value = mock.Mock()
+
+        op_state = []
+
+        def _store_state(context, lcmocc, inst, endpoint):
+            op_state.append(lcmocc.operationState)
+
+        mocked_send_lcmocc_notification.side_effect = _store_state
+
+        # run retry_lcm_op
+        self.conductor.retry_lcm_op(self.context, lcmocc.id)
+
+        # check operationState transition
+        self.assertEqual(2, mocked_send_lcmocc_notification.call_count)
+        self.assertEqual(fields.LcmOperationStateType.PROCESSING, op_state[0])
+        self.assertEqual(fields.LcmOperationStateType.COMPLETED, op_state[1])
+
+        # check grant_req and grant are deleted
+        self.assertRaises(sol_ex.GrantRequestOrGrantNotFound,
+            lcmocc_utils.get_grant_req_and_grant, self.context, lcmocc)
+
+    @mock.patch.object(nfvo_client.NfvoClient, 'send_lcmocc_notification')
+    @mock.patch.object(nfvo_client.NfvoClient, 'get_vnfd')
+    @mock.patch.object(vnflcm_driver_v2.VnfLcmDriverV2, 'post_grant')
+    @mock.patch.object(vnflcm_driver_v2.VnfLcmDriverV2, 'rollback')
+    def test_rollback_lcm_op_abnormal(self, mocked_rollback,
+            mocked_post_grant, mocked_get_vnfd,
+            mocked_send_lcmocc_notification):
+        # operation state incorrect
+        lcmocc = self._create_inst_and_lcmocc(
+            op_state=fields.LcmOperationStateType.PROCESSING)
+        result = self.conductor.rollback_lcm_op(self.context, lcmocc.id)
+        self.assertEqual(None, result)
+
+        # operation is change_vnfpkg
+        lcmocc = self._create_inst_and_lcmocc(
+            op_state=fields.LcmOperationStateType.FAILED_TEMP,
+            is_change_vnfpkg=True)
+        self._create_grant_req_and_grant(lcmocc)
+        mocked_get_vnfd.return_value = mock.Mock()
+
+        op_state = []
+
+        def _store_state(context, lcmocc, inst, endpoint):
+            op_state.append(lcmocc.operationState)
+
+        mocked_send_lcmocc_notification.side_effect = _store_state
+
+        # run rollback_lcm_op
+        self.conductor.rollback_lcm_op(self.context, lcmocc.id)
+
+        # check operationState transition
+        self.assertEqual(2, mocked_send_lcmocc_notification.call_count)
+        self.assertEqual(fields.LcmOperationStateType.ROLLING_BACK,
+                         op_state[0])
+        self.assertEqual(fields.LcmOperationStateType.ROLLED_BACK, op_state[1])
+
+        # check grant_req and grant are deleted
+        self.assertRaises(sol_ex.GrantRequestOrGrantNotFound,
+            lcmocc_utils.get_grant_req_and_grant, self.context, lcmocc)
+
+    def test_modify_vnfinfo_abnormal(self):
+        lcmocc = self._create_inst_and_lcmocc()
+
+        result = self.conductor.modify_vnfinfo(self.context, lcmocc.id)
+        self.assertEqual(None, result)

@@ -21,6 +21,8 @@ from oslo_utils import uuidutils
 from unittest import mock
 
 from tacker import context
+from tacker.sol_refactored.common import config
+from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import vnfd_utils
 from tacker.sol_refactored.infra_drivers.openstack import openstack
 from tacker.sol_refactored import objects
@@ -35,13 +37,6 @@ SAMPLE_FLAVOUR_ID = "simple"
 _vim_connection_info_example = {
     "vimId": "vim_id_1",
     "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3",
-    # "interfaceInfo": omitted
-    # "accessInfo": omitted
-}
-
-_vim_connection_info_for_change_vnfpkg = {
-    "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3",
-    "vimId": uuidutils.generate_uuid(),
     "interfaceInfo": {"endpoint": "http://127.0.0.1/identity"},
     "accessInfo": {
         "username": "nfv_user",
@@ -51,7 +46,6 @@ _vim_connection_info_for_change_vnfpkg = {
         "projectDomain": "Default",
         "userDomain": "Default"
     }
-
 }
 
 _instantiate_req_example = {
@@ -2639,6 +2633,110 @@ mock_resource_list_3 = {
     ]
 }
 
+_heat_parameters = {
+    'VDU': {
+        'VDU1': {
+            'desired_capacity': 1,
+            'computeFlavourId': 'm1.tiny',
+            'locationConstraints': None
+        },
+        'VirtualStorage': {
+            'vcImageId': 'image-1.0.0-x86_64-disk'
+        },
+        'VDU2': {
+            'computeFlavourId': 'm1.small',
+            'vcImageId': 'image-VDU2'
+        }
+    },
+    'CP': {
+        'VDU1_CP1': {
+            'network': 'res_id_ext_vl_1'
+        },
+        'VDU1_CP2': {
+            'network': 'res_id_id_ext_vl_2',
+            'fixed_ips': [{
+                'subnet': 'res_id_subnet_1'
+            }]
+        },
+        'VDU2_CP1': {
+            'network': 'res_id_ext_vl_1',
+            'fixed_ips': [{
+                'ip_address': '10.10.0.102'
+            }]
+        },
+        'VDU2_CP2': {
+            'network': 'res_id_id_ext_vl_2',
+            'fixed_ips': []
+        }
+    }
+}
+
+_grant_req_example = {
+    'operation': 'SCALE',
+    'removeResources': [{
+        'id': 'ed52e40b-922f-4e01-bc30-d4bf80029280',
+        'type': 'COMPUTE',
+        'resourceTemplateId': 'VDU1',
+        'resource': {
+            'resourceId': 'res_id_VDU1_1',
+            'vimLevelResourceType': 'OS::Nova::Server'
+        }
+    }, {
+        'id': 'VDU1_CP1-ed52e40b-922f-4e01-bc30-d4bf80029280',
+        'type': 'LINKPORT',
+        'resourceTemplateId': 'VDU1_CP1',
+        'resource': {
+            'resourceId': 'res_id_VDU1_1_CP1',
+            'vimLevelResourceType': 'OS::Neutron::Port'
+        }
+    }, {
+        'id': 'VDU1_CP2-ed52e40b-922f-4e01-bc30-d4bf80029280',
+        'type': 'LINKPORT',
+        'resourceTemplateId': 'VDU1_CP2',
+        'resource': {
+            'resourceId': 'res_id_VDU1_1_CP2',
+            'vimLevelResourceType': 'OS::Neutron::Port'
+        }
+    }, {
+        'id': 'VDU1_CP3-ed52e40b-922f-4e01-bc30-d4bf80029280',
+        'type': 'LINKPORT',
+        'resourceTemplateId': 'VDU1_CP3',
+        'resource': {
+            'resourceId': 'res_id_VDU1_1_CP3',
+            'vimLevelResourceType': 'OS::Neutron::Port'
+        }
+    }, {
+        'id': 'VDU1_CP4-ed52e40b-922f-4e01-bc30-d4bf80029280',
+        'type': 'LINKPORT',
+        'resourceTemplateId': 'VDU1_CP4',
+        'resource': {
+            'resourceId': 'res_id_VDU1_1_CP4',
+            'vimLevelResourceType': 'OS::Neutron::Port'
+        }
+    }, {
+        'id': 'VDU1_CP5-ed52e40b-922f-4e01-bc30-d4bf80029280',
+        'type': 'LINKPORT',
+        'resourceTemplateId': 'VDU1_CP5',
+        'resource': {
+            'resourceId': 'res_id_VDU1_1_CP5',
+            'vimLevelResourceType': 'OS::Neutron::Port'
+        }
+    }, {
+        'id': 'VirtualStorage-ed52e40b-922f-4e01-bc30-d4bf80029280',
+        'type': 'STORAGE',
+        'resourceTemplateId': 'VirtualStorage',
+        'resource': {
+            'resourceId': 'res_id_VirtualStorage_1',
+            'vimLevelResourceType': 'OS::Cinder::Volume'
+        }
+    }],
+    'additionalParams': {
+        'key': 'value'
+    }
+}
+
+CONF = config.CONF
+
 
 class TestOpenstack(base.BaseTestCase):
 
@@ -2647,6 +2745,7 @@ class TestOpenstack(base.BaseTestCase):
         objects.register_all()
         self.driver = openstack.Openstack()
         self.context = context.get_admin_context()
+        CONF.v2_vnfm.default_graceful_termination_timeout = 0
 
         cur_dir = os.path.dirname(__file__)
         sample_dir = os.path.join(cur_dir, "../..", "samples")
@@ -2811,3 +2910,353 @@ class TestOpenstack(base.BaseTestCase):
         # check
         result = inst.to_dict()["instantiatedVnfInfo"]
         self._check_inst_info(_expected_inst_info_change_ext_conn, result)
+
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'get_status')
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'create_stack')
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'update_stack')
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'get_resources')
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'get_parameters')
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'get_template')
+    def test_instantiate(self, mock_template, mock_parameters, mock_resources,
+                         mock_update_stack, mock_create_stack, mock_status):
+        # prepare
+        req = objects.InstantiateVnfRequest.from_dict(_instantiate_req_example)
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED',
+            vimConnectionInfo=req.vimConnectionInfo
+        )
+        grant_req = objects.GrantRequestV1(
+            operation=fields.LcmOperationType.INSTANTIATE
+        )
+        grant = objects.GrantV1()
+        mock_status.return_value = (None, 'test')
+        mock_resources.return_value = _heat_reses_example
+        mock_parameters.return_value = _heat_get_parameters_example
+        mock_template.return_value = _heat_get_template_example
+        # execute
+        self.driver.instantiate(req, inst, grant_req, grant, self.vnfd_1)
+        mock_create_stack.assert_called_once()
+
+        mock_status.return_value = ('Create_Failed', 'test')
+        # execute
+        self.driver.instantiate(req, inst, grant_req, grant, self.vnfd_1)
+        mock_update_stack.assert_called_once()
+
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'get_status')
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'delete_stack')
+    def test_instantiate_rollback(self, mock_delete_stack, mock_status):
+        # prepare
+        req = objects.InstantiateVnfRequest.from_dict(_instantiate_req_example)
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED',
+            vimConnectionInfo=req.vimConnectionInfo
+        )
+        grant_req = objects.GrantRequestV1(
+            operation=fields.LcmOperationType.INSTANTIATE
+        )
+        grant = objects.GrantV1()
+        mock_status.return_value = (None, 'test')
+        # execute
+        self.driver.instantiate_rollback(
+            req, inst, grant_req, grant, self.vnfd_1)
+        mock_delete_stack.assert_not_called()
+
+        mock_status.return_value = ('Create_Failed', 'test')
+        # execute
+        self.driver.instantiate_rollback(
+            req, inst, grant_req, grant, self.vnfd_1)
+        mock_delete_stack.assert_called_once()
+
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'delete_stack')
+    def test_terminate(self, mock_delete_stack):
+        # prepare
+        req_inst = objects.InstantiateVnfRequest.from_dict(
+            _instantiate_req_example)
+        req = objects.TerminateVnfRequest(
+            terminationType='GRACEFUL', gracefulTerminationTimeout=0)
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED',
+            vimConnectionInfo=req_inst.vimConnectionInfo,
+            instantiatedVnfInfo=(
+                objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
+                    _inst_info_example))
+        )
+        grant_req = objects.GrantRequestV1(
+            operation=fields.LcmOperationType.TERMINATE
+        )
+        grant = objects.GrantV1()
+        # graceful
+        self.driver.terminate(req, inst, grant_req, grant, self.vnfd_1)
+        self.assertEqual(1, mock_delete_stack.call_count)
+
+        # graceful with no time
+        req = objects.TerminateVnfRequest(terminationType='GRACEFUL')
+        self.driver.terminate(req, inst, grant_req, grant, self.vnfd_1)
+        self.assertEqual(2, mock_delete_stack.call_count)
+
+        # forceful
+        req = objects.TerminateVnfRequest(terminationType='FORCEFUL')
+        self.driver.terminate(req, inst, grant_req, grant, self.vnfd_1)
+        self.assertEqual(3, mock_delete_stack.call_count)
+
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'update_stack')
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'get_resources')
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'get_parameters')
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'mark_unhealthy')
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'get_template')
+    def test_scale(self, mock_template, mock_unhealthy, mock_parameters,
+                   mock_reses, mock_stack):
+        # prepare
+        req_inst = objects.InstantiateVnfRequest.from_dict(
+            _instantiate_req_example)
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED',
+            vimConnectionInfo=req_inst.vimConnectionInfo,
+            instantiatedVnfInfo=(
+                objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
+                    _expected_inst_info_vnfc_updated))
+        )
+        grant_req = objects.GrantRequestV1(
+            operation=fields.LcmOperationType.SCALE
+        )
+        grant = objects.GrantV1()
+        mock_parameters.return_value = {'nfv': json.dumps(_heat_parameters)}
+        mock_template.return_value = _heat_get_template_example
+
+        # scale-out
+        req = objects.ScaleVnfRequest(
+            type='SCALE_OUT', aspectId='VDU1_scale', numberOfSteps=1)
+        mock_reses.return_value = _heat_reses_example
+        self.driver.scale(req, inst, grant_req, grant, self.vnfd_1)
+
+        # check
+        result = inst.to_dict()["instantiatedVnfInfo"]
+        self._check_inst_info(_expected_inst_info_vnfc_updated, result)
+
+        # scale-in
+        req = objects.ScaleVnfRequest(
+            type='SCALE_IN', aspectId='VDU1_scale', numberOfSteps=1)
+        grant_req = objects.GrantRequestV1.from_dict(_grant_req_example)
+        mock_reses.return_value = _heat_reses_example
+        self.driver.scale(req, inst, grant_req, grant, self.vnfd_1)
+
+        # check
+        result = inst.to_dict()["instantiatedVnfInfo"]
+        self._check_inst_info(_expected_inst_info_vnfc_updated, result)
+
+        # error
+        req = objects.ScaleVnfRequest(
+            type='SCALE_IN', aspectId='VDU1_scale', numberOfSteps=1)
+        grant_req = objects.GrantRequestV1.from_dict(_grant_req_example)
+        del inst.instantiatedVnfInfo.vnfcResourceInfo[1]['metadata'][
+            'parent_stack_id']
+        self.assertRaises(
+            sol_ex.UnexpectedParentResourceDefinition, self.driver.scale,
+            req, inst, grant_req, grant, self.vnfd_1)
+
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'update_stack')
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'get_resources')
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'get_parameters')
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'mark_unhealthy')
+    def test_scale_rollback(
+            self, mock_unhealthy, mock_parameters,
+            mock_reses, mock_stack):
+        # prepare
+        req_inst = objects.InstantiateVnfRequest.from_dict(
+            _instantiate_req_example)
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED',
+            vimConnectionInfo=req_inst.vimConnectionInfo,
+            instantiatedVnfInfo=(
+                objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
+                    _expected_inst_info_vnfc_updated))
+        )
+        grant_req = objects.GrantRequestV1(
+            operation=fields.LcmOperationType.SCALE
+        )
+        grant = objects.GrantV1()
+        mock_parameters.return_value = {'nfv': json.dumps(_heat_parameters)}
+
+        # scale-out
+        req = objects.ScaleVnfRequest(
+            type='SCALE_OUT', aspectId='VDU1_scale', numberOfSteps=1)
+        mock_reses.return_value = _heat_reses_example
+        mock_reses.return_value[13]['physical_resource_id'] = (
+            'res_id_VDU1_1_new')
+        self.driver.scale_rollback(req, inst, grant_req, grant, self.vnfd_1)
+        # check
+        result = inst.to_dict()["instantiatedVnfInfo"]
+        self._check_inst_info(_expected_inst_info_vnfc_updated, result)
+
+        # error
+        del mock_reses.return_value[13]['parent_resource']
+        self.assertRaises(
+            sol_ex.UnexpectedParentResourceDefinition,
+            self.driver.scale_rollback, req, inst,
+            grant_req, grant, self.vnfd_1)
+
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'update_stack')
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'get_resources')
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'get_parameters')
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'get_template')
+    def test_change_ext_conn(self, mock_template, mock_parameters,
+                             mock_reses, mock_stack):
+        req_inst = objects.InstantiateVnfRequest.from_dict(
+            _instantiate_req_example)
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED',
+            vimConnectionInfo=req_inst.vimConnectionInfo,
+            instantiatedVnfInfo=(
+                objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
+                    _expected_inst_info_change_ext_conn))
+        )
+        grant_req = objects.GrantRequestV1(
+            operation=fields.LcmOperationType.CHANGE_EXT_CONN
+        )
+        grant = objects.GrantV1()
+        req = objects.ChangeExtVnfConnectivityRequest.from_dict(
+            _change_ext_conn_req_example)
+        mock_parameters.return_value = {'nfv': json.dumps(_heat_parameters)}
+        mock_reses.return_value = _heat_reses_example_change_ext_conn
+        mock_template.return_value = _heat_get_template_example
+        self.driver.change_ext_conn(req, inst, grant_req, grant, self.vnfd_1)
+
+        # check
+        result = inst.to_dict()["instantiatedVnfInfo"]
+        self._check_inst_info(_expected_inst_info_change_ext_conn, result)
+
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'update_stack')
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'get_resources')
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'get_parameters')
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'get_template')
+    def test_change_ext_conn_rollback(
+            self, mock_template, mock_parameters, mock_reses, mock_stack):
+        req_inst = objects.InstantiateVnfRequest.from_dict(
+            _instantiate_req_example)
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED',
+            vimConnectionInfo=req_inst.vimConnectionInfo,
+            instantiatedVnfInfo=(
+                objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
+                    _expected_inst_info_change_ext_conn))
+        )
+        grant_req = objects.GrantRequestV1(
+            operation=fields.LcmOperationType.CHANGE_EXT_CONN
+        )
+        grant = objects.GrantV1()
+        req = objects.ChangeExtVnfConnectivityRequest.from_dict(
+            _change_ext_conn_req_example)
+        mock_parameters.return_value = {'nfv': json.dumps(_heat_parameters)}
+        mock_reses.return_value = _heat_reses_example_change_ext_conn
+        mock_template.return_value = _heat_get_template_example
+        self.driver.change_ext_conn_rollback(
+            req, inst, grant_req, grant, self.vnfd_1)
+
+        # check
+        result = inst.to_dict()["instantiatedVnfInfo"]
+        self._check_inst_info(_expected_inst_info_change_ext_conn, result)
+
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'update_stack')
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'mark_unhealthy')
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'get_resources')
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'delete_stack')
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'create_stack')
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'get_parameters')
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'get_template')
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'get_files')
+    def test_heal(self, mock_files, mock_template,
+                  mock_parameters, mock_create, mock_delete,
+                  mock_reses, mock_unhealthy, mock_update):
+        req_inst = objects.InstantiateVnfRequest.from_dict(
+            _instantiate_req_example)
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED',
+            vimConnectionInfo=req_inst.vimConnectionInfo,
+            instantiatedVnfInfo=(
+                objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
+                    _expected_inst_info_vnfc_updated))
+        )
+        grant_req = objects.GrantRequestV1(
+            operation=fields.LcmOperationType.HEAL
+        )
+        grant = objects.GrantV1()
+        mock_parameters.return_value = {'nfv': json.dumps(_heat_parameters)}
+        mock_template.return_value = _heat_get_template_example
+
+        # re-create
+        req = objects.HealVnfRequest(
+            additionalParams={
+                "all": True
+            }
+        )
+        mock_reses.return_value = _heat_reses_example
+        self.driver.heal(req, inst, grant_req, grant, self.vnfd_1)
+        # check
+        result = inst.to_dict()["instantiatedVnfInfo"]
+        self._check_inst_info(_expected_inst_info_vnfc_updated, result)
+
+        # no re-create
+        grant_req = objects.GrantRequestV1.from_dict(_grant_req_example)
+        req = objects.HealVnfRequest()
+        mock_reses.return_value = _heat_reses_example
+        self.driver.heal(req, inst, grant_req, grant, self.vnfd_1)
+
+        # check
+        result = inst.to_dict()["instantiatedVnfInfo"]
+        self._check_inst_info(_expected_inst_info_vnfc_updated, result)
