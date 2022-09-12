@@ -149,3 +149,78 @@ class VnfLcmKubernetesHelmTest(vnflcm_base.BaseVnfLcmKubernetesTest):
 
         self._terminate_vnf_instance(vnf_instance['id'])
         self._delete_vnf_instance(vnf_instance['id'])
+
+    def test_cnf_insta_with_extra_field_v1(self):
+        """Test instantiate using Helm chart.
+
+        Input parameter includes VimConnectionInfo.extra fields
+        """
+        vnf_instance_name = "cnf_with_helmchart"
+        vnf_instance_description = "cnf with helmchart"
+        helmchartfile_path = "Files/kubernetes/localhelm-0.1.0.tgz"
+        flavour_id = "helmchart"
+        inst_additional_param = {
+            "namespace": "default",
+            "use_helm": "true",
+            "using_helm_install_param": [
+                {
+                    "exthelmchart": "false",
+                    "helmchartfile_path": helmchartfile_path,
+                    "helmreleasename": "vdu1",
+                    "helmparameter": [
+                        "service.port=8081"
+                    ]
+                },
+                {
+                    "exthelmchart": "true",
+                    "helmreleasename": "vdu2",
+                    "helmrepositoryname": "bitnami",
+                    "helmchartname": "apache",
+                    "exthelmrepo_url": "https://charts.bitnami.com/bitnami"
+                }
+            ],
+            "helm_replica_values": {
+                "vdu1_aspect": "replicaCount",
+                "vdu2_aspect": "replicaCount"
+            },
+            "vdu_mapping": {
+                "VDU1": {
+                    "name": "vdu1-localhelm",
+                    "kind": "Deployment",
+                    "helmreleasename": "vdu1"
+                },
+                "VDU2": {
+                    "name": "vdu2-apache",
+                    "kind": "Deployment",
+                    "helmreleasename": "vdu2"
+                }
+            }
+        }
+
+        inst_extra_param = self.extra
+
+        # create vnf instance
+        _, vnf_instance = self._create_vnf_instance(
+            self.vnfd_id, vnf_instance_name=vnf_instance_name,
+            vnf_instance_description=vnf_instance_description)
+        self.assertEqual(
+            'NOT_INSTANTIATED', vnf_instance['instantiationState'])
+
+        # instantiate vnf instance
+        additional_param = inst_additional_param
+        request_body = self._instantiate_vnf_instance_request(
+            flavour_id, vim_id=self.vim_id, additional_param=additional_param,
+            extra_param=inst_extra_param)
+
+        self._instantiate_vnf_instance(vnf_instance['id'], request_body)
+        vnf_instance = self._show_vnf_instance(vnf_instance['id'])
+
+        self.assertEqual(
+            'INSTANTIATED', vnf_instance['instantiationState'])
+        vnflcm_op_occ = self._get_vnflcm_op_occs_by_id(
+            self.context, vnf_instance['id'])
+        self.assertEqual('COMPLETED', vnflcm_op_occ.operation_state)
+        self.assertEqual('INSTANTIATE', vnflcm_op_occ.operation)
+
+        self._terminate_vnf_instance(vnf_instance['id'])
+        self._delete_vnf_instance(vnf_instance['id'])

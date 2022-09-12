@@ -18,6 +18,9 @@ import os
 import ddt
 from oslo_config import cfg
 
+from tacker.objects import fields
+from tacker.objects.instantiate_vnf_req import InstantiateVnfRequest
+from tacker.objects.vim_connection import VimConnectionInfo
 from tacker.tests.unit import base
 from tacker.tests.unit.vnflcm import fakes
 from tacker.tests import uuidsentinel
@@ -64,3 +67,29 @@ class VnfLcmUtilsTestCase(base.TestCase):
         self.assertIn('node_templates', vnf_keys)
         self.assertIn('policies', vnf_keys)
         self.assertIn('groups', vnf_keys)
+
+    def test_vim_connection_info_extra_param(self):
+        id = "817954e4-c321-4a31-ae06-cedcc4ddb85c"
+        vim_id = "690edc6b-7581-48d8-9ac9-910c2c3d7c02"
+        vim_type = "kubernetes"
+        extra = {
+            "helm_info": {
+                "masternode_ip": [
+                    "192.168.1.1"
+                ],
+                "masternode_username": "dummy_user",
+                "masternode_password": "dummy_pass"
+            }
+        }
+
+        vim_conn = VimConnectionInfo(id=id,
+            vim_id=vim_id, vim_type=vim_type,
+            extra=extra)
+
+        instantiate_vnf_req = InstantiateVnfRequest()
+        instantiate_vnf_req.vim_connection_info = [vim_conn]
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.NOT_INSTANTIATED)
+        result = vnflcm_utils._get_vim_connection_info_from_vnf_req(
+            vnf_instance, instantiate_vnf_req)
+        self.assertEqual(result[0].extra, vim_conn.extra)

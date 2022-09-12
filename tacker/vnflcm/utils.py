@@ -530,7 +530,8 @@ def _get_vim_connection_info_from_vnf_req(vnf_instance, instantiate_vnf_req):
         vim_conn = objects.VimConnectionInfo(id=vim_connection.id,
             vim_id=vim_connection.vim_id, vim_type=vim_connection.vim_type,
             access_info=vim_connection.access_info,
-            interface_info=vim_connection.interface_info)
+            interface_info=vim_connection.interface_info,
+            extra=vim_connection.extra)
 
         vim_connection_obj_list.append(vim_conn)
 

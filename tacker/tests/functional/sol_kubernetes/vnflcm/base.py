@@ -82,6 +82,7 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
         if not vim:
             self.skipTest(f"Kubernetes VIM '{vim_name}' is missing")
         self.vim_id = vim['id']
+        self.extra = vim['extra']
 
     def _create_and_upload_vnf_package_add_mgmt(
             self, tacker_client, csar_package_name,
@@ -201,7 +202,8 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
 
     @classmethod
     def _instantiate_vnf_instance_request(
-            cls, flavour_id, vim_id=None, additional_param=None):
+            cls, flavour_id, vim_id=None, additional_param=None,
+            extra_param=None):
         request_body = {"flavourId": flavour_id}
 
         if vim_id:
@@ -209,6 +211,9 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
                 {"id": uuidutils.generate_uuid(),
                  "vimId": vim_id,
                  "vimType": "kubernetes"}]
+
+        if vim_id and extra_param:
+            request_body["vimConnectionInfo"][0]["extra"] = extra_param
 
         if additional_param:
             request_body["additionalParams"] = additional_param
