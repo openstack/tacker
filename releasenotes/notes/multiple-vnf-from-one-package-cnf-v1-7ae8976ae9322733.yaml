@@ -1,0 +1,11 @@
+---
+upgrade:
+  - |
+    Enable the creation of multiple VNF from a single VNF package during CNF
+    instantiation (V1 API) by specifying ``vdu_mapping`` parameter in
+    additionalParams.
+
+    Please refer to our `documentation`_ for detail about specifying
+    ``vdu_mapping`` parameter.
+
+    .. _`documentation`: https://docs.openstack.org/tacker/latest/user/mgmt_driver_deploy_k8s_and_cnf_with_helm.html#set-the-value-to-the-request-parameter-file-for-helm-chart
