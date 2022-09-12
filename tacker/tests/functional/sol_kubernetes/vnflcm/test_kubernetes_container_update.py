@@ -48,7 +48,14 @@ class VnfLcmKubernetesContainerUpdate(vnflcm_base.BaseVnfLcmKubernetesTest):
                  "Files/kubernetes/pod_env.yaml",
                  "Files/kubernetes/pod_volume.yaml",
                  "Files/kubernetes/replicaset.yaml",
-                 "Files/kubernetes/secret_1.yaml"]
+                 "Files/kubernetes/secret_1.yaml",
+                 "Files/kubernetes/configmap_3.yaml",
+                 "Files/kubernetes/pod_env_2.yaml",
+                 "Files/kubernetes/pod_volume_2.yaml",
+                 "Files/kubernetes/daemonset.yaml",
+                 "Files/kubernetes/deployment_2.yaml",
+                 "Files/kubernetes/secret_3.yaml",
+                 ]
         additional_param = {
             "lcm-kubernetes-def-files": files,
             "namespace": "default"}
@@ -59,7 +66,7 @@ class VnfLcmKubernetesContainerUpdate(vnflcm_base.BaseVnfLcmKubernetesTest):
             vnf_instance_description, additional_param)
 
         before_vnfc_rscs = self._get_vnfc_resource_info(vnf_instance)
-        self.assertEqual(4, len(before_vnfc_rscs))
+        self.assertEqual(8, len(before_vnfc_rscs))
 
         # modify
         vnf_instance_name = "modify_vnf_after"
@@ -76,14 +83,17 @@ class VnfLcmKubernetesContainerUpdate(vnflcm_base.BaseVnfLcmKubernetesTest):
         vnf_instance_after, after_vnfc_rscs = self._modify_vnf_instance(
             vnf_instance['id'], modify_request_body)
 
-        self.assertEqual(4, len(after_vnfc_rscs))
+        self.assertEqual(8, len(after_vnfc_rscs))
 
         for after_vnfc_rsc in after_vnfc_rscs:
             for before_vnfc_rsc in before_vnfc_rscs:
                 after_resource = after_vnfc_rsc['computeResource']
                 before_resource = before_vnfc_rsc['computeResource']
                 if after_vnfc_rsc['id'] == before_vnfc_rsc['id']:
-                    if after_resource['vimLevelResourceType'] == 'Deployment':
+                    if (after_resource['vimLevelResourceType'] in
+                            ('Deployment', 'ReplicaSet', 'DaemonSet')
+                            and after_vnfc_rsc['vduId'] in
+                            ('VDU1', 'VDU2', 'VDU5')):
                         # check stored pod name is changed (Deployment)
                         self.assertNotEqual(before_resource['resourceId'],
                                             after_resource['resourceId'])

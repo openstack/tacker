@@ -47,8 +47,8 @@ Use Cases
 In this user guide, the provided sample VNF Packages will be instantiated
 and then updated. The sample Mgmt Driver will update resources on
 Kubernetes during update. Update the ConfigMap and Secret, and also
-update the image in the Pod and Deployment, and other resources will
-not change.
+update the image in the Pod, Deployment, DaemonSet and ReplicaSet, and other
+resources will not change.
 
 Prerequisites
 -------------
@@ -199,7 +199,13 @@ You can see resource definition files are included as a value of
             "Files/kubernetes/pod_env.yaml",
             "Files/kubernetes/pod_volume.yaml",
             "Files/kubernetes/replicaset.yaml",
-            "Files/kubernetes/secret_1.yaml"
+            "Files/kubernetes/secret_1.yaml",
+            "Files/kubernetes/configmap_3.yaml",
+            "Files/kubernetes/pod_env_2.yaml",
+            "Files/kubernetes/pod_volume_2.yaml",
+            "Files/kubernetes/daemonset.yaml",
+            "Files/kubernetes/deployment_2.yaml",
+            "Files/kubernetes/secret_3.yaml"
           ],
           "namespace": "default"
         },
@@ -228,27 +234,27 @@ As mentioned in Prerequisites, the VNF must be instantiated before performing
 updating.
 
 Next, the user can use the original vnf package as a template to make a new
-vnf package, in which the yaml of ConfigMap, Secret, Pod and Deployment can
-be changed.
+vnf package, in which the yaml of ConfigMap, Secret, Pod, Deployment, DaemonSet
+and ReplicaSet can be changed.
 
 .. note::
 
     * The yaml of ConfigMap and Secret can be changed. The kind, namespace
       and name cannot be changed, but the file name and file path can
       be changed.
-    * The yaml of Pod and Deployment can also be changed, but only the
-      image field can be changed, and no other fields can be changed.
+    * The yaml of Pod, Deployment, DaemonSet and ReplicaSet can also be
+      changed, but only the image field can be changed, and no other fields can
+      be changed.
     * No other yaml is allowed to be changed.
-
-      * If changes other than images are made to the yaml of Pod and
-        Deployment, those will not take effect. However, if heal entire
-        VNF at this time, the resource will be based on the new yaml
-        during the instantiation, and all changes will take effect.
+    * If changes other than images are made to the yaml of Pod, Deployment,
+      DaemonSet and ReplicaSet , those will not take effect. However, if heal
+      entire VNF at this time, the resource will be based on the new yaml
+      during the instantiation, and all changes will take effect.
 
 Then after creating and uploading the new vnf package, you can perform the
 update operation.
 After the update, the Mgmt Driver will restart the pod to update and
-recreate the deployment to update.
+recreate the deployment, DaemonSet and ReplicaSet to update.
 
 .. note::
 
@@ -274,11 +280,27 @@ The resources information before update:
 
     $ kubectl get configmaps
       NAME               DATA   AGE
-      cm-data            1      3h55m
-      kube-root-ca.crt   1      23h
+      cm-data            1      32m
+      cm-data2           1      32m
+      kube-root-ca.crt   1      20h
     $
     $ kubectl describe configmaps cm-data
       Name:         cm-data
+      Namespace:    default
+      Labels:       <none>
+      Annotations:  <none>
+
+      Data
+      ====
+      cmKey1.txt:
+      ----
+      configmap data
+      foo
+      bar
+      Events:  <none>
+    $
+    $ kubectl describe configmaps cm-data2
+      Name:         cm-data2
       Namespace:    default
       Labels:       <none>
       Annotations:  <none>
@@ -298,11 +320,25 @@ The resources information before update:
 
     $ kubectl get secrets
       NAME                  TYPE                                  DATA   AGE
-      default-token-ctq4p   kubernetes.io/service-account-token   3      23h
-      secret-data           Opaque                                2      3h55m
+      default-token-w59gg   kubernetes.io/service-account-token   3      20h
+      secret-data           Opaque                                2      37m
+      secret-data2          Opaque                                2      37m
     $
     $ kubectl describe secrets secret-data
       Name:         secret-data
+      Namespace:    default
+      Labels:       <none>
+      Annotations:  <none>
+
+      Type:  Opaque
+
+      Data
+      ====
+      password:     15 bytes
+      secKey1.txt:  15 bytes
+    $
+    $ kubectl describe secrets secret-data2
+      Name:         secret-data2
       Namespace:    default
       Labels:       <none>
       Annotations:  <none>
@@ -319,21 +355,25 @@ The resources information before update:
   .. code-block:: console
 
     $ kubectl get pod -o wide
-      NAME                    READY   STATUS    RESTARTS   AGE     IP            NODE    NOMINATED NODE   READINESS GATES
-      env-test                1/1     Running   0          4h28m   10.233.96.4   node2   <none>           <none>
-      vdu1-85dd489b89-w72dr   1/1     Running   0          4h28m   10.233.96.5   node2   <none>           <none>
-      vdu2-mfn78              1/1     Running   0          4h28m   10.233.96.2   node2   <none>           <none>
-      volume-test             1/1     Running   0          4h28m   10.233.96.3   node2   <none>           <none>
+      NAME                           READY   STATUS    RESTARTS   AGE   IP             NODE    NOMINATED NODE   READINESS GATES
+      daemonset-nv79l                1/1     Running   0          39m   10.233.96.20   node2   <none>           <none>
+      deployment1-85dd489b89-p7m9q   1/1     Running   0          39m   10.233.96.17   node2   <none>           <none>
+      deployment2-5c6b485699-mdx9v   1/1     Running   0          39m   10.233.96.22   node2   <none>           <none>
+      env-test1                      1/1     Running   0          39m   10.233.96.21   node2   <none>           <none>
+      env-test2                      1/1     Running   0          39m   10.233.96.19   node2   <none>           <none>
+      replicaset-bv6cp               1/1     Running   0          39m   10.233.96.24   node2   <none>           <none>
+      volume-test1                   1/1     Running   0          39m   10.233.96.18   node2   <none>           <none>
+      volume-test2                   1/1     Running   0          39m   10.233.96.23   node2   <none>           <none>
     $
-    $ kubectl describe pod volume-test
-      Name:         volume-test
+    $ kubectl describe pod volume-test1
+      Name:         volume-test1
       Namespace:    default
       ...
       Containers:
         nginx:
-          Container ID:   docker://01273fa7cd595b49d866b755ea6cc2707d90cca70ecb9f5a86c4db3eacad2dde
+          Container ID:   docker://623c652c7ab71d268e18129475d0391b72c88b1a8a778bbdd3d479fad2521bc2
           Image:          nginx
-          Image ID:       docker-pullable://nginx@sha256:e9712bdfa40c19cc2cee4f06e5b1215138926250165e26fe69822a9ddc525eaf
+          Image ID:       docker-pullable://nginx@sha256:ecc068890de55a75f1a32cc8063e79f90f0b043d70c5fcf28f1713395a4b3d49
       ...
       Volumes:
         cm-volume:
@@ -345,24 +385,46 @@ The resources information before update:
           SecretName:  secret-data
           Optional:    false
       ...
+    $
+    $ kubectl describe pod volume-test2
+      Name:         volume-test2
+      Namespace:    default
+      ...
+      Containers:
+        nginx:
+          Container ID:   docker://74d38aa62097b3a1a80181195ebda3877e3773311d0273fdc3fbb27fa4b9600d
+          Image:          nginx
+          Image ID:       docker-pullable://nginx@sha256:ecc068890de55a75f1a32cc8063e79f90f0b043d70c5fcf28f1713395a4b3d49
+      ...
+      Volumes:
+        cm-volume:
+          Type:      ConfigMap (a volume populated by a ConfigMap)
+          Name:      cm-data2
+          Optional:  false
+        sec-volume:
+          Type:        Secret (a volume populated by a Secret)
+          SecretName:  secret-data2
+          Optional:    false
+      ...
 
 * Deployment
 
   .. code-block:: console
 
     $ kubectl get deployments.apps -o wide
-      NAME   READY   UP-TO-DATE   AVAILABLE   AGE     CONTAINERS   IMAGES   SELECTOR
-      vdu1   1/1     1            1           4h29m   nginx        nginx    app=webserver
+      NAME          READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS   IMAGES   SELECTOR
+      deployment1   1/1     1            1           49m   nginx        nginx    app=webserver
+      deployment2   1/1     1            1           49m   nginx        nginx    app=webserver
     $
-    $ kubectl describe pod vdu1-85dd489b89-w72dr
-      Name:         vdu1-85dd489b89-w72dr
+    $ kubectl describe pod deployment1-85dd489b89-p7m9q
+      Name:         deployment1-85dd489b89-p7m9q
       Namespace:    default
       ...
       Containers:
         nginx:
-          Container ID:   docker://5efe65493ac13ff539f9de30db7c624405ff390df8f5f2e23f22fc0f8b6ad68a
+          Container ID:   docker://50ffc03736a03c8d4546bb60bb5815b4c8f6cbbfb7b70da4121a06c5c8d6568a
           Image:          nginx
-          Image ID:       docker-pullable://nginx@sha256:e9712bdfa40c19cc2cee4f06e5b1215138926250165e26fe69822a9ddc525eaf
+          Image ID:       docker-pullable://nginx@sha256:ecc068890de55a75f1a32cc8063e79f90f0b043d70c5fcf28f1713395a4b3d49
       ...
           Environment Variables from:
             cm-data      ConfigMap with prefix 'CM_'  Optional: false
@@ -371,10 +433,79 @@ The resources information before update:
             CMENV:   <set to the key 'cmKey1.txt' of config map 'cm-data'>  Optional: false
             SECENV:  <set to the key 'password' in secret 'secret-data'>    Optional: false
       ...
+    $
+    $ kubectl describe pod deployment2-5c6b485699-mdx9v
+      Name:         deployment2-5c6b485699-mdx9v
+      Namespace:    default
+      ...
+      Containers:
+        nginx:
+          Container ID:   docker://6d7a8019984c04ab758b962a228f44fb14bfc0f4e1f525548d87a91d17b49f77
+          Image:          nginx
+          Image ID:       docker-pullable://nginx@sha256:ecc068890de55a75f1a32cc8063e79f90f0b043d70c5fcf28f1713395a4b3d49
+      ...
+          Environment Variables from:
+            cm-data2      ConfigMap with prefix 'CM_'  Optional: false
+            secret-data2  Secret with prefix 'SEC_'    Optional: false
+          Environment:
+            CMENV:   <set to the key 'cmKey1.txt' of config map 'cm-data2'>  Optional: false
+            SECENV:  <set to the key 'password' in secret 'secret-data2'>    Optional: false
+      ...
+
+* DaemonSet
+
+  .. code-block:: console
+
+    $ kubectl get daemonset.apps -o wide
+      NAME        DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE   CONTAINERS   IMAGES   SELECTOR
+      daemonset   1         1         1       1            1           <none>          58m   nginx        nginx    app=nginx
+    $
+    $ kubectl describe pod daemonset-nv79l
+      Name:         daemonset-nv79l
+      Namespace:    default
+      ...
+      Containers:
+        nginx:
+          Container ID:   docker://3f392217d5f22c417fc9da24f4bd27d41e90a2165d10356a44cd1b98b6b899d9
+          Image:          nginx
+          Image ID:       docker-pullable://nginx@sha256:ecc068890de55a75f1a32cc8063e79f90f0b043d70c5fcf28f1713395a4b3d49
+      ...
+          Environment Variables from:
+            cm-data      ConfigMap with prefix 'CM_'  Optional: false
+            secret-data  Secret with prefix 'SEC_'    Optional: false
+          Environment:
+            CMENV:   <set to the key 'cmKey1.txt' of config map 'cm-data'>  Optional: false
+            SECENV:  <set to the key 'password' in secret 'secret-data'>    Optional: false
+      ...
+
+* ReplicaSet
+
+  .. code-block:: console
+
+    $ kubectl get replicaset.apps -o wide
+      NAME                     DESIRED   CURRENT   READY   AGE   CONTAINERS   IMAGES   SELECTOR
+      deployment1-85dd489b89   1         1         1       62m   nginx        nginx    app=webserver,pod-template-hash=85dd489b89
+      deployment2-5c6b485699   1         1         1       62m   nginx        nginx    app=webserver,pod-template-hash=5c6b485699
+      replicaset               1         1         1       62m   nginx        nginx    app=webserver
+    $
+    $ kubectl describe pod replicaset-bv6cp
+      Name:         replicaset-bv6cp
+      Namespace:    default
+      ...
+      Containers:
+        nginx:
+          Container ID:   docker://d8e5ea8404a8cd272b54cefac236fdf0c1963a6b0cf03b283e9f57c70fcd4eab
+          Image:          nginx
+          Image ID:       docker-pullable://nginx@sha256:ecc068890de55a75f1a32cc8063e79f90f0b043d70c5fcf28f1713395a4b3d49
+      ...
       Volumes:
-        default-token-ctq4p:
+        cm-volume:
+          Type:      ConfigMap (a volume populated by a ConfigMap)
+          Name:      cm-data
+          Optional:  false
+        sec-volume:
           Type:        Secret (a volume populated by a Secret)
-          SecretName:  default-token-ctq4p
+          SecretName:  secret-data
           Optional:    false
       ...
 
@@ -410,8 +541,8 @@ Here is an example of updating CNF:
 
 .. code-block:: console
 
-  $ openstack vnflcm update 9d2bd0d7-4248-445d-a70f-a14cf57d6f96 --I sample_param_file.json
-    Update vnf:9d2bd0d7-4248-445d-a70f-a14cf57d6f96
+  $ openstack vnflcm update f21814f0-3e00-4651-a9ac-ec10f3248c19 --I sample_param_file.json
+    Update vnf:f21814f0-3e00-4651-a9ac-ec10f3248c19
 
 The resources information after update:
 
@@ -433,6 +564,21 @@ The resources information after update:
       foo2
       bar2
       Events:  <none>
+    $
+    $ kubectl describe configmaps cm-data2
+      Name:         cm-data2
+      Namespace:    default
+      Labels:       <none>
+      Annotations:  <none>
+
+      Data
+      ====
+      cmKey1.txt:
+      ----
+      configmap data
+      foo
+      bar
+      Events:  <none>
 
 * Secret
 
@@ -450,26 +596,169 @@ The resources information after update:
       ====
       password:     16 bytes
       secKey1.txt:  18 bytes
+    $
+    $ kubectl describe secrets secret-data2
+      Name:         secret-data2
+      Namespace:    default
+      Labels:       <none>
+      Annotations:  <none>
+
+      Type:  Opaque
+
+      Data
+      ====
+      password:     15 bytes
+      secKey1.txt:  15 bytes
 
 * Pod
 
   .. code-block:: console
 
     $ kubectl get pod -o wide
-      NAME                    READY   STATUS    RESTARTS   AGE     IP            NODE    NOMINATED NODE   READINESS GATES
-      env-test                1/1     Running   1          5h45m   10.233.96.4   node2   <none>           <none>
-      vdu1-5974f79c95-xs48r   1/1     Running   0          5m17s   10.233.96.7   node2   <none>           <none>
-      vdu2-mfn78              1/1     Running   0          5h45m   10.233.96.2   node2   <none>           <none>
-      volume-test             1/1     Running   1          5h45m   10.233.96.3   node2   <none>           <none>
-    $ kubectl describe pod volume-test
-      Name:         volume-test
+      NAME                           READY   STATUS    RESTARTS   AGE    IP             NODE    NOMINATED NODE   READINESS GATES
+      daemonset-gl4kf                1/1     Running   0          38m    10.233.96.27   node2   <none>           <none>
+      deployment1-5974f79c95-5d6x4   1/1     Running   0          38m    10.233.96.25   node2   <none>           <none>
+      deployment2-5c6b485699-mdx9v   1/1     Running   0          114m   10.233.96.22   node2   <none>           <none>
+      env-test1                      1/1     Running   1          114m   10.233.96.21   node2   <none>           <none>
+      env-test2                      1/1     Running   0          114m   10.233.96.19   node2   <none>           <none>
+      replicaset-xfgmj               1/1     Running   0          38m    10.233.96.26   node2   <none>           <none>
+      volume-test1                   1/1     Running   1          114m   10.233.96.18   node2   <none>           <none>
+      volume-test2                   1/1     Running   0          114m   10.233.96.23   node2   <none>           <none>
+
+    $
+    $ kubectl describe pod volume-test1
+      Name:         volume-test1
       Namespace:    default
       ...
       Containers:
         nginx:
-          Container ID:   docker://d3b101bff4863eef62c7a89cb07268d236a72c5b47cc46f167a1dbdf7900220f
+          Container ID:   docker://77f1518b617403115163874f1ea65793b92f7c8d22f5364fe5bb299b471decb1
           Image:          cirros
-          Image ID:       docker-pullable://cirros@sha256:1e695eb2772a2b511ccab70091962d1efb9501fdca804eb1d52d21c0933e7f47
+          Image ID:       docker-pullable://cirros@sha256:be6f5d1ab1e463e7991ecb29f1e71993d633ff1d190188662085ef641bdcf389
+      ...
+      Volumes:
+        cm-volume:
+          Type:      ConfigMap (a volume populated by a ConfigMap)
+          Name:      cm-data
+          Optional:  false
+        sec-volume:
+          Type:        Secret (a volume populated by a Secret)
+          SecretName:  secret-data
+          Optional:    false
+      ...
+    $
+    $ kubectl describe pod volume-test2
+      Name:         volume-test2
+      Namespace:    default
+      ...
+      Containers:
+        nginx:
+          Container ID:   docker://74d38aa62097b3a1a80181195ebda3877e3773311d0273fdc3fbb27fa4b9600d
+          Image:          nginx
+          Image ID:       docker-pullable://nginx@sha256:ecc068890de55a75f1a32cc8063e79f90f0b043d70c5fcf28f1713395a4b3d49
+      ...
+      Volumes:
+        cm-volume:
+          Type:      ConfigMap (a volume populated by a ConfigMap)
+          Name:      cm-data2
+          Optional:  false
+        sec-volume:
+          Type:        Secret (a volume populated by a Secret)
+          SecretName:  secret-data2
+          Optional:    false
+      ...
+
+* Deployment
+
+  .. code-block:: console
+
+    $ kubectl get deployments.apps -o wide
+      NAME          READY   UP-TO-DATE   AVAILABLE   AGE     CONTAINERS   IMAGES   SELECTOR
+      deployment1   1/1     1            1           4h10m   nginx        cirros   app=webserver
+      deployment2   1/1     1            1           4h10m   nginx        nginx    app=webserver
+    $
+    $ kubectl describe pod deployment1-5974f79c95-5d6x4
+      Name:         deployment1-5974f79c95-5d6x4
+      Namespace:    default
+      ...
+      Containers:
+        nginx:
+          Container ID:   docker://7b8bd5a7da875fea74a0b0d54ad8a6c1e65bf08a823ae864c6bd7f16b494b990
+          Image:          cirros
+          Image ID:       docker-pullable://cirros@sha256:be6f5d1ab1e463e7991ecb29f1e71993d633ff1d190188662085ef641bdcf389
+      ...
+          Environment Variables from:
+            cm-data      ConfigMap with prefix 'CM_'  Optional: false
+            secret-data  Secret with prefix 'SEC_'    Optional: false
+          Environment:
+            CMENV:   <set to the key 'cmKey1.txt' of config map 'cm-data'>  Optional: false
+            SECENV:  <set to the key 'password' in secret 'secret-data'>    Optional: false
+      ...
+    $
+    $ kubectl describe pod deployment2-5c6b485699-mdx9v
+      Name:         deployment2-5c6b485699-mdx9v
+      Namespace:    default
+      ...
+      Containers:
+        nginx:
+          Container ID:   docker://6d7a8019984c04ab758b962a228f44fb14bfc0f4e1f525548d87a91d17b49f77
+          Image:          nginx
+          Image ID:       docker-pullable://nginx@sha256:ecc068890de55a75f1a32cc8063e79f90f0b043d70c5fcf28f1713395a4b3d49
+      ...
+          Environment Variables from:
+            cm-data2      ConfigMap with prefix 'CM_'  Optional: false
+            secret-data2  Secret with prefix 'SEC_'    Optional: false
+          Environment:
+            CMENV:   <set to the key 'cmKey1.txt' of config map 'cm-data2'>  Optional: false
+            SECENV:  <set to the key 'password' in secret 'secret-data2'>    Optional: false
+      ...
+
+* DaemonSet
+
+  .. code-block:: console
+
+    $ kubectl get daemonset.apps -o wide
+      NAME        DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE     CONTAINERS   IMAGES   SELECTOR
+      daemonset   1         1         1       1            1           <none>          4h14m   nginx        cirros   app=nginx
+    $
+    $ kubectl describe pod daemonset-gl4kf
+      Name:         daemonset-gl4kf
+      Namespace:    default
+      ...
+      Containers:
+        nginx:
+          Container ID:   docker://98712bf43f41fce1983d46cefcfab7ed72f6159f6eb18ab763d9707caf887d8c
+          Image:          cirros
+          Image ID:       docker-pullable://cirros@sha256:be6f5d1ab1e463e7991ecb29f1e71993d633ff1d190188662085ef641bdcf389
+      ...
+          Environment Variables from:
+            cm-data      ConfigMap with prefix 'CM_'  Optional: false
+            secret-data  Secret with prefix 'SEC_'    Optional: false
+          Environment:
+            CMENV:   <set to the key 'cmKey1.txt' of config map 'cm-data'>  Optional: false
+            SECENV:  <set to the key 'password' in secret 'secret-data'>    Optional: false
+      ...
+
+* ReplicaSet
+
+  .. code-block:: console
+
+    $ kubectl get replicaset.apps -o wide
+      NAME                     DESIRED   CURRENT   READY   AGE     CONTAINERS   IMAGES   SELECTOR
+      deployment1-5974f79c95   1         1         1       3h5m    nginx        cirros   app=webserver,pod-template-hash=5974f79c95
+      deployment1-85dd489b89   0         0         0       4h20m   nginx        nginx    app=webserver,pod-template-hash=85dd489b89
+      deployment2-5c6b485699   1         1         1       4h20m   nginx        nginx    app=webserver,pod-template-hash=5c6b485699
+      replicaset               1         1         1       4h20m   nginx        cirros   app=webserver
+    $
+    $ kubectl describe pod replicaset-xfgmj
+      Name:         replicaset-xfgmj
+      Namespace:    default
+      ...
+      Containers:
+        nginx:
+          Container ID:   docker://a9cf17fd465780e5f3e557a1c5d27e0c8ccf5f31a0fd106d9dc891971fed455d
+          Image:          cirros
+          Image ID:       docker-pullable://cirros@sha256:be6f5d1ab1e463e7991ecb29f1e71993d633ff1d190188662085ef641bdcf389
       ...
       Volumes:
         cm-volume:
@@ -482,39 +771,10 @@ The resources information after update:
           Optional:    false
       ...
 
-* Deployment
-
-  .. code-block:: console
-
-    $ kubectl get deployments.apps -o wide
-      NAME   READY   UP-TO-DATE   AVAILABLE   AGE     CONTAINERS   IMAGES   SELECTOR
-      vdu1   1/1     1            1           5h50m   nginx        cirros   app=webserver
-    $ kubectl describe pod vdu1-5974f79c95-xs48r
-      Name:         vdu1-5974f79c95-xs48r
-      Namespace:    default
-      ...
-      Containers:
-        nginx:
-          Container ID:   docker://6cad9f692f839d08b53fae58fe2ab06f576271d15aae8744ac0ce57c34510fe0
-          Image:          cirros
-          Image ID:       docker-pullable://cirros@sha256:1e695eb2772a2b511ccab70091962d1efb9501fdca804eb1d52d21c0933e7f47
-      ...
-          Environment Variables from:
-            cm-data      ConfigMap with prefix 'CM_'  Optional: false
-            secret-data  Secret with prefix 'SEC_'    Optional: false
-          Environment:
-            CMENV:   <set to the key 'cmKey1.txt' of config map 'cm-data'>  Optional: false
-            SECENV:  <set to the key 'password' in secret 'secret-data'>    Optional: false
-      ...
-      Volumes:
-        default-token-ctq4p:
-          Type:        Secret (a volume populated by a Secret)
-          SecretName:  default-token-ctq4p
-          Optional:    false
-      ...
-
-You can see that the ConfigMap and Secret are updated, as are the images in
-the Pod and Deployment.
+You can see that only the Pods are restarted whose ConfigMap/Secret or images
+are updated. When it comes to Deployments, DaemonSets and ReplicaSets whose
+ConfigMap/Secret or images are updated, their pods will be deleted and
+recreated.
 
 .. _NFV-SOL001 v2.6.1 : https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/001/02.06.01_60/gs_NFV-SOL001v020601p.pdf
 .. _Set Tacker Configuration : https://docs.openstack.org/tacker/latest/user/mgmt_driver_deploy_k8s_usage_guide.html#set-tacker-configuration

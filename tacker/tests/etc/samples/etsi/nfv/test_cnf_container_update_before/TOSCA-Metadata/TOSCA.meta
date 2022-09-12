@@ -8,20 +8,45 @@ Content-Type: application/yaml
 Algorithm: SHA-256
 Hash: b914022a12c7a0f3a6a7d14013020f1271645ab44b17942a014fdc8ad96f42fe
 
+Name: Files/kubernetes/configmap_3.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: 77561abb949dbc3e71cc7cc5311556f37e69e14743fb6dfe44617ad9929ce615
+
+Name: Files/kubernetes/daemonset.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: 289386c71936b758022646248bfd3af90e87e42e6bbf203a6e32cd70905806e6
+
 Name: Files/kubernetes/deployment.yaml
 Content-Type: application/yaml
 Algorithm: SHA-256
 Hash: 03b61e9646925ddf414489212736b7d799710b26dc70f96641c50e699f0a1d5f
+
+Name: Files/kubernetes/deployment_2.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: 3c89ba20b8e49a4d24297e0392e2f8774319cbe131bd28dfe80a263c0f0ce6e0
 
 Name: Files/kubernetes/pod_env.yaml
 Content-Type: application/yaml
 Algorithm: SHA-256
 Hash: 2e69400cf742fd88cb9ba5abd0b83ba9dd12f46f36fa615d5b93e07af47a2b5d
 
+Name: Files/kubernetes/pod_env_2.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: 2193e9633c750886ad6d19013887ffe550c94c1da0985fbe60ce8663022c67a5
+
 Name: Files/kubernetes/pod_volume.yaml
 Content-Type: application/yaml
 Algorithm: SHA-256
 Hash: 93bd20b9c2111115131a96769b710e09001248ba9c3d3f33e1d616d0b9546728
+
+Name: Files/kubernetes/pod_volume_2.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: 5e29e35c849b2b8677efe8d6ec8554d638481bd41b4705856382698d96bcb040
 
 Name: Files/kubernetes/replicaset.yaml
 Content-Type: application/yaml
@@ -33,7 +58,12 @@ Content-Type: application/yaml
 Algorithm: SHA-256
 Hash: 8c170000410e72c1b81784061928cde26d1f9ea027fbece4da34ced08da8c4b4
 
+Name: Files/kubernetes/secret_3.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: 2a1b16ab7e9ee34a23a67a3aa0535311c927f4194b639bcb0a70905578940695
+
 Name: Scripts/container_update_mgmt.py
 Content-Type: text/x-python
 Algorithm: SHA-256
-Hash: 9e272402dd0f6f6b39ffc750590eedef028ce22506eb7436a1a1fcfa76c66423
+Hash: 334316e69326a0aaad58dc339bc3541786f96bbf1345e9770759d9cab60382f9
