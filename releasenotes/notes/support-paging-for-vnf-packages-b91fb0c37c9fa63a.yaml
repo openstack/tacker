@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Support handling large query results for vnf_packages API according
+    to ETSI NFV SOL013. This feature provides paged response regarding
+    a query request of the target API. In addition to that, fetching entire
+    records at once becomes available.
