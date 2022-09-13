@@ -51,6 +51,21 @@ parameters that can be obtained from the Kubernetes Master-node.
 For specific methods of obtaining "bearer_token" and "ssl_ca_cert",
 please refer to [#first]_.
 
+By using ``extra`` field, we can register VIM with Helm installed as
+the control target of Tacker.
+
+.. note::
+
+    * ``extra`` is an optional parameter.
+    * For VIM using Helm, the following preconditions need to be met:
+
+      * Use the specified user to login through ssh to execute the CLI
+        command of Helm.
+      * The specified user has sudo execution permissions for the
+        mkdir/chown/rm commands and does not require a password.
+      * Create the /var/tacker/helm directory on VIM as the transfer
+        destination for Helm chart files.
+
 .. code-block:: console
 
     $ cat vim-k8s.yaml
@@ -75,6 +90,12 @@ please refer to [#first]_.
     2ZrqgOcTmyFzFh9h2dj1DJWvCvExybRmzWK1e8JMzTb40MEApyY=
     -----END CERTIFICATE-----"
     type: "kubernetes"
+    extra:
+      helm_info:
+        masternode_ip:
+        - "192.168.33.100"
+        masternode_username: "helm_user"
+        masternode_password: "helm_pass"
 
 In addition to using ``bearer_token`` to authenticate with Kubernetes ,
 OpenID token [#sixth]_ is also supported. The following sample specifies
@@ -184,6 +205,7 @@ the [1. Create a config file] chapter.
     | auth_url       | https://192.168.33.100:6443                                                                                     |
     | created_at     | 2020-10-19 08:08:12.116040                                                                                      |
     | description    |                                                                                                                 |
+    | extra          | helm_info=masternode_ip=['192.168.33.100'], masternode_password=helm_user, masternode_username=helm_pass        |
     | id             | 8d8373fe-6977-49ff-83ac-7756572ed186                                                                            |
     | is_default     | False                                                                                                           |
     | name           | test-vim-k8s                                                                                                    |
@@ -218,6 +240,9 @@ Also we can check if the status of VIM is REACHABLE by
 
 Prepare VNF Package
 ===================
+
+If we want to deploy CNF through helm, we can refer to `Prepare VNF Package`_.
+
 1. Create Directories of VNF Package
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 TOSCA YAML CSAR file is an archive file using the ZIP file format whose
@@ -709,6 +734,9 @@ After the command is executed, the generated ID is ``VNF instance ID``.
 
 Instantiate VNF
 ===============
+
+If we want to deploy CNF through helm, we can refer to `Instantiate VNF`_.
+
 1. Set the Value to the Request Parameter File
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Get the ID of target VIM.
@@ -919,3 +947,5 @@ References
 .. [#fifth] https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#dns-subdomain-names
 .. [#sixth] https://kubernetes.io/docs/reference/access-authn-authz/authentication/#openid-connect-tokens
 .. [#seventh] https://docs.openstack.org/tacker/latest/reference/kubernetes_openid_token_auth_usage_guide.html
+.. _Prepare VNF Package : https://docs.openstack.org/tacker/latest/user/mgmt_driver_deploy_k8s_and_cnf_with_helm.html#prepare-vnf-package
+.. _Instantiate VNF : https://docs.openstack.org/tacker/latest/user/mgmt_driver_deploy_k8s_and_cnf_with_helm.html#instantiate-vnf
