@@ -61,6 +61,71 @@ def add_idx_to_vdu_template(vdu_template, vdu_idx):
     return res
 
 
+def _get_new_cps_from_req(cps, req, grant):
+    # used by change_ext_conn and change_vnfpkg
+    new_cps = {}
+    for cp_name_idx, cp_value in cps.items():
+        cp_name = rm_idx(cp_name_idx)
+        if 'network' in cp_value:
+            network = common_script_utils.get_param_network(
+                cp_name, grant, req)
+            if network is None:
+                continue
+            new_cps.setdefault(cp_name_idx, {})
+            new_cps[cp_name_idx]['network'] = network
+        if 'fixed_ips' in cp_value:
+            ext_fixed_ips = common_script_utils.get_param_fixed_ips(
+                cp_name, grant, req)
+            fixed_ips = []
+            for i in range(len(ext_fixed_ips)):
+                if i not in cp_value['fixed_ips']:
+                    break
+                ips_i = cp_value['fixed_ips'][i]
+                if 'subnet' in ips_i:
+                    ips_i['subnet'] = ext_fixed_ips[i].get('subnet')
+                if 'ip_address' in ips_i:
+                    ips_i['ip_address'] = ext_fixed_ips[i].get(
+                        'ip_address')
+                fixed_ips.append(ips_i)
+            new_cps.setdefault(cp_name_idx, {})
+            new_cps[cp_name_idx]['fixed_ips'] = fixed_ips
+
+    return new_cps
+
+
+def _get_new_cps_from_inst(cps, inst):
+    # used by change_ext_conn_rollback and change_vnfpkg_rollback
+    new_cps = {}
+    for cp_name_idx, cp_value in cps.items():
+        cp_name = rm_idx(cp_name_idx)
+        if 'network' in cp_value:
+            network = common_script_utils.get_param_network_from_inst(
+                cp_name, inst)
+            if network is None:
+                continue
+            new_cps.setdefault(cp_name_idx, {})
+            new_cps[cp_name_idx]['network'] = network
+        if 'fixed_ips' in cp_value:
+            ext_fixed_ips = (
+                common_script_utils.get_param_fixed_ips_from_inst(
+                    cp_name, inst))
+            fixed_ips = []
+            for i in range(len(ext_fixed_ips)):
+                if i not in cp_value['fixed_ips']:
+                    break
+                ips_i = cp_value['fixed_ips'][i]
+                if 'subnet' in ips_i:
+                    ips_i['subnet'] = ext_fixed_ips[i].get('subnet')
+                if 'ip_address' in ips_i:
+                    ips_i['ip_address'] = ext_fixed_ips[i].get(
+                        'ip_address')
+                fixed_ips.append(ips_i)
+            new_cps.setdefault(cp_name_idx, {})
+            new_cps[cp_name_idx]['fixed_ips'] = fixed_ips
+
+    return new_cps
+
+
 class StandardUserData(userdata_utils.AbstractUserData):
 
     @staticmethod
@@ -339,32 +404,7 @@ class StandardUserData(userdata_utils.AbstractUserData):
         nfv_dict = common_script_utils.init_nfv_dict(top_hot)
 
         cps = nfv_dict.get('CP', {})
-        new_cps = {}
-        for cp_name_idx, cp_value in cps.items():
-            cp_name = rm_idx(cp_name_idx)
-            if 'network' in cp_value:
-                network = common_script_utils.get_param_network(
-                    cp_name, grant, req)
-                if network is None:
-                    continue
-                new_cps.setdefault(cp_name_idx, {})
-                new_cps[cp_name_idx]['network'] = network
-            if 'fixed_ips' in cp_value:
-                ext_fixed_ips = common_script_utils.get_param_fixed_ips(
-                    cp_name, grant, req)
-                fixed_ips = []
-                for i in range(len(ext_fixed_ips)):
-                    if i not in cp_value['fixed_ips']:
-                        break
-                    ips_i = cp_value['fixed_ips'][i]
-                    if 'subnet' in ips_i:
-                        ips_i['subnet'] = ext_fixed_ips[i].get('subnet')
-                    if 'ip_address' in ips_i:
-                        ips_i['ip_address'] = ext_fixed_ips[i].get(
-                            'ip_address')
-                    fixed_ips.append(ips_i)
-                new_cps.setdefault(cp_name_idx, {})
-                new_cps[cp_name_idx]['fixed_ips'] = fixed_ips
+        new_cps = _get_new_cps_from_req(cps, req, grant)
 
         fields = {'parameters': {'nfv': {'CP': new_cps}}}
 
@@ -395,33 +435,7 @@ class StandardUserData(userdata_utils.AbstractUserData):
         nfv_dict = common_script_utils.init_nfv_dict(top_hot)
 
         cps = nfv_dict.get('CP', {})
-        new_cps = {}
-        for cp_name_idx, cp_value in cps.items():
-            cp_name = rm_idx(cp_name_idx)
-            if 'network' in cp_value:
-                network = common_script_utils.get_param_network_from_inst(
-                    cp_name, inst)
-                if network is None:
-                    continue
-                new_cps.setdefault(cp_name_idx, {})
-                new_cps[cp_name_idx]['network'] = network
-            if 'fixed_ips' in cp_value:
-                ext_fixed_ips = (
-                    common_script_utils.get_param_fixed_ips_from_inst(
-                        cp_name, inst))
-                fixed_ips = []
-                for i in range(len(ext_fixed_ips)):
-                    if i not in cp_value['fixed_ips']:
-                        break
-                    ips_i = cp_value['fixed_ips'][i]
-                    if 'subnet' in ips_i:
-                        ips_i['subnet'] = ext_fixed_ips[i].get('subnet')
-                    if 'ip_address' in ips_i:
-                        ips_i['ip_address'] = ext_fixed_ips[i].get(
-                            'ip_address')
-                    fixed_ips.append(ips_i)
-                new_cps.setdefault(cp_name_idx, {})
-                new_cps[cp_name_idx]['fixed_ips'] = fixed_ips
+        new_cps = _get_new_cps_from_inst(cps, inst)
 
         fields = {'parameters': {'nfv': {'CP': new_cps}}}
 
@@ -477,8 +491,11 @@ class StandardUserData(userdata_utils.AbstractUserData):
             if 'locationConstraints' in vdu_value:
                 vdu_value.pop('locationConstraints')
 
+        cps = nfv_dict.get('CP', {})
+        new_cps = _get_new_cps_from_req(cps, req, grant)
+
         fields = {
-            'parameters': {'nfv': {'VDU': vdus}}
+            'parameters': {'nfv': {'VDU': vdus, 'CP': new_cps}}
         }
 
         return fields
@@ -537,8 +554,11 @@ class StandardUserData(userdata_utils.AbstractUserData):
                 new_vdus.setdefault(vdu_name, {})
                 new_vdus[vdu_name]['vcImageId'] = images.get(vdu_name)
 
+        cps = nfv_dict.get('CP', {})
+        new_cps = _get_new_cps_from_inst(cps, inst)
+
         fields = {
-            'parameters': {'nfv': {'VDU': new_vdus}}
+            'parameters': {'nfv': {'VDU': new_vdus, 'CP': new_cps}}
         }
 
         return fields

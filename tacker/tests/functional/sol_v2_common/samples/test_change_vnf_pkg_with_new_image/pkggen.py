@@ -40,5 +40,13 @@ shutil.rmtree(tmp_dir)
 # if your sample is change VM from image to image
 change_vnfpkg_req_from_image_to_image = paramgen.change_vnfpkg(vnfd_id)
 
+net_ids = utils.get_network_ids(['net1'])
+change_vnfpkg_req_with_ext_vl = paramgen.change_vnfpkg_with_ext_vl(
+    vnfd_id, net_ids)
+
 with open("change_vnfpkg_req_from_image_to_image", "w", encoding='utf-8') as f:
     f.write(json.dumps(change_vnfpkg_req_from_image_to_image, indent=2))
+
+with open("change_vnfpkg_req_from_image_to_image_with_ext_vl",
+        "w", encoding='utf-8') as f:
+    f.write(json.dumps(change_vnfpkg_req_with_ext_vl, indent=2))

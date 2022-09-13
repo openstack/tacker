@@ -75,10 +75,10 @@ def _get_vdu_idx(vdu_with_idx):
     return int(part[2])
 
 
-def _vdu_with_idx(vdu, vdu_idx):
-    if vdu_idx is None:
-        return vdu
-    return f'{vdu}-{vdu_idx}'
+def _rsc_with_idx(rsc, rsc_idx):
+    if rsc_idx is None:
+        return rsc
+    return f'{rsc}-{rsc_idx}'
 
 
 class Openstack(object):
@@ -330,16 +330,16 @@ class Openstack(object):
             heat_client)
 
     def _get_flavor_from_vdu_dict(self, vnfc, vdu_dict):
-        vdu_name = _vdu_with_idx(vnfc.vduId, vnfc.metadata.get('vdu_idx'))
+        vdu_name = _rsc_with_idx(vnfc.vduId, vnfc.metadata.get('vdu_idx'))
         return vdu_dict.get(vdu_name, {}).get('computeFlavourId')
 
     def _get_images_from_vdu_dict(self, vnfc, storage_infos, vdu_dict):
         vdu_idx = vnfc.metadata.get('vdu_idx')
-        vdu_name = _vdu_with_idx(vnfc.vduId, vdu_idx)
+        vdu_name = _rsc_with_idx(vnfc.vduId, vdu_idx)
         vdu_names = [vdu_name]
         if vnfc.obj_attr_is_set('storageResourceIds'):
             vdu_names += [
-                _vdu_with_idx(storage_info.virtualStorageDescId, vdu_idx)
+                _rsc_with_idx(storage_info.virtualStorageDescId, vdu_idx)
                 for storage_info in storage_infos
                 if storage_info.id in vnfc.storageResourceIds
             ]
@@ -372,6 +372,7 @@ class Openstack(object):
             return templates[parent_stack_id]
 
         vdu_dict = fields['parameters']['nfv']['VDU']
+        cp_dict = fields['parameters']['nfv']['CP']
         stack_name = heat_utils.get_stack_name(inst)
 
         for vnfc in vnfcs:
@@ -392,26 +393,39 @@ class Openstack(object):
                     "template": template
                 }
                 LOG.debug("stack fields: %s", vdu_fields)
+                # NOTE: for VMs with AutoScalingGroups, rolling-update does
+                # not update CPs one by one. There are updated in once after
+                # returning this method.
                 heat_client.update_stack(parent_stack_id, vdu_fields)
             else:
                 # pickup 'vcImageId' and 'computeFlavourId' from vdu_dict
-                vdu_name = _vdu_with_idx(vnfc.vduId,
-                                         vnfc.metadata.get('vdu_idx'))
-                params = {}
+                vdu_idx = vnfc.metadata.get('vdu_idx')
+                vdu_name = _rsc_with_idx(vnfc.vduId, vdu_idx)
+                new_vdus = {}
                 flavor = self._get_flavor_from_vdu_dict(vnfc, vdu_dict)
                 if flavor:
-                    params[vdu_name] = {'computeFlavourId': flavor}
+                    new_vdus[vdu_name] = {'computeFlavourId': flavor}
                 storage_infos = (
                     inst.instantiatedVnfInfo.virtualStorageResourceInfo
                     if vnfc.obj_attr_is_set('storageResourceIds') else [])
                 images = self._get_images_from_vdu_dict(vnfc,
                     storage_infos, vdu_dict)
                 for vdu_name, image in images.items():
-                    params.setdefault(vdu_name, {})
-                    params[vdu_name]['vcImageId'] = image
-                update_nfv_dict = {'nfv': {'VDU': params}}
-                update_fields = {'parameters': update_nfv_dict}
+                    new_vdus.setdefault(vdu_name, {})
+                    new_vdus[vdu_name]['vcImageId'] = image
 
+                # pickup 'CP' updates
+                cp_names = vnfd.get_vdu_cps(
+                    inst.instantiatedVnfInfo.flavourId, vnfc.vduId)
+                new_cps = {}
+                for cp_name in cp_names:
+                    cp_name = _rsc_with_idx(cp_name, vdu_idx)
+                    if cp_name in cp_dict:
+                        new_cps[cp_name] = cp_dict[cp_name]
+
+                update_fields = {
+                    'parameters': {'nfv': {'VDU': new_vdus, 'CP': new_cps}}
+                }
                 update_fields = self._update_fields(heat_client, stack_name,
                         update_fields)
                 LOG.debug("stack fields: %s", update_fields)
@@ -727,6 +741,10 @@ class Openstack(object):
             req_ext_vls = grant.extVirtualLinks
         elif req.obj_attr_is_set('extVirtualLinks'):
             req_ext_vls = req.extVirtualLinks
+        else:
+            # may happen in case of change_vnfpkg
+            return self._make_ext_vl_info_from_inst(old_inst_info,
+                                                    ext_cp_infos)
 
         req_ext_vl_ids = {ext_vl.id for ext_vl in req_ext_vls}
         inst_ext_vl_ids = set()
@@ -1077,7 +1095,8 @@ class Openstack(object):
                 flavour_id, req, grant)
         else:
             old_inst_vnf_info = inst.instantiatedVnfInfo
-            if (op == v2fields.LcmOperationType.CHANGE_EXT_CONN and
+            if ((op == v2fields.LcmOperationType.CHANGE_EXT_CONN or
+                 op == v2fields.LcmOperationType.CHANGE_VNFPKG) and
                     not is_rollback):
                 ext_vl_infos = self._make_ext_vl_info_from_req_and_inst(
                     req, grant, old_inst_vnf_info, ext_cp_infos)

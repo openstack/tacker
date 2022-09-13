@@ -46,7 +46,11 @@ utils.make_zip(".", tmp_dir, vnfd_id, image_path=image_path,
 shutil.copy(os.path.join(tmp_dir, zip_file_name), ".")
 shutil.rmtree(tmp_dir)
 
-change_vnfpkg_req = paramgen.sample4_change_vnfpkg(vnfd_id)
+net_ids = utils.get_network_ids(['net0', 'net1', 'net_mgmt'])
+subnet_ids = utils.get_subnet_ids(['subnet0', 'subnet1'])
+
+change_vnfpkg_req = paramgen.sample4_change_vnfpkg(
+    vnfd_id, net_ids, subnet_ids)
 
 with open("change_vnfpkg_req", "w") as f:
     f.write(json.dumps(change_vnfpkg_req, indent=2))

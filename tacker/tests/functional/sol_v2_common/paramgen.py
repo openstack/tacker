@@ -935,6 +935,31 @@ def change_vnfpkg(vnfd_id):
     }
 
 
+def change_vnfpkg_with_ext_vl(vnfd_id, net_ids):
+    ext_vl_1 = {
+        "id": uuidutils.generate_uuid(),
+        "resourceId": net_ids['net1'],
+        "extCps": [
+            {
+                "cpdId": "VDU1_CP1",
+                "cpConfig": {
+                    "VDU1_CP1_1": {
+                        "cpProtocolData": [{
+                            "layerProtocol": "IP_OVER_ETHERNET",
+                            "ipOverEthernet": {
+                                "ipAddresses": [{
+                                    "type": "IPV4",
+                                    "numDynamicAddresses": 1}]}}]}
+                }
+            }
+        ]
+    }
+    req = change_vnfpkg(vnfd_id)
+    req["extVirtualLinks"] = [ext_vl_1]
+
+    return req
+
+
 # sample3 is used for tests of StandardUserData
 #
 def sample3_create(vnfd_id):
@@ -953,13 +978,13 @@ def sample3_terminate():
 
 def sample3_instantiate(net_ids, subnet_ids, auth_url):
     ext_vl_1 = {
-        "id": uuidutils.generate_uuid(),
+        "id": "ext_vl_id_net1",
         "resourceId": net_ids['net1'],
         "extCps": [
             {
                 "cpdId": "VDU1_CP1",
                 "cpConfig": {
-                    "VDU1_CP2_1": {
+                    "VDU1_CP1_1": {
                         "cpProtocolData": [{
                             "layerProtocol": "IP_OVER_ETHERNET",
                             "ipOverEthernet": {
@@ -971,7 +996,7 @@ def sample3_instantiate(net_ids, subnet_ids, auth_url):
             {
                 "cpdId": "VDU2_CP1",
                 "cpConfig": {
-                    "VDU2_CP2_1": {
+                    "VDU2_CP1_1": {
                         "cpProtocolData": [{
                             "layerProtocol": "IP_OVER_ETHERNET",
                             "ipOverEthernet": {
@@ -1055,7 +1080,7 @@ def sample3_change_ext_conn(net_ids):
     return {
         "extVirtualLinks": [
             {
-                "id": uuidutils.generate_uuid(),
+                "id": "ext_vl_id_net0",
                 "resourceId": net_ids['net0'],
                 "extCps": [
                     {
@@ -1082,9 +1107,31 @@ def sample3_change_ext_conn(net_ids):
 
 # sample4 is for change_vnfpkg test of StandardUserData
 #
-def sample4_change_vnfpkg(vnfd_id):
+def sample4_change_vnfpkg(vnfd_id, net_ids, subnet_ids):
     return {
         "vnfdId": vnfd_id,
+        "extVirtualLinks": [
+            {
+                "id": "ext_vl_id_net0",
+                "resourceId": net_ids['net0'],
+                "extCps": [
+                    {
+                        "cpdId": "VDU2_CP1",
+                        "cpConfig": {
+                            "VDU2_CP1_1": {
+                                "cpProtocolData": [{
+                                    "layerProtocol": "IP_OVER_ETHERNET",
+                                    "ipOverEthernet": {
+                                        "ipAddresses": [{
+                                            "type": "IPV4",
+                                            "numDynamicAddresses": 1,
+                                            "subnetId":
+                                                subnet_ids['subnet0']}]}}]}
+                        }
+                    }
+                ]
+            }
+        ],
         "additionalParams": {
             "upgrade_type": "RollingUpdate",
             "lcm-operation-coordinate-new-vnf": "./Scripts/coordinate_vnf.py",
