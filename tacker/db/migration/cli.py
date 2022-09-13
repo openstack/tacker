@@ -21,8 +21,9 @@ from alembic import util as alembic_util
 from oslo_config import cfg
 
 from tacker._i18n import _
-from tacker.db.migration.models import head  # noqa
+from tacker.db.migration import migrate_to_v2
 from tacker.db.migration import purge_tables
+from tacker.db.migration.models import head  # noqa
 
 HEAD_FILENAME = 'HEAD'
 
@@ -37,6 +38,7 @@ _db_opts = [
                default='',
                help=_('Database engine')),
 ]
+
 
 CONF = cfg.ConfigOpts()
 CONF.register_cli_opts(_db_opts, 'database')
@@ -113,6 +115,14 @@ def purge_deleted(config, cmd):
                       CONF.command.granularity)
 
 
+def migrate_to_v2_tables(config, cmd):
+    migrate_to_v2.migrate_to_v2_tables(config.tacker_config, CONF.command.all,
+                      CONF.command.api_ver,
+                      CONF.command.keep_orig,
+                      CONF.command.mark_delete,
+                      CONF.command.vnf_id)
+
+
 def add_command_parsers(subparsers):
     for name in ['current', 'history', 'branches']:
         parser = subparsers.add_parser(name)
@@ -154,6 +164,40 @@ def add_command_parsers(subparsers):
         '-g', '--granularity', default='days',
         choices=['days', 'hours', 'minutes', 'seconds'],
         help=_('Granularity to use for age argument, defaults to days.'))
+
+    parser = subparsers.add_parser('migrate-to-v2')
+    parser.set_defaults(func=migrate_to_v2_tables)
+    parser.add_argument(
+        '--all', action='store_true',
+        help=_('Migrate all VNFs on vnf_instances '
+               'that "deleted" field is not 1.'))
+    parser.add_argument(
+        '--api-ver',
+        help=_('This must be used '
+               'with "--mark-delete" option and "--vnf-id" option. '
+               'Specified api version records\' "deleted" field '
+               'are updated to 1.'))
+    parser.add_argument(
+        '--keep-orig', action='store_true',
+        help=_('Keep v1 records without erasing them. '
+               '(Erasing them is default)'))
+    parser.add_argument(
+        '--mark-delete', action='store_true',
+        help=_('This must be used '
+               'with "--api-ver" option and "--vnf-id" option. '
+               'With "--api-ver v1": '
+               'To complete the migration and '
+               'erase the records before migration. '
+               'It updates the value of the v1 records\' "deleted" field '
+               'to 1 with specific VNF and complete DB migration. '
+               'With "--api-ver v2": '
+               'To rollback the migration and '
+               'erase the records after the migration. '
+               'It updates the value of the v2 records\' "deleted" field '
+               'to 1 with specific VNF and rollback DB migration.'))
+    parser.add_argument(
+        '--vnf-id',
+        help=_('The specific VNF will be migrated.'))
 
 
 command_opt = cfg.SubCommandOpt('command',

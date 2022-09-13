@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Adding the VNF version upgrading function to
+    the tacker-db-manage command,
+    which enables users to upgrade VNFs from v1 to v2
+    without re-instantiating it.
