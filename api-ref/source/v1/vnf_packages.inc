@@ -67,6 +67,13 @@ List VNF Packages
 
 Lists VNF Packages.
 
+If a response includes a LINK HTTP header (see IETF RFC 8288 [#RFC8288]_) with the "rel" attribute
+set to "next", the API consumer can send a GET request to the URI communicated in
+the LINK header to obtain the next page of results.
+
+.. [#RFC8288]
+  https://datatracker.ietf.org/doc/html/rfc8288
+
 Response Codes
 --------------
 
