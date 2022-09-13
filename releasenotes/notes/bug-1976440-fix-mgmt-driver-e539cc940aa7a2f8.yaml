@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes `bug 1976440`_, errors occurred while using the Mgmt Driver
+    for LCM operations.
+
+    .. _bug 1976440 : https://bugs.launchpad.net/tacker/+bug/1976440
