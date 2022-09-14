@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: ReplicaSet
 metadata:
-  name: vdu1
+  name: vdu1-scale
   namespace: default
 spec:
   replicas: 1

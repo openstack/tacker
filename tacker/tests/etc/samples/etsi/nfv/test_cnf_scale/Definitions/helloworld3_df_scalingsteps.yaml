@@ -44,7 +44,7 @@ topology_template:
     VDU1:
       type: tosca.nodes.nfv.Vdu.Compute
       properties:
-        name: vdu1
+        name: vdu1-scale
         description: kubernetes controller resource as VDU
         vdu_profile:
           min_number_of_instances: 1

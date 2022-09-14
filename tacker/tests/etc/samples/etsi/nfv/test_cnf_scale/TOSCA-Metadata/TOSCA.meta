@@ -6,14 +6,14 @@ Entry-Definitions: Definitions/helloworld3_top.vnfd.yaml
 Name: Files/kubernetes/deployment_scale.yaml
 Content-Type: application/yaml
 Algorithm: SHA-256
-Hash: 8f8c45d63880fe9190e49c42458bf40c6aa7752ec84049db1027389715e12840
+Hash: fb3c7d1b0d227f2fdf210da1700f6fc3c365b2332f3c64459afe67c5f836c2c2
 
 Name: Files/kubernetes/statefulset_scale.yaml
 Content-Type: application/yaml
 Algorithm: SHA-256
-Hash: a9c35728419fb1e72ba73362fb17472afc63010a82ad4e3b84f3cf52161186e4
+Hash: ebfdb834bd124a3843cf67184ab28fdb664c6f0226b30f6a2ef3451f80468af7
 
 Name: Files/kubernetes/replicaset_scale.yaml
 Content-Type: application/yaml
 Algorithm: SHA-256
-Hash: 6585f8e34425c3c5ffd5ca40a262acaea1ede7fc7caa9920e5af8deb2d8dd83c
+Hash: b23fd1737efc787ba12f035844646139830f4f867e4393d0cd695944ae465baa
