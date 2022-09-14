@@ -129,13 +129,11 @@ class TestOpenstack_Driver(base.TestCase):
                                 'project_domain_name': 'Default'}}
 
     def test_register_keystone_v3(self):
-        regions = [mock_dict({'id': 'RegionOne'})]
-        attrs = {'regions.list.return_value': regions}
-        keystone_version = 'v3'
+        regions = mock_dict(regions=[{'id': 'RegionOne'}])
+        attrs = {'get.return_value.json.return_value': regions}
         mock_ks_client = mock.Mock(**attrs)
-        self.keystone.get_version.return_value = keystone_version
         self._test_register_vim(self.vim_obj, mock_ks_client)
-        mock_ks_client.regions.list.assert_called_once_with()
+        mock_ks_client.get.assert_called_once_with('/v3/regions')
         self.keystone.initialize_client.assert_called_once_with(
             **self.auth_obj)
 
@@ -195,11 +193,11 @@ class TestOpenstack_Driver(base.TestCase):
                          'fake-secret-uuid')
 
     def test_register_vim_invalid_auth(self):
-        attrs = {'regions.list.side_effect': exceptions.Unauthorized}
+        attrs = {'get.side_effect': exceptions.Unauthorized}
         self._test_register_vim_auth(attrs)
 
     def test_register_vim_missing_auth(self):
-        attrs = {'regions.list.side_effect': exceptions.BadRequest}
+        attrs = {'get.side_effect': exceptions.BadRequest}
         self._test_register_vim_auth(attrs)
 
     def _test_register_vim_auth(self, attrs):
@@ -210,7 +208,7 @@ class TestOpenstack_Driver(base.TestCase):
         self.assertRaises(nfvo.VimUnauthorizedException,
                           self.openstack_driver.register_vim,
                           self.vim_obj)
-        mock_ks_client.regions.list.assert_called_once_with()
+        mock_ks_client.get.assert_called_once_with('/v3/regions')
         self.keystone.initialize_client.assert_called_once_with(
             **self.auth_obj)
 

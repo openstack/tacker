@@ -17,7 +17,7 @@ class MistralClient(object):
     """Mistral Client class for NSD"""
 
     def __init__(self, keystone, auth_token):
-        endpoint = keystone.session.get_endpoint(
+        endpoint = keystone.get_endpoint(
             service_type='workflowv2', region_name=None)
 
         self.client = mistral_client.client(auth_token=auth_token,

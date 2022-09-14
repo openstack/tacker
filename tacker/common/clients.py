@@ -47,7 +47,7 @@ class OpenstackClients(object):
 
     @property
     def keystone_session(self):
-        return self.keystone.session
+        return self.keystone
 
     @property
     def keystone(self):
@@ -79,7 +79,7 @@ class OpenstackSdkConnection(object):
           user_domain_name=access_info['user_domain_name'],
           project_domain_name=access_info['project_domain_name'])
 
-        session = self.keystone_plugin.initialize_client(**auth).session
+        session = self.keystone_plugin.initialize_client(**auth)
 
         conn = connection.Connection(
             region_name=access_info.get('region'),

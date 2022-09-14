@@ -91,18 +91,20 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
 
     @staticmethod
     def validate_keystone_auth_url(auth_url, verify):
+        # NOTE(h-asahina): `verify` will be used as an arg of session to
+        # validate certificate
         keystone_obj = keystone.Keystone()
         auth_url = utils.get_auth_url_v3(auth_url)
         try:
-            return keystone_obj.get_version(auth_url, verify)
+            keystone_obj.get_version(auth_url, verify)
         except Exception as e:
-            LOG.error('Keystone Auth URL invalid')
+            LOG.error(f'Validation Failed for Keystone auth_url: {auth_url}')
             raise nfvo.VimConnectionException(message=str(e))
 
     def get_auth_dict(self, context):
         auth = CONF.keystone_authtoken
         auth_url = utils.get_auth_url_v3(auth.auth_url)
-        self.validate_keystone_auth_url(auth_url, 'True')
+        self.validate_keystone_auth_url(auth_url=auth_url, verify=True)
         return {
             'auth_url': auth_url,
             'token': context.auth_token,

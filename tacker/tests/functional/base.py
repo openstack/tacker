@@ -29,9 +29,9 @@ from oslo_log import log as logging
 from oslo_serialization import jsonutils
 from tempest.lib import base
 
+from tacker.common import clients
 from tacker.plugins.common import constants as evt_constants
 from tacker.tests import constants
-from tacker.tests.functional import clients
 from tacker.tests.utils import read_file
 from tacker import version
 
@@ -175,20 +175,18 @@ class BaseTackerTest(base.BaseTestCase):
         data['project_domain_name'] = domain_name
         return clients.OpenstackClients(auth_attr=data).heat
 
+    @classmethod
     def blazarclient(cls, vim_conf_file=None):
         data = cls.get_credentials(vim_conf_file)
         domain_name = data.pop('domain_name')
         data['user_domain_name'] = domain_name
         data['project_domain_name'] = domain_name
-        auth_ses = clients.OpenstackClients(auth_attr=data).keystone_session
-        args = {
-            'session': auth_ses,
-            'service_type': 'reservation',
-            'interface': 'public',
-            'region_name': 'RegionOne',
-        }
-        client = blazar_client.Client(**args)
-        return client
+        auth_ses = (clients.OpenstackClients(auth_attr=data)
+                    .keystone_session.session)
+        return blazar_client.Client(session=auth_ses,
+                                    service_type='reservation',
+                                    interface='public',
+                                    region_name='RegionOne')
 
     @classmethod
     def glanceclient(cls, vim_conf_file=None):
