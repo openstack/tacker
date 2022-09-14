@@ -4,27 +4,26 @@ Overview
 --------
 
 This document explains VNFD template structure and its various fields based
-on TOSCA standards `V1.0 CSD 03 <http://docs.oasis-open.org/tosca/tosca-nfv/
-v1.0/tosca-nfv-v1.0.html>`_.
+on TOSCA standards `V1.0 CSD 03`_.
 
-The behavioural and deployment information of a VNF in Tacker is defined in a
+The behavioral and deployment information of a VNF in Tacker is defined in a
 template known as VNF Descriptor (VNFD). The template is based on TOSCA
 standards and is written in YAML. It is on-boarded in a VNF catalog.
 
-Each VNFD template will have below fields:
+Each VNFD template have the below fields:
 
-::
+.. code-block:: yaml
 
     tosca_definitions_version:
        This defines the TOSCA definition version on which the template is based.
        The current version being tosca_simple_profile_for_nfv_1_0_0.
 
     tosca_default_namespace:
-       This is optional. It mentions default namespace which includes schema,
-       types version etc.
+       This is optional. It mentions the default namespace which includes
+       schema, types versions, etc.
 
     description:
-       A short description about the template.
+       A short description of the template.
 
     metadata:
        template_name: A name to be given to the template.
@@ -34,23 +33,23 @@ Each VNFD template will have below fields:
        node_template:
            Describes node types of a VNF.
            VDU:
-               Describes properties and capabilities of Virtual Deployment
+               Describes the properties and capabilities of Virtual Deployment
                Unit.
            CP:
-               Describes properties and capabilities of Connection Point.
+               Describes the properties and capabilities of Connection Point.
            VL:
-               Describes properties and capabilities of Virtual Link.
+               Describes the properties and capabilities of Virtual Link.
 
-For examples, please refer sample VNFD templates available at `GitHub <https:
-//github.com/openstack/tacker/tree/master/samples/tosca-templates/vnfd>`_.
+For examples, please refer sample VNFD templates available at
+`VNFD TOSCA TEMPLATES`_.
 
 Node Types
 ----------
-A VNF includes **VDU/s**, **connection point/s** and **virtual link/s**. Hence
+A VNF includes ``VDU/s``, ``connection point/s`` and ``virtual link/s``. Hence
 a valid VNFD must have these 3 components. Each component is referred as a
-node and can have certain type, capabilities, properties, attributes and
-requirements. These components are described under **node_templates** in the
-VNFD template. **node_templates** is a child of **topology_template**.
+node and can have a certain type, capabilities, properties, attributes, and
+requirements. These components are described under ``node_templates`` in the
+VNFD template. ``node_templates`` is a child of ``topology_template``.
 
 VDU
 ---
@@ -65,16 +64,15 @@ network function.
     flavor describing physical properties for the VDU to be spawned, monitoring
     policies for the VDU, providing user data in form of custom commands to the
     VDU. A complete list of VDU properties currently supported by Tacker are
-    listed `here <https://opendev.org/openstack/tacker/src/branch/master/tacker/tosca/
-    lib/tacker_nfv_defs.yaml>`_ under **properties** section of
-    **tosca.nodes.nfv.VDU.Tacker** field
+    listed `here`_ under ``properties`` section of
+    ``tosca.nodes.nfv.VDU.Tacker`` field.
 
 Specifying VDU Properties
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 A very simple VDU with 10 GB disk, 2 GB RAM, 2 CPUs, cirros image and in nova
 availability zone can be described as:
 
-::
+.. code-block:: yaml
 
   topology_template:
     node_templates:
@@ -92,9 +90,9 @@ availability zone can be described as:
 
 Using Nova Flavors for VDU
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
-OpenStack specific **flavors** can also be used to describe VDU configuration.
+OpenStack specific ``flavors`` can also be used to describe VDU configuration.
 
-::
+.. code-block:: yaml
 
   topology_template:
     node_templates:
@@ -105,22 +103,18 @@ OpenStack specific **flavors** can also be used to describe VDU configuration.
           flavor: m1.tiny
           availability_zone: nova
 
-However, when both **nfv_compute properties** and **flavor** are mentioned in
-a VNFD, **flavor** setting will take precedence.
+However, when both ``nfv_compute properties`` and ``flavor`` are mentioned in
+a VNFD, ``flavor`` setting will take precedence.
 
 Monitoring the VDU
 """"""""""""""""""
 
-A VDU can be monitored by pinging it. The following VNFD pings VDU1 with
-3 ECHO packet counts, 0.2 second intervals and 2 second timeout options
-per monitoring trigger. Ping is attempted up to 6 times unless it
-returns an exit code 0. On VDU2, Tacker tries to open
-http://<VDU2_mgmt_ip>:80 with 2 second timeout and 6 retries. Both VDUs
-have 20 second delay time from creation or respawning to start
-monitoring. The VDUs can be re-spawned in case of failure. See
-:doc:`monitor-api` for more information.
+A VDU can be monitored by pinging it. Tacker supports pinging
+VDU with given intervals and certain retries.
+The VDUs can be re-spawned in case of failure. See :doc:`monitor-api`
+for more information.
 
-::
+.. code-block:: yaml
 
     ..
       VDU1:
@@ -153,9 +147,9 @@ monitoring. The VDUs can be re-spawned in case of failure. See
 Providing User Data
 """""""""""""""""""
 Custom commands to be run on VDU once it is spawned can be specified in a VNFD
-template as user data.
+the template as user data.
 
-::
+.. code-block:: yaml
 
   ..
     VDU1:
@@ -168,21 +162,20 @@ template as user data.
 
 Configuring a VDU
 """""""""""""""""
-A VDU can be configured as a specific Network Function under **config**
+A VDU can be configured as a specific Network Function under ``config``
 section in VNFD template. A sample template configuring a VDU as a firewall
-can be viewed in a `sample file <https://opendev.org/openstack/tacker/src/branch/
-master/samples/tosca-templates/vnfd/tosca-config-openwrt-firewall.yaml>`_.
+can be viewed in a `sample file`_.
 
 Specifying External Image
 """""""""""""""""""""""""
 :artifacts:
     To specify an image via a file or an external link
 
-An image URL can be specified as **artifacts**. Tacker will specify the image
+An image URL can be specified as ``artifacts``. Tacker will specify the image
 location in HOT (Heat Template) and pass it to heat-api. Heat will then spawn
 the VDU with that image.
 
-::
+.. code-block:: yaml
 
   ..
     VDU1:
@@ -195,14 +188,15 @@ the VDU with that image.
 
 VDU Capabilities
 ^^^^^^^^^^^^^^^^
-Computational properties of a VDU are described as its capabilities. Allocated
-RAM size, allocated disk size, memory page size, number of CPUs, number of
-cores per CPU, number of threads per core can be specified.
+The computational properties of a VDU are described as its capabilities.
+Allocated RAM and disk size, memory page size, number of CPUs, number of
+cores per CPU and a number of threads per core can be specified.
 
-A VDU with 10 GB disk, 2 GB RAM, 2 CPUs, 4 KB of memory page and dedicated CPU
-can be specified as below. Thread and core counts can be specified as shown.
+A VDU with 10 GB disk, 2 GB RAM, 2 CPUs, 4 KB of memory page, and a dedicated
+CPU can be specified as below.
+Thread and core counts can be specified as shown.
 
-::
+.. code-block:: yaml
 
   ..
     VDU1:
@@ -219,51 +213,63 @@ can be specified as below. Thread and core counts can be specified as shown.
               thread_count: 4
               core_count: 2
 
-:capabilities:
+.. list-table:: **capabilities**
+   :widths: 12 30 4 71
+   :header-rows: 1
 
-+---------------------+---------------+-----------+--------------------------+
-|Name                 |Type           |Constraints|Description               |
-+---------------------+---------------+-----------+--------------------------+
-|nfv_compute          |Compute.       |None       |Describes the configurat  |
-|                     |Container.     |           |ion of the VM on which    |
-|                     |Architecture   |           |the VDU resides           |
-+---------------------+---------------+-----------+--------------------------+
+   * - Name
+     - Type
+     - Constraints
+     - Description
+   * - nfv_compute
+     - Compute.
+       Container.
+       Architecture
+     - None
+     - Describes the configuration of the VM on which the VDU resides.
 
 Compute Container Architecture
-""""""""""""""""""""""""""""""
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 :type:
     tosca.capabilities.Compute.Container.Architecture
 
-:properties:
+.. list-table:: **properties**
+   :widths: 25 8 15 20 40
+   :header-rows: 1
 
-+---------------+--------+--------+---------------+--------------------------+
-|Name           |Required|Type    |Constraints    |Description               |
-+---------------+--------+--------+---------------+--------------------------+
-|mem_page_size  |No      |String  |One of below   |Indicates page size of the|
-|               |        |        |               |VM                        |
-|               |        |        |               |                          |
-| (in MB)       |        |        |- small        |- small maps to 4 KB      |
-|               |        |        |- large        |- large maps to 2 MB      |
-|               |        |        |- any (default)|- any maps to system's    |
-|               |        |        |               |  default                 |
-|               |        |        |- custom       |- custom sets the size to |
-|               |        |        |               |  specified value         |
-+---------------+--------+--------+---------------+--------------------------+
-|cpu_allocation |No      |CPUAllo-|               |CPU allocation requirement|
-|               |        |cation  |               |like dedicated CPUs,      |
-|               |        |        |               |socket/thread count       |
-+---------------+--------+--------+---------------+--------------------------+
-|numa_node_count|No      |Integer |               |Symmetric count of NUMA   |
-|               |        |        |               |nodes to expose to VM.    |
-|               |        |        |               |vCPU and Memory is split  |
-|               |        |        |               |equally across this       |
-|               |        |        |               |number of NUMA            |
-+---------------+--------+--------+---------------+--------------------------+
-|numa_nodes     |No      |Map of  |Symmetric      |Asymmetric allocation of  |
-|               |        |NUMA    |numa_node_count|vCPU and memory across    |
-|               |        |        |should not be  |the specified NUMA nodes  |
-|               |        |        |specified      |                          |
-+---------------+--------+--------+---------------+--------------------------+
+   * - Name
+     - Required
+     - Type
+     - Constraints
+     - Description
+   * - mem_page_size (in MB)
+     - No
+     - String
+     - Size can be small, large,
+       any (default) or custom
+     - Indicates page size of the VM where
+       small maps to 4 KB, large maps to 2 MB,
+       any maps to system's default and custom
+       sets the size to specified value.
+   * - cpu_allocation
+     - No
+     - CPUAllocation
+     - NA
+     - CPU allocation requirement like dedicated CPUs,
+       socket/thread count.
+   * - numa_node_count
+     - No
+     - Integer
+     - NA
+     - Symmetric count of NUMA nodes to expose to VM.
+       vCPU and Memory are split equally across this
+       number of NUMA
+   * - numa_nodes
+     - No
+     - Map of NUMA
+     - Symmetric numa_node_count should not be specified.
+     - Asymmetric allocation of vCPU and memory across the
+       specified NUMA nodes.
 
 CPUAllocation
 """""""""""""
@@ -272,35 +278,41 @@ This describes the granular CPU allocation requirements for VDUs.
 :type:
     tosca.datatypes.compute.Container.Architecture.CPUAllocation
 
-:properties:
+.. list-table:: **properties**
+   :widths: 20 8 20 40
+   :header-rows: 1
 
-+-----------------+-------+------------+-------------------------------------+
-|Name             |Type   |Constraints |Description                          |
-+-----------------+-------+------------+-------------------------------------+
-|cpu_affinity     |String |One of      |Describes whether vCPU need to be    |
-|                 |       |            |pinned to dedicated CPU core or      |
-|                 |       |- shared    |shared dynamically                   |
-|                 |       |- dedicated |                                     |
-+-----------------+-------+------------+-------------------------------------+
-|thread_allocation|String |One of      |Describes thread allocation          |
-|                 |       |            |requirement                          |
-|                 |       |- avoid     |                                     |
-|                 |       |- separate  |                                     |
-|                 |       |- isolate   |                                     |
-|                 |       |- prefer    |                                     |
-+-----------------+-------+------------+-------------------------------------+
-|socket_count     |Integer| None       |Number of CPU sockets                |
-+-----------------+-------+------------+-------------------------------------+
-|core_count       |Integer| None       |Number of cores per socket           |
-+-----------------+-------+------------+-------------------------------------+
-|thread_count     |Integer| None       |Number of threads per core           |
-+-----------------+-------+------------+-------------------------------------+
+   * - Name
+     - Type
+     - Constraints
+     - Description
+   * - cpu_affinity
+     - String
+     - Affinity can be shared or dedicated
+     - Describes whether vCPU need to be
+       pinned to dedicated CPU core or shared dynamically.
+   * - thread_allocation
+     - String
+     - Allocation can be avoid, separate, isolate or prefer
+     - Describes thread allocation requirement.
+   * - socket_count
+     - Integer
+     - None
+     - Number of CPU sockets.
+   * - core_count
+     - Integer
+     - None
+     - Number of cores per sockets.
+   * - thread_count
+     - Integer
+     - None
+     - Number of threads per core.
 
 NUMA Architecture
 """""""""""""""""
 Following code snippet describes symmetric NUMA topology requirements for VDUs.
 
-::
+.. code-block:: yaml
 
   ..
   VDU1:
@@ -312,7 +324,7 @@ Following code snippet describes symmetric NUMA topology requirements for VDUs.
 
 For asymmetric NUMA architecture:
 
-::
+.. code-block:: yaml
 
   ..
   VDU1:
@@ -334,19 +346,28 @@ For asymmetric NUMA architecture:
 :type:
     tosca.datatypes.compute.Container.Architecture.NUMA
 
-:properties:
+.. list-table:: **properties**
+   :widths: 10 10 12 20
+   :header-rows: 1
 
-+--------+---------+-----------+-------------------------------------------+
-|Name    |Type     |Constraints|Description                                |
-+--------+---------+-----------+-------------------------------------------+
-|id      |Integer  | >= 0      |CPU socket identifier                      |
-+--------+---------+-----------+-------------------------------------------+
-|vcpus   |Map of   |None       |List of specific host cpu numbers within a |
-|        |integers |           |NUMA socket complex                        |
-+--------+---------+-----------+-------------------------------------------+
-|mem_size|scalar-  | >= 0MB    |Size of memory allocated from this NUMA    |
-|        |unit.size|           |memory bank                                |
-+--------+---------+-----------+-------------------------------------------+
+   * - Name
+     - Type
+     - Constraints
+     - Description
+   * - id
+     - Integer
+     - >= 0
+     - CPU socket identifier
+   * - vcpus
+     - Map of integers
+     - None
+     - List of specific host cpu numbers
+       within a NUMA socket complex.
+   * - mem_size
+     - scalar-unit.size
+     - >= 0MB
+     - Size of memory allocated from this
+       NUMA memory bank.
 
 Connection Points
 -----------------
@@ -359,7 +380,7 @@ A code snippet for virtual NIC (Connection Point) without anti-spoof
 protection and are accessible by the user. CP1 and CP2 are connected to
 VDU1 in this order. Also CP1/CP2 are connected to VL1/VL2 respectively.
 
-::
+.. code-block:: yaml
 
   ..
   topology_template:
@@ -403,57 +424,72 @@ VDU1 in this order. Also CP1/CP2 are connected to VL1/VL2 respectively.
 :type:
     tosca.nodes.nfv.CP.Tacker
 
-:properties:
+.. list-table:: **properties**
+   :widths: 25 8 7 20 25
+   :header-rows: 1
 
-+-------------------------+--------+-------+-----------+----------------------+
-| Name                    |Required|Type   |Constraints| Description          |
-+-------------------------+--------+-------+-----------+----------------------+
-| type                    | No     |String |One of     | Specifies the type   |
-|                         |        |       |           | of CP                |
-|                         |        |       |- vnic     |                      |
-|                         |        |       |  (default)|                      |
-|                         |        |       |- sriov    |                      |
-+-------------------------+--------+-------+-----------+----------------------+
-| anti_spoofing_protection| No     |Boolean| None      | Indicates whether    |
-|                         |        |       |           | anti_spoof rule is   |
-|                         |        |       |           | enabled for the VNF  |
-|                         |        |       |           | or not. Applicable   |
-|                         |        |       |           | only when CP type is |
-|                         |        |       |           | virtual NIC          |
-+-------------------------+--------+-------+-----------+----------------------+
-| management              | No     |Boolean| None      | Specifies whether the|
-|                         |        |       |           | CP is accessible by  |
-|                         |        |       |           | the user or not      |
-+-------------------------+--------+-------+-----------+----------------------+
-| order                   | No     |Integer| >= 0      | Uniquely numbered    |
-|                         |        |       |           | order of CP within a |
-|                         |        |       |           | VDU. Must be provided|
-|                         |        |       |           | when binding more    |
-|                         |        |       |           | than one CP to a VDU |
-|                         |        |       |           | and ordering is      |
-|                         |        |       |           | required.            |
-+-------------------------+--------+-------+-----------+----------------------+
-| security_groups         | No     |List   | None      | List of security     |
-|                         |        |       |           | groups to be         |
-|                         |        |       |           | associated with      |
-|                         |        |       |           | the CP               |
-+-------------------------+--------+-------+-----------+----------------------+
-| mac_address             | No     |String | None      | The MAC address      |
-+-------------------------+--------+-------+-----------+----------------------+
-| ip _address             | No     |String | None      | The IP address       |
-+-------------------------+--------+-------+-----------+----------------------+
+   * - Name
+     - Required
+     - Type
+     - Constraints
+     - Description
+   * - type
+     - No
+     - String
+     - Type can be vnic(default) or sriov
+     - Specifies the type of CP.
+   * - anti_spoofing_protection
+     - No
+     - Boolean
+     - None
+     - Indicates whether anti_spoof rule
+       is enabled for the VNF or not.
+       Applicable only when CP type is virtual NIC.
+   * - management
+     - No
+     - Boolean
+     - None
+     - Specifies whether the CP is accessible by
+       the user or not.
+   * - order
+     - No
+     - Integer
+     - >= 0
+     - Uniquely numbered order of CP within a VDU.
+       Must be provided when binding more than one CP to a VDU
+       and ordering is required.
+   * - security_groups
+     - No
+     - List
+     - None
+     - List of security groups to be associated with the CP.
+   * - mac_address
+     - No
+     - String
+     - None
+     - The MAC address.
+   * - ip_address
+     - No
+     - String
+     - None
+     - The IP address.
 
-:requirements:
+.. list-table:: **requirements**
+   :widths: 15 20 20 25
+   :header-rows: 1
 
-+---------------+--------------------+-------------------+-------------------+
-|Name           |Capability          |Relationship       |Description        |
-+---------------+--------------------+-------------------+-------------------+
-|virtualLink    |nfv.VirtualLinkable |nfv.VirtualLinksTo |States the VL node |
-|               |                    |                   |to connect to      |
-+---------------+--------------------+-------------------+-------------------+
-|virtualbinding |nfv.VirtualBindable |nfv.VirtualBindsTo |States the VDU     |
-|               |                    |                   |node to connect to |
-+---------------+--------------------+-------------------+-------------------+
+   * - Name
+     - Capability
+     - Relationship
+     - Description
+   * - virtualLink
+     - nfv.VirtualLinkable
+     - nfv.VirtualLinksTo
+     - States the VL node to connect to.
+   * - virtualbinding
+     - nfv.VirtualBindable
+     - nfv.VirtualBindsTo
+     - States the VDU node to connect to.
 
 Virtual Links
 -------------
@@ -463,7 +499,7 @@ virtual link entity.
 An example of a virtual link whose vendor is "Tacker" and is attached to
 network net-01 is as shown below.
 
-::
+.. code-block:: yaml
 
   ..
   topology_template:
@@ -481,16 +517,26 @@ network net-01 is as shown below.
 :type:
     tosca.nodes.nfv.VL
 
-:properties:
+.. list-table:: **properties**
+   :widths: 15 10 8 15 25
+   :header-rows: 1
 
-+------------+----------+--------+-------------+-----------------------------+
-|Name        | Required | Type   | Constraints | Description                 |
-+------------+----------+--------+-------------+-----------------------------+
-|vendor      | Yes      | String | None        | Vendor generating this VL   |
-+------------+----------+--------+-------------+-----------------------------+
-|network_name| Yes      | String | None        | Name of the network to which|
-|            |          |        |             | VL is to be attached        |
-+------------+----------+--------+-------------+-----------------------------+
+   * - Name
+     - Required
+     - Type
+     - Constraints
+     - Description
+   * - vendor
+     - Yes
+     - String
+     - None
+     - Vendor generating this VL.
+   * - network_name
+     - Yes
+     - String
+     - None
+     - Name of the network to which
+       VL is to be attached.
 
 Floating IP
 -----------
@@ -498,7 +544,7 @@ Floating IP is used to access VDU from public network.
 
 An example of assign floating ip to VDU
 
-::
+.. code-block:: yaml
 
   ..
   topology_template:
@@ -527,31 +573,44 @@ An example of assign floating ip to VDU
 :type:
     tosca.nodes.network.FloatingIP
 
-:properties:
+.. list-table:: **properties**
+   :widths: 20 10 10 15 25
+   :header-rows: 1
 
-+-------------------+----------+--------+-------------+-----------------------+
-|Name               | Required | Type   | Constraints | Description           |
-+-------------------+----------+--------+-------------+-----------------------+
-|floating_network   | Yes      | String | None        | Name of public network|
-+-------------------+----------+--------+-------------+-----------------------+
-|floating_ip_address| No       | String | None        | Floating IP Address   |
-|                   |          |        |             | from public network   |
-+------------+------+----------+--------+-------------+-----------------------+
+   * - Name
+     - Required
+     - Type
+     - Constraints
+     - Description
+   * - floating_network
+     - Yes
+     - String
+     - None
+     - Name of public network.
+   * - floating_ip_address
+     - No
+     - String
+     - None
+     - Floating IP Address from public network.
 
-:requirements:
+.. list-table:: **requirements**
+   :widths: 8 20 20 20
+   :header-rows: 1
 
-+------+-------------------+--------------------+-------------------+
-|Name  |Capability         |Relationship        |Description        |
-+------+-------------------+--------------------+-------------------+
-|link  |tosca.capabilities |tosca.relationships |States the CP node |
-|      |.network.Linkable  |.network.LinksTo    |to connect to      |
-+------+-------------------+--------------------+-------------------+
+   * - Name
+     - Capability
+     - Relationship
+     - Description
+   * - link
+     - tosca.capabilities.network.Linkable
+     - tosca.relationships.network.LinksTo
+     - States the CP node to connect.
 
 Multiple Nodes
 --------------
 Multiple node types can be defined in a VNFD.
 
-::
+.. code-block:: yaml
 
   ..
   topology_template:
@@ -573,77 +632,88 @@ Summary
 -------
 To summarize VNFD is written in YAML and describes a VNF topology. It has
 three node types, each with different capabilities and requirements. Below is
-a template which mentions all node types with all available options.
+a template that mentions all node types with all available options.
 
-::
+.. code-block:: yaml
 
-     tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
-     description: Sample VNFD template mentioning possible values for each node.
-     metadata:
-      template_name: sample-tosca-vnfd-template-guide
-     topology_template:
-      node_templates:
-        VDU:
-          type: tosca.nodes.nfv.VDU.Tacker
-          capabilities:
-            nfv_compute:
-              properties:
-                mem_page_size: [small, large, any, custom]
-                cpu_allocation:
-                  cpu_affinity: [shared, dedicated]
-                  thread_allocation: [avoid, separate, isolate, prefer]
-                  socket_count: any integer
-                  core_count: any integer
-                  thread_count: any integer
-                numa_node_count: any integer
-                numa_nodes:
-                  node0: [ id: >=0, vcpus: [host CPU numbers], mem_size: >= 0MB]
-          properties:
-            image: Image to be used in VDU
-            flavor: Nova supported flavors
-            availability_zone: available availability zone
-            mem_size: in MB
-            disk_size: in GB
-            num_cpus: any integer
-            metadata:
-              entry_schema:
-            config_drive: [true, false]
-            monitoring_policy:
-              name: [ping, noop, http-ping]
-              parameters:
-                monitoring_delay: delay time
-                count: any integer
-                interval: time to wait between monitoring
-                timeout: monitoring timeout time
-                actions:
-                  [failure: respawn, failure: terminate, failure: log]
-                retry: Number of retries
-                port: specific port number if any
-            config: Configuring the VDU as per the network function requirements
-            mgmt_driver: [default=noop]
-            service_type: type of network service to be done by VDU
-            user_data: custom commands to be executed on VDU
-            user_data_format: format of the commands
-            key_name: user key
-          artifacts:
-            VNFImage:
-              type: tosca.artifacts.Deployment.Image.VM
-              file: file to be used for image
-        CP:
-          type: tosca.nodes.nfv.CP.Tacker
-          properties:
-            management: [true, false]
-            anti_spoofing_protection: [true, false]
-            type: [ sriov, vnic ]
-            order: order of CP within a VDU
-            security_groups: list of security groups
-          requirements:
-            - virtualLink:
-               node: VL to link to
-            - virtualBinding:
-               node: VDU to bind to
-        VL:
-          type: tosca.nodes.nfv.VL
-          properties:
-            network_name: name of network to attach to
-            vendor: Tacker
+ tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
+
+ description: Sample VNFD template mentioning possible values for each node.
+
+ metadata:
+   template_name: sample-tosca-vnfd-template-guide
+
+ topology_template:
+   node_templates:
+     VDU:
+       type: tosca.nodes.nfv.VDU.Tacker
+       capabilities:
+         nfv_compute:
+           properties:
+           mem_page_size: [small, large, any, custom]
+           cpu_allocation:
+             cpu_affinity: [shared, dedicated]
+             thread_allocation: [avoid, separate, isolate, prefer]
+             socket_count: any integer
+             core_count: any integer
+             thread_count: any integer
+           numa_node_count: any integer
+           numa_nodes:
+             node0:
+               id: any integer
+               vcpus: [host CPU numbers]
+               mem_size: in MB
+       properties:
+         image: Image to be used in VDU
+         flavor: Nova supported flavors
+         availability_zone: available availability zone
+         mem_size: in MB
+         disk_size: in GB
+         num_cpus: any integer
+         metadata:
+           entry_schema:
+         config_drive: [true, false]
+         monitoring_policy:
+           name: [ping, noop, http-ping]
+           parameters:
+           monitoring_delay: delay time
+           count: any integer
+           interval: time to wait between monitoring
+           timeout: monitoring timeout time
+           actions:
+             failure: [respawn, terminate, log]
+           retry: Number of retries
+           port: specific port number if any
+         config: Configuring the VDU as per the network function requirements
+         mgmt_driver: [default=noop]
+         service_type: type of network service to be done by VDU
+         user_data: custom commands to be executed on VDU
+         user_data_format: format of the commands
+         key_name: user key
+       artifacts:
+         VNFImage:
+           type: tosca.artifacts.Deployment.Image.VM
+           file: file to be used for image
+     CP:
+       type: tosca.nodes.nfv.CP.Tacker
+       properties:
+         management: [true, false]
+         anti_spoofing_protection: [true, false]
+         type: [ sriov, vnic ]
+         order: order of CP within a VDU
+         security_groups: list of security groups
+       requirements:
+         virtualLink:
+           node: VL to link to
+         virtualBinding:
+           node: VDU to bind to
+     VL:
+       type: tosca.nodes.nfv.VL
+       properties:
+         network_name: name of network to attach to
+         vendor: Tacker
+
+.. _V1.0 CSD 03 : http://docs.oasis-open.org/tosca/tosca-nfv/v1.0/tosca-nfv-v1.0.html
+.. _VNFD TOSCA TEMPLATES : https://opendev.org/openstack/tacker/src/branch/master/samples/tosca-templates/vnfd
+.. _here : https://opendev.org/openstack/tacker/src/branch/master/tacker/tosca/lib/tacker_nfv_defs.yaml
+.. _sample file : https://opendev.org/openstack/tacker/src/branch/master/samples/tosca-templates/vnfd/tosca-config-openwrt-firewall.yaml
