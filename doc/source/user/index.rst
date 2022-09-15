@@ -51,3 +51,4 @@ Use Case Guide
    etsi_use_case_guide
    legacy_use_case_guide
    oauth2_usage_guide
+   fault_notification_use_case_guide
