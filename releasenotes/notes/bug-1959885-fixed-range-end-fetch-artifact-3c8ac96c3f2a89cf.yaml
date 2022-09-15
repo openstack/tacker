@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes `bug 1959885`_. Error 416 will come when range end greater
+    than or equal to the size of the file is specified in fetching artifact.
+
+    .. _bug 1959885: https://bugs.launchpad.net/tacker/+bug/1959885
+
