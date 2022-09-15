@@ -81,25 +81,25 @@ def revert_to_error_scale(function):
                                             vim_connection_info,
                                             error=True)
                 except Exception as e:
-                    LOG.warning(traceback.format_exc())
-                    LOG.warning("Failed to scale resource update "
-                                "instance %(id)s. Error: %(error)s",
-                                {"id": vnf_instance.id, "error": e})
+                    LOG.error(traceback.format_exc())
+                    LOG.error("Failed to scale resource update "
+                              "instance %(id)s. Error: %(error)s",
+                              {"id": vnf_instance.id, "error": e})
 
                 try:
                     self._vnfm_plugin._update_vnf_scaling_status_err(context,
                                                                      vnf_info)
                 except Exception as e:
-                    LOG.warning("Failed to revert scale info for event "
-                                "instance %(id)s. Error: %(error)s",
-                                {"id": vnf_instance.id, "error": e})
+                    LOG.error("Failed to revert scale info for event "
+                              "instance %(id)s. Error: %(error)s",
+                              {"id": vnf_instance.id, "error": e})
                 try:
                     vnf_instance.task_state = None
                     self._vnf_instance_update(context, vnf_instance)
                 except Exception as e:
-                    LOG.warning("Failed to revert instantiation info for vnf "
-                                "instance %(id)s. Error: %(error)s",
-                                {"id": vnf_instance.id, "error": e})
+                    LOG.error("Failed to revert instantiation info for vnf "
+                              "instance %(id)s. Error: %(error)s",
+                              {"id": vnf_instance.id, "error": e})
                 problem = objects.ProblemDetails(status=500,
                                                  detail=str(ex))
 
@@ -114,9 +114,9 @@ def revert_to_error_scale(function):
                         vnf_info['current_error_point']
                     vnf_lcm_op_occ.save()
                 except Exception as e:
-                    LOG.warning("Failed to update vnf_lcm_op_occ for vnf "
-                                "instance %(id)s. Error: %(error)s",
-                                {"id": vnf_instance.id, "error": e})
+                    LOG.error("Failed to update vnf_lcm_op_occ for vnf "
+                              "instance %(id)s. Error: %(error)s",
+                              {"id": vnf_instance.id, "error": e})
 
                 try:
                     notification = vnf_info['notification']
@@ -138,9 +138,9 @@ def revert_to_error_scale(function):
                             resource_dict.get('affected_virtual_storages'))
                     self.rpc_api.send_notification(context, notification)
                 except Exception as e:
-                    LOG.warning("Failed to revert scale info for vnf "
-                                "instance %(id)s. Error: %(error)s",
-                                {"id": vnf_instance.id, "error": e})
+                    LOG.error("Failed to revert scale info for vnf "
+                              "instance %(id)s. Error: %(error)s",
+                              {"id": vnf_instance.id, "error": e})
 
     return decorated_function
 
@@ -170,9 +170,9 @@ def revert_to_error_task_state(function):
                               "id": vnf_instance.id,
                               "error": fields.VnfInstanceTaskState.ERROR})
                 except Exception as e:
-                    LOG.warning("Failed to revert task state for vnf "
-                                "instance %(id)s. Error: %(error)s",
-                                {"id": vnf_instance.id, "error": e})
+                    LOG.error("Failed to revert task state for vnf "
+                              "instance %(id)s. Error: %(error)s",
+                              {"id": vnf_instance.id, "error": e})
 
     return decorated_function
 
@@ -224,23 +224,23 @@ def revert_to_error_rollback(function):
                                 vnf_info,
                                 vnf_instance)
                 except Exception as e:
-                    LOG.warning(traceback.format_exc())
-                    LOG.warning("Failed to scale resource update "
-                                "instance %(id)s. Error: %(error)s",
-                                {"id": vnf_instance.id, "error": e})
+                    LOG.error(traceback.format_exc())
+                    LOG.error("Failed to scale resource update "
+                              "instance %(id)s. Error: %(error)s",
+                              {"id": vnf_instance.id, "error": e})
 
                 try:
                     self._update_vnf_rollback_status_err(context, vnf_info)
                 except Exception as e:
-                    LOG.warning("Failed to revert scale info for event "
-                                "instance %(id)s. Error: %(error)s",
-                                {"id": vnf_instance.id, "error": e})
+                    LOG.error("Failed to revert scale info for event "
+                              "instance %(id)s. Error: %(error)s",
+                              {"id": vnf_instance.id, "error": e})
                 try:
                     self._vnf_instance_update(context, vnf_instance)
                 except Exception as e:
-                    LOG.warning("Failed to revert instantiation info for vnf "
-                                "instance %(id)s. Error: %(error)s",
-                                {"id": vnf_instance.id, "error": e})
+                    LOG.error("Failed to revert instantiation info for vnf "
+                              "instance %(id)s. Error: %(error)s",
+                              {"id": vnf_instance.id, "error": e})
                 problem = objects.ProblemDetails(status=500,
                                                  detail=str(ex))
 
@@ -254,9 +254,9 @@ def revert_to_error_rollback(function):
                     vnf_lcm_op_occ.error = problem
                     vnf_lcm_op_occ.save()
                 except Exception as e:
-                    LOG.warning("Failed to update vnf_lcm_op_occ for vnf "
-                                "instance %(id)s. Error: %(error)s",
-                                {"id": vnf_instance.id, "error": e})
+                    LOG.error("Failed to update vnf_lcm_op_occ for vnf "
+                              "instance %(id)s. Error: %(error)s",
+                              {"id": vnf_instance.id, "error": e})
 
                 try:
                     notification = vnf_info['notification']
@@ -281,9 +281,9 @@ def revert_to_error_rollback(function):
                                         'affected_virtual_storages'))
                     self.rpc_api.send_notification(context, notification)
                 except Exception as e:
-                    LOG.warning("Failed to revert scale info for vnf "
-                                "instance %(id)s. Error: %(error)s",
-                                {"id": vnf_instance.id, "error": e})
+                    LOG.error("Failed to revert scale info for vnf "
+                              "instance %(id)s. Error: %(error)s",
+                              {"id": vnf_instance.id, "error": e})
     return decorated_function
 
 

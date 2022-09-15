@@ -128,12 +128,14 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
     def _create_vnf_package_vnfd(self):
         return fakes.get_vnf_package_vnfd()
 
-    def _create_subscriptions(self, auth_params=None):
+    def _create_subscriptions(self, auth_params=None, filter_params=None):
         class DummyLcmSubscription:
             def __init__(self, auth_params=None):
                 if auth_params:
                     self.authentication = json.dumps(
                         auth_params).encode()
+                if filter_params:
+                    self.filter = json.dumps(filter_params).encode()
 
                 self.id = uuidsentinel.lcm_subscription_id
                 self.tenant_id = uuidsentinel.tenant_id
@@ -3018,7 +3020,30 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
 
         mock_vnf_by_id.return_value = fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED)
-        mock_subscriptions_get.return_value = self._create_subscriptions()
+        sub_1 = self._create_subscriptions(
+            filter_params={
+                "vnfInstanceSubscriptionFilter": {
+                    "vnfdIds": [uuidsentinel.vnfd_id]
+                }
+            }
+        )
+        sub_2 = self._create_subscriptions()
+        sub_2[0].tenant_id = uuidsentinel.tenant_id_2
+        sub_3 = self._create_subscriptions()
+        sub_4 = self._create_subscriptions(
+            filter_params={
+                "vnfInstanceSubscriptionFilter": {
+                    "vnfdIds": [uuidsentinel.vnfd_id_2]
+                }
+            }
+        )
+        sub_5 = self._create_subscriptions(
+            filter_params={
+                "vnfInstanceSubscriptionFilter": {}
+            }
+        )
+        sub_sum = sub_1 + sub_2 + sub_3 + sub_4 + sub_5
+        mock_subscriptions_get.return_value = sub_sum
         notification = {
             'vnfInstanceId': uuidsentinel.vnf_instance_id,
             'notificationType': 'VnfLcmOperationOccurrenceNotification',
@@ -3034,7 +3059,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         history = self.requests_mock.request_history
         req_count = nfvo_client._count_mock_history(
             history, "https://localhost")
-        self.assertEqual(1, req_count)
+        self.assertEqual(3, req_count)
 
     @mock.patch.object(objects.VnfInstance, 'get_by_id')
     @mock.patch.object(objects.LccnSubscriptionRequest,

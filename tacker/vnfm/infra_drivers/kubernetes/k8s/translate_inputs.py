@@ -74,7 +74,7 @@ class Parser(object):
                               a_file=False,
                               yaml_dict_tpl=self.vnfd_dict)
         except Exception as e:
-            LOG.debug("tosca-parser error: %s", str(e))
+            LOG.error("tosca-parser error: %s", str(e))
             raise vnfm.ToscaParserFailed(error_msg_details=str(e))
 
         # Initiate a list tosca_kube_object which are defined from VDU
@@ -207,7 +207,7 @@ class Parser(object):
                 # Because in Kubernetes environment, we can attach only one
                 # scaling policy to Deployment. If user provides more than one
                 # policy this error will happen when count > 1
-                LOG.debug("Tacker only support one scaling policy per VDU")
+                LOG.error("Tacker only support one scaling policy per VDU")
                 raise vnfm.InvalidKubernetesScalingPolicyNumber
 
         return scaling_obj

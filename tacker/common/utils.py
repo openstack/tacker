@@ -622,8 +622,8 @@ class MemoryUnit(object):
             unit = MemoryUnit.validate_unit(unit)
         else:
             unit = MemoryUnit.UNIT_SIZE_DEFAULT
-            LOG.info(_('A memory unit is not provided for size; using the '
-                       'default unit %(default)s.') % {'default': 'B'})
+            LOG.debug(_('A memory unit is not provided for size; using the '
+                        'default unit %(default)s.') % {'default': 'B'})
         result = re.sub(r'\s+', ' ', size).split(' ')
         if len(result) == 2:
             if result[1]:
@@ -632,9 +632,9 @@ class MemoryUnit(object):
                                 MemoryUnit.UNIT_SIZE_DICT[unit_size] *
                                 math.pow(MemoryUnit.UNIT_SIZE_DICT
                                          [unit], -1))
-                LOG.info(_('Given size %(size)s is converted to %(num)s '
-                           '%(unit)s.') % {'size': size,
-                         'num': converted, 'unit': unit})
+                LOG.debug(_('Given size %(size)s is converted to %(num)s '
+                            '%(unit)s.') % {'size': size,
+                            'num': converted, 'unit': unit})
             else:
                 msg = _('Size is not given for software image data.')
                 LOG.error(msg)

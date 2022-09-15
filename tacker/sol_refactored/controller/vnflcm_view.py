@@ -251,7 +251,7 @@ class BaseViewBuilder(object):
             loc += 1
             m = self.value_re.match(values[loc:])
             if m is None:
-                LOG.debug("value parse error, %s at loc %d", values, loc)
+                LOG.error("value parse error, %s at loc %d", values, loc)
                 raise sol_ex.InvalidAttributeFilter(
                     sol_detail="value parse error")
             loc += m.end()
@@ -269,7 +269,7 @@ class BaseViewBuilder(object):
         while True:
             m = self.simpleFilterExpr_re.match(filter[loc:])
             if m is None:
-                LOG.debug("filter %s parse error at char %d", filter, loc)
+                LOG.error("filter %s parse error at char %d", filter, loc)
                 raise sol_ex.InvalidAttributeFilter(
                     sol_detail="filter parse error")
             op = m.group(1)
@@ -286,7 +286,7 @@ class BaseViewBuilder(object):
             if loc == len(filter):
                 return res
             if filter[loc] != ';':
-                LOG.debug("filter %s parse error at char %d "
+                LOG.error("filter %s parse error at char %d "
                           "(semicolon expected)", filter, loc)
                 raise sol_ex.InvalidAttributeFilter(
                     sol_detail="filter parse error. semicolon expected.")

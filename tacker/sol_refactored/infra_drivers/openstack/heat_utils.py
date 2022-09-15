@@ -46,7 +46,10 @@ class HeatClient(object):
                 expected_status=[201], body=fields)
 
         if wait:
-            self.wait_stack_create(fields["stack_name"])
+            self.wait_stack_create(
+                f'{fields["stack_name"]}/{body["stack"]["id"]}')
+
+        return body['stack']['id']
 
     def update_stack(self, stack_name, fields, wait=True):
         path = f"stacks/{stack_name}"
@@ -75,6 +78,16 @@ class HeatClient(object):
         return (body["stack"]["stack_status"],
                 body["stack"]["stack_status_reason"])
 
+    def get_stack_id(self, stack_name):
+        path = f"stacks/{stack_name}"
+        resp, body = self.client.do_request(path, "GET",
+                                            expected_status=[200, 404])
+
+        if resp.status_code == 404:
+            return None
+
+        return body["stack"]["id"]
+
     def get_resources(self, stack_name):
         # NOTE: Because it is necessary to get nested stack info, it is
         # necessary to specify 'nested_depth=2'.
@@ -91,20 +104,21 @@ class HeatClient(object):
         def _check_status():
             status, status_reason = self.get_status(stack_name)
             if status in complete_status:
-                LOG.info("%s %s done.", operation, stack_name)
+                LOG.info("%s %s done.", operation, stack_name.split('/')[0])
                 raise loopingcall.LoopingCallDone()
             elif status in failed_status:
-                LOG.error("%s %s failed.", operation, stack_name)
+                LOG.error("% %s failed.", operation, stack_name.split('/')[0])
                 sol_title = "%s failed" % operation
                 raise sol_ex.StackOperationFailed(sol_title=sol_title,
                                                   sol_detail=status_reason)
             elif status not in progress_status:
                 LOG.error("%s %s failed. status: %s", operation,
-                          stack_name, status)
+                          stack_name.split('/')[0], status)
                 sol_title = "%s failed" % operation
                 raise sol_ex.StackOperationFailed(sol_title=sol_title,
                                                   sol_detail='Unknown error')
-            LOG.debug("%s %s %s", operation, stack_name, progress_status)
+            LOG.debug("%s %s %s", operation, stack_name.split('/')[0],
+                      progress_status)
 
         timer = loopingcall.FixedIntervalLoopingCall(_check_status)
         timer.start(interval=CHECK_INTERVAL).wait()
@@ -122,17 +136,9 @@ class HeatClient(object):
         # for some operations (ex. heal-all).
         # It is expected that it takes short time after "DELETE_COMPLETE".
         # So timeout after "DELETE_COMPLETE" is not specified.
-        self._wait_completion(stack_name, "Stack delete",
+        self._wait_completion(stack_name.split('/')[0], "Stack delete",
             [None], ["DELETE_IN_PROGRESS", "DELETE_COMPLETE"],
             ["DELETE_FAILED"])
-
-    def get_stack_resource(self, stack_name):
-        path = f"stacks/{stack_name}"
-        resp, body = self.client.do_request(path, "GET",
-                                            expected_status=[200, 404])
-        if resp.status_code == 404:
-            raise sol_ex.StackOperationFailed
-        return body
 
     def get_resource_info(self, stack_id, resource_name):
         path = f"stacks/{stack_id}/resources/{resource_name}"
@@ -193,8 +199,13 @@ def get_port_reses(heat_reses):
     return get_reses_by_types(heat_reses, ['OS::Neutron::Port'])
 
 
-def get_stack_name(inst):
-    return "vnf-" + inst.id
+def get_stack_name(inst, stack_id=None):
+    stack_name = f"vnf-{inst.id}"
+    if inst.obj_attr_is_set('instantiatedVnfInfo') and not stack_id:
+        return f"{stack_name}/{inst.instantiatedVnfInfo.metadata['stack_id']}"
+    if stack_id:
+        return f"{stack_name}/{stack_id}"
+    return stack_name
 
 
 def get_resource_stack_id(heat_res):

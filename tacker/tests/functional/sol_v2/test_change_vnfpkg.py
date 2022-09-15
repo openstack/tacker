@@ -118,8 +118,7 @@ class ChangeVnfPkgVnfLcmTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         expected_inst_attrs.extend(additional_inst_attrs)
         resp_1, body_1 = self.show_vnf_instance(inst_id)
         stack_name = "vnf-{}".format(inst_id)
-        stack_id = self.heat_client.get_stack_resource(stack_name)['stack'][
-            'id']
+        stack_id = self.heat_client.get_stack_id(stack_name)
         image_id_1 = self.get_current_vdu_image(stack_id, stack_name, 'VDU2')
         storageResourceId_1 = [
             obj.get('storageResourceIds') for obj in body_1[

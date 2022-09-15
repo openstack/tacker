@@ -32,7 +32,6 @@ class Subscription:
         return {
             "filter": {
                 "vnfInstanceSubscriptionFilter": {
-                    "vnfdIds": ["b1bb0ce7-ebca-4fa7-95ed-4840d7000000"],
                     "vnfProductsFromProviders": [{
                         "vnfProvider": "Company",
                         "vnfProducts": [

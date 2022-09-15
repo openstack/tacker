@@ -79,8 +79,8 @@ def Resource(controller, faults=None, deserializers=None, serializers=None):
             mapped_exc = api_common.convert_exception_to_http_exc(e, faults,
                                                                   language)
             if hasattr(mapped_exc, 'code') and 400 <= mapped_exc.code < 500:
-                LOG.info('%(action)s failed (client error): %(exc)s',
-                         {'action': action, 'exc': mapped_exc})
+                LOG.error('%(action)s failed (client error): %(exc)s',
+                          {'action': action, 'exc': mapped_exc})
             else:
                 LOG.exception('%(action)s failed: %(details)s',
                               {'action': action,

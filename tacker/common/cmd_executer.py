@@ -75,7 +75,8 @@ class RemoteCommandExecutor(object):
 
     def close_session(self):
         self.__ssh.close()
-        LOG.debug("Connection close")
+        LOG.info(f"The SSH connection to the remote"
+                 f" host {self.__host} has been closed.")
 
     def execute_command(self, cmd, input_data=None):
         try:

@@ -159,7 +159,7 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
         try:
             regions = self._find_regions(ks_client)
         except (exceptions.Unauthorized, exceptions.BadRequest) as e:
-            LOG.warning("Authorization failed for user")
+            LOG.error("Authorization failed for user")
             raise nfvo.VimUnauthorizedException(message=e.message)
         vim_obj['placement_attr'] = {'regions': regions}
         return vim_obj
@@ -204,9 +204,8 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
                 LOG.debug('VIM key deleted successfully for vim %s',
                           vim_id)
             except Exception as ex:
-                LOG.warning('VIM key deletion failed for vim %s due to %s',
-                            vim_id,
-                            ex)
+                LOG.error('VIM key deletion failed for vim %s due to %s',
+                          vim_id, ex)
                 raise
         else:
             key_file = os.path.join(CONF.vim_keys.openstack, vim_id)
@@ -240,9 +239,8 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
                 LOG.debug('VIM auth successfully stored for vim %s',
                           vim_id)
             except Exception as ex:
-                LOG.warning('VIM key creation failed for vim %s due to %s',
-                            vim_id,
-                            ex)
+                LOG.error('VIM key creation failed for vim %s due to %s',
+                          vim_id, ex)
                 raise
 
         else:
@@ -837,7 +835,7 @@ class NeutronClient(object):
         try:
             self.client.delete_sfc_flow_classifier(fc_id)
         except nc_exceptions.NotFound:
-            LOG.warning("fc %s not found", fc_id)
+            LOG.error("fc %s not found", fc_id)
             raise ValueError('fc %s not found' % fc_id)
 
     def port_pair_create(self, port_pair_dict):
@@ -861,7 +859,7 @@ class NeutronClient(object):
         try:
             self.client.delete_sfc_port_pair(port_pair_id)
         except nc_exceptions.NotFound:
-            LOG.warning('port pair %s not found', port_pair_id)
+            LOG.error('port pair %s not found', port_pair_id)
             raise ValueError('port pair %s not found' % port_pair_id)
 
     def port_pair_group_create(self, ppg_dict):
@@ -869,7 +867,7 @@ class NeutronClient(object):
             ppg = self.client.create_sfc_port_pair_group(
                 {'port_pair_group': ppg_dict})
         except nc_exceptions.BadRequest as e:
-            LOG.warning('create port pair group returns %s', e)
+            LOG.error('create port pair group returns %s', e)
             raise ValueError(str(e))
 
         if ppg and len(ppg):
@@ -885,7 +883,7 @@ class NeutronClient(object):
         try:
             self.client.delete_sfc_port_pair_group(ppg_id)
         except nc_exceptions.NotFound:
-            LOG.warning('port pair group %s not found', ppg_id)
+            LOG.error('port pair group %s not found', ppg_id)
             raise ValueError('port pair group %s not found' % ppg_id)
 
     def port_chain_create(self, port_chain_dict):
@@ -893,7 +891,7 @@ class NeutronClient(object):
             pc = self.client.create_sfc_port_chain(
                 {'port_chain': port_chain_dict})
         except nc_exceptions.BadRequest as e:
-            LOG.warning('create port chain returns %s', e)
+            LOG.error('create port chain returns %s', e)
             raise ValueError(str(e))
 
         if pc and len(pc):
@@ -932,7 +930,7 @@ class NeutronClient(object):
                                         pp_id = port_pairs[j]
                                         self.client.delete_sfc_port_pair(pp_id)
         except nc_exceptions.NotFound:
-            LOG.warning('port chain %s not found', port_chain_id)
+            LOG.error('port chain %s not found', port_chain_id)
             raise ValueError('port chain %s not found' % port_chain_id)
 
     def port_chain_update(self, port_chain_id, port_chain):
@@ -940,7 +938,7 @@ class NeutronClient(object):
             pc = self.client.update_sfc_port_chain(port_chain_id,
                                     {'port_chain': port_chain})
         except nc_exceptions.BadRequest as e:
-            LOG.warning('update port chain returns %s', e)
+            LOG.error('update port chain returns %s', e)
             raise ValueError(str(e))
         if pc and len(pc):
             return pc['port_chain']['id']
@@ -971,5 +969,5 @@ class NeutronClient(object):
 
             return port_pair_group
         except nc_exceptions.NotFound:
-            LOG.warning('port pair group %s not found', ppg_id)
+            LOG.error('port pair group %s not found', ppg_id)
             raise ValueError('port pair group %s not found' % ppg_id)

@@ -207,7 +207,7 @@ class ResourceTestCase(base.BaseTestCase):
         with mock.patch.object(wsgi_resource, 'LOG') as log:
             res = resource.get('', extra_environ=environ, expect_errors=True)
             self.assertEqual(map_webob_exc.code, res.status_int)
-        self.assertEqual(expect_log_info, log.info.called)
+        self.assertEqual(expect_log_info, log.error.called)
         self.assertNotEqual(expect_log_info, log.exception.called)
 
     def test_4xx_error_logged_info_level(self):

@@ -41,7 +41,7 @@ def _get_vnfd_id(context, id):
             api.model_query(context, models.VnfPackageVnfd).\
             filter_by(package_uuid=id).first()
     except Exception:
-        LOG.info("select vnfd_attribute failed")
+        LOG.warning("select vnfd_attribute failed")
     if vnf_package_vnfd:
         return vnf_package_vnfd.vnfd_id
     else:
@@ -55,7 +55,7 @@ def _check_vnfd_attribute(context, id):
             api.model_query(context, vnfm_db.VNFDAttribute).\
             filter_by(vnfd_id=id).first()
     except Exception:
-        LOG.info("select vnfd_attribute failed")
+        LOG.warning("select vnfd_attribute failed")
     if vnfd_attribute:
         return "TRUE"
     else:
@@ -68,7 +68,7 @@ def _vnfd_attribute_delete(context, id):
         api.model_query(context, vnfm_db.VNFDAttribute).\
             filter_by(vnfd_id=id).delete()
     except Exception:
-        LOG.info("delete vnfd_attribute failed")
+        LOG.warning("delete vnfd_attribute failed")
 
 
 @base.TackerObjectRegistry.register

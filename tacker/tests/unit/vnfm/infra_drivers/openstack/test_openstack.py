@@ -272,7 +272,7 @@ class TestOpenStack(base.TestCase):
                           auth_attr=utils.get_vim_auth_obj())
         log_msg = "at vnf_id {} because all parameters "\
                   "match the existing one.".format(vnf_id)
-        mock_log.warning.assert_called_with(log_msg)
+        mock_log.error.assert_called_with(log_msg)
 
     @mock.patch('tacker.vnfm.infra_drivers.openstack.openstack.LOG')
     def test_update_empty_param(self, mock_log):
@@ -287,7 +287,7 @@ class TestOpenStack(base.TestCase):
                           auth_attr=utils.get_vim_auth_obj())
         log_msg = "at vnf_id {} because the target "\
                   "yaml is empty.".format(vnf_id)
-        mock_log.warning.assert_called_with(log_msg)
+        mock_log.error.assert_called_with(log_msg)
 
     def _get_expected_fields_tosca(self, template):
         return {'stack_name':

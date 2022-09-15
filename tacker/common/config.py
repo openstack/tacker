@@ -128,7 +128,7 @@ def load_paste_app(app_name):
         raise cfg.ConfigFilesNotFoundError(
             config_files=[cfg.CONF.api_paste_config])
     config_path = os.path.abspath(config_path)
-    LOG.info("Config paste file: %s", config_path)
+    LOG.debug("Config paste file: %s", config_path)
 
     try:
         app = deploy.loadapp("config:%s" % config_path, name=app_name)

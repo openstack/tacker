@@ -140,13 +140,13 @@ class TOSCAToHOT(object):
                     elif key in paramvalues:
                         self._update_params(value, paramvalues[key], False)
                     else:
-                        LOG.debug('Key missing Value: %s', key)
+                        LOG.error('Key missing Value: %s', key)
                         raise cs.InputValuesMissing(key=key)
                 elif 'get_input' in value:
                     if value['get_input'] in paramvalues:
                         original[key] = paramvalues[value['get_input']]
                     else:
-                        LOG.debug('Key missing Value: %s', key)
+                        LOG.error('Key missing Value: %s', key)
                         raise cs.InputValuesMissing(key=key)
                 else:
                     self._update_params(value, paramvalues, True)
@@ -159,7 +159,7 @@ class TOSCAToHOT(object):
                 param_vattrs_dict = yaml.safe_load(param_vattrs_yaml)
                 LOG.debug('param_vattrs_yaml', param_vattrs_dict)
             except Exception as e:
-                LOG.debug("Not Well Formed: %s", str(e))
+                LOG.error("Not Well Formed: %s", str(e))
                 raise vnfm.ParamYAMLNotWellFormed(
                     error_msg_details=str(e))
             else:
@@ -263,7 +263,7 @@ class TOSCAToHOT(object):
             try:
                 parsed_params = yaml.safe_load(dev_attrs['param_values'])
             except Exception as e:
-                LOG.debug("Params not Well Formed: %s", str(e))
+                LOG.error("Params not Well Formed: %s", str(e))
                 raise vnfm.ParamYAMLNotWellFormed(error_msg_details=str(e))
 
         appmonitoring_dict = \
@@ -284,7 +284,7 @@ class TOSCAToHOT(object):
                                                  yaml_dict_tpl=vnfd_dict)
 
         except Exception as e:
-            LOG.debug("tosca-parser error: %s", str(e))
+            LOG.error("tosca-parser error: %s", str(e))
             raise vnfm.ToscaParserFailed(error_msg_details=str(e))
 
         unique_id = uuidutils.generate_uuid()
@@ -323,7 +323,7 @@ class TOSCAToHOT(object):
                         nested_resource_yaml
 
         except Exception as e:
-            LOG.debug("heat-translator error: %s", str(e))
+            LOG.error("heat-translator error: %s", str(e))
             raise vnfm.HeatTranslatorFailed(error_msg_details=str(e))
 
         if self.nested_resources:
@@ -362,7 +362,7 @@ class TOSCAToHOT(object):
                     unique_id=unique_id, inst_req_info=inst_req_info,
                     grant_info=grant_info, tosca=tosca)
         except Exception as e:
-            LOG.debug("post_process_heat_template_for_scaling "
+            LOG.error("post_process_heat_template_for_scaling "
                       "error: %s", str(e))
             raise
 

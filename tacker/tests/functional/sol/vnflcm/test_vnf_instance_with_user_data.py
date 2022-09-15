@@ -326,6 +326,126 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         resp, _ = self._show_subscription(subscription_id)
         self.assertEqual(404, resp.status_code)
 
+    def test_vnfdid_filter_in_subscription(self):
+        """Test notification when virtual storage absent in VNFD.
+
+            In this test case, we do following steps.
+                - Create VNF package.
+                - Upload VNF package.
+                - Create subscription with vnf instance's vnfdid filter.
+                - Create subscription with other vnfdid filter.
+                - Create subscription without filter.
+                - Create VNF instance.
+                - Instantiate VNF.
+                - Terminate VNF
+                - Delete VNF
+                - Delete all subscriptions
+            """
+        # Pre Setting: Create vnf package.
+        sample_name = 'functional5'
+        csar_package_path = os.path.abspath(
+            os.path.join(
+                os.path.dirname(__file__),
+                "../../../etc/samples/etsi/nfv",
+                sample_name))
+        tempname, _ = vnflcm_base._create_csar_with_unique_vnfd_id(
+            csar_package_path)
+        # upload vnf package
+        vnf_package_id, vnfd_id = vnflcm_base._create_and_upload_vnf_package(
+            self.tacker_client, user_defined_data={
+                "key": sample_name}, temp_csar_path=tempname)
+
+        # Post Setting: Reserve deleting vnf package.
+        self.addCleanup(vnflcm_base._delete_vnf_package, self.tacker_client,
+                        vnf_package_id)
+
+        # Create subscription with vnf instance's vnfdid filter.
+        sub_id_1 = self._gen_sub_and_register_sub(
+            'with_vnfd_id_filter', vnfd_id)
+        self.addCleanup(
+            self._delete_subscription,
+            sub_id_1)
+        # Create subscription with other vnfdid filter.
+        sub_id_2 = self._gen_sub_and_register_sub(
+            'with_other_vnfd_id', uuidutils.generate_uuid())
+        self.addCleanup(
+            self._delete_subscription,
+            sub_id_2)
+        # Create subscription without filter.
+        sub_id_3 = self._gen_sub_and_register_sub(
+            'no_filter', uuidutils.generate_uuid())
+        self.addCleanup(
+            self._delete_subscription,
+            sub_id_3)
+
+        sub_id = self._gen_sub_and_register_sub(self._testMethodName, vnfd_id)
+        self.addCleanup(
+            self._delete_subscription,
+            sub_id)
+        # Create vnf instance
+        resp, vnf_instance = self._create_vnf_instance_from_body(
+            fake_vnflcm.VnfInstances.make_create_request_body(vnfd_id))
+        vnf_instance_id = vnf_instance['id']
+        self._wait_lcm_done(vnf_instance_id=vnf_instance_id)
+        self.assert_create_vnf(resp, vnf_instance, vnf_package_id)
+        self.addCleanup(self._delete_vnf_instance, vnf_instance_id)
+        vnflcm_base.FAKE_SERVER_MANAGER.clear_history(
+            os.path.join(vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
+                         "with_vnfd_id_filter"))
+        vnflcm_base.FAKE_SERVER_MANAGER.clear_history(
+            os.path.join(vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
+                         "with_other_vnfd_id"))
+        vnflcm_base.FAKE_SERVER_MANAGER.clear_history(
+            os.path.join(vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
+                         "no_filter"))
+
+        # Instantiate vnf instance
+        request_body = (
+            fake_vnflcm.VnfInstances.
+            make_inst_request_body_include_num_dynamic(
+                self.vim['tenant_id'], self.ext_networks,
+                self.ext_mngd_networks, self.ext_link_ports, self.ext_subnets))
+        resp, _ = self._instantiate_vnf_instance(vnf_instance_id, request_body)
+        self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
+        self.assert_instantiate_vnf(resp, vnf_instance_id, vnf_package_id)
+
+        # Show vnf instance
+        resp, vnf_instance = self._show_vnf_instance(vnf_instance_id)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual(vnf_instance["instantiationState"],
+                         "INSTANTIATED")
+
+        # check subscription
+        for name in ['with_vnfd_id_filter', 'with_other_vnfd_id', 'no_filter']:
+            self._check_subscription(name)
+
+        # Terminate VNF
+        stack = self._get_heat_stack(vnf_instance_id)
+        resources_list = self._get_heat_resource_list(stack.id)
+        resource_name_list = [r.resource_name for r in resources_list]
+        glance_image_id_list = self._get_glance_image_list_from_stack_resource(
+            stack.id, resource_name_list)
+
+        terminate_req_body = fake_vnflcm.VnfInstances.make_term_request_body()
+        resp, _ = self._terminate_vnf_instance(
+            vnf_instance_id, terminate_req_body)
+        self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
+        self.assert_terminate_vnf(resp, vnf_instance_id, stack.id,
+                                  resource_name_list, glance_image_id_list,
+                                  vnf_package_id)
+        # check subscription
+        for name in ['with_vnfd_id_filter', 'with_other_vnfd_id', 'no_filter']:
+            self._check_subscription(name)
+
+        # Delete VNF
+        resp, _ = self._delete_vnf_instance(vnf_instance_id)
+        self._wait_lcm_done(vnf_instance_id=vnf_instance_id)
+        self.assert_delete_vnf(resp, vnf_instance_id, vnf_package_id)
+
+        # Subscription delete
+        for subsc_id in [sub_id, sub_id_1, sub_id_2, sub_id_3]:
+            self._assert_subscription_deletion(subsc_id)
+
     def test_stack_update_in_scaling(self):
         """Test basic life cycle operations with sample VNFD.
 
@@ -2191,6 +2311,12 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
             self.tacker_client, vnf_pkg_id)
         self.assert_vnf_package_usage_state(vnf_pkg_info)
 
+    def _assert_subscription_deletion(self, sub_id):
+        resp, _ = self._delete_subscription(sub_id)
+        self.assertEqual(204, resp.status_code)
+        resp, _ = self._show_subscription(sub_id)
+        self.assertEqual(404, resp.status_code)
+
     def _assert_scale_vnf(
             self,
             resp,
@@ -2370,6 +2496,47 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
             self.assertIsNotNone(_links.get('rollback').get('href'))
         if _links.get('grant') is not None:
             self.assertIsNotNone(_links.get('grant').get('href'))
+
+    def _gen_sub_and_register_sub(self, name, vnfd_id):
+        callback_url = os.path.join(vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
+                                    name)
+        request_body = fake_vnflcm.Subscription.make_create_request_body(
+            'http://localhost:{}{}'.format(
+                vnflcm_base.FAKE_SERVER_MANAGER.SERVER_PORT,
+                callback_url))
+        request_body['filter']['vnfInstanceSubscriptionFilter']['vnfdIds'] = [
+            vnfd_id]
+        if name == 'no_filter':
+            del request_body['filter']
+        vnflcm_base.FAKE_SERVER_MANAGER.set_callback(
+            'GET',
+            callback_url,
+            status_code=204
+        )
+        vnflcm_base.FAKE_SERVER_MANAGER.set_callback(
+            'POST',
+            callback_url,
+            status_code=204
+        )
+        resp, response_body = self._register_subscription(request_body)
+        self.assertEqual(201, resp.status_code)
+        self.assert_http_header_location_for_subscription(resp.headers)
+        self.assert_notification_get(callback_url)
+        subscription_id = response_body.get('id')
+        return subscription_id
+
+    def _check_subscription(self, name):
+        callback_url = os.path.join(
+            vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
+            name)
+        notify_mock_responses = vnflcm_base.FAKE_SERVER_MANAGER.get_history(
+            callback_url)
+        vnflcm_base.FAKE_SERVER_MANAGER.clear_history(
+            callback_url)
+        if name == 'with_other_vnfd_id':
+            self.assertEqual(0, len(notify_mock_responses))
+        else:
+            self.assertEqual(3, len(notify_mock_responses))
 
     def test_inst_chgextconn_term(self):
         """Test basic life cycle operations with sample VNFD.

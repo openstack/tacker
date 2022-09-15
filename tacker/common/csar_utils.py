@@ -574,7 +574,7 @@ def delete_csar_data(package_uuid):
         exc_message = encodeutils.exception_to_unicode(exc)
         msg = _('Failed to delete csar folder: '
                 '%(csar_path)s, Error: %(exc)s')
-        LOG.warning(msg, {'csar_path': csar_path, 'exc': exc_message})
+        LOG.error(msg, {'csar_path': csar_path, 'exc': exc_message})
 
 
 class PreserveZipFilePermissions(zipfile.ZipFile):

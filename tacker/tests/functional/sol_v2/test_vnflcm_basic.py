@@ -764,8 +764,7 @@ class VnfLcmTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         network_stack_before_heal = [stack for stack in temp_stacks if
             (stack['resource_name'] == 'internalVL3')][0]
 
-        stack_id_before_heal = self.heat_client.get_stack_resource(stack_name)[
-            'stack']['id']
+        stack_id_before_heal = self.heat_client.get_stack_id(stack_name)
         heal_req = paramgen.heal_vnf_all_max_with_parameter(True)
         resp, body = self.heal_vnf_instance(inst_id, heal_req)
         self.assertEqual(202, resp.status_code)
@@ -774,8 +773,7 @@ class VnfLcmTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         self.wait_lcmocc_complete(lcmocc_id)
 
         # check stack info
-        stack_id_after_heal = self.heat_client.get_stack_resource(stack_name)[
-            'stack']['id']
+        stack_id_after_heal = self.heat_client.get_stack_id(stack_name)
         self.assertNotEqual(stack_id_before_heal, stack_id_after_heal)
         stack_status, _ = self.heat_client.get_status(stack_name)
         self.assertEqual("CREATE_COMPLETE", stack_status)
@@ -1395,8 +1393,7 @@ class VnfLcmTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         network_stack_before_heal = [stack for stack in temp_stacks if
             (stack['resource_name'] == 'internalVL3')][0]
 
-        stack_id_before_heal = self.heat_client.get_stack_resource(stack_name)[
-            'stack']['id']
+        stack_id_before_heal = self.heat_client.get_stack_id(stack_name)
         heal_req = paramgen.heal_vnf_all_max_with_parameter(True)
         resp, body = self.heal_vnf_instance(inst_id, heal_req)
         self.assertEqual(202, resp.status_code)
@@ -1405,8 +1402,7 @@ class VnfLcmTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         self.wait_lcmocc_complete(lcmocc_id)
 
         # check stack info
-        stack_id_after_heal = self.heat_client.get_stack_resource(stack_name)[
-            'stack']['id']
+        stack_id_after_heal = self.heat_client.get_stack_id(stack_name)
         self.assertNotEqual(stack_id_before_heal, stack_id_after_heal)
         stack_status, _ = self.heat_client.get_status(stack_name)
         self.assertEqual("CREATE_COMPLETE", stack_status)
@@ -1479,8 +1475,7 @@ class VnfLcmTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         network_stack_before_heal = [stack for stack in temp_stacks if
             (stack['resource_name'] == 'internalVL3')][0]
 
-        stack_id_before_heal = self.heat_client.get_stack_resource(stack_name)[
-            'stack']['id']
+        stack_id_before_heal = self.heat_client.get_stack_id(stack_name)
         heal_req = paramgen.heal_vnf_all_max_with_parameter(True)
         resp, body = self.heal_vnf_instance(inst_id, heal_req)
         self.assertEqual(202, resp.status_code)
@@ -1489,8 +1484,7 @@ class VnfLcmTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         self.wait_lcmocc_complete(lcmocc_id)
 
         # check stack info
-        stack_id_after_heal = self.heat_client.get_stack_resource(stack_name)[
-            'stack']['id']
+        stack_id_after_heal = self.heat_client.get_stack_id(stack_name)
         self.assertNotEqual(stack_id_before_heal, stack_id_after_heal)
         stack_status, _ = self.heat_client.get_status(stack_name)
         self.assertEqual("CREATE_COMPLETE", stack_status)
@@ -1532,8 +1526,7 @@ class VnfLcmTest(test_vnflcm_basic_common.CommonVnfLcmTest):
             network_stack_after_heal['physical_resource_id'])
 
         # 14. Change external connectivity
-        stack_id = self.heat_client.get_stack_resource(stack_name)['stack'][
-            'id']
+        stack_id = self.heat_client.get_stack_id(stack_name)
         port_info = self.heat_client.get_resource_info(
             f"{stack_name}/{stack_id}", 'VDU2_CP2')
         before_physical_resource_id = port_info['physical_resource_id']

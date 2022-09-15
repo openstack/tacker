@@ -569,7 +569,7 @@ class RequestDeserializer(object):
             deserializer = self.get_body_deserializer(content_type)
         except exception.InvalidContentType:
             with excutils.save_and_reraise_exception():
-                LOG.debug("Unable to deserialize body as provided "
+                LOG.error("Unable to deserialize body as provided "
                           "Content-Type")
 
         if isinstance(deserializer, ZipDeserializer):
@@ -1014,7 +1014,7 @@ class Resource(Application):
             msg_dict = dict(url=request.url, exception=e)
             msg = _("%(url)s returned a fault: %(exception)s") % msg_dict
 
-        LOG.info(msg)
+        LOG.debug(msg)
 
         return response
 

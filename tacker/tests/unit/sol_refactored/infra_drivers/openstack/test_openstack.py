@@ -32,6 +32,7 @@ from tacker.tests import base
 
 SAMPLE_VNFD_ID = "b1bb0ce7-ebca-4fa7-95ed-4840d7000000"
 SAMPLE_FLAVOUR_ID = "simple"
+STACK_ID = "d7aeba20-1b00-4bff-b050-6b42a262c84d"
 
 # instantiateVnfRequest example
 _vim_connection_info_example = {
@@ -1243,6 +1244,9 @@ _inst_info_example = {
             }
         }
     ],
+    "metadata": {
+        "stack_id": STACK_ID
+    }
     # "vnfcInfo": omitted
 }
 
@@ -1812,7 +1816,8 @@ _expected_inst_info = {
             "vnfcResourceInfoId": "res_id_VDU2",
             "vnfcState": "STARTED"
         }
-    ]
+    ],
+    "metadata": {"stack_id": STACK_ID}
 }
 
 _expected_inst_info_vnfc_updated = copy.copy(_expected_inst_info)
@@ -2255,7 +2260,10 @@ _expected_inst_info_change_ext_conn = {
         _expected_inst_info["vnfVirtualLinkResourceInfo"],
     "virtualStorageResourceInfo":
         _expected_inst_info["virtualStorageResourceInfo"],
-    "vnfcInfo": _expected_inst_info["vnfcInfo"]
+    "vnfcInfo": _expected_inst_info["vnfcInfo"],
+    "metadata": {
+        "stack_id": STACK_ID
+    }
 }
 
 mock_resource = {
@@ -2837,7 +2845,7 @@ class TestOpenstack(base.BaseTestCase):
 
         # execute make_instantiated_vnf_info
         self.driver._make_instantiated_vnf_info(req, inst, grant_req, grant,
-            self.vnfd_1, heat_client)
+            self.vnfd_1, heat_client, stack_id=STACK_ID)
 
         # check
         result = inst.to_dict()["instantiatedVnfInfo"]
@@ -2869,7 +2877,8 @@ class TestOpenstack(base.BaseTestCase):
         heat_client.get_template.return_value = _heat_get_template_example
 
         # execute make_instantiated_vnf_info
-        self.driver._make_instantiated_vnf_info(req, inst, grant_req, grant,
+        self.driver._make_instantiated_vnf_info(
+            req, inst, grant_req, grant,
             self.vnfd_1, heat_client)
 
         # check
@@ -2904,13 +2913,15 @@ class TestOpenstack(base.BaseTestCase):
         heat_client.get_template.return_value = _heat_get_template_example
 
         # execute make_instantiated_vnf_info
-        self.driver._make_instantiated_vnf_info(req, inst, grant_req, grant,
+        self.driver._make_instantiated_vnf_info(
+            req, inst, grant_req, grant,
             self.vnfd_1, heat_client)
 
         # check
         result = inst.to_dict()["instantiatedVnfInfo"]
         self._check_inst_info(_expected_inst_info_change_ext_conn, result)
 
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'get_stack_id')
     @mock.patch.object(openstack.heat_utils.HeatClient, 'get_status')
     @mock.patch.object(openstack.heat_utils.HeatClient, 'create_stack')
     @mock.patch.object(openstack.heat_utils.HeatClient, 'update_stack')
@@ -2918,7 +2929,8 @@ class TestOpenstack(base.BaseTestCase):
     @mock.patch.object(openstack.heat_utils.HeatClient, 'get_parameters')
     @mock.patch.object(openstack.heat_utils.HeatClient, 'get_template')
     def test_instantiate(self, mock_template, mock_parameters, mock_resources,
-                         mock_update_stack, mock_create_stack, mock_status):
+                         mock_update_stack, mock_create_stack, mock_status,
+                         mock_stack_id):
         # prepare
         req = objects.InstantiateVnfRequest.from_dict(_instantiate_req_example)
         inst = objects.VnfInstanceV2(
@@ -2936,22 +2948,24 @@ class TestOpenstack(base.BaseTestCase):
             operation=fields.LcmOperationType.INSTANTIATE
         )
         grant = objects.GrantV1()
-        mock_status.return_value = (None, 'test')
         mock_resources.return_value = _heat_reses_example
         mock_parameters.return_value = _heat_get_parameters_example
         mock_template.return_value = _heat_get_template_example
+        mock_stack_id.return_value = None
         # execute
         self.driver.instantiate(req, inst, grant_req, grant, self.vnfd_1)
         mock_create_stack.assert_called_once()
 
-        mock_status.return_value = ('Create_Failed', 'test')
+        mock_stack_id.return_value = STACK_ID
         # execute
         self.driver.instantiate(req, inst, grant_req, grant, self.vnfd_1)
         mock_update_stack.assert_called_once()
 
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'get_stack_id')
     @mock.patch.object(openstack.heat_utils.HeatClient, 'get_status')
     @mock.patch.object(openstack.heat_utils.HeatClient, 'delete_stack')
-    def test_instantiate_rollback(self, mock_delete_stack, mock_status):
+    def test_instantiate_rollback(self, mock_delete_stack, mock_status,
+                                  mock_stack_id):
         # prepare
         req = objects.InstantiateVnfRequest.from_dict(_instantiate_req_example)
         inst = objects.VnfInstanceV2(
@@ -2969,13 +2983,13 @@ class TestOpenstack(base.BaseTestCase):
             operation=fields.LcmOperationType.INSTANTIATE
         )
         grant = objects.GrantV1()
-        mock_status.return_value = (None, 'test')
+        mock_stack_id.return_value = None
         # execute
         self.driver.instantiate_rollback(
             req, inst, grant_req, grant, self.vnfd_1)
         mock_delete_stack.assert_not_called()
 
-        mock_status.return_value = ('Create_Failed', 'test')
+        mock_stack_id.return_value = STACK_ID
         # execute
         self.driver.instantiate_rollback(
             req, inst, grant_req, grant, self.vnfd_1)
