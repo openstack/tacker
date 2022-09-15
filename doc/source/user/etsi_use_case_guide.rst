@@ -25,6 +25,7 @@ Container
    :maxdepth: 1
 
    etsi_containerized_vnf_usage_guide
+   etsi_cnf_helm_v2
 
 Scale
 ^^^^^
@@ -108,9 +109,6 @@ Container
 Error Handling
 ^^^^^^^^^^^^^^
 
-VM
-~~
-
 .. toctree::
    :maxdepth: 1
 
@@ -119,8 +117,8 @@ VM
 .. TODO(h-asahina): add `Action Driver`
   * https://etherpad.opendev.org/p/tacker-wallaby-revise-docs
 
-Management Driver
-^^^^^^^^^^^^^^^^^
+Management Driver (v1 API)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. TODO(h-asahina): add `Overview`
   * https://etherpad.opendev.org/p/tacker-wallaby-revise-docs

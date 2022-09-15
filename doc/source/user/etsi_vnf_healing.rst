@@ -391,7 +391,12 @@ This is the VNFC instance ID.
 
 This manual shows an example of healing VDU1 as VNFC.
 In this manual, **b07ba349-1366-4d14-91e9-07842cdfa7ab** corresponds to
-the VNFC instance ID of VDU1.
+the ``VNFC_instance_ID`` of VDU1.
+
+.. note:: In the case of version 1 API,
+          ``VNFC_INSTANCE_ID`` is ``instantiatedVnfInfo.vnfcResourceInfo.id``.
+          In the case of version 2 API,
+          ``VNFC_INSTANCE_ID`` is ``instantiatedVnfInfo.vnfcInfo.id``.
 
 When healing specified with VNFC instances, the following
 APIs are executed from Tacker to Heat.

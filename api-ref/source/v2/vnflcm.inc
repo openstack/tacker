@@ -831,6 +831,8 @@ Request Parameters
 
   - vnfInstanceId: vnf_instance_id
   - vnfdId: change_vnfpkg_vnfd_id
+  - extVirtualLinks: ext_virtual_links
+  - vimConnectionInfo: change_current_vnf_package_vim_connection_info
   - additionalParams: change_current_vnf_package_additional_params
 
 Request Example

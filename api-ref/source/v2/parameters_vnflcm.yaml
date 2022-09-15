@@ -294,6 +294,18 @@ change_current_vnf_package_additional_params:
   in: body
   required: false
   type: key value pairs
+change_current_vnf_package_vim_connection_info:
+  description: |
+    Information about VIM connections to be used for managing the resources
+    for the VNF instance, or refer to external / externally-managed virtual links.
+    This attribute shall only be supported and may be present if VNF-related
+    resource management in direct mode is applicable.
+    The VNFM shall apply the content of this attribute to the
+    "vimConnectionInfo" attribute of "VnfInstance"
+    according to the rules of JSON Merge Patch.
+  in: body
+  required: false
+  type: map
 change_ext_vnf_connectivity_additional_params:
   description: |
     Additional parameters passed by the NFVO as input to the process,
@@ -1281,7 +1293,20 @@ vnf_instance_description:
   type: string
 vnf_instance_extensions:
   description: |
-    description
+    Additional VNF-specific attributes that affect
+    the lifecycle management of this VNF instance.
+    These attributes represent values that are
+    stored persistently in the VnfInstance
+    structure for consumption by the VNFM or
+    the lifecycle management scripts during the
+    execution of VNF lifecycle management operations.
+    Modifying the values of these attributes has
+    no direct effect on the VNF instance;
+    however, the modified attribute values can
+    be considered during subsequent VNF
+    lifecycle management operations, which
+    means that the modified values can indirectly
+    affect the configuration of the VNF instance.
   in: body
   required: false
   type: key value pairs
