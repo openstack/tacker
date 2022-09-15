@@ -63,7 +63,6 @@ def max_sample_instantiate(auth_url, bearer_token, ssl_ca_cert=None):
         "interfaceInfo": {"endpoint": auth_url},
         "accessInfo": {
             "bearer_token": bearer_token,
-            "region": "RegionOne",
         },
         "extra": {"dummy-key": "dummy-val"}
     }
@@ -73,7 +72,6 @@ def max_sample_instantiate(auth_url, bearer_token, ssl_ca_cert=None):
         "interfaceInfo": {"endpoint": auth_url},
         "accessInfo": {
             "username": "dummy_user",
-            "region": "RegionOne",
             "password": "dummy_password",
         },
         "extra": {"dummy-key": "dummy-val"}
@@ -217,7 +215,6 @@ def error_handling_instantiate(auth_url, bearer_token):
         "interfaceInfo": {"endpoint": auth_url},
         "accessInfo": {
             "bearer_token": bearer_token,
-            "region": "RegionOne",
         },
         "extra": {"dummy-key": "dummy-val"}
     }
@@ -257,7 +254,6 @@ def change_vnfpkg_instantiate(auth_url, bearer_token):
         "interfaceInfo": {"endpoint": auth_url},
         "accessInfo": {
             "bearer_token": bearer_token,
-            "region": "RegionOne",
         },
         "extra": {"dummy-key": "dummy-val"}
     }
@@ -310,4 +306,104 @@ def change_vnfpkg_error(vnfd_id):
 def change_vnfpkg_terminate():
     return {
         "terminationType": "FORCEFUL"
+    }
+
+
+def test_helm_instantiate_create(vnfd_id):
+    return {
+        "vnfdId": vnfd_id,
+        "vnfInstanceName": "test_helm_instantiate",
+        "vnfInstanceDescription": "test_helm_instantiate",
+        "metadata": {"dummy-key": "dummy-val"}
+    }
+
+
+def helm_instantiate(auth_url, bearer_token, ssl_ca_cert):
+    vim_id_1 = uuidutils.generate_uuid()
+    vim_1 = {
+        "vimId": vim_id_1,
+        "vimType": "ETSINFV.HELM.V_3",
+        "interfaceInfo": {
+            "endpoint": auth_url,
+            "ssl_ca_cert": ssl_ca_cert
+        },
+        "accessInfo": {
+            "bearer_token": bearer_token
+        }
+    }
+    return {
+        "flavourId": "simple",
+        "vimConnectionInfo": {
+            "vim1": vim_1,
+        },
+        "additionalParams": {
+            "helm_chart_path": "Files/kubernetes/test-chart-0.1.0.tgz",
+            "helm_parameters": {
+                "service.port": 8081
+            },
+            "helm_value_names": {
+                "VDU1": {
+                    "replica": "replicaCountVdu1"
+                },
+                "VDU2": {
+                    "replica": "replicaCountVdu2"
+                }
+            },
+            "namespace": "default"
+        }
+    }
+
+
+def helm_terminate():
+    return {
+        "terminationType": "FORCEFUL"
+    }
+
+
+def helm_scale_out():
+    return {
+        "type": "SCALE_OUT",
+        "aspectId": "vdu2_aspect",
+        "numberOfSteps": 2
+    }
+
+
+def helm_scale_in():
+    return {
+        "type": "SCALE_IN",
+        "aspectId": "vdu2_aspect",
+        "numberOfSteps": 1
+    }
+
+
+def helm_heal(vnfc_ids):
+    return {
+        "vnfcInstanceId": vnfc_ids
+    }
+
+
+def helm_change_vnfpkg(vnfd_id):
+    return {
+        "vnfdId": vnfd_id,
+        "additionalParams": {
+            "upgrade_type": "RollingUpdate",
+            "helm_chart_path": "Files/kubernetes/test-chart-0.1.1.tgz",
+            "vdu_params": [{
+                "vdu_id": "VDU2"
+            }]
+        }
+    }
+
+
+def helm_error_handling_change_vnfpkg(vnfd_id):
+    return {
+        "vnfdId": vnfd_id,
+        "additionalParams": {
+            "upgrade_type": "RollingUpdate",
+            "helm_chart_path": "Files/kubernetes/test-chart-error-"
+            "handling.tgz",
+            "vdu_params": [{
+                "vdu_id": "VDU2"
+            }]
+        }
     }

@@ -100,10 +100,14 @@ def vim_to_conn_info(vim):
         if 'ssl_ca_cert' in vim_auth.keys():
             interface_info['ssl_ca_cert'] = vim_auth['ssl_ca_cert']
 
+        vim_type = ('ETSINFV.HELM.V_3'
+                    if vim.get('extra', {}).get('use_helm', False)
+                    else 'kubernetes')
         return objects.VimConnectionInfo(
             vimId=vim['vim_id'],
-            vimType='kubernetes',
+            vimType=vim_type,
             interfaceInfo=interface_info,
             accessInfo=access_info
         )
+
     raise sol_ex.SolException(sol_detail='not support vim type')
