@@ -110,7 +110,8 @@ class VnfLcmKubernetesHelmTest(vnflcm_base.BaseVnfLcmKubernetesTest):
                     "helmchartfile_path": helmchartfile_path,
                     "helmreleasename": "vdu1",
                     "helmparameter": [
-                        "service.port=8081"
+                        "service.port=8081",
+                        "service.type=NodePort"
                     ]
                 },
                 {
@@ -118,7 +119,10 @@ class VnfLcmKubernetesHelmTest(vnflcm_base.BaseVnfLcmKubernetesTest):
                     "helmreleasename": "vdu2",
                     "helmrepositoryname": "bitnami",
                     "helmchartname": "apache",
-                    "exthelmrepo_url": "https://charts.bitnami.com/bitnami"
+                    "exthelmrepo_url": "https://charts.bitnami.com/bitnami",
+                    "helmparameter": [
+                        "service.type=NodePort"
+                    ]
                 }
             ],
             "helm_replica_values": {
@@ -155,8 +159,8 @@ class VnfLcmKubernetesHelmTest(vnflcm_base.BaseVnfLcmKubernetesTest):
 
         Input parameter includes VimConnectionInfo.extra fields
         """
-        vnf_instance_name = "cnf_with_helmchart"
-        vnf_instance_description = "cnf with helmchart"
+        vnf_instance_name = "cnf_with_helmchart_extra_input"
+        vnf_instance_description = "cnf with helmchart_extra_input"
         helmchartfile_path = "Files/kubernetes/localhelm-0.1.0.tgz"
         flavour_id = "helmchart"
         inst_additional_param = {
@@ -166,17 +170,21 @@ class VnfLcmKubernetesHelmTest(vnflcm_base.BaseVnfLcmKubernetesTest):
                 {
                     "exthelmchart": "false",
                     "helmchartfile_path": helmchartfile_path,
-                    "helmreleasename": "vdu1",
+                    "helmreleasename": "vdu1-extra",
                     "helmparameter": [
-                        "service.port=8081"
+                        "service.port=8081",
+                        "service.type=NodePort"
                     ]
                 },
                 {
                     "exthelmchart": "true",
-                    "helmreleasename": "vdu2",
-                    "helmrepositoryname": "bitnami",
+                    "helmreleasename": "vdu2-extra",
+                    "helmrepositoryname": "bitnami-extra",
                     "helmchartname": "apache",
-                    "exthelmrepo_url": "https://charts.bitnami.com/bitnami"
+                    "exthelmrepo_url": "https://charts.bitnami.com/bitnami",
+                    "helmparameter": [
+                        "service.type=NodePort"
+                    ]
                 }
             ],
             "helm_replica_values": {
@@ -185,14 +193,14 @@ class VnfLcmKubernetesHelmTest(vnflcm_base.BaseVnfLcmKubernetesTest):
             },
             "vdu_mapping": {
                 "VDU1": {
-                    "name": "vdu1-localhelm",
+                    "name": "vdu1-extra-localhelm",
                     "kind": "Deployment",
-                    "helmreleasename": "vdu1"
+                    "helmreleasename": "vdu1-extra"
                 },
                 "VDU2": {
-                    "name": "vdu2-apache",
+                    "name": "vdu2-extra-apache",
                     "kind": "Deployment",
-                    "helmreleasename": "vdu2"
+                    "helmreleasename": "vdu2-extra"
                 }
             }
         }
