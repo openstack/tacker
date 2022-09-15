@@ -799,6 +799,14 @@ instantiated_vnf_info:
   in: body
   required: false
   type: object
+instantiated_vnf_info_metadata:
+  description: |
+    This attribute is not a standard attribute defined by ETSI. Information
+    about the VNF after successful instantiation is stored in this attribute.
+    Used in other lifecycle operations.
+  in: body
+  required: false
+  type: key value pairs
 instantiation_level_id:
   description: |
     Identifier of the instantiation level of the deployment flavour to be
