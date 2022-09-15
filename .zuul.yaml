@@ -528,11 +528,6 @@
       zuul_work_dir: src/opendev.org/openstack/tacker
       zuul_copy_output:
         '{{ devstack_log_dir }}/kubernetes': 'logs'
-    irrelevant-files:
-      - ^.*\.rst$
-      - ^doc/.*$
-      - ^releasenotes/.*$
-      - ^contrib/.*$
 
 - job:
     name: tacker-functional-devstack-multinode-sol-kubernetes-multi-tenant
