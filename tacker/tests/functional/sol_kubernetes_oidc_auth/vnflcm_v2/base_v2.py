@@ -54,6 +54,10 @@ class BaseVnfLcmKubernetesV2OidcTest(base_v2.BaseVnfLcmKubernetesV2Test):
         cls.tacker_client = http_client.HttpClient(auth)
 
     @classmethod
+    def tearDownClass(cls):
+        super(base_v2.BaseVnfLcmKubernetesV2Test, cls).tearDownClass()
+
+    @classmethod
     def get_k8s_vim_info(cls):
         vim_params = yaml.safe_load(
             base_utils.read_file('local-k8s-vim-oidc.yaml'))

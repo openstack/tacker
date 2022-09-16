@@ -27,3 +27,6 @@ class ConductorV2Hook(object):
         service.conn.create_consumer(
             conductor_rpc_v2.TOPIC_CONDUCTOR_V2, endpoints,
             serializer=serializer)
+        service.conn.create_consumer(
+            conductor_rpc_v2.TOPIC_PROMETHEUS_PLUGIN, endpoints,
+            serializer=serializer)

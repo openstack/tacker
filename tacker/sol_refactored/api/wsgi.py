@@ -133,6 +133,10 @@ class SolResource(object):
             response = result.serialize(accept)
         except Exception as ex:
             result = SolErrorResponse(ex, request.best_match_language())
+            if type(self.controller).__name__ == 'VnfFmControllerV1':
+                result.headers['version'] = api_version.CURRENT_FM_VERSION
+            if type(self.controller).__name__ == 'VnfPmControllerV2':
+                result.headers['version'] = api_version.CURRENT_PM_VERSION
             try:
                 response = result.serialize('application/problem+json')
             except Exception:

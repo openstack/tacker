@@ -25,8 +25,9 @@ class TestAPIVersion(base.BaseTestCase):
         self.assertTrue(vers.is_null())
 
     def test_init(self):
-        supported_versions = ["3.1.4159", "2.0.0"]
+        supported_versions = ["3.1.4159", "2.0.0", "2.1.0"]
         for vers, vers_str in [("2.0.0", "2.0.0"),
+                               ("2.1.0", "2.1.0"),
                                ("3.1.4159", "3.1.4159"),
                                ("2.0.0-impl:foobar", "2.0.0")]:
             v = api_version.APIVersion(vers, supported_versions)
@@ -34,6 +35,14 @@ class TestAPIVersion(base.BaseTestCase):
 
     def test_init_exceptions(self):
         supported_versions = ["2.0.0"]
+        self.assertRaises(sol_ex.APIVersionMissing,
+                          api_version.APIVersion, None, supported_versions)
+
+        self.assertRaises(sol_ex.InvalidAPIVersionString,
+                          api_version.APIVersion,
+                          "2.0.0-abc:foobar",
+                          ["2.0.0"])
+
         self.assertRaises(sol_ex.InvalidAPIVersionString,
                           api_version.APIVersion, "0.1.2", supported_versions)
 
@@ -50,11 +59,19 @@ class TestAPIVersion(base.BaseTestCase):
 
     def test_matches(self):
         supported_versions = ["1.3.0", "1.3.1", "2.0.0"]
-        vers = api_version.APIVersion("2.0.0")
+        vers = api_version.APIVersion("1.3.1")
+        self.assertTrue(
+            vers.matches(api_version.APIVersion(), api_version.APIVersion())
+        )
+
         self.assertTrue(
             vers.matches(api_version.APIVersion("1.3.0", supported_versions),
                          api_version.APIVersion()))
 
-        self.assertFalse(
+        self.assertTrue(
             vers.matches(api_version.APIVersion(),
-                         api_version.APIVersion("1.3.1", supported_versions)))
+                         api_version.APIVersion("2.0.0", supported_versions)))
+
+        self.assertTrue(
+            vers.matches(api_version.APIVersion("1.3.0", supported_versions),
+                         api_version.APIVersion("2.0.0", supported_versions)))

@@ -56,6 +56,14 @@ VNFM_OPTS = [
                       'connection error when sending a notification. '
                       'Period between retries is exponential starting '
                       '0.5 seconds up to a maximum of 60 seconds.')),
+    cfg.IntOpt('vnffm_alarm_page_size',
+               default=0,  # 0 means no paging
+               help=_('Paged response size of the query result '
+                      'for VNF Fault Management alarm.')),
+    cfg.IntOpt('vnfpm_pmjob_page_size',
+               default=0,  # 0 means no paging
+               help=_('Paged response size of the query result for '
+                      'VNF PM job.')),
     # NOTE: This is for test use since it is convenient to be able to delete
     # under development.
     cfg.BoolOpt('test_enable_lcm_op_occ_delete',
@@ -104,7 +112,28 @@ NFVO_OPTS = [
 
 CONF.register_opts(NFVO_OPTS, 'v2_nfvo')
 
+PROMETHEUS_PLUGIN_OPTS = [
+    cfg.BoolOpt('performance_management',
+                default=False,
+                help=_('Enable prometheus plugin performance management')),
+
+    cfg.IntOpt('reporting_period_margin',
+               default=1,
+               help=_('Some margin time for PM jos\'s reportingPeriod')),
+
+    cfg.BoolOpt('fault_management',
+                default=False,
+                help=_('Enable prometheus plugin fault management')),
+
+    cfg.BoolOpt('auto_scaling',
+                default=False,
+                help=_('Enable prometheus plugin autoscaling')),
+]
+
+CONF.register_opts(PROMETHEUS_PLUGIN_OPTS, 'prometheus_plugin')
+
 
 def config_opts():
     return [('v2_nfvo', NFVO_OPTS),
-            ('v2_vnfm', VNFM_OPTS)]
+            ('v2_vnfm', VNFM_OPTS),
+            ('prometheus_plugin', PROMETHEUS_PLUGIN_OPTS)]

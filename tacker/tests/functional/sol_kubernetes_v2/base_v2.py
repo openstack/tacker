@@ -16,6 +16,7 @@ import os
 import shutil
 import tempfile
 import time
+import urllib
 
 from oslo_config import cfg
 from oslo_utils import uuidutils
@@ -24,9 +25,13 @@ import yaml
 
 from tacker.sol_refactored.common import http_client
 from tacker.sol_refactored import objects
+from tacker.tests.functional.common.fake_server import FakeServerManager
 from tacker.tests.functional.sol_v2_common import utils
 from tacker.tests import utils as base_utils
 from tacker import version
+
+FAKE_SERVER_MANAGER = FakeServerManager()
+MOCK_NOTIFY_CALLBACK_URL = '/notification/callback'
 
 VNF_PACKAGE_UPLOAD_TIMEOUT = 300
 VNF_INSTANTIATE_TIMEOUT = 600
@@ -40,6 +45,9 @@ class BaseVnfLcmKubernetesV2Test(base.BaseTestCase):
     def setUpClass(cls):
         super(BaseVnfLcmKubernetesV2Test, cls).setUpClass()
         """Base test case class for SOL v2 kubernetes functional tests."""
+
+        FAKE_SERVER_MANAGER.prepare_http_server()
+        FAKE_SERVER_MANAGER.start_server()
 
         cfg.CONF(args=['--config-file', '/etc/tacker/tacker.conf'],
                  project='tacker',
@@ -61,6 +69,22 @@ class BaseVnfLcmKubernetesV2Test(base.BaseTestCase):
             project_domain_name=vim_info.accessInfo['projectDomain']
         )
         cls.tacker_client = http_client.HttpClient(auth)
+        cls.fake_prometheus_ip = cls.get_controller_tacker_ip()
+
+    @classmethod
+    def tearDownClass(cls):
+        super(BaseVnfLcmKubernetesV2Test, cls).tearDownClass()
+        FAKE_SERVER_MANAGER.stop_server()
+
+    def setUp(self):
+        super().setUp()
+
+        callback_url = os.path.join(
+            MOCK_NOTIFY_CALLBACK_URL,
+            self._testMethodName)
+        FAKE_SERVER_MANAGER.clear_history(callback_url)
+        FAKE_SERVER_MANAGER.set_callback('POST', callback_url, status_code=204)
+        FAKE_SERVER_MANAGER.set_callback('GET', callback_url, status_code=204)
 
     @classmethod
     def get_vim_info(cls):
@@ -152,6 +176,35 @@ class BaseVnfLcmKubernetesV2Test(base.BaseTestCase):
         return pkg_id, vnfd_id
 
     @classmethod
+    def get_controller_tacker_ip(cls):
+        cur_dir = os.path.dirname(__file__)
+        script_path = os.path.join(
+            cur_dir, "../../../../tools/test-setup-fake-prometheus-server.sh")
+        with open(script_path, 'r') as f_obj:
+            content = f_obj.read()
+        ip = content.split('TEST_REMOTE_URI')[1].split(
+            'http://')[1].split('"')[0]
+        return ip
+
+    def assert_notification_get(self, callback_url):
+        notify_mock_responses = FAKE_SERVER_MANAGER.get_history(
+            callback_url)
+        FAKE_SERVER_MANAGER.clear_history(
+            callback_url)
+        self.assertEqual(1, len(notify_mock_responses))
+        self.assertEqual(204, notify_mock_responses[0].status_code)
+
+    def _check_notification(self, callback_url, notify_type):
+        notify_mock_responses = FAKE_SERVER_MANAGER.get_history(
+            callback_url)
+        FAKE_SERVER_MANAGER.clear_history(
+            callback_url)
+        self.assertEqual(1, len(notify_mock_responses))
+        self.assertEqual(204, notify_mock_responses[0].status_code)
+        self.assertEqual(notify_type, notify_mock_responses[0].request_body[
+            'notificationType'])
+
+    @classmethod
     def delete_vnf_package(cls, pkg_id):
         path = f"/vnfpkgm/v1/vnf_packages/{pkg_id}"
         req_body = {"operationalState": "DISABLED"}
@@ -232,6 +285,92 @@ class BaseVnfLcmKubernetesV2Test(base.BaseTestCase):
         path = f"/vnflcm/v2/vnf_lcm_op_occs/{lcmocc_id}"
         return self.tacker_client.do_request(
             path, "GET", version="2.0.0")
+
+    def create_subscription(self, req_body):
+        path = "/vnffm/v1/subscriptions"
+        return self.tacker_client.do_request(
+            path, "POST", body=req_body, version="1.3.0")
+
+    def list_subscriptions(self, filter_expr=None):
+        path = "/vnffm/v1/subscriptions"
+        if filter_expr:
+            path = "{}?{}".format(path, urllib.parse.urlencode(filter_expr))
+        return self.tacker_client.do_request(
+            path, "GET", version="1.3.0")
+
+    def show_subscription(self, subscription_id):
+        path = f"/vnffm/v1/subscriptions/{subscription_id}"
+        return self.tacker_client.do_request(
+            path, "GET", version="1.3.0")
+
+    def delete_subscription(self, subscription_id):
+        path = f"/vnffm/v1/subscriptions/{subscription_id}"
+        return self.tacker_client.do_request(
+            path, "DELETE", version="1.3.0")
+
+    def create_fm_alarm(self, req_body):
+        path = "/alert"
+        return self.tacker_client.do_request(
+            path, "POST", body=req_body, version="1.3.0")
+
+    def list_fm_alarm(self, filter_expr=None):
+        path = "/vnffm/v1/alarms"
+        if filter_expr:
+            path = "{}?{}".format(path, urllib.parse.urlencode(filter_expr))
+        return self.tacker_client.do_request(
+            path, "GET", version="1.3.0")
+
+    def show_fm_alarm(self, alarm_id):
+        path = f"/vnffm/v1/alarms/{alarm_id}"
+        return self.tacker_client.do_request(
+            path, "GET", version="1.3.0")
+
+    def update_fm_alarm(self, alarm_id, req_body):
+        path = f"/vnffm/v1/alarms/{alarm_id}"
+        return self.tacker_client.do_request(
+            path, "PATCH", body=req_body, version="1.3.0")
+
+    def create_pm_job(self, req_body):
+        path = "/vnfpm/v2/pm_jobs"
+        return self.tacker_client.do_request(
+            path, "POST", body=req_body, version="2.1.0")
+
+    def update_pm_job(self, pm_job_id, req_body):
+        path = f"/vnfpm/v2/pm_jobs/{pm_job_id}"
+        return self.tacker_client.do_request(
+            path, "PATCH", body=req_body, version="2.1.0")
+
+    def create_pm_event(self, req_body):
+        path = "/pm_event"
+        return self.tacker_client.do_request(
+            path, "POST", body=req_body, version="2.1.0")
+
+    def list_pm_job(self, filter_expr=None):
+        path = "/vnfpm/v2/pm_jobs"
+        if filter_expr:
+            path = "{}?{}".format(path, urllib.parse.urlencode(filter_expr))
+        return self.tacker_client.do_request(
+            path, "GET", version="2.1.0")
+
+    def show_pm_job(self, pm_job_id):
+        path = f"/vnfpm/v2/pm_jobs/{pm_job_id}"
+        return self.tacker_client.do_request(
+            path, "GET", version="2.1.0")
+
+    def show_pm_job_report(self, pm_job_id, report_id):
+        path = f"/vnfpm/v2/pm_jobs/{pm_job_id}/reports/{report_id}"
+        return self.tacker_client.do_request(
+            path, "GET", version="2.1.0")
+
+    def delete_pm_job(self, pm_job_id):
+        path = f"/vnfpm/v2/pm_jobs/{pm_job_id}"
+        return self.tacker_client.do_request(
+            path, "DELETE", version="2.1.0")
+
+    def prometheus_auto_scaling_alert(self, req_body):
+        path = "/alert/vnf_instances"
+        return self.tacker_client.do_request(
+            path, "POST", body=req_body)
 
     def _check_resp_headers(self, resp, supported_headers):
         unsupported_headers = ['Link', 'Retry-After',

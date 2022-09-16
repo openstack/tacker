@@ -1,0 +1,17 @@
+---
+features:
+  - |
+    Support container based VNF AutoHeal and AutoScale operation with External
+    Monitoring Tools.
+    Add the Fault Management interfaces and CLI to support AutoHeal. AutoHeal
+    supports two modes, Polling Mode and Notification Mode.
+    Add the Performance Management interfaces and CLI to support AutoScale.
+    The Fault Management and Performance Management interfaces are based on
+    ETSI NFV-SOL 002 v3.3.1 and ETSI NFV-SOL 003 v3.3.1, which are Version
+    "2.0.0" API of Tacker.
+    Add the Prometheus Plugin that has a interface between tacker and
+    the External Monitoring Tool. Prometheus Plugin supports data model
+    conversion from Prometheus format data to SOL based FM/PM schema,
+    and vice versa.
+    At the same time, a user guide is also made to help users understand the
+    function.

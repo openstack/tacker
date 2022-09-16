@@ -147,15 +147,23 @@ class TestSubscriptionUtils(base.BaseTestCase):
         self.assertRaises(sol_ex.TestNotificationFailed,
                           subsc_utils.test_notification, subsc_no_auth)
 
-    @mock.patch.object(http_client.HttpClient, 'do_request')
-    def test_test_notification_error(self, mock_resp):
+    class mock_session():
+
+        def request(url, method, raise_exc=False, **kwargs):
+            resp = requests.Response()
+            resp.status_code = 400
+            resp.headers['Content-Type'] = 'application/zip'
+            return resp
+
+    @mock.patch.object(http_client.HttpClient, '_decode_body')
+    @mock.patch.object(http_client.NoAuthHandle, 'get_session')
+    def test_test_notification_error(self, mock_session, mock_decode_body):
         subsc_no_auth = objects.LccnSubscriptionV2(
             id='sub-1', verbosity='SHORT',
             callbackUri='http://127.0.0.1/callback')
-        resp_no_auth = Exception()
-        mock_resp.return_value = (resp_no_auth, None)
+        mock_session.return_value = self.mock_session
+        mock_decode_body.return_value = None
 
-        # execute no_auth
         self.assertRaises(sol_ex.TestNotificationFailed,
                           subsc_utils.test_notification, subsc_no_auth)
 

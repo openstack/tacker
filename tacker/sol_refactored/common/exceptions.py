@@ -92,6 +92,11 @@ class SolHttpError422(SolException):
     title = 'Unprocessable Entity'
 
 
+class SolHttpError503(SolException):
+    status = 503
+    title = 'Service Unavailable'
+
+
 class MethodNotAllowed(SolHttpError405):
     message = _("Method %(method)s is not supported.")
 
@@ -372,3 +377,53 @@ class HelmOperationFailed(SolHttpError422):
 
 class HelmParameterNotFound(SolHttpError400):
     message = _("Helm parameter for scale vdu %(vdu_name)s is not found.")
+
+
+class AlarmNotFound(SolHttpError404):
+    message = _("Alarm %(alarm_id)s not found.")
+
+
+class AckStateInvalid(SolHttpError409):
+    message = _("The ackState of alarm cannot specify the same value.")
+
+
+class FmSubscriptionNotFound(SolHttpError404):
+    message = _("FmSubscription %(subsc_id)s not found.")
+
+
+class PMJobNotExist(SolHttpError404):
+    message = _("The specified PM job does not exist.")
+
+
+class PMReportNotExist(SolHttpError404):
+    message = _("The specified Performance Report does not exist.")
+
+
+class PMJobInvalidRequest(SolHttpError400):
+    message = _("Invalid request")
+
+
+class ResourcesOtherOperationInProgress(SolHttpError409):
+    message = _("Other LCM operation of resources %(inst_id)s "
+                "is in progress.")
+
+
+# prometheus plugin
+class PrometheusPluginNotEnabled(SolHttpError404):
+    message = _("%(name)s API is not enabled.")
+
+
+class PrometheusPluginError(Exception):
+    pass
+
+
+class PrometheusPluginSkipped(Exception):
+    pass
+
+
+class PrometheusPluginValidationError(SolValidationError):
+    pass
+
+
+class PrometheusSettingFailed(SolHttpError503):
+    message = _("Setting PM job on External Monitoring Tool failed.")

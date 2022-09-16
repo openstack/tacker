@@ -6,6 +6,8 @@
     - setup-k8s-oidc
     - setup-default-vim
     - setup-helm
+    - role: setup-fake-prometheus-server
+      when: prometheus_setup is defined and prometheus_setup | bool
     - role: setup-multi-tenant-vim
       when: setup_multi_tenant is defined and setup_multi_tenant | bool
     - role: bindep

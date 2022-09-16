@@ -22,7 +22,10 @@ from tacker.sol_refactored.common import coordinate
 from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import lcm_op_occ_utils as lcmocc_utils
 from tacker.sol_refactored.common import vnf_instance_utils as inst_utils
+from tacker.sol_refactored.conductor import prometheus_plugin_driver as pp_drv
+from tacker.sol_refactored.conductor import vnffm_driver_v1
 from tacker.sol_refactored.conductor import vnflcm_driver_v2
+from tacker.sol_refactored.conductor import vnfpm_driver_v2
 from tacker.sol_refactored.nfvo import nfvo_client
 from tacker.sol_refactored import objects
 from tacker.sol_refactored.objects.v2 import fields
@@ -37,8 +40,11 @@ class ConductorV2(object):
 
     def __init__(self):
         self.vnflcm_driver = vnflcm_driver_v2.VnfLcmDriverV2()
+        self.vnffm_driver = vnffm_driver_v1.VnfFmDriverV1()
+        self.vnfpm_driver = vnfpm_driver_v2.VnfPmDriverV2()
         self.endpoint = CONF.v2_vnfm.endpoint
         self.nfvo_client = nfvo_client.NfvoClient()
+        self.prom_driver = pp_drv.PrometheusPluginDriver.instance()
 
         self._change_lcm_op_state()
 
@@ -313,3 +319,14 @@ class ConductorV2(object):
         # send notification COMPLETED or FAILED_TEMP
         self.nfvo_client.send_lcmocc_notification(context, lcmocc, inst,
                                                   self.endpoint)
+
+    def store_alarm_info(self, context, alarm):
+        self.vnffm_driver.store_alarm_info(context, alarm)
+
+    def store_job_info(self, context, report):
+        # call pm_driver
+        self.vnfpm_driver.store_job_info(context, report)
+
+    @log.log
+    def request_scale(self, context, id, scale_req):
+        self.prom_driver.request_scale(context, id, scale_req)

@@ -50,3 +50,31 @@ class VnfLcmRpcApiV2(object):
 
     def modify_vnfinfo(self, context, lcmocc_id):
         self._cast_lcm_op(context, lcmocc_id, 'modify_vnfinfo')
+
+
+TOPIC_PROMETHEUS_PLUGIN = 'TACKER_PROMETHEUS_PLUGIN'
+
+
+class PrometheusPluginConductor(object):
+
+    target = oslo_messaging.Target(
+        exchange='tacker',
+        topic=TOPIC_PROMETHEUS_PLUGIN,
+        fanout=False,
+        version='1.0')
+
+    def cast(self, context, method, **kwargs):
+        serializer = objects_base.TackerObjectSerializer()
+        client = rpc.get_client(
+            self.target, version_cap=None, serializer=serializer)
+        cctxt = client.prepare()
+        cctxt.cast(context, method, **kwargs)
+
+    def store_alarm_info(self, context, alarm):
+        self.cast(context, 'store_alarm_info', alarm=alarm)
+
+    def store_job_info(self, context, report):
+        self.cast(context, 'store_job_info', report=report)
+
+    def request_scale(self, context, id, scale_req):
+        self.cast(context, 'request_scale', id=id, scale_req=scale_req)

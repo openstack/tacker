@@ -152,3 +152,88 @@ class GrantRequestV1(model_base.BASE):
     placementConstraints = sa.Column(sa.JSON(), nullable=True)
     vimConstraints = sa.Column(sa.JSON(), nullable=True)
     additionalParams = sa.Column(sa.JSON(), nullable=True)
+
+
+class AlarmV1(model_base.BASE):
+    """Type: Alarm
+
+    NFV-SOL 003
+    - v3.3.1 7.5.2.4 (API version: 1.3.0)
+    """
+
+    __tablename__ = 'AlarmV1'
+    id = sa.Column(sa.String(255), nullable=False, primary_key=True)
+    managedObjectId = sa.Column(sa.String(255), nullable=False)
+    vnfcInstanceIds = sa.Column(sa.JSON(), nullable=True)
+    rootCauseFaultyResource = sa.Column(sa.JSON(), nullable=True)
+    alarmRaisedTime = sa.Column(sa.DateTime(), nullable=False)
+    alarmChangedTime = sa.Column(sa.DateTime(), nullable=True)
+    alarmClearedTime = sa.Column(sa.DateTime(), nullable=True)
+    alarmAcknowledgedTime = sa.Column(sa.DateTime(), nullable=True)
+    ackState = sa.Column(sa.Enum(
+        'UNACKNOWLEDGED', 'ACKNOWLEDGED', create_constraint=True,
+        validate_strings=True), nullable=False)
+    perceivedSeverity = sa.Column(sa.Enum(
+        'CRITICAL', 'MAJOR', 'MINOR', 'WARNING', 'INDETERMINATE', 'CLEARED',
+        create_constraint=True, validate_strings=True), nullable=False)
+    eventTime = sa.Column(sa.DateTime(), nullable=False)
+    eventType = sa.Column(sa.Enum(
+        'COMMUNICATIONS_ALARM', 'PROCESSING_ERROR_ALARM',
+        'ENVIRONMENTAL_ALARM', 'QOS_ALARM', 'EQUIPMENT_ALARM',
+        create_constraint=True, validate_strings=True), nullable=False)
+    faultType = sa.Column(sa.String(255), nullable=True)
+    probableCause = sa.Column(sa.String(255), nullable=False)
+    isRootCause = sa.Column(sa.Boolean, nullable=False)
+    correlatedAlarmIds = sa.Column(sa.JSON(), nullable=True)
+    faultDetails = sa.Column(sa.JSON(), nullable=True)
+
+
+class FmSubscriptionV1(model_base.BASE):
+    """Type: FmSubscription
+
+    NFV-SOL 003
+    - v3.3.1 7.5.2.3 (API version: 1.3.0)
+    """
+
+    __tablename__ = 'FmSubscriptionV1'
+    id = sa.Column(sa.String(255), nullable=False, primary_key=True)
+    filter = sa.Column(sa.JSON(), nullable=True)
+    callbackUri = sa.Column(sa.String(255), nullable=False)
+    # NOTE: 'authentication' attribute is not included in the
+    #       original 'FmSubscription' data type definition.
+    authentication = sa.Column(sa.JSON(), nullable=True)
+
+
+class PmJobV2(model_base.BASE):
+    """Type: PmJob
+
+    NFV-SOL 003
+    - v3.3.1 6.5.2.7 (API version: 2.1.0)
+    """
+
+    __tablename__ = 'PmJobV2'
+    id = sa.Column(sa.String(255), nullable=False, primary_key=True)
+    objectType = sa.Column(sa.String(32), nullable=False)
+    objectInstanceIds = sa.Column(sa.JSON(), nullable=False)
+    subObjectInstanceIds = sa.Column(sa.JSON(), nullable=True)
+    criteria = sa.Column(sa.JSON(), nullable=False)
+    callbackUri = sa.Column(sa.String(255), nullable=False)
+    reports = sa.Column(sa.JSON(), nullable=True)
+    # NOTE: 'authentication' attribute is not included in the
+    #       original 'PmJob' data type definition.
+    authentication = sa.Column(sa.JSON(), nullable=True)
+    # NOTE: 'metadata' attribute is not included in the
+    #       original 'PmJob' data type definition.
+    metadata__ = sa.Column("metadata", sa.JSON(), nullable=True)
+
+
+class PerformanceReportV2(model_base.BASE):
+    """Type: Report
+
+    NFV-SOL 003
+    - v3.3.1 6.5.2.10 (API version: 2.1.0)
+    """
+    __tablename__ = 'PerformanceReportV2'
+    id = sa.Column(sa.String(255), nullable=False, primary_key=True)
+    jobId = sa.Column(sa.String(255), nullable=False, primary_key=False)
+    entries = sa.Column(sa.JSON(), nullable=False)
