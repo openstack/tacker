@@ -17,7 +17,10 @@ from datetime import datetime
 from unittest import mock
 
 import ddt
+from kubernetes import client
+from oslo_log import log as logging
 from oslo_utils import uuidutils
+from tooz.drivers import file
 
 from tacker import context
 from tacker.sol_refactored.common import exceptions as sol_ex
@@ -28,6 +31,11 @@ from tacker.sol_refactored.nfvo import nfvo_client
 from tacker.sol_refactored import objects
 from tacker.sol_refactored.objects.v2 import fields
 from tacker.tests.unit.db import base as db_base
+from tacker.tests.unit.sol_refactored.infra_drivers.kubernetes import fakes
+from tacker.vnfm.infra_drivers.kubernetes import kubernetes_driver
+
+
+CNF_SAMPLE_VNFD_ID = "b1bb0ce7-ebca-4fa7-95ed-4840d70a1177"
 
 
 @ddt.ddt
@@ -629,3 +637,97 @@ class TestConductorV2(db_base.SqlTestCase):
 
         result = self.conductor.modify_vnfinfo(self.context, lcmocc.id)
         self.assertEqual(None, result)
+
+    @mock.patch.object(vnflcm_driver_v2.VnfLcmDriverV2,
+                       'sync_db')
+    @mock.patch.object(kubernetes_driver.Kubernetes,
+                       '_check_pod_information')
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    @mock.patch.object(objects.base.TackerPersistentObject, "get_by_filter")
+    def test_sync_db(
+            self, mock_db_sync, mock_get_by_filters,
+            mock_list_namespaced_pod, mock_check_pod_information):
+        vnf_instance_obj = fakes.fake_vnf_instance()
+        vnf_instance_obj.id = CNF_SAMPLE_VNFD_ID
+        vnfc_rsc_info_obj1, vnfc_info_obj1 = fakes.fake_vnfc_resource_info(
+            vdu_id='VDU1', rsc_kind='Pod')
+        vnf_instance_obj.instantiatedVnfInfo.vnfcResourceInfo = [
+            vnfc_rsc_info_obj1
+        ]
+        vim_connection_object = fakes.fake_vim_connection_info()
+        vnf_instance_obj.vimConnectionInfo['vim1'] = vim_connection_object
+
+        mock_get_by_filters.return_value = [
+            vnf_instance_obj, vnf_instance_obj]
+        mock_list_namespaced_pod.return_value = client.V1PodList(
+            items=[fakes.get_fake_pod_info(kind='Pod')])
+        mock_check_pod_information.return_value = True
+        self.conductor._sync_db()
+        mock_db_sync.assert_called_once()
+
+    @mock.patch.object(kubernetes_driver.Kubernetes,
+                       '_check_pod_information')
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    @mock.patch.object(objects.base.TackerPersistentObject, "get_by_filter")
+    def test_sync_db_exception(
+            self, mock_get_by_filters, mock_list_namespaced_pod,
+            mock_check_pod_information):
+        vnf_instance_obj = fakes.fake_vnf_instance()
+        vnf_instance_obj.id = CNF_SAMPLE_VNFD_ID
+        vnfc_rsc_info_obj1, vnfc_info_obj1 = fakes.fake_vnfc_resource_info(
+            vdu_id='VDU1', rsc_kind='Pod')
+        vnf_instance_obj.instantiatedVnfInfo.vnfcResourceInfo = [
+            vnfc_rsc_info_obj1
+        ]
+        vim_connection_object = fakes.fake_vim_connection_info()
+        vnf_instance_obj.vimConnectionInfo['vim1'] = vim_connection_object
+
+        mock_get_by_filters.return_value = [
+            vnf_instance_obj, vnf_instance_obj]
+        mock_list_namespaced_pod.return_value = client.V1PodList(
+            items=[fakes.get_fake_pod_info(kind='Pod')])
+        mock_check_pod_information.return_value = True
+
+        log_name = "tacker.sol_refactored.conductor.conductor_v2"
+        with self.assertLogs(logger=log_name, level=logging.DEBUG) as cm:
+            self.conductor._sync_db()
+
+        msg = (f'ERROR:{log_name}:Failed to synchronize database vnf: '
+               f'{vnf_instance_obj.id} Error: ')
+        self.assertIn(f'{msg}', cm.output[1])
+
+    @mock.patch.object(file.FileLock, 'acquire')
+    @mock.patch.object(kubernetes_driver.Kubernetes,
+                       '_check_pod_information')
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    @mock.patch.object(objects.base.TackerPersistentObject, "get_by_filter")
+    def test_sync_db_sol_ex(
+            self, mock_get_by_filters, mock_list_namespaced_pod,
+            mock_check_pod_information, mock_acquire):
+        vnf_instance_obj = fakes.fake_vnf_instance()
+        # vnf_instance_obj.id = CNF_SAMPLE_VNFD_ID
+        vnfc_rsc_info_obj1, vnfc_info_obj1 = fakes.fake_vnfc_resource_info(
+            vdu_id='VDU1', rsc_kind='Pod')
+        vnf_instance_obj.instantiatedVnfInfo.vnfcResourceInfo = [
+            vnfc_rsc_info_obj1
+        ]
+        vim_connection_object = fakes.fake_vim_connection_info()
+        vnf_instance_obj.vimConnectionInfo['vim1'] = vim_connection_object
+
+        vnf_instance_obj1 = fakes.fake_vnf_instance()
+        vnf_instance_obj1.vimConnectionInfo['vim1'] = vim_connection_object
+        mock_get_by_filters.return_value = [
+            vnf_instance_obj]
+        mock_list_namespaced_pod.return_value = client.V1PodList(
+            items=[fakes.get_fake_pod_info(kind='Pod')])
+        mock_check_pod_information.return_value = True
+        mock_acquire.return_value = False
+
+        log_name = "tacker.sol_refactored.conductor.conductor_v2"
+        with self.assertLogs(logger=log_name, level=logging.DEBUG) as cm:
+            self.conductor._sync_db()
+
+        msg = (f'INFO:{log_name}:There is an LCM operation in progress, '
+               f'so skip this DB synchronization. '
+               f'vnf: {vnf_instance_obj.id}.')
+        self.assertIn(f'{msg}', cm.output)

@@ -1972,3 +1972,33 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
 
         LOG.info("Request received for changing external connectivity "
                  "vnf '%s' is completed successfully", vnf_instance.id)
+
+    def sync_db(self, context):
+        filters = {'model': 'VnfInstance',
+                   'field': 'instantiation_state',
+                   'value': 'INSTANTIATED',
+                   'op': '=='
+                   }
+        vnf_instance_list = objects.VnfInstanceList.get_by_filters(
+            context, filters)
+        for vnf_instance in vnf_instance_list:
+            vim_info = vnflcm_utils.get_vim(
+                context, vnf_instance.vim_connection_info)
+            vim_connection_info = (objects.VimConnectionInfo.
+                obj_from_primitive(vim_info, context))
+
+            try:
+                # Database synchronization works only when the
+                # vimType is Kubernetes.
+                if vim_connection_info.vim_type == 'kubernetes':
+                    self._vnf_manager.invoke(
+                        vim_connection_info.vim_type,
+                        'sync_db',
+                        context=context,
+                        vnf_instance=vnf_instance,
+                        vim_info=vim_connection_info
+                    )
+
+            except Exception as e:
+                LOG.error(f"Error is occoured vnf {vnf_instance.id} "
+                        f"Error: {encodeutils.exception_to_unicode(e)}")

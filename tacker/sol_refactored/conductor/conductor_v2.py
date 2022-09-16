@@ -13,7 +13,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import threading
+
 from oslo_log import log as logging
+from oslo_service import loopingcall
+from oslo_utils import encodeutils
 
 from tacker.common import log
 from tacker import context as tacker_context
@@ -35,6 +39,18 @@ from tacker.sol_refactored.objects.v2 import fields
 LOG = logging.getLogger(__name__)
 
 CONF = config.CONF
+# NOTE(fengyi): After the conductor is started, since the start-up process
+# is being executed, it should take a while to start the actual DB
+# synchronization periodical process.
+DB_SYNC_INITIAL_DELAY = 60
+
+
+def async_call(func):
+    def inner(*args, **kwargs):
+        th = threading.Thread(target=func, args=args,
+                kwargs=kwargs, daemon=True)
+        th.start()
+    return inner
 
 
 class ConductorV2(object):
@@ -48,6 +64,15 @@ class ConductorV2(object):
         self.prom_driver = pp_drv.PrometheusPluginDriver.instance()
         self.sn_driver = sdrv.ServerNotificationDriver.instance()
         self._change_lcm_op_state()
+
+        self._periodic_call()
+
+    @async_call
+    def _periodic_call(self):
+        self.periodic = loopingcall.FixedIntervalLoopingCall(
+            self._sync_db)
+        self.periodic.start(interval=CONF.db_synchronization_interval,
+                            initial_delay=DB_SYNC_INITIAL_DELAY)
 
     def _change_lcm_op_state(self):
         # NOTE: If the conductor down during processing and
@@ -320,6 +345,37 @@ class ConductorV2(object):
         # send notification COMPLETED or FAILED_TEMP
         self.nfvo_client.send_lcmocc_notification(context, lcmocc, inst,
                                                   self.endpoint)
+
+    def _sync_db(self):
+        """Periodic database update invocation method(v2 api)"""
+        LOG.debug("Starting _sync_db")
+        context = tacker_context.get_admin_context()
+
+        vnf_instances = objects.VnfInstanceV2.get_by_filter(
+            context, instantiationState='INSTANTIATED')
+        for inst in vnf_instances:
+            try:
+                vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
+                self.vnflcm_driver.diff_check_inst(inst, vim_info)
+                self._sync_inst(context, inst, vim_info)
+            except sol_ex.DbSyncNoDiff:
+                continue
+            except sol_ex.DbSyncFailed as e:
+                LOG.error("%s: %s", e.__class__.__name__, e.args[0])
+            except sol_ex.OtherOperationInProgress:
+                LOG.info("There is an LCM operation in progress, so "
+                         f"skip this DB synchronization. vnf: {inst.id}.")
+            except Exception as e:
+                LOG.error(f"Failed to synchronize database vnf: {inst.id} "
+                          f"Error: {encodeutils.exception_to_unicode(e)}")
+        LOG.debug("Ended _sync_db")
+
+    @coordinate.lock_vnf_instance('{inst.id}')
+    def _sync_inst(self, context, inst, vim_info):
+        vnf_inst = inst_utils.get_inst(context, inst.id)
+        self.vnflcm_driver.sync_db(
+            context, vnf_inst, vim_info)
+        vnf_inst.update(context)
 
     def store_alarm_info(self, context, alarm):
         self.vnffm_driver.store_alarm_info(context, alarm)

@@ -17,6 +17,7 @@ from datetime import datetime
 import os
 from unittest import mock
 
+from kubernetes import client
 from oslo_utils import uuidutils
 
 from tacker import context
@@ -31,6 +32,7 @@ from tacker.sol_refactored.nfvo import nfvo_client
 from tacker.sol_refactored import objects
 from tacker.sol_refactored.objects.v2 import fields
 from tacker.tests import base
+from tacker.tests.unit.sol_refactored.infra_drivers.kubernetes import fakes
 
 
 CNF_SAMPLE_VNFD_ID = "b1bb0ce7-ebca-4fa7-95ed-4840d70a1177"
@@ -3276,3 +3278,111 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
         self.assertRaises(
             sol_ex.SolException, self.driver.change_vnfpkg_rollback,
             self.context, lcmocc, inst, grant_req, grant, self.vnfd_1)
+
+    @mock.patch.object(nfvo_client.NfvoClient, 'get_vnfd')
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_sync_db_kubernetes(
+            self, mock_list_namespaced_pod, mock_get_vnfd):
+        vnf_instance_obj = fakes.fake_vnf_instance()
+
+        vnfc_rsc_info_obj1, vnfc_info_obj1 = fakes.fake_vnfc_resource_info(
+            vdu_id='VDU1', rsc_kind='Deployment',
+            pod_name="vdu1-1234567890-abcd", rsc_name="vdu1")
+
+        vnf_instance_obj.instantiatedVnfInfo.vnfcResourceInfo = [
+            vnfc_rsc_info_obj1
+        ]
+        vim_connection_object = fakes.fake_vim_connection_info()
+        vnf_instance_obj.vimConnectionInfo['vim1'] = vim_connection_object
+
+        mock_list_namespaced_pod.return_value = client.V1PodList(
+            items=[
+                fakes.get_fake_pod_info(
+                    kind='Deployment', pod_name="vdu1-1234567890-abcd1"),
+                fakes.get_fake_pod_info(
+                    kind='Deployment', pod_name="vdu1-1234567890-abcd2")])
+        mock_get_vnfd.return_value = self.vnfd_1
+        vnf_instance_obj.vnfdId = uuidutils.generate_uuid()
+        vnf_instance_obj.instantiatedVnfInfo.scaleStatus = [
+            fakes.fake_scale_status(vnfd_id=vnf_instance_obj.vnfdId)
+        ]
+
+        self.driver.sync_db(
+            context=self.context, vnf_inst=vnf_instance_obj,
+            vim_info=vim_connection_object)
+
+        self.assertEqual(
+            2, vnf_instance_obj.instantiatedVnfInfo.metadata[
+                'vdu_reses']['VDU1']['spec']['replicas'])
+
+    @mock.patch.object(nfvo_client.NfvoClient, 'get_vnfd')
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_sync_db_helm(
+            self, mock_list_namespaced_pod, mock_get_vnfd):
+        vnf_instance_obj = fakes.fake_vnf_instance()
+
+        vnfc_rsc_info_obj1, vnfc_info_obj1 = fakes.fake_vnfc_resource_info(
+            vdu_id='VDU1', rsc_kind='Deployment',
+            pod_name="vdu1-1234567890-abcd", rsc_name="vdu1")
+
+        vnf_instance_obj.instantiatedVnfInfo.vnfcResourceInfo = [
+            vnfc_rsc_info_obj1
+        ]
+        vim_connection_object = fakes.fake_vim_connection_info(
+            vim_type='ETSINFV.HELM.V_3')
+        vnf_instance_obj.vimConnectionInfo['vim1'] = vim_connection_object
+
+        mock_list_namespaced_pod.return_value = client.V1PodList(
+            items=[
+                fakes.get_fake_pod_info(
+                    kind='Deployment', pod_name="vdu1-1234567890-abcd1"),
+                fakes.get_fake_pod_info(
+                    kind='Deployment', pod_name="vdu1-1234567890-abcd2")])
+        mock_get_vnfd.return_value = self.vnfd_1
+        vnf_instance_obj.vnfdId = uuidutils.generate_uuid()
+        vnf_instance_obj.instantiatedVnfInfo.scaleStatus = [
+            fakes.fake_scale_status(vnfd_id=vnf_instance_obj.vnfdId)
+        ]
+
+        self.driver.sync_db(
+            context=self.context, vnf_inst=vnf_instance_obj,
+            vim_info=vim_connection_object)
+
+        self.assertEqual(
+            2, vnf_instance_obj.instantiatedVnfInfo.metadata[
+                'vdu_reses']['VDU1']['spec']['replicas'])
+
+    @mock.patch.object(nfvo_client.NfvoClient, 'get_vnfd')
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_sync_db_not_support(
+            self, mock_list_namespaced_pod, mock_get_vnfd):
+        vnf_instance_obj = fakes.fake_vnf_instance()
+
+        vnfc_rsc_info_obj1, vnfc_info_obj1 = fakes.fake_vnfc_resource_info(
+            vdu_id='VDU1', rsc_kind='Deployment',
+            pod_name="vdu1-1234567890-abcd", rsc_name="vdu1")
+
+        vnf_instance_obj.instantiatedVnfInfo.vnfcResourceInfo = [
+            vnfc_rsc_info_obj1
+        ]
+        vim_connection_object = fakes.fake_vim_connection_info(
+            vim_type="openstack")
+        vnf_instance_obj.vimConnectionInfo['vim1'] = vim_connection_object
+
+        mock_list_namespaced_pod.return_value = client.V1PodList(
+            items=[
+                fakes.get_fake_pod_info(
+                    kind='Deployment', pod_name="vdu1-1234567890-abcd1"),
+                fakes.get_fake_pod_info(
+                    kind='Deployment', pod_name="vdu1-1234567890-abcd2")])
+        mock_get_vnfd.return_value = self.vnfd_1
+        vnf_instance_obj.vnfdId = uuidutils.generate_uuid()
+        vnf_instance_obj.instantiatedVnfInfo.scaleStatus = [
+            fakes.fake_scale_status(vnfd_id=vnf_instance_obj.vnfdId)
+        ]
+
+        ex = self.assertRaises(
+            sol_ex.DbSyncNoDiff, self.driver.sync_db,
+            self.context, vnf_instance_obj, vim_connection_object)
+        self.assertEqual(
+            "There are no differences in Vnfc resources.", ex.args[0])
