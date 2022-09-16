@@ -1,0 +1,21 @@
+{
+    "alerts": [{
+        "status": "firing",
+        "labels": {
+            "receiver_type": "tacker",
+            "function_type": "vnffm",
+            "vnf_instance_id": "503e635e-dcd8-4fae-9939-279af4c528b1",
+            "pod": "test\\-test1\\-[0-9a-f]{1,10}-[0-9a-z]{5}$",
+            "perceived_severity": "CRITICAL",
+            "event_type": "PROCESSING_ERROR_ALARM"
+        },
+        "annotations": {
+            "probable_cause": "Server is down.",
+            "fault_type": "Error",
+            "fault_details": "Fault detail"
+        },
+        "startsAt": "2022-06-21T23:47:36.453Z",
+        "endsAt": "0001-01-01T00:00:00Z",
+        "fingerprint": "5ef77f1f8a3ecb8d"
+    }]
+}

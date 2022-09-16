@@ -21,4 +21,7 @@ NFV Orchestration API v2.0
 
    v1/vnflcm_versions
    v2/vnflcm
+   v2/vnffm
+   v2/vnfpm
+   v2/prometheus_plugin
    v2/fault_notification

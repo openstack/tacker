@@ -1,0 +1,49 @@
+{
+    "objectType": "Vnf",
+    "objectInstanceIds": ["da459819-a2eb-442b-b9a2-0c1c02466baf"],
+    "subObjectInstanceIds": [],
+    "criteria": {
+        "performanceMetric": [
+            "VCpuUsageMeanVnf.25b9b9d0-2461-4109-866e-a7767375415b"],
+        "performanceMetricGroup": ["VirtualisedComputeResource"],
+        "collectionPeriod": 5,
+        "reportingPeriod": 10,
+        "reportingBoundary": "2022-08-05T02:24:46Z"
+    },
+    "callbackUri": "http://localhost:9990/notification/callback/callbackUri",
+    "authentication": {
+        "authType": [
+            "BASIC"
+        ],
+        "paramsBasic": {
+            "password": "ubuntu",
+            "userName": "ubuntu"
+        }
+    },
+    "metadata": {
+            "monitor": {
+                "monitorName": "prometheus",
+                "driverType": "external",
+                "targetsInfo": [
+                        {
+                            "prometheusHost": "prometheus.example",
+                            "alertmanagerHost": "prometheus.example",
+                            "authInfo": {
+                                "ssh_username": "ubuntu",
+                                "ssh_password": "ubuntu"
+                            },
+                            "metricsEndpointConfigPath":
+                                "/etc/prometheus/prometheus.yml",
+                            "alertRuleConfigPath":
+                                "/etc/prometheus/rules/tacker-rule.yml",
+                            "receiverConfigPath":
+                                "/etc/prometheus/alertmanager.yml",
+                            "prometheusReloadApiEndpoint":
+                                "http://localhost:9990/-/reload",
+                            "alertmanagerReloadApiEndpoint":
+                                "http://prometheus.example:9093/-/reload"
+                        }
+                    ]
+            }
+        }
+}

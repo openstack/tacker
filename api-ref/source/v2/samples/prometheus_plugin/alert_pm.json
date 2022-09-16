@@ -1,0 +1,19 @@
+{
+    "alerts": [{
+        "status": "firing",
+        "labels": {
+            "receiver_type": "tacker",
+            "function_type": "vnfpm",
+            "job_id": "64e46b0e-887a-4691-8d2b-aa3d7b157e2c",
+            "metric": "VCpuUsageMeanVnf.25b9b9d0-2461-4109-866e-a7767375415b",
+            "object_instance_id": "25b9b9d0-2461-4109-866e-a7767375415b",
+            "sub_object_instance_id": "85adebfa-d71c-49ab-9d39-d8dd7e393541"
+        },
+        "annotations": {
+            "value": 99
+        },
+        "startsAt": "2022-06-21T23:47:36.453Z",
+        "endsAt": "0001-01-01T00:00:00Z",
+        "fingerprint": "5ef77f1f8a3ecb8d"
+    }]
+}

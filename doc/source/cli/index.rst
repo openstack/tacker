@@ -24,6 +24,8 @@ Operations for ETSI NFV-SOL implementation
 
   cli-etsi-vnfpkgm
   cli-etsi-vnflcm
+  cli-etsi-vnffm
+  cli-etsi-vnfpm
 
 
 Operations for Legacy implementation

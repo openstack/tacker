@@ -1,0 +1,17 @@
+{
+    "alerts": [{
+        "status": "firing",
+        "labels": {
+            "receiver_type": "tacker",
+            "function_type": "auto_scale",
+            "vnf_instance_id": "503e635e-dcd8-4fae-9939-279af4c528b1",
+            "auto_scale_type": "SCALE_OUT",
+            "aspect_id": "VDU1"
+        },
+        "annotations": {
+        },
+        "startsAt": "2022-06-21T23:47:36.453Z",
+        "endsAt": "0001-01-01T00:00:00Z",
+        "fingerprint": "5ef77f1f8a3ecb8d"
+    }]
+}

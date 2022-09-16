@@ -1,0 +1,56 @@
+[
+    {
+    "id": "78a39661-60a8-4824-b989-88c1b0c3534a",
+    "filter": {
+        "vnfInstanceSubscriptionFilter": {
+            "vnfdIds": [
+                "dummy-vnfdId-1"
+            ],
+            "vnfProductsFromProviders": [
+                {
+                    "vnfProvider": "dummy-vnfProvider-1",
+                    "vnfProducts": [
+                        {
+                            "vnfProductName": "dummy-vnfProductName-1-1",
+                            "versions": [
+                                {
+                                    "vnfSoftwareVersion": "1.0",
+                                    "vnfdVersions": ["1.0", "2.0"]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "vnfInstanceIds": [
+                "dummy-vnfInstanceId-1"
+            ],
+            "vnfInstanceNames": [
+                "dummy-vnfInstanceName-1"
+            ]
+        },
+        "notificationTypes": [
+            "AlarmNotification",
+            "AlarmClearedNotification"
+        ],
+        "faultyResourceTypes": [
+            "COMPUTE"
+        ],
+        "perceivedSeverities": [
+            "WARNING"
+        ],
+        "eventTypes": [
+            "EQUIPMENT_ALARM"
+        ],
+        "probableCauses": [
+            "The server cannot be connected."
+        ]
+    },
+    "callbackUri": "/nfvo/notify/alarm",
+    "_links": {
+        "self": {
+            "href": "/vnffm/v1/subscriptions/78a39661-60a8-4824-b989-88c1b0c3534a"
+        }
+    }
+}
+]

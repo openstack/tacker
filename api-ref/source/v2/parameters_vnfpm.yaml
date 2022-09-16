@@ -1,0 +1,292 @@
+# variables in header
+vnf_pm_job_id:
+  description: |
+    Identifier of this PM job.
+  in: path
+  required: true
+  type: string
+
+vnf_pm_job_report_id:
+  description: |
+    Identifier of this PM job report.
+  in: path
+  required: true
+  type: string
+
+# variables in body
+authentication_auth_type:
+  description: |
+    Defines the types of Authentication/Authorization which
+    the API consumer is willing to accept when receiving a
+    notification.
+    Permitted values:
+
+    BASIC: In every HTTP request to the
+    notification endpoint, use HTTP Basic
+    authentication with the client credentials.
+
+    OAUTH2_CLIENT_CREDENTIALS: In every
+    HTTP request to the notification endpoint, use
+    an OAuth 2.0 bearer token, obtained using the
+    client credentials grant type.
+
+    TLS_CERT: Every HTTP request to the
+    notification endpoint is sent over a mutually
+    authenticated TLS session, i.e. not only the
+    server is authenticated, but also the client is
+    authenticated during the TLS tunnel setup.
+  in: body
+  required: true
+  type: array
+authentication_params_basic:
+  description: |
+    Parameters for authentication/authorization using BASIC.
+    Shall be present if authType is "BASIC" and the
+    contained information has not been provisioned out of
+    band. Shall be absent otherwise.
+  in: body
+  required: false
+  type: object
+authentication_params_oauth2_client_credentials:
+  description: |
+    Parameters for authentication/authorization using
+    OAUTH2_CLIENT_CREDENTIALS.
+    Shall be present if authType is
+    "OAUTH2_CLIENT_CREDENTIALS" and the contained
+    information has not been provisioned out of band.
+    Shall be absent otherwise.
+  in: body
+  required: false
+  type: object
+criteria_collection_period:
+  description: |
+    Specifies the periodicity at which the API producer will collect
+    performance information. The unit shall be seconds.
+  in: body
+  required: true
+  type: integer
+criteria_performance_metric:
+  description: |
+    This defines the types of performance metrics for the specified object
+    instances. At least one of the two attributes (performance metric or
+    group) shall be present.
+  in: body
+  required: false
+  type: array
+criteria_performance_metric_group:
+  description: |
+    Group of performance metrics. A metric group is a pre-defined list of
+    metrics, known to the API producer that it can decompose to individual
+    metrics. At least one of the two attributes (performance metric or group)
+    shall be present.
+  in: body
+  required: false
+  type: array
+criteria_reporting_boundary:
+  description: |
+    Identifies a time boundary after which the reporting will stop. The
+    boundary shall allow a single reporting as well as periodic reporting up
+    to the boundary(format:date-time).
+  in: body
+  required: false
+  type: string
+criteria_reporting_period:
+  description: |
+    Specifies the periodicity at which the API producer will report to the API
+    consumer. about performance information. The unit shall be seconds. The
+    reportingPeriod should be equal to or a multiple of the collectionPeriod.
+  in: body
+  required: true
+  type: integer
+links_objects:
+  description: |
+    Links to resources representing the measured object instances for which
+    performance information is collected. Shall be present if the measured
+    object instance information is accessible as a resource.
+  in: body
+  required: false
+  type: array
+links_self:
+  description: |
+    URI of this resource.
+  in: body
+  required: true
+  type: object
+params_oauth2_client_credentials_client_id:
+  description: |
+    Client identifier to be used in the access token request
+    of the OAuth 2.0 client credentials grant type. Shall be
+    present if it has not been provisioned out of band.
+  in: body
+  required: false
+  type: string
+params_oauth2_client_credentials_client_password:
+  description: |
+    Client password to be used in the access token request
+    of the OAuth 2.0 client credentials grant type. Shall be
+    present if it has not been provisioned out of band.
+  in: body
+  required: false
+  type: string
+params_oauth2_client_credentials_token_endpoint:
+  description: |
+    The token endpoint from which the access token can be
+    obtained. Shall be present if it has not been provisioned
+    out of band.
+  in: body
+  required: false
+  type: string
+paramsBasic_password:
+  description: |
+    Password to be used in HTTP Basic authentication.
+    Shall be present if it has not been provisioned out of band.
+  in: body
+  required: false
+  type: string
+paramsBasic_userName:
+  description: |
+    Username to be used in HTTP Basic authentication.
+    Shall be present if it has not been provisioned out of band.
+  in: body
+  required: false
+  type: string
+performance_values_context:
+  description: |
+    Measurement context information related to the measured value.
+  in: body
+  required: false
+  type: key value pairs
+performance_values_time_stamp:
+  description: |
+    Time stamp indicating when the data has been collected.
+  in: body
+  required: true
+  type: string
+performance_values_value:
+  description: |
+    Value of the metric collected.
+  in: body
+  required: true
+  type: string
+pm_job_links:
+  description: |
+    Links for this resource.
+  in: body
+  required: true
+  type: array
+reports_expiry_time:
+  description: |
+    The time when the report will expire.
+  in: body
+  required: false
+  type: string
+reports_file_size:
+  description: |
+    The size of the report file in bytes, if known.
+  in: body
+  required: false
+  type: integer
+reports_href:
+  description: |
+    The URI where the report can be obtained.
+  in: body
+  required: true
+  type: string
+reports_ready_time:
+  description: |
+    The time when the report was made available.
+  in: body
+  required: true
+  type: string
+vnf_pm_job_create_callback_uri:
+  description: |
+    The URI of the endpoint to send the notification to.
+  in: body
+  required: true
+  type: string
+vnf_pm_job_create_criteria:
+  description: |
+    Criteria of the collection of performance information.
+  in: body
+  required: true
+  type: object
+vnf_pm_job_create_metadata:
+  description: |
+    This attribute provides the access information of Prometheus Server.
+  in: body
+  required: false
+  type: key value pairs
+vnf_pm_job_create_object_instance_ids:
+  description: |
+    Identifiers of the measured object instances for which performance
+    information is requested to be collected.
+  in: body
+  required: true
+  type: array
+vnf_pm_job_create_object_type:
+  description: |
+    Type of the measured object.
+  in: body
+  required: true
+  type: string
+vnf_pm_job_create_request_authentication:
+  description: |
+    Authentication parameters to configure the use of Authorization when
+    sending notifications corresponding to this subscription.
+  in: body
+  required: false
+  type: object
+vnf_pm_job_create_sub_object_instance_ids:
+  description: |
+    Identifiers of the measured object instances in case of a structured
+    measured object.
+  in: body
+  required: false
+  type: array
+vnf_pm_job_report_entries:
+  description: |
+    List of performance information entries.
+  in: body
+  required: true
+  type: array
+vnf_pm_job_report_entries_object_instance_id:
+  description: |
+    Identifier of the measured object instance for which the performance metric
+    is reported.
+  in: body
+  required: true
+  type: string
+vnf_pm_job_report_entries_performance_metric:
+  description: |
+    Name of the metric collected.
+  in: body
+  required: true
+  type: string
+vnf_pm_job_report_entries_performance_values:
+  description: |
+    List of performance values with associated timestamp.
+  in: body
+  required: true
+  type: array
+vnf_pm_job_report_entries_sub_object_instance_id:
+  description: |
+    Identifier of the sub-object instance of the measured object instance for
+    which the performance metric is reported.
+  in: body
+  required: false
+  type: string
+vnf_pm_job_reports:
+  description: |
+    Information about available reports collected by this PM job.
+  in: body
+  required: false
+  type: array
+vnf_pm_job_response_id:
+  description: |
+    Identifier of this PM job.
+  in: body
+  required: true
+  type: string
+
+
+

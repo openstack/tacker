@@ -162,3 +162,22 @@ VM
    :maxdepth: 1
 
    practical_sample_package_usage_guide
+
+Prometheus Plugin
+^^^^^^^^^^^^^^^^^
+
+Auto Scaling
+~~~~~~~~~~~~
+
+.. toctree::
+   :maxdepth: 1
+
+   etsi_cnf_auto_scaling_pm
+
+Auto Healing
+~~~~~~~~~~~~
+
+.. toctree::
+   :maxdepth: 1
+
+   etsi_cnf_auto_healing_fm
