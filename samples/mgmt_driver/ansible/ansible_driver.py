@@ -79,6 +79,14 @@ class AnsibleDriver(object):
         self._vnf_instance = vnf_instance
         self._context = context
 
+        vnfd_dict = vnflcm_utils.get_vnfd_dict(context,
+                vnf_instance.vnfd_id,
+                vnf_instance.instantiated_vnf_info.flavour_id)
+        vnf_value = vnfd_dict['topology_template']['node_templates']['VNF']
+        interfaces_vnflcm_value = (vnf_value.get('interfaces', {})
+                .get('Vnflcm', {}))
+        artifacts_vnflcm_value = vnf_value.get('artifacts', {})
+
         start_msg = ("Ansible Management Driver invoked for configuration of"
                      "VNF: {}".format(self._vnf.get("name")))
 
@@ -109,8 +117,34 @@ class AnsibleDriver(object):
             LOG.info("Unable to retrieve mgmt_ip_address of VNF")
             return
 
+        action_interface = None
+        if action == mgmt_constants.ACTION_TERMINATE_VNF:
+            action_interface = 'terminate_start'
+        elif action == mgmt_constants.ACTION_SCALE_IN_VNF:
+            action_interface = 'scale_start'
+        elif action == mgmt_constants.ACTION_SCALE_OUT_VNF:
+            action_interface = 'scale_end'
+        elif action == mgmt_constants.ACTION_INSTANTIATE_VNF:
+            action_interface = 'instantiate_end'
+        elif action == mgmt_constants.ACTION_HEAL_VNF:
+            action_interface = 'heal_end'
+
+        action_value = interfaces_vnflcm_value.get(action_interface, {})
+        action_dependencies = (action_value.get('implementation', {})
+                .get('dependencies', []))
+
+        # NOTE: Currently action_dependencies is having the value of
+        # last element in the list because in the current specification
+        # only a single value is available for dependencies.
+        if isinstance(action_dependencies, list):
+            for arti in action_dependencies:
+                action_dependencies = arti
+
+        filename = artifacts_vnflcm_value.get(action_dependencies,
+                {}).get('file', {})
+
         # load the configuration file
-        config_yaml = self._load_ansible_config(request_obj)
+        config_yaml = self._load_ansible_config(request_obj, filename)
         if not config_yaml:
             return
 
@@ -254,23 +288,17 @@ class AnsibleDriver(object):
 
         return yaml.dump(config_data)
 
-    def _load_ansible_config(self, request_obj):
+    def _load_ansible_config(self, request_obj, filename):
         # load vnf package path
         vnf_package_path = vnflcm_utils._get_vnf_package_path(self._context,
             self._vnf_instance.vnfd_id)
-        script_ansible_path = os.path.join(vnf_package_path,
-            utils.CONFIG_FOLDER)
+        script_ansible_path = os.path.join(vnf_package_path, filename)
 
         script_ansible_config = None
-
         # load ScriptANSIBLE/config.yaml
         if os.path.exists(script_ansible_path):
-            for file in os.listdir(script_ansible_path):
-                if file.endswith('yaml') and file.startswith('config'):
-                    with open(
-                            os.path.join(
-                                script_ansible_path, file)) as file_obj:
-                        script_ansible_config = yaml.safe_load(file_obj)
+            with open(script_ansible_path) as file_obj:
+                script_ansible_config = yaml.safe_load(file_obj)
 
         if script_ansible_config is None:
             LOG.error("not defined ansible script config")
