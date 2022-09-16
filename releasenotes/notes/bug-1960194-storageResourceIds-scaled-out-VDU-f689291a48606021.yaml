@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes `bug 1960194`_. storageResourceIds of scaled out VDU will
+    be populated correctly. storageResourceIds will be same as
+    virtualStorageResourceInfo id.
+
+    .. _bug 1960194: https://bugs.launchpad.net/tacker/+bug/1960194
+

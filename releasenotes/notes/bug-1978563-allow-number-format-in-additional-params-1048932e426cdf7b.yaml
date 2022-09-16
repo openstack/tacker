@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes `bug 1978563`_. Number format value will be
+    allowed in additionalParams section of instantiation
+    json.
+
+    .. _bug 1978563: https://bugs.launchpad.net/tacker/+bug/1978563
+

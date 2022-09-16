@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixes `bug 1983096`_. When exception occurs in exception block
+    of instantiation, heal, termination, change external connectivity
+    operations then notification was not sent. After fix of this bug
+    notification will be sent successfully.
+
+    .. _bug 1983096: https://bugs.launchpad.net/tacker/+bug/1983096
+

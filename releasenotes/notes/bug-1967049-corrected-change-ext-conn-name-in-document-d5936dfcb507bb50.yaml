@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes `bug 1967049`_. The name of change_ext_conn is wrongly
+    mentioned in OpenStack document. It's correct value is change-ext-conn.
+    Corrected name from change_ext_conn to change-ext-conn in document.
+
+    .. _bug 1967049: https://bugs.launchpad.net/tacker/+bug/1967049
+

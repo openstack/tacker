@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes `bug 1981183`_. Error logs will be generated when an error
+    occurs in the process of Instantiation.
+
+    .. _bug 1981183: https://bugs.launchpad.net/tacker/+bug/1981183
+

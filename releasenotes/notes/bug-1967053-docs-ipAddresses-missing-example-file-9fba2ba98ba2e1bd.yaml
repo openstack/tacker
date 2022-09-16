@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixes `bug 1967053`_. ipAddresses field is missing in the
+    param file to instantiate the vnf in the document. This bug
+    fixes the ipAddresses field in the example file in instantiation
+    VNF OpenStack document.
+
+    .. _bug 1967053: https://bugs.launchpad.net/tacker/+bug/1967053
+
