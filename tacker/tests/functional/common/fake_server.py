@@ -141,7 +141,8 @@ def PrepareRequestHandler(manager):
             return (status_code, mock_headers, mock_body)
 
         def do_DELETE(self):
-            raise NotImplementedError
+            self.send_response(http.HTTPStatus.NO_CONTENT)
+            self.end_headers()
 
         def do_GET(self):
             """Process GET request"""
@@ -175,8 +176,14 @@ def PrepareRequestHandler(manager):
             if self._is_match_with_list():
                 # Request is registered in our list.
                 tplUri = urlparse(self.path)
-                self._returned_callback(tplUri.path,
-                    manager._funcs_posts[tplUri.path])
+                if self.path.startswith('/server_notification'):
+                    for key in manager._funcs_posts.keys():
+                        if self.path.startswith(key):
+                            self._returned_callback(tplUri.path,
+                                manager._funcs_posts[key])
+                else:
+                    self._returned_callback(tplUri.path,
+                        manager._funcs_posts[tplUri.path])
             else:
                 # Unregistered URI is requested
                 LOG.debug('POST Recv. Unknown URL: "%s"' % self.path)

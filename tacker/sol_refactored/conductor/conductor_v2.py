@@ -23,6 +23,7 @@ from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import lcm_op_occ_utils as lcmocc_utils
 from tacker.sol_refactored.common import vnf_instance_utils as inst_utils
 from tacker.sol_refactored.conductor import prometheus_plugin_driver as pp_drv
+from tacker.sol_refactored.conductor import server_notification_driver as sdrv
 from tacker.sol_refactored.conductor import vnffm_driver_v1
 from tacker.sol_refactored.conductor import vnflcm_driver_v2
 from tacker.sol_refactored.conductor import vnfpm_driver_v2
@@ -45,7 +46,7 @@ class ConductorV2(object):
         self.endpoint = CONF.v2_vnfm.endpoint
         self.nfvo_client = nfvo_client.NfvoClient()
         self.prom_driver = pp_drv.PrometheusPluginDriver.instance()
-
+        self.sn_driver = sdrv.ServerNotificationDriver.instance()
         self._change_lcm_op_state()
 
     def _change_lcm_op_state(self):
@@ -330,3 +331,12 @@ class ConductorV2(object):
     @log.log
     def request_scale(self, context, id, scale_req):
         self.prom_driver.request_scale(context, id, scale_req)
+
+    @log.log
+    def server_notification_notify(
+            self, context, vnf_instance_id, vnfc_instance_ids):
+        self.sn_driver.notify(vnf_instance_id, vnfc_instance_ids)
+
+    @log.log
+    def server_notification_remove_timer(self, context, vnf_instance_id):
+        self.sn_driver.remove_timer(vnf_instance_id)

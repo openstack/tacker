@@ -1228,7 +1228,13 @@ class Openstack(object):
 
             inst_vnf_info.vnfcInfo = vnfc_infos
 
+        inst_vnf_info.metadata = {}
+        # restore metadata
+        if (inst.obj_attr_is_set('instantiatedVnfInfo') and
+                inst.instantiatedVnfInfo.obj_attr_is_set('metadata')):
+            inst_vnf_info.metadata.update(inst.instantiatedVnfInfo.metadata)
+
         # store stack_id into metadata
-        metadata = {"stack_id": stack_id}
-        inst_vnf_info.metadata = metadata
+        inst_vnf_info.metadata['stack_id'] = stack_id
+
         inst.instantiatedVnfInfo = inst_vnf_info

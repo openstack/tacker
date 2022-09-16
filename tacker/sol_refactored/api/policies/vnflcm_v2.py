@@ -16,8 +16,14 @@
 
 from oslo_policy import policy
 
+from tacker.sol_refactored.common import config as cfg
+
+CONF = cfg.CONF
 
 POLICY_NAME = 'os_nfv_orchestration_api_v2:vnf_instances:{}'
+SERVER_NOTIFICATION_POLICY_NAME = \
+    'tacker_server_notification_api:server_notification:{}'
+
 RULE_ANY = '@'
 
 V2_PATH = '/vnflcm/v2'
@@ -28,6 +34,7 @@ SUBSCRIPTIONS_PATH = V2_PATH + '/subscriptions'
 SUBSCRIPTIONS_ID_PATH = VNF_INSTANCES_PATH + '/{subscriptionId}'
 VNF_LCM_OP_OCCS_PATH = V2_PATH + '/vnf_lcm_op_occs'
 VNF_LCM_OP_OCCS_ID_PATH = VNF_LCM_OP_OCCS_PATH + '/{vnfLcmOpOccId}'
+SERVER_NOTIFICATION_PATH = CONF.server_notification.uri_path_prefix
 
 rules = [
     policy.DocumentedRuleDefault(
@@ -235,6 +242,18 @@ rules = [
     ),
 ]
 
+sn_rules = [
+    policy.DocumentedRuleDefault(
+        name=SERVER_NOTIFICATION_POLICY_NAME.format('notify'),
+        check_str=RULE_ANY,
+        description="notify",
+        operations=[
+            {'method': 'POST',
+             'path': SERVER_NOTIFICATION_PATH}
+        ]
+    ),
+]
+
 
 def list_rules():
-    return rules
+    return rules + sn_rules

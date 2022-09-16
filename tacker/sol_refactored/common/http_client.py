@@ -94,7 +94,7 @@ class HttpClient(object):
     def _decode_body(self, resp):
         if resp.status_code == 204:  # no content
             return
-        content_type = resp.headers['Content-Type']
+        content_type = resp.headers.get('Content-Type', '')
         if content_type == 'application/zip':
             return resp.content
         if content_type == 'text/plain':
