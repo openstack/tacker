@@ -320,7 +320,19 @@ class Helm(kubernetes_common.KubernetesCommon):
         return k8s_reses
 
     def _get_release_name(self, inst):
-        return f'vnf-{inst.id}'
+        release_name = 'vnf' + inst.id.replace('-', '')
+        return release_name
+
+    def _select_vdu_reses(self, vnfd, flavour_id, k8s_reses):
+        vdu_nodes = vnfd.get_vdu_nodes(flavour_id)
+        vdu_ids = {value.get('properties').get('name'): key
+                   for key, value in vdu_nodes.items()}
+        # In helm case, res.name is {properties.name}-{some string}.
+        # NOTE: {some string} must not include '-'.
+        return {vdu_ids[res.name[:res.name.rfind("-")]]: res
+                for res in k8s_reses
+                if (res.kind in kubernetes_common.TARGET_KIND
+                    and res.name[:res.name.rfind("-")] in vdu_ids)}
 
     def _init_instantiated_vnf_info(self, inst, flavour_id, vdu_reses,
             namespace, helm_chart_path, helm_value_names, release_name,

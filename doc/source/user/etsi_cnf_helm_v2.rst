@@ -192,6 +192,7 @@ in compliance with the following rules.
 ``metadata.name`` must be set as
 "properties.name defiend in VNFD"+"-"
 +"Unique string in the release (e.g. release name)".
+"Unique string in the release" must not include "-".
 
 The following shows the sample description.
 
@@ -200,7 +201,7 @@ The following shows the sample description.
   apiVersion: apps/v1
   kind: Deployment
   metadata:
-    name: vdu1-{{ include "localhelm.fullname" . }}
+    name: vdu1-{{ .Release.Name }}
     labels:
       {{- include "localhelm.labels" . | nindent 4 }
   spec:
@@ -865,19 +866,19 @@ successful.
     |                             |     ],                                                                                                                                                                                                                       |
     |                             |     "vnfcResourceInfo": [                                                                                                                                                                                                    |
     |                             |         {                                                                                                                                                                                                                    |
-    |                             |             "id": "vdu1-vnf-e959ab43-133c-4c50-bb00-e2aadc66e498-test-chart-7dhhn2",                                                                                                                                         |
+    |                             |             "id": "vdu1-vnfe959ab43133c4c50bb00e2aadc66e498-587c564878-r972z",                                                                                                                                         |
     |                             |             "vduId": "VDU1",                                                                                                                                                                                                 |
     |                             |             "computeResource": {                                                                                                                                                                                             |
-    |                             |                 "resourceId": "vdu1-vnf-e959ab43-133c-4c50-bb00-e2aadc66e498-test-chart-7dhhn2",                                                                                                                             |
+    |                             |                 "resourceId": "vdu1-vnfe959ab43133c4c50bb00e2aadc66e498-587c564878-r972z",                                                                                                                             |
     |                             |                 "vimLevelResourceType": "Deployment"                                                                                                                                                                         |
     |                             |             },                                                                                                                                                                                                               |
     |                             |             "metadata": {}                                                                                                                                                                                                   |
     |                             |         },                                                                                                                                                                                                                   |
     |                             |         {                                                                                                                                                                                                                    |
-    |                             |             "id": "vdu2-vnf-e959ab43-133c-4c50-bb00-e2aadc66e498-test-chart-7zww8p",                                                                                                                                         |
+    |                             |             "id": "vdu2-vnfe959ab43133c4c50bb00e2aadc66e498-7669fcfbf4-dhhn2",                                                                                                                                         |
     |                             |             "vduId": "VDU2",                                                                                                                                                                                                 |
     |                             |             "computeResource": {                                                                                                                                                                                             |
-    |                             |                 "resourceId": "vdu2-vnf-e959ab43-133c-4c50-bb00-e2aadc66e498-test-chart-7zww8p",                                                                                                                             |
+    |                             |                 "resourceId": "vdu2-vnfe959ab43133c4c50bb00e2aadc66e498-7669fcfbf4-dhhn2",                                                                                                                             |
     |                             |                 "vimLevelResourceType": "Deployment"                                                                                                                                                                         |
     |                             |             },                                                                                                                                                                                                               |
     |                             |             "metadata": {}                                                                                                                                                                                                   |
@@ -885,15 +886,15 @@ successful.
     |                             |     ],                                                                                                                                                                                                                       |
     |                             |     "vnfcInfo": [                                                                                                                                                                                                            |
     |                             |         {                                                                                                                                                                                                                    |
-    |                             |             "id": "VDU1-vdu1-vnf-e959ab43-133c-4c50-bb00-e2aadc66e498-test-chart-7dhhn2",                                                                                                                                    |
+    |                             |             "id": "VDU1-vdu1-vnfe959ab43133c4c50bb00e2aadc66e498-587c564878-r972z",                                                                                                                                    |
     |                             |             "vduId": "VDU1",                                                                                                                                                                                                 |
-    |                             |             "vnfcResourceInfoId": "vdu1-vnf-e959ab43-133c-4c50-bb00-e2aadc66e498-test-chart-7dhhn2",                                                                                                                         |
+    |                             |             "vnfcResourceInfoId": "vdu1-vnfe959ab43133c4c50bb00e2aadc66e498-587c564878-r972z",                                                                                                                         |
     |                             |             "vnfcState": "STARTED"                                                                                                                                                                                           |
     |                             |         },                                                                                                                                                                                                                   |
     |                             |         {                                                                                                                                                                                                                    |
-    |                             |             "id": "VDU2-vdu2-vnf-e959ab43-133c-4c50-bb00-e2aadc66e498-test-chart-7zww8p",                                                                                                                                    |
+    |                             |             "id": "VDU2-vdu2-vnfe959ab43133c4c50bb00e2aadc66e498-7669fcfbf4-dhhn2",                                                                                                                                    |
     |                             |             "vduId": "VDU2",                                                                                                                                                                                                 |
-    |                             |             "vnfcResourceInfoId": "vdu2-vnf-e959ab43-133c-4c50-bb00-e2aadc66e498-test-chart-7zww8p",                                                                                                                         |
+    |                             |             "vnfcResourceInfoId": "vdu2-vnfe959ab43133c4c50bb00e2aadc66e498-7669fcfbf4-dhhn2",                                                                                                                         |
     |                             |             "vnfcState": "STARTED"                                                                                                                                                                                           |
     |                             |         }                                                                                                                                                                                                                    |
     |                             |     ],                                                                                                                                                                                                                       |
@@ -904,11 +905,11 @@ successful.
     |                             |                 "apiVersion": "apps/v1",                                                                                                                                                                                     |
     |                             |                 "kind": "Deployment",                                                                                                                                                                                        |
     |                             |                 "metadata": {                                                                                                                                                                                                |
-    |                             |                     "name": "vdu1-vnf-e959ab43-133c-4c50-bb00-e2aadc66e498-test-chart",                                                                                                                                      |
+    |                             |                     "name": "vdu1-vnfe959ab43133c4c50bb00e2aadc66e498",                                                                                                                                      |
     |                             |                     "labels": {                                                                                                                                                                                              |
     |                             |                         "helm.sh/chart": "test-chart-0.1.0",                                                                                                                                                                 |
     |                             |                         "app.kubernetes.io/name": "test-chart",                                                                                                                                                              |
-    |                             |                         "app.kubernetes.io/instance": "vnf-e959ab43-133c-4c50-bb00-e2aadc66e498",                                                                                                                            |
+    |                             |                         "app.kubernetes.io/instance": "vnfe959ab43133c4c50bb00e2aadc66e498",                                                                                                                            |
     |                             |                         "app.kubernetes.io/version": "1.16.0",                                                                                                                                                               |
     |                             |                         "app.kubernetes.io/managed-by": "Helm"                                                                                                                                                               |
     |                             |                     },                                                                                                                                                                                                       |
@@ -919,18 +920,18 @@ successful.
     |                             |                     "selector": {                                                                                                                                                                                            |
     |                             |                         "matchLabels": {                                                                                                                                                                                     |
     |                             |                             "app.kubernetes.io/name": "test-chart",                                                                                                                                                          |
-    |                             |                             "app.kubernetes.io/instance": "vnf-e959ab43-133c-4c50-bb00-e2aadc66e498"                                                                                                                         |
+    |                             |                             "app.kubernetes.io/instance": "vnfe959ab43133c4c50bb00e2aadc66e498"                                                                                                                         |
     |                             |                         }                                                                                                                                                                                                    |
     |                             |                     },                                                                                                                                                                                                       |
     |                             |                     "template": {                                                                                                                                                                                            |
     |                             |                         "metadata": {                                                                                                                                                                                        |
     |                             |                             "labels": {                                                                                                                                                                                      |
     |                             |                                 "app.kubernetes.io/name": "test-chart",                                                                                                                                                      |
-    |                             |                                 "app.kubernetes.io/instance": "vnf-e959ab43-133c-4c50-bb00-e2aadc66e498"                                                                                                                     |
+    |                             |                                 "app.kubernetes.io/instance": "vnfe959ab43133c4c50bb00e2aadc66e498"                                                                                                                     |
     |                             |                             }                                                                                                                                                                                                |
     |                             |                         },                                                                                                                                                                                                   |
     |                             |                         "spec": {                                                                                                                                                                                            |
-    |                             |                             "serviceAccountName": "vnf-e959ab43-133c-4c50-bb00-e2aadc66e498-test-chart",                                                                                                                     |
+    |                             |                             "serviceAccountName": "vnfe959ab43133c4c50bb00e2aadc66e498-test-chart",                                                                                                                     |
     |                             |                             "securityContext": {},                                                                                                                                                                           |
     |                             |                             "containers": [                                                                                                                                                                                  |
     |                             |                                 {                                                                                                                                                                                            |
@@ -956,11 +957,11 @@ successful.
     |                             |                 "apiVersion": "apps/v1",                                                                                                                                                                                     |
     |                             |                 "kind": "Deployment",                                                                                                                                                                                        |
     |                             |                 "metadata": {                                                                                                                                                                                                |
-    |                             |                     "name": "vdu2-vnf-e959ab43-133c-4c50-bb00-e2aadc66e498-test-chart",                                                                                                                                      |
+    |                             |                     "name": "vdu2-vnfe959ab43133c4c50bb00e2aadc66e498",                                                                                                                                      |
     |                             |                     "labels": {                                                                                                                                                                                              |
     |                             |                         "helm.sh/chart": "test-chart-0.1.0",                                                                                                                                                                 |
     |                             |                         "app.kubernetes.io/name": "test-chart",                                                                                                                                                              |
-    |                             |                         "app.kubernetes.io/instance": "vnf-e959ab43-133c-4c50-bb00-e2aadc66e498",                                                                                                                            |
+    |                             |                         "app.kubernetes.io/instance": "vnfe959ab43133c4c50bb00e2aadc66e498",                                                                                                                            |
     |                             |                         "app.kubernetes.io/version": "1.16.0",                                                                                                                                                               |
     |                             |                         "app.kubernetes.io/managed-by": "Helm"                                                                                                                                                               |
     |                             |                     },                                                                                                                                                                                                       |
@@ -971,18 +972,18 @@ successful.
     |                             |                     "selector": {                                                                                                                                                                                            |
     |                             |                         "matchLabels": {                                                                                                                                                                                     |
     |                             |                             "app.kubernetes.io/name": "test-chart",                                                                                                                                                          |
-    |                             |                             "app.kubernetes.io/instance": "vnf-e959ab43-133c-4c50-bb00-e2aadc66e498"                                                                                                                         |
+    |                             |                             "app.kubernetes.io/instance": "vnfe959ab43133c4c50bb00e2aadc66e498"                                                                                                                         |
     |                             |                         }                                                                                                                                                                                                    |
     |                             |                     },                                                                                                                                                                                                       |
     |                             |                     "template": {                                                                                                                                                                                            |
     |                             |                         "metadata": {                                                                                                                                                                                        |
     |                             |                             "labels": {                                                                                                                                                                                      |
     |                             |                                 "app.kubernetes.io/name": "test-chart",                                                                                                                                                      |
-    |                             |                                 "app.kubernetes.io/instance": "vnf-e959ab43-133c-4c50-bb00-e2aadc66e498"                                                                                                                     |
+    |                             |                                 "app.kubernetes.io/instance": "vnfe959ab43133c4c50bb00e2aadc66e498"                                                                                                                     |
     |                             |                             }                                                                                                                                                                                                |
     |                             |                         },                                                                                                                                                                                                   |
     |                             |                         "spec": {                                                                                                                                                                                            |
-    |                             |                             "serviceAccountName": "vnf-e959ab43-133c-4c50-bb00-e2aadc66e498-test-chart",                                                                                                                     |
+    |                             |                             "serviceAccountName": "vnfe959ab43133c4c50bb00e2aadc66e498-test-chart",                                                                                                                     |
     |                             |                             "securityContext": {},                                                                                                                                                                           |
     |                             |                             "containers": [                                                                                                                                                                                  |
     |                             |                                 {                                                                                                                                                                                            |
@@ -1014,7 +1015,7 @@ successful.
     |                             |                 "replica": "replicaCountVdu2"                                                                                                                                                                                |
     |                             |             }                                                                                                                                                                                                                |
     |                             |         },                                                                                                                                                                                                                   |
-    |                             |         "release_name": "vnf-e959ab43-133c-4c50-bb00-e2aadc66e498",                                                                                                                                                          |
+    |                             |         "release_name": "vnfe959ab43133c4c50bb00e2aadc66e498",                                                                                                                                                          |
     |                             |         "revision": "1"                                                                                                                                                                                                      |
     |                             |     }                                                                                                                                                                                                                        |
     |                             | }                                                                                                                                                                                                                            |
@@ -1077,8 +1078,8 @@ Release is an instance of a chart running on a Kubernetes cluster.
 .. code-block:: console
 
     $ helm list
-    NAME                                      NAMESPACE	REVISION  UPDATED                                 STATUS    CHART             APP VERSION
-    vnf-e959ab43-133c-4c50-bb00-e2aadc66e498  default   1         2022-09-13 02:14:32.389689049 +0000 UTC deployed  test-chart-0.1.0  1.16.0
+    NAME                                    NAMESPACE       REVISION        UPDATED                                 STATUS          CHART                   APP VERSION
+    vnfe959ab43133c4c50bb00e2aadc66e498     default         1               2022-09-13 02:14:32.389689049 +0000 UTC deployed        test-chart-0.1.0        1.16.0
 
 Also, we can check a deployed containerized VNF
 by running the following command.
@@ -1087,9 +1088,9 @@ When the READY is 1/1, indicate the deployment is created successfully.
 .. code-block:: console
 
     $ kubectl get deploy
-    NAME                                                       READY   UP-TO-DATE   AVAILABLE   AGE
-    vdu1-vnf-e959ab43-133c-4c50-bb00-e2aadc66e498-test-chart   1/1     1            1           5m40s
-    vdu2-vnf-e959ab43-133c-4c50-bb00-e2aadc66e498-test-chart   1/1     1            1           5m40s
+    NAME                                       READY   UP-TO-DATE   AVAILABLE   AGE
+    vdu1-vnfe959ab43133c4c50bb00e2aadc66e498   1/1     1            1           5m40s
+    vdu2-vnfe959ab43133c4c50bb00e2aadc66e498   1/1     1            1           5m40s
 
 If we want to check whether the resource is deployed in the default namespace,
 we can append ``-A`` to the command line.
@@ -1097,10 +1098,10 @@ we can append ``-A`` to the command line.
 .. code-block:: console
 
     $ kubectl get deploy -A
-    NAMESPACE     NAME                                                       READY   UP-TO-DATE   AVAILABLE   AGE
-    default       vdu1-vnf-e959ab43-133c-4c50-bb00-e2aadc66e498-test-chart   1/1     1            1           6m
-    default       vdu2-vnf-e959ab43-133c-4c50-bb00-e2aadc66e498-test-chart   1/1     1            1           6m
-    kube-system   kuryr-controller                                           1/1     1            1           16h
+    NAMESPACE     NAME                                       READY   UP-TO-DATE   AVAILABLE   AGE
+    default       vdu1-vnfe959ab43133c4c50bb00e2aadc66e498   1/1     1            1           6m
+    default       vdu2-vnfe959ab43133c4c50bb00e2aadc66e498   1/1     1            1           6m
+    kube-system   kuryr-controller                           1/1     1            1           16h
 
 .. note::
 
