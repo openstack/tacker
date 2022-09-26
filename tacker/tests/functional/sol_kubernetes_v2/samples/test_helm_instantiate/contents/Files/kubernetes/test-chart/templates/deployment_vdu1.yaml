@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: vdu1-{{ include "test-chart.fullname" . }}
+  name: vdu1-{{ .Release.Name }}
   labels:
     {{- include "test-chart.labels" . | nindent 4 }}
 spec:

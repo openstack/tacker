@@ -104,17 +104,6 @@ class KubernetesCommon(object):
                 num += 1
         return num
 
-    def _select_vdu_reses(self, vnfd, flavour_id, k8s_reses):
-        vdu_nodes = vnfd.get_vdu_nodes(flavour_id)
-        vdu_ids = {value.get('properties').get('name'): key
-                   for key, value in vdu_nodes.items()}
-        # res.name is properties.name itself or
-        # {properties.name}-{some string}. later is helm case.
-        return {vdu_ids[res.name.split("-")[0]]: res
-                for res in k8s_reses
-                if (res.kind in TARGET_KIND
-                    and res.name.split("-")[0] in vdu_ids)}
-
     def _init_instantiated_vnf_info(self, inst, flavour_id,
             vdu_reses, namespace):
         metadata = {

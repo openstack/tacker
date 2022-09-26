@@ -294,6 +294,16 @@ class Kubernetes(kubernetes_common.KubernetesCommon):
             k8s_api_client = acm.init_k8s_api_client()
             self._scale_k8s_resource(inst, vdus_num, k8s_api_client)
 
+    def _select_vdu_reses(self, vnfd, flavour_id, k8s_reses):
+        vdu_nodes = vnfd.get_vdu_nodes(flavour_id)
+        vdu_ids = {value.get('properties').get('name'): key
+                   for key, value in vdu_nodes.items()}
+        # res.name is properties.name itself
+        return {vdu_ids[res.name]: res
+                for res in k8s_reses
+                if (res.kind in kubernetes_common.TARGET_KIND
+                    and res.name in vdu_ids)}
+
     def _init_instantiated_vnf_info(self, inst, flavour_id, vdu_reses,
             namespace, target_k8s_files):
         super()._init_instantiated_vnf_info(inst, flavour_id,
