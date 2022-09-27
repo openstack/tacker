@@ -14,6 +14,7 @@
 #    under the License.
 
 import datetime
+import itertools
 import json
 import os
 import paramiko
@@ -78,10 +79,10 @@ class PrometheusPluginPm(PrometheusPlugin, mon_base.MonitoringPlugin):
         self.sol_exp_map = {
             'VCpuUsageMeanVnf':
                 'avg(sum(rate(pod_cpu_usage_seconds_total'
-                '{{pod=~"{pod}"}}[{reporting_period}s]))',
+                '{{pod=~"{pod}"}}[{reporting_period}s])))',
             'VCpuUsagePeakVnf':
                 'max(sum(rate(pod_cpu_usage_seconds_total'
-                '{{pod=~"{pod}"}}[{reporting_period}s]))',
+                '{{pod=~"{pod}"}}[{reporting_period}s])))',
             'VMemoryUsageMeanVnf':
                 'avg(pod_memory_working_set_bytes{{pod=~"{pod}"}} / '
                 'on(pod) (kube_node_status_capacity{{resource="memory"}} * '
@@ -93,11 +94,11 @@ class PrometheusPluginPm(PrometheusPlugin, mon_base.MonitoringPlugin):
             'VDiskUsageMeanVnf':
                 'avg(container_fs_usage_bytes{{container="{container}",'
                 'pod=~"{pod}"}}/container_fs_limit_bytes{{container='
-                '"{container}",pod=~"{pod}"}}))',
+                '"{container}",pod=~"{pod}"}})',
             'VDiskUsagePeakVnf':
                 'max(container_fs_usage_bytes{{container="{container}",'
                 'pod=~"{pod}"}}/container_fs_limit_bytes{{container='
-                '"{container}",pod=~"{pod}"}}))',
+                '"{container}",pod=~"{pod}"}})',
             'ByteIncomingVnfIntCp':
                 'sum(container_network_receive_bytes_total'
                 '{{interface="{sub_object_instance_id}",pod=~"{pod}"}})',
@@ -164,6 +165,8 @@ class PrometheusPluginPm(PrometheusPlugin, mon_base.MonitoringPlugin):
         if not report:
             return None
 
+        report = list(map(lambda x: x.entries, report))
+        report = list(itertools.chain.from_iterable(report))
         entries_of_same_object = list(
             filter(
                 lambda x: (
@@ -171,7 +174,7 @@ class PrometheusPluginPm(PrometheusPlugin, mon_base.MonitoringPlugin):
                     (not x.obj_attr_is_set('subObjectInstanceId') or
                      x.subObjectInstanceId == sub_object_instance_id) and
                     x.performanceMetric == metric),
-                report.entries))
+                report))
         if len(entries_of_same_object) == 0:
             return None
         values = sum(list(map(
@@ -283,7 +286,7 @@ class PrometheusPluginPm(PrometheusPlugin, mon_base.MonitoringPlugin):
                 pm_job.criteria.performanceMetricGroup) else []
         for obj in pm_job.objectInstanceIds:
             for grp in metric_grps:
-                if grp == 'VirtualizedComputeResource':
+                if grp == 'VirtualisedComputeResource':
                     metrics.append(f'VCpuUsageMeanVnf.{obj}')
                     metrics.append(f'VCpuUsagePeakVnf.{obj}')
                     metrics.append(f'VMemoryUsageMeanVnf.{obj}')
@@ -346,8 +349,8 @@ class PrometheusPluginPm(PrometheusPlugin, mon_base.MonitoringPlugin):
         #   ['test-test1-756757f8f-xcwmt',
         #    'test-test2-756757f8f-kmghr', ...]
         # convert them to a regex string such as:
-        #   '(test\-test1\-[0-9a-f]{1,10}-[0-9a-z]{5}$|
-        #    test\-test2\-[0-9a-f]{1,10}-[0-9a-z]{5}$|...)'
+        #   '(test-test1-[0-9a-f]{1,10}-[0-9a-z]{5}$|
+        #    test-test2-[0-9a-f]{1,10}-[0-9a-z]{5}$|...)'
         deployments = list(filter(
             lambda r:
                 r.computeResource.obj_attr_is_set(
@@ -359,10 +362,10 @@ class PrometheusPluginPm(PrometheusPlugin, mon_base.MonitoringPlugin):
                 'Deployment', resource_info
         ))
         deployments = list(set(list(map(
-            lambda d: re.escape(re.sub(
-                r'\-[0-9a-f]{1,10}-[0-9a-z]{5}$', '',
-                d.computeResource.resourceId)) +
-            r'\-[0-9a-f]{1,10}-[0-9a-z]{5}$',
+            lambda d: re.sub(
+                r'\-[0-9a-f]{1,10}\-[0-9a-z]{5}$', '',
+                d.computeResource.resourceId) +
+            r'-[0-9a-f]{1,10}-[0-9a-z]{5}$',
             deployments
         ))))
         pods_regexp = '(' + '|'.join(deployments) + ')'
@@ -379,8 +382,8 @@ class PrometheusPluginPm(PrometheusPlugin, mon_base.MonitoringPlugin):
             #   ['test-test1-756757f8f-xcwmt',
             #    'test-test2-756757f8f-kmghr', ...]
             # convert them to a regex string such as:
-            #   '(test\-test1\-[0-9a-f]{1,10}-[0-9a-z]{5}$|
-            #    test\-test2\-[0-9a-f]{1,10}-[0-9a-z]{5}$|...)'
+            #   '(test-test1-[0-9a-f]{1,10}-[0-9a-z]{5}$|
+            #    test-test2-[0-9a-f]{1,10}-[0-9a-z]{5}$|...)'
             resource_info = self.get_vnfc_resource_info(context, obj, inst_map)
             if not resource_info:
                 continue
@@ -443,12 +446,11 @@ class PrometheusPluginPm(PrometheusPlugin, mon_base.MonitoringPlugin):
                     continue
                 resource_id = compute_resource.resourceId
                 deployment = re.sub(
-                    r'\-[0-9a-f]{1,10}-[0-9a-z]{5}$', '', resource_id)
+                    r'\-[0-9a-f]{1,10}\-[0-9a-z]{5}$', '', resource_id)
                 g = re.match(r'^(.+)\-\1{1,}[0-9]+', deployment)
                 if not g:
                     continue
                 container = g.group(1)
-                resource_id = re.escape(resource_id)
                 expr = self.make_prom_ql(
                     target, resource_id, container=container,
                     collection_period=collection_period,

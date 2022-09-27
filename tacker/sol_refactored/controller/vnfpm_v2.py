@@ -40,8 +40,8 @@ CONF = config.CONF
 OBJ_TYPE_TO_GROUP_TYPE = {
     'Vnf': 'VirtualisedComputeResource',
     'Vnfc': 'VirtualisedComputeResource',
-    'VnfIntCP': 'VnfInternalCP',
-    'VnfExtCP': 'VnfExternalCP'
+    'VnfIntCp': 'VnfInternalCp',
+    'VnfExtCp': 'VnfExternalCp'
 }
 
 OBJ_TYPE_TO_METRIC_LISt = {
@@ -51,9 +51,9 @@ OBJ_TYPE_TO_METRIC_LISt = {
     'Vnfc': {'VCpuUsageMeanVnf', 'VCpuUsagePeakVnf',
              'VMemoryUsageMeanVnf', 'VMemoryUsagePeakVnf',
              'VDiskUsageMeanVnf', 'VDiskUsagePeakVnf'},
-    'VnfIntCP': {'ByteIncomingVnfIntCp', 'ByteOutgoingVnfIntCp',
+    'VnfIntCp': {'ByteIncomingVnfIntCp', 'ByteOutgoingVnfIntCp',
                  'PacketIncomingVnfIntCp', 'PacketOutgoingVnfIntCp'},
-    'VnfExtCP': {'ByteIncomingVnfExtCp', 'ByteOutgoingVnfExtCp',
+    'VnfExtCp': {'ByteIncomingVnfExtCp', 'ByteOutgoingVnfExtCp',
                  'PacketIncomingVnfExtCp', 'PacketOutgoingVnfExtCp'}
 }
 
