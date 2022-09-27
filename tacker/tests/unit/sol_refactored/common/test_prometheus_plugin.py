@@ -62,7 +62,7 @@ _body_pm_alert1 = {
         'object_instance_id': '25b9b9d0-2461-4109-866e-a7767375415b'
     },
     'annotations': {
-        'value': 99,
+        'value': '99',
     },
     'startsAt': '2022-06-21T23:47:36.453Z',
     'endsAt': '0001-01-01T00:00:00Z',
@@ -110,7 +110,7 @@ _pm_job = {
             'VcpuUsageMeanVnf.25b9b9d0-2461-4109-866e-a7767375415b'
         ],
         'performanceMetricGroup': [
-            'VirtualizedComputeResource',
+            'VirtualisedComputeResource',
             'InvalidGroupName'
         ],
         'collectionPeriod': 15,
@@ -331,8 +331,8 @@ class TestPrometheusPluginPm(base.TestCase):
         self.config_fixture.config(
             group='prometheus_plugin', performance_management=True)
         mock_pm_job.return_value = objects.PmJobV2.from_dict(_pm_job)
-        mock_pm_report.return_value = objects.PerformanceReportV2.from_dict(
-            _pm_report)
+        mock_pm_report.return_value = [objects.PerformanceReportV2.from_dict(
+            _pm_report)]
         pp = mon_base.MonitoringPlugin.get_instance(
             prometheus_plugin.PrometheusPluginPm)
 
@@ -350,8 +350,8 @@ class TestPrometheusPluginPm(base.TestCase):
         self.config_fixture.config(
             group='prometheus_plugin', performance_management=True)
         mock_pm_job.return_value = objects.PmJobV2.from_dict(_pm_job)
-        mock_pm_report.return_value = objects.PerformanceReportV2.from_dict(
-            _pm_report)
+        mock_pm_report.return_value = [objects.PerformanceReportV2.from_dict(
+            _pm_report)]
         pp = mon_base.MonitoringPlugin.get_instance(
             prometheus_plugin.PrometheusPluginPm)
         unload_uuidsentinel()
@@ -367,8 +367,8 @@ class TestPrometheusPluginPm(base.TestCase):
         self.config_fixture.config(
             group='prometheus_plugin', performance_management=True)
         mock_pm_job.return_value = objects.PmJobV2.from_dict(_pm_job)
-        mock_pm_report.return_value = objects.PerformanceReportV2.from_dict(
-            _pm_report2)
+        mock_pm_report.return_value = [objects.PerformanceReportV2.from_dict(
+            _pm_report2)]
         pp = mon_base.MonitoringPlugin.get_instance(
             prometheus_plugin.PrometheusPluginPm)
         unload_uuidsentinel()
@@ -393,8 +393,8 @@ class TestPrometheusPluginPm(base.TestCase):
         self.config_fixture.config(
             group='prometheus_plugin', performance_management=True)
         mock_pm_job.return_value = objects.PmJobV2.from_dict(_pm_job)
-        mock_pm_report.return_value = objects.PerformanceReportV2.from_dict(
-            _pm_report)
+        mock_pm_report.return_value = [objects.PerformanceReportV2.from_dict(
+            _pm_report)]
         pp = mon_base.MonitoringPlugin.get_instance(
             prometheus_plugin.PrometheusPluginPm)
         unload_uuidsentinel()
@@ -417,8 +417,8 @@ class TestPrometheusPluginPm(base.TestCase):
         self.config_fixture.config(
             group='prometheus_plugin', performance_management=True)
         mock_pm_job.return_value = objects.PmJobV2.from_dict(_pm_job)
-        mock_pm_report.return_value = objects.PerformanceReportV2.from_dict(
-            _pm_report)
+        mock_pm_report.return_value = [objects.PerformanceReportV2.from_dict(
+            _pm_report)]
         pp = mon_base.MonitoringPlugin.get_instance(
             prometheus_plugin.PrometheusPluginPm)
         pp.set_callback(None)
@@ -487,7 +487,7 @@ class TestPrometheusPluginPm(base.TestCase):
             group='prometheus_plugin', performance_management=True)
         pp = mon_base.MonitoringPlugin.get_instance(
             prometheus_plugin.PrometheusPluginPm)
-        # VirtualizedComputeResource
+        # VirtualisedComputeResource
         job = objects.PmJobV2.from_dict(_pm_job)
         rule = pp.create_job(context=self.context, pm_job=job)
         self.assertTrue(len(rule['groups'][0]['rules']) > 0)
@@ -515,7 +515,7 @@ class TestPrometheusPluginPm(base.TestCase):
             group='prometheus_plugin', performance_management=True)
         pp = mon_base.MonitoringPlugin.get_instance(
             prometheus_plugin.PrometheusPluginPm)
-        # VirtualizedComputeResource
+        # VirtualisedComputeResource
         job = copy.deepcopy(_pm_job)
         job['subObjectInstanceIds'] = ['vnfc_info1']
         job = objects.PmJobV2.from_dict(job)
@@ -638,7 +638,7 @@ class TestPrometheusPluginPm(base.TestCase):
             pp.create_job, context=self.context, pm_job=job
         )
 
-        # resourcename mismatch: VirtualizedComputeResource
+        # resourcename mismatch: VirtualisedComputeResource
         ins = copy.deepcopy(_inst1)
         _ = ins['instantiatedVnfInfo']['vnfcResourceInfo']
         del _[0]['computeResource']['resourceId']
@@ -650,7 +650,7 @@ class TestPrometheusPluginPm(base.TestCase):
             sol_ex.PrometheusPluginError,
             pp.create_job, context=self.context, pm_job=job
         )
-        # resourcename mismatch: VirtualizedComputeResource
+        # resourcename mismatch: VirtualisedComputeResource
         ins = copy.deepcopy(_inst1)
         _ = ins['instantiatedVnfInfo']['vnfcResourceInfo'][0]
         _['computeResource']['resourceId'] = 'test-xxx1-756757f8f-xcwmt'

@@ -58,7 +58,7 @@ Alert = {
         'annotations': {
             'type': 'object',
             'properties': {
-                'value': {'type': 'number'},
+                'value': {'type': ['number', 'string']},
                 'probable_cause': {'type': 'string'},
                 'fault_type': {'type': 'string'},
                 'fault_details': {'type': 'string'}
