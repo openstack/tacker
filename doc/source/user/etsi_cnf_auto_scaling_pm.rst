@@ -260,7 +260,7 @@ The following are the parameters required by this interface.
     * ``performanceMetric`` and ``performanceMetricGroup``, at least one of
       the two attributes shall be present.
     * ``objectType`` has only the following values: ``Vnf``, ``Vnfc``,
-      ``VnfIntCP``, ``VnfExtCP``.
+      ``VnfIntCp``, ``VnfExtCp``.
 
 
 
@@ -284,7 +284,7 @@ as follows:
                 "VcpuUsageMeanVnf.495ffedf-2755-42c8-bf14-a5433701311e"
             ],
             "performanceMetricGroup": [
-                "VirtualizedComputeResource"
+                "VirtualisedComputeResource"
             ],
             "collectionPeriod": 5,
             "reportingPeriod": 10,

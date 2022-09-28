@@ -51,8 +51,8 @@ CreatePmJobRequest_V210 = {
                 # the types can be extended.
                 'Vnf',
                 'Vnfc',
-                'VnfIntCP',
-                'VnfExtCP']
+                'VnfIntCp',
+                'VnfExtCp']
         },
         'objectInstanceIds': {
             'type': 'array',
