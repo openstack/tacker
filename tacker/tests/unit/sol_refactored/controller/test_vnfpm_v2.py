@@ -100,7 +100,7 @@ class TestVnfpmV2(base.BaseTestCase):
                           vnfpm_v2._check_performance_metric_or_group,
                           obj_type='Vnf',
                           metric_group=['VirtualisedComputeResource',
-                                        'VnfInternalCP'],
+                                        'VnfInternalCp'],
                           performance_metric=['VCpuUsageMeanVnf.VNF'])
 
         self.assertRaises(sol_ex.PMJobInvalidRequest,
