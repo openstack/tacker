@@ -60,7 +60,7 @@ Vagrant.configure("2") do |config|
       if Vagrant.has_plugin?("vagrant-proxyconf")
         server.proxy.http = ENV["http_proxy"]
         server.proxy.https = ENV["https_proxy"]
-        if ENV["no_proxy"] != ""
+        if ENV["no_proxy"] != nil
           server.proxy.no_proxy = ENV["no_proxy"] +
               "," + machine.private_ips.join(",")
         end
