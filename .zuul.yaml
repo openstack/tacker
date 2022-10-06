@@ -606,21 +606,15 @@
       - release-notes-jobs-python3
     check:
       jobs:
-        - tacker-functional-devstack-multinode-legacy:
-            # TODO(ueha) Temporarily set to non-voting for Zed RC1
-            voting: false
+        - tacker-functional-devstack-multinode-legacy
         - tacker-functional-devstack-multinode-sol
         - tacker-functional-devstack-multinode-sol-separated-nfvo
         - tacker-functional-devstack-multinode-sol-kubernetes
-        - tacker-functional-devstack-multinode-libs-master:
-            # TODO(ueha): Temporarily set to non-voting for Zed RC1
-            voting: false
+        - tacker-functional-devstack-multinode-libs-master
         - tacker-functional-devstack-multinode-sol-v2
         - tacker-functional-devstack-multinode-sol-separated-nfvo-v2
         - tacker-functional-devstack-multinode-sol-kubernetes-v2
         - tacker-functional-devstack-multinode-sol-multi-tenant
         - tacker-functional-devstack-multinode-sol-kubernetes-multi-tenant
-        - tacker-functional-devstack-kubernetes-oidc-auth:
-            # TODO(ueha): Temporarily set to non-voting for Zed RC1
-            voting: false
+        - tacker-functional-devstack-kubernetes-oidc-auth
         - tacker-compliance-devstack-multinode-sol
