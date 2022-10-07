@@ -196,10 +196,13 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
               - 23. Update VNF
               - 24. Show VNF instance
               - 25. Terminate VNF
-              - 26. Delete VNF instance
-              - 27. Show VNF instance
-              - 28. Delete subscription
-              - 29. Show subscription
+              - 26. Update VNF
+              - 27. Instantiate VNF again
+              - 28. Terminate VNF again
+              - 29. Delete VNF instance
+              - 30. Show VNF instance
+              - 31. Delete subscription
+              - 32. Show subscription
             """
         # 0. Pre-setting
         # nfvo-pre
@@ -1165,24 +1168,62 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         self.assertEqual(fields.VnfInstanceState.NOT_INSTANTIATED,
                          body['instantiationState'])
 
-        # 26. Delete VNF instance
+        # 26. Update vnf
+        # In the previous operation, "update VNF" changed vnfd_id,
+        # which caused the failure of re-instantiate using the original
+        # instantiate_request. To make the re-instantiate successful,
+        # execute "update vnf" again to update the vnfd_id to the
+        # original vnfd_id
+        if not is_nfvo:
+            update_req = paramgen.update_vnf_min_with_parameter(self.vnfd_id_1)
+        else:
+            update_req = paramgen.update_vnf_min_with_parameter(vnfd_id_1)
+        resp, body = self.update_vnf_instance(inst_id, update_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # 27. Instantiate VNF again
+        # Confirm Re-Instantiation of a VNF that has been terminated
+        resp, body = self.instantiate_vnf_instance(inst_id, instantiate_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # 28. Terminate VNF again
+        resp, body = self.terminate_vnf_instance(inst_id, terminate_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # wait a bit because there is a bit time lag between lcmocc DB
+        # update and terminate completion.
+        time.sleep(10)
+
+        # 29. Delete VNF instance
         resp, body = self.delete_vnf_instance(inst_id)
         self.assertEqual(204, resp.status_code)
         self.check_resp_headers_in_delete(resp)
 
-        # 27. Show VNF instance
+        # 30. Show VNF instance
         # check deletion of VNF instance
         resp, body = self.show_vnf_instance(inst_id)
         self.assertEqual(404, resp.status_code)
 
         self._check_package_usage(is_nfvo, self.vnf_pkg_3)
 
-        # 28. Delete subscription
+        # 31. Delete subscription
         resp, body = self.delete_subscription(sub_id)
         self.assertEqual(204, resp.status_code)
         self.check_resp_headers_in_delete(resp)
 
-        # 29. Show subscription
+        # 32. Show subscription
         resp, body = self.show_subscription(sub_id)
         self.assertEqual(404, resp.status_code)
 
@@ -1220,9 +1261,12 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
           - 12. Show VNF instance
           - 13. Scale in operation
           - 14. Terminate VNF
-          - 15. Delete VNF instance
-          - 16. Delete subscription
-          - 17. Show subscription
+          - 15. Update VNF
+          - 16. Instantiate VNF again
+          - 17. Terminate VNF again
+          - 18. Delete VNF instance
+          - 19. Delete subscription
+          - 20. Show subscription
         """
         # 0. Pre setting
         if is_nfvo:
@@ -1587,7 +1631,45 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         self.assertEqual(fields.VnfInstanceState.NOT_INSTANTIATED,
                          body['instantiationState'])
 
-        # 15. Delete a VNF instance
+        # 15. Update VNF
+        # In the previous operation, "update VNF" changed vnfd_id,
+        # which caused the failure of re-instantiate using the original
+        # instantiate_request. To make the re-instantiate successful,
+        # execute "update vnf" again to update the vnfd_id to the
+        # original vnfd_id
+        if not is_nfvo:
+            update_req = paramgen.update_vnf_min_with_parameter(self.vnfd_id_2)
+        else:
+            update_req = paramgen.update_vnf_min_with_parameter(vnfd_id_1)
+        resp, body = self.update_vnf_instance(inst_id, update_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # 16. Instantiate VNF again
+        # Confirm Re-Instantiation of a VNF that has been terminated
+        resp, body = self.instantiate_vnf_instance(inst_id, instantiate_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # 17. Terminate VNF again
+        resp, body = self.terminate_vnf_instance(inst_id, terminate_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # wait a bit because there is a bit time lag between lcmocc DB
+        # update and terminate completion.
+        time.sleep(10)
+
+        # 18. Delete a VNF instance
         resp, body = self.delete_vnf_instance(inst_id)
         self.assertEqual(204, resp.status_code)
         self.check_resp_headers_in_delete(resp)
@@ -1599,12 +1681,12 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         # check usageState of VNF Package
         self._check_package_usage(is_nfvo, self.vnf_pkg_3)
 
-        # 16. Delete subscription
+        # 19. Delete subscription
         resp, body = self.delete_subscription(sub_id)
         self.assertEqual(204, resp.status_code)
         self.check_resp_headers_in_delete(resp)
 
-        # 17. Show subscription
+        # 20. Show subscription
         resp, body = self.show_subscription(sub_id)
         self.assertEqual(404, resp.status_code)
 
