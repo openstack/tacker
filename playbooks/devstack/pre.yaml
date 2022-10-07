@@ -1,6 +1,7 @@
 - hosts: all
   roles:
     - ensure-db-cli-installed
+    - setup-k8s-nodes
     - orchestrate-devstack
     - modify-heat-policy
     - setup-k8s-oidc

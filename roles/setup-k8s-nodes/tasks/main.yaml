@@ -1,0 +1,24 @@
+- block:
+  - name: load kernel module
+    modprobe:
+      name: "{{ item }}"
+      state: present
+    with_items:
+      - overlay
+      - br_netfilter
+    become: yes
+  - name: configure network(iptables/ip_forward) kernel parameter
+    sysctl:
+      name: "{{ item }}"
+      value: '1'
+      sysctl_set: yes
+      state: present
+      reload: yes
+    with_items:
+      - net.bridge.bridge-nf-call-ip6tables
+      - net.bridge.bridge-nf-call-iptables
+      - net.ipv4.ip_forward
+    become: yes
+  when:
+    - inventory_hostname == 'controller-k8s'
+    - kuryr_k8s_api_url is defined

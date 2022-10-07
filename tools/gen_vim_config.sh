@@ -30,6 +30,20 @@ VIMC_DEFAULT_OUTPUT=vim_config.yaml
 #   Secret token retrieved from kubectl.
 #######################################
 function k8s_token() {
+    # NOTES:
+    # - Service account tokens are no longer automatically generated
+    #   for each ServiceAccount in Kubernetes 1.24,
+    #   so it is necessary to manually register Secret.
+    kubectl create -f - <<EOF &>/dev/null
+apiVersion: v1
+kind: Secret
+metadata:
+  name: default-token-k8svim
+  annotations:
+    kubernetes.io/service-account.name: "default"
+type: kubernetes.io/service-account-token
+EOF
+
     local _secret=$(kubectl get secret -o jsonpath="{.items[0].metadata.name}")
     echo $(kubectl get secret ${_secret} -o jsonpath="{.data.token}" |
         base64 --decode)

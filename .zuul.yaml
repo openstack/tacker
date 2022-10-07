@@ -455,12 +455,12 @@
           KURYR_K8S_API_URL: "https://{{ hostvars['controller-k8s']['nodepool']['private_ipv4'] }}:${KURYR_K8S_API_PORT}"
           KURYR_K8S_CONTAINERIZED_DEPLOYMENT: false
           KURYR_NEUTRON_DEFAULT_SUBNETPOOL_ID: shared-default-subnetpool-v4
-          # TODO(YiFeng): At present, the version of kubernetes should be
-          # 1.23.3, and the returned response can pass the verification of
-          # kubernetes-client (1.23.3). This configuration will be removed
-          # after kuryr-kubernetes fixes the following bug.
-          # https://bugs.launchpad.net/kuryr-kubernetes/+bug/1968960
-          KURYR_KUBERNETES_VERSION: 1.23.3
+          # NOTES:
+          # - In Atelope cycle, Kubernetes version is updated to 1.25.
+          #   https://blueprints.launchpad.net/tacker/+spec/update-k8s-helm-prometheus
+          KURYR_KUBERNETES_VERSION: 1.25.2
+          CONTAINER_ENGINE: crio
+          CRIO_VERSION: 1.25
           MYSQL_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
           OCTAVIA_AMP_IMAGE_FILE: "/tmp/test-only-amphora-x64-haproxy-ubuntu-bionic.qcow2"
           OCTAVIA_AMP_IMAGE_NAME: "test-only-amphora-x64-haproxy-ubuntu-bionic"
@@ -520,7 +520,10 @@
               amp_active_retries: 9999
       kuryr_k8s_api_url: "https://{{ hostvars['controller-k8s']['nodepool']['private_ipv4'] }}:6443"
       k8s_ssl_verify: true
-      helm_version: "3.5.4"
+      # NOTES:
+      # - In Atelope cycle, Helm version is updated to 3.10.
+      #   https://blueprints.launchpad.net/tacker/+spec/update-k8s-helm-prometheus
+      helm_version: "3.10.1"
       test_matrix_configs: [neutron]
       zuul_work_dir: src/opendev.org/openstack/tacker
       zuul_copy_output:
