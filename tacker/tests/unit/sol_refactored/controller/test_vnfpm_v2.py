@@ -45,51 +45,6 @@ class TestVnfpmV2(base.BaseTestCase):
         self.endpoint = CONF.v2_vnfm.endpoint
         self._pm_job_view = vnfpm_view.PmJobViewBuilder(self.endpoint)
 
-    def test_check_http_client_auth(self):
-        auth_req = {
-            'authType': ['BASIC'],
-            'paramsBasic': None
-        }
-        self.assertRaises(sol_ex.InvalidSubscription,
-                          vnfpm_v2._check_http_client_auth,
-                          auth_req=auth_req)
-
-        auth_req_1 = {
-            'authType': ['BASIC'],
-            'paramsBasic': {
-                'userName': 'test',
-                'password': 'test'
-            },
-        }
-        result = vnfpm_v2._check_http_client_auth(auth_req_1)
-        self.assertEqual(['BASIC'], result.authType)
-
-        auth_req_2 = {
-            'authType': ['OAUTH2_CLIENT_CREDENTIALS'],
-            'paramsOauth2ClientCredentials': {
-                'clientId': 'test',
-                'clientPassword': 'test',
-                'tokenEndpoint':
-                    'http://127.0.0.1/token'
-            }
-        }
-        result = vnfpm_v2._check_http_client_auth(auth_req_2)
-        self.assertEqual(['OAUTH2_CLIENT_CREDENTIALS'], result.authType)
-
-        auth_req_3 = {
-            'authType': ['OAUTH2_CLIENT_CREDENTIALS'],
-        }
-        self.assertRaises(sol_ex.InvalidSubscription,
-                          vnfpm_v2._check_http_client_auth,
-                          auth_req=auth_req_3)
-
-        auth_req_4 = {
-            'authType': ['TLS_CERT']
-        }
-        self.assertRaises(sol_ex.InvalidSubscription,
-                          vnfpm_v2._check_http_client_auth,
-                          auth_req=auth_req_4)
-
     def test_check_performance_metric_or_group(self):
         vnfpm_v2._check_performance_metric_or_group(
             obj_type='Vnf',

@@ -378,6 +378,10 @@ class OIDCAuthFailed(SolHttpError400):
                 " Detail: %(detail)s")
 
 
+class AuthTypeNotFound(SolHttpError400):
+    message = _("AuthType parameter %(auth_type)s is not found")
+
+
 class HelmOperationFailed(SolHttpError422):
     title = 'Helm operation failed'
     # detail set in the code

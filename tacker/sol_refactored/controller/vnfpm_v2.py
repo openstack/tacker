@@ -28,6 +28,7 @@ from tacker.sol_refactored.common import coordinate
 from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import monitoring_plugin_base as plugin
 from tacker.sol_refactored.common import pm_job_utils
+from tacker.sol_refactored.common import subscription_utils as subsc_utils
 from tacker.sol_refactored.common import vnf_instance_utils as inst_utils
 from tacker.sol_refactored.controller import vnfpm_view
 from tacker.sol_refactored.nfvo import nfvo_client
@@ -56,42 +57,6 @@ OBJ_TYPE_TO_METRIC_LISt = {
     'VnfExtCp': {'ByteIncomingVnfExtCp', 'ByteOutgoingVnfExtCp',
                  'PacketIncomingVnfExtCp', 'PacketOutgoingVnfExtCp'}
 }
-
-
-def _check_http_client_auth(auth_req):
-    auth = objects.SubscriptionAuthentication(
-        authType=auth_req['authType']
-    )
-
-    if 'BASIC' in auth.authType:
-        basic_req = auth_req.get('paramsBasic')
-        if basic_req is None:
-            msg = "ParamsBasic must be specified."
-            raise sol_ex.InvalidSubscription(sol_detail=msg)
-        auth.paramsBasic = (
-            objects.SubscriptionAuthentication_ParamsBasic(
-                userName=basic_req.get('userName'),
-                password=basic_req.get('password')
-            )
-        )
-
-    if 'OAUTH2_CLIENT_CREDENTIALS' in auth.authType:
-        oauth2_req = auth_req.get('paramsOauth2ClientCredentials')
-        if oauth2_req is None:
-            msg = "paramsOauth2ClientCredentials must be specified."
-            raise sol_ex.InvalidSubscription(sol_detail=msg)
-        auth.paramsOauth2ClientCredentials = (
-            objects.SubscriptionAuthentication_ParamsOauth2(
-                clientId=oauth2_req.get('clientId'),
-                clientPassword=oauth2_req.get('clientPassword'),
-                tokenEndpoint=oauth2_req.get('tokenEndpoint')
-            )
-        )
-
-    if 'TLS_CERT' in auth.authType:
-        msg = "'TLS_CERT' is not supported at the moment."
-        raise sol_ex.InvalidSubscription(sol_detail=msg)
-    return auth
 
 
 def _check_performance_metric_or_group(
@@ -186,7 +151,8 @@ class VnfPmControllerV2(sol_wsgi.SolAPIController):
         # authentication
         auth_req = body.get('authentication')
         if auth_req:
-            pm_job.authentication = _check_http_client_auth(auth_req)
+            pm_job.authentication = subsc_utils.check_http_client_auth(
+                auth_req)
 
         # metadata
         metadata = body.get('metadata')
@@ -246,7 +212,7 @@ class VnfPmControllerV2(sol_wsgi.SolAPIController):
         if body.get("callbackUri"):
             pm_job.callbackUri = body.get("callbackUri")
         if body.get("authentication"):
-            pm_job.authentication = _check_http_client_auth(
+            pm_job.authentication = subsc_utils.check_http_client_auth(
                 body.get("authentication"))
 
         if CONF.v2_nfvo.test_callback_uri:

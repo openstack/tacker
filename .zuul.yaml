@@ -349,6 +349,7 @@
                 token_endpoint: http://127.0.0.1:9990
                 client_id: 229ec984de7547b2b662e968961af5a4
                 client_password: devstack
+                use_client_secret_basic: True
         tox_envlist: dsvm-functional-sol-separated-nfvo-v2
 
 # TODO(manpreetk): As per the 2023.1 testing runtime, we need to run atleast

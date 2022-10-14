@@ -136,9 +136,7 @@ class TestPmJobUtils(base.BaseTestCase):
             id='pm_job_1',
             authentication=pm_job_1_auth)
         result = pm_job_utils._get_notification_auth_handle(pm_job_1)
-        res = type(result).__name__
-        name = type(http_client.BasicAuthHandle('test', 'test')).__name__
-        self.assertEqual(name, res)
+        self.assertIsInstance(result, http_client.BasicAuthHandle)
 
         pm_job_2 = objects.PmJobV2(
             id='pm_job_2',
@@ -153,19 +151,27 @@ class TestPmJobUtils(base.BaseTestCase):
             )
         )
         result = pm_job_utils._get_notification_auth_handle(pm_job_2)
-        res = type(result).__name__
-        name = type(http_client.OAuth2AuthHandle(
-            None, 'tokenEndpoint', 'test', 'test')).__name__
-        self.assertEqual(name, res)
+        self.assertIsInstance(result, http_client.OAuth2AuthHandle)
 
-        pm_job_3 = objects.PmJobV2(id='pm_job_3',
-                                   authentication=(
-                                       objects.SubscriptionAuthentication(
-                                           authType=["TLS_CERT"],
-                                       ))
-                                   )
+        pm_job_3 = objects.PmJobV2(
+            id='pm_job_3',
+            authentication=objects.SubscriptionAuthentication(
+                authType=["OAUTH2_CLIENT_CERT"],
+                paramsOauth2ClientCert=(
+                    objects.SubscriptionAuthentication_ParamsOauth2ClientCert(
+                        clientId='test',
+                        certificateRef=objects.
+                        ParamsOauth2ClientCert_CertificateRef(
+                            type='x5t#256',
+                            value='03c6e188d1fe5d3da8c9bc9a8dc531a2'
+                                  'b3ecf812b03aede9bec7ba1b410b6b64'
+                        ),
+                        tokenEndpoint='http://127.0.0.1/token'
+                    ))
+            )
+        )
         result = pm_job_utils._get_notification_auth_handle(pm_job_3)
-        self.assertEqual(None, result)
+        self.assertIsInstance(result, http_client.OAuth2MtlsAuthHandle)
 
     @mock.patch.object(http_client.HttpClient, 'do_request')
     def test_test_notification(self, mock_do_request):

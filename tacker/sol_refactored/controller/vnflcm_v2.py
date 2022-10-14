@@ -486,39 +486,7 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
 
         auth_req = body.get('authentication')
         if auth_req:
-            auth = objects.SubscriptionAuthentication(
-                authType=auth_req['authType']
-            )
-            if 'BASIC' in auth.authType:
-                basic_req = auth_req.get('paramsBasic')
-                if basic_req is None:
-                    msg = "ParamsBasic must be specified."
-                    raise sol_ex.InvalidSubscription(sol_detail=msg)
-                auth.paramsBasic = (
-                    objects.SubscriptionAuthentication_ParamsBasic(
-                        userName=basic_req.get('userName'),
-                        password=basic_req.get('password')
-                    )
-                )
-
-            if 'OAUTH2_CLIENT_CREDENTIALS' in auth.authType:
-                oauth2_req = auth_req.get('paramsOauth2ClientCredentials')
-                if oauth2_req is None:
-                    msg = "paramsOauth2ClientCredentials must be specified."
-                    raise sol_ex.InvalidSubscription(sol_detail=msg)
-                auth.paramsOauth2ClientCredentials = (
-                    objects.SubscriptionAuthentication_ParamsOauth2(
-                        clientId=oauth2_req.get('clientId'),
-                        clientPassword=oauth2_req.get('clientPassword'),
-                        tokenEndpoint=oauth2_req.get('tokenEndpoint')
-                    )
-                )
-
-            if 'TLS_CERT' in auth.authType:
-                msg = "'TLS_CERT' is not supported at the moment."
-                raise sol_ex.InvalidSubscription(sol_detail=msg)
-
-            subsc.authentication = auth
+            subsc.authentication = subsc_utils.check_http_client_auth(auth_req)
 
         if CONF.v2_nfvo.test_callback_uri:
             subsc_utils.test_notification(subsc)

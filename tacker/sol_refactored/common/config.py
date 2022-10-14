@@ -50,6 +50,14 @@ VNFM_OPTS = [
                default=0,  # 0 means no paging
                help=_('Paged response size of the query result '
                       'for VNF LCM operation occurrences.')),
+    cfg.StrOpt('notification_mtls_ca_cert_file',
+               default='',
+               help=_('CA Certificate file used by OAuth2.0 mTLS '
+                      'authentication.')),
+    cfg.StrOpt('notification_mtls_client_cert_file',
+               default='',
+               help=_('Client Certificate file used by OAuth2.0 mTLS '
+                      'authentication.')),
     cfg.IntOpt('notify_connect_retries',
                default=0,  # 0 means no retry
                help=_('Number of retries that should be attempted for '
@@ -121,13 +129,25 @@ NFVO_OPTS = [
     cfg.StrOpt('vnf_package_cache_dir',
                default='/opt/stack/data/tacker/vnf_package_cache',
                help=_('Vnf package content cache directory.')),
+    cfg.StrOpt('mtls_ca_cert_file',
+               default='',
+               help=_('CA Certificate file used by OAuth2.0 mTLS '
+                      'authentication.')),
+    cfg.StrOpt('mtls_client_cert_file',
+               default='',
+               help=_('Client Certificate file used by OAuth2.0 mTLS '
+                      'authentication.')),
     cfg.BoolOpt('test_callback_uri',
                 default=True,
                 help=_('Check to get notification from callback Uri.')),
     cfg.ListOpt('test_grant_zone_list',
                 default=["nova"],
                 help=_('Zones used for test which returned in Grant '
-                       'response.'))
+                       'response.')),
+    cfg.BoolOpt('use_client_secret_basic',
+                default=False,
+                help=_('Use password authenticatiojn if True, '
+                       'use certificate authentication if False.'))
 ]
 
 CONF.register_opts(NFVO_OPTS, 'v2_nfvo')

@@ -47,11 +47,19 @@ class NfvoClient(object):
         if CONF.v2_nfvo.use_external_nfvo:
             self.is_local = False
             self.endpoint = CONF.v2_nfvo.endpoint
-            auth_handle = http_client.OAuth2AuthHandle(
-                self.endpoint,
-                CONF.v2_nfvo.token_endpoint,
-                CONF.v2_nfvo.client_id,
-                CONF.v2_nfvo.client_password)
+            if CONF.v2_nfvo.use_client_secret_basic:
+                auth_handle = http_client.OAuth2AuthHandle(
+                    self.endpoint,
+                    CONF.v2_nfvo.token_endpoint,
+                    CONF.v2_nfvo.client_id,
+                    CONF.v2_nfvo.client_password)
+            else:
+                auth_handle = http_client.OAuth2MtlsAuthHandle(
+                    self.endpoint,
+                    CONF.v2_nfvo.token_endpoint,
+                    CONF.v2_nfvo.client_id,
+                    CONF.v2_nfvo.mtls_ca_cert_file,
+                    CONF.v2_nfvo.mtls_client_cert_file)
             self.client = http_client.HttpClient(auth_handle)
             self.grant_api_version = CONF.v2_nfvo.grant_api_version
             self.vnfpkgm_api_version = CONF.v2_nfvo.vnfpkgm_api_version

@@ -122,7 +122,7 @@ _IpAddresses = {
     'additionalProperties': True
 }
 
-# SOL013 8.3.4
+# SOL013 v3.5.1 8.3.4
 SubscriptionAuthentication = {
     'type': 'object',
     'properties': {
@@ -133,7 +133,7 @@ SubscriptionAuthentication = {
                 'enum': [
                     'BASIC',
                     'OAUTH2_CLIENT_CREDENTIALS',
-                    'TLS_CERT']
+                    'OAUTH2_CLIENT_CERT']
             }
         },
         'paramsBasic': {
@@ -150,6 +150,21 @@ SubscriptionAuthentication = {
                 'clientPassword': {'type': 'string'},
                 'tokenEndpoint': {'type': 'string'}
             }
+        },
+        'paramsOauth2ClientCert': {
+            'type': 'object',
+            'properties': {
+                'clientId': {'type': 'string'},
+                'certificateRef': {'type': 'object',
+                    'properties': {
+                        'type': {'type': 'string'},
+                        'value': {'type': 'string'}
+                    },
+                    'required': ['type', 'value']
+                },
+                'tokenEndpoint': {'type': 'string'}
+            },
+            'required': ['clientId', 'certificateRef', 'tokenEndpoint']
         }
     },
     'required': ['authType'],

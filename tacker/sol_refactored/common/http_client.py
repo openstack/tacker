@@ -15,6 +15,7 @@
 
 
 import abc
+import urllib
 
 from keystoneauth1 import adapter
 from keystoneauth1 import http_basic
@@ -188,10 +189,10 @@ class NoAuthHandle(AuthHandle):
         return session.Session(auth=auth, verify=False)
 
 
-class Oauth2AuthPlugin(plugin.FixedEndpointPlugin):
+class OAuth2AuthPlugin(plugin.FixedEndpointPlugin):
 
     def __init__(self, endpoint, token_endpoint, client_id, client_password):
-        super(Oauth2AuthPlugin, self).__init__(endpoint)
+        super(OAuth2AuthPlugin, self).__init__(endpoint)
         self.token_endpoint = token_endpoint
         self.client_id = client_id
         self.client_password = client_password
@@ -230,10 +231,85 @@ class OAuth2AuthHandle(AuthHandle):
         self.client_password = client_password
 
     def get_auth(self, context=None):
-        return Oauth2AuthPlugin(self.endpoint, self.token_endpoint,
+        return OAuth2AuthPlugin(self.endpoint, self.token_endpoint,
                 self.client_id, self.client_password)
 
     def get_session(self, auth, service_type):
         _session = session.Session(auth=auth, verify=False)
+        return adapter.Adapter(session=_session,
+                               service_type=service_type)
+
+
+class CertAuthMtlsHandle(AuthHandle):
+
+    def __init__(self, endpoint, verify_cert, client_cert):
+        self.endpoint = endpoint
+        self.verify_cert = verify_cert
+        self.client_cert = client_cert
+
+    def get_auth(self, context=None):
+        return noauth.NoAuth(endpoint=self.endpoint)
+
+    def get_session(self, auth, service_type):
+        return session.Session(auth=auth, verify=self.verify_cert,
+                               cert=self.client_cert)
+
+
+class OAuth2MtlsAuthPlugin(plugin.FixedEndpointPlugin):
+
+    def __init__(self, endpoint, token_endpoint, client_id,
+            verify_cert, client_cert):
+        super(OAuth2MtlsAuthPlugin, self).__init__(endpoint)
+        self.token_endpoint = token_endpoint
+        self.client_id = client_id
+        self.verify_cert = verify_cert
+        self.client_cert = client_cert
+
+    def get_token(self, session, **kwargs):
+        auth = CertAuthMtlsHandle(self.endpoint, self.verify_cert,
+            self.client_cert)
+        client = HttpClient(auth)
+
+        url = f'{self.token_endpoint}'
+        data = {
+            'grant_type': 'client_credentials',
+            'client_id': self.client_id
+        }
+        data = urllib.parse.urlencode(data)
+
+        resp, resp_body = client.do_request(url, "POST",
+                body=data, content_type='application/x-www-form-urlencoded')
+
+        if resp.status_code != 200:
+            LOG.error("get OAuth2 mTLS token failed: %d" % resp.status_code)
+            return
+
+        return resp_body['access_token']
+
+    def get_headers(self, session, **kwargs):
+        token = self.get_token(session)
+        if not token:
+            return None
+        auth = 'Bearer %s' % token
+        return {'Authorization': auth}
+
+
+class OAuth2MtlsAuthHandle(AuthHandle):
+
+    def __init__(self, endpoint, token_endpoint, client_id,
+            verify_cert, client_cert):
+        self.endpoint = endpoint
+        self.token_endpoint = token_endpoint
+        self.client_id = client_id
+        self.verify_cert = verify_cert
+        self.client_cert = client_cert
+
+    def get_auth(self, context=None):
+        return OAuth2MtlsAuthPlugin(self.endpoint, self.token_endpoint,
+            self.client_id, self.verify_cert, self.client_cert)
+
+    def get_session(self, auth, service_type):
+        _session = session.Session(auth=auth, verify=self.verify_cert,
+            cert=self.client_cert)
         return adapter.Adapter(session=_session,
                                service_type=service_type)

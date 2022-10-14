@@ -24,7 +24,9 @@ from tacker.sol_refactored.common import config
 from tacker.sol_refactored.common import coordinate
 from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import fm_alarm_utils
-from tacker.sol_refactored.common import fm_subscription_utils as subsc_utils
+from tacker.sol_refactored.common import fm_subscription_utils\
+    as fm_subsc_utils
+from tacker.sol_refactored.common import subscription_utils as subsc_utils
 from tacker.sol_refactored.controller import vnffm_view
 from tacker.sol_refactored.nfvo import nfvo_client
 from tacker.sol_refactored import objects
@@ -117,47 +119,15 @@ class VnfFmControllerV1(sol_wsgi.SolAPIController):
 
         auth_req = body.get('authentication')
         if auth_req:
-            auth = objects.SubscriptionAuthentication(
-                authType=auth_req['authType']
-            )
-            if 'BASIC' in auth.authType:
-                basic_req = auth_req.get('paramsBasic')
-                if basic_req is None:
-                    msg = "ParamsBasic must be specified."
-                    raise sol_ex.InvalidSubscription(sol_detail=msg)
-                auth.paramsBasic = (
-                    objects.SubscriptionAuthentication_ParamsBasic(
-                        userName=basic_req.get('userName'),
-                        password=basic_req.get('password')
-                    )
-                )
-
-            if 'OAUTH2_CLIENT_CREDENTIALS' in auth.authType:
-                oauth2_req = auth_req.get('paramsOauth2ClientCredentials')
-                if oauth2_req is None:
-                    msg = "paramsOauth2ClientCredentials must be specified."
-                    raise sol_ex.InvalidSubscription(sol_detail=msg)
-                auth.paramsOauth2ClientCredentials = (
-                    objects.SubscriptionAuthentication_ParamsOauth2(
-                        clientId=oauth2_req.get('clientId'),
-                        clientPassword=oauth2_req.get('clientPassword'),
-                        tokenEndpoint=oauth2_req.get('tokenEndpoint')
-                    )
-                )
-
-            if 'TLS_CERT' in auth.authType:
-                msg = "'TLS_CERT' is not supported at the moment."
-                raise sol_ex.InvalidSubscription(sol_detail=msg)
-
-            subsc.authentication = auth
+            subsc.authentication = subsc_utils.check_http_client_auth(auth_req)
 
         if CONF.v2_nfvo.test_callback_uri:
-            subsc_utils.test_notification(subsc)
+            fm_subsc_utils.test_notification(subsc)
 
         subsc.create(context)
 
         resp_body = self._subsc_view.detail(subsc)
-        self_href = subsc_utils.subsc_href(subsc.id, self.endpoint)
+        self_href = fm_subsc_utils.subsc_href(subsc.id, self.endpoint)
 
         return sol_wsgi.SolResponse(
             201, resp_body, version=api_version.CURRENT_FM_VERSION,
@@ -173,7 +143,7 @@ class VnfFmControllerV1(sol_wsgi.SolAPIController):
         page_size = CONF.v2_vnfm.subscription_page_size
         pager = self._subsc_view.parse_pager(request, page_size)
 
-        subscs = subsc_utils.get_subsc_all(request.context,
+        subscs = fm_subsc_utils.get_subsc_all(request.context,
                                            marker=pager.marker)
 
         resp_body = self._subsc_view.detail_list(subscs, filters, None, pager)
@@ -183,7 +153,7 @@ class VnfFmControllerV1(sol_wsgi.SolAPIController):
             link=pager.get_link())
 
     def subscription_show(self, request, id):
-        subsc = subsc_utils.get_subsc(request.context, id)
+        subsc = fm_subsc_utils.get_subsc(request.context, id)
 
         resp_body = self._subsc_view.detail(subsc)
 
@@ -192,7 +162,7 @@ class VnfFmControllerV1(sol_wsgi.SolAPIController):
 
     def subscription_delete(self, request, id):
         context = request.context
-        subsc = subsc_utils.get_subsc(request.context, id)
+        subsc = fm_subsc_utils.get_subsc(request.context, id)
 
         subsc.delete(context)
 

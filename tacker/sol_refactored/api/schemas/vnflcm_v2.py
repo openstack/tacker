@@ -157,7 +157,7 @@ ChangeExtVnfConnectivityRequest_V200 = {
     'additionalProperties': True,
 }
 
-# SOL013 8.3.4
+# SOL013 v3.5.1 8.3.4
 _SubscriptionAuthentication = {
     'type': 'object',
     'properties': {
@@ -168,7 +168,7 @@ _SubscriptionAuthentication = {
                 'enum': [
                     'BASIC',
                     'OAUTH2_CLIENT_CREDENTIALS',
-                    'TLS_CERT']
+                    'OAUTH2_CLIENT_CERT']
             }
         },
         'paramsBasic': {
@@ -191,6 +191,22 @@ _SubscriptionAuthentication = {
             # NOTE: must be specified since the way to specify them out of
             # band is not supported.
             'required': ['clientId', 'clientPassword', 'tokenEndpoint']
+        },
+        'paramsOauth2ClientCert': {
+            'type': 'object',
+            'properties': {
+                'clientId': {'type': 'string'},
+                'certificateRef': {
+                    'type': 'object',
+                    'properties': {
+                        'type': {'type': 'string'},
+                        'value': {'type': 'string'}
+                    },
+                    'required': ['type', 'value']
+                },
+                'tokenEndpoint': {'type': 'string'}
+            },
+            'required': ['clientId', 'certificateRef', 'tokenEndpoint']
         }
     },
     'required': ['authType'],
