@@ -124,7 +124,7 @@ class TestPrometheusPlugin(db_base.SqlTestCase):
         self.conductor = conductor_v2.ConductorV2()
 
     @mock.patch.object(http_client.HttpClient, 'do_request')
-    def test_requst_scale(self, mock_do_request):
+    def test_request_scale(self, mock_do_request):
         resp = webob.Response()
         resp.status_code = 202
         mock_do_request.return_value = resp, {}

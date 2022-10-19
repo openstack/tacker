@@ -26,7 +26,9 @@ class PmEventController(prom_wsgi.PrometheusPluginAPIController):
         if not CONF.prometheus_plugin.performance_management:
             raise sol_ex.PrometheusPluginNotEnabled(
                 name='Performance management')
-        cls = mon_base.get_class('pm_event')
+        cls = mon_base.get_class(
+            CONF.prometheus_plugin.performance_management_package,
+            CONF.prometheus_plugin.performance_management_class)
         mon_base.MonitoringPlugin.get_instance(cls).alert(
             request=request, body=body)
         return prom_wsgi.PrometheusPluginResponse(204, None)
@@ -37,7 +39,9 @@ class FmAlertController(prom_wsgi.PrometheusPluginAPIController):
         if not CONF.prometheus_plugin.fault_management:
             raise sol_ex.PrometheusPluginNotEnabled(
                 name='Fault management')
-        cls = mon_base.get_class('alert')
+        cls = mon_base.get_class(
+            CONF.prometheus_plugin.fault_management_package,
+            CONF.prometheus_plugin.fault_management_class)
         mon_base.MonitoringPlugin.get_instance(cls).alert(
             request=request, body=body)
         return prom_wsgi.PrometheusPluginResponse(204, None)
@@ -48,7 +52,9 @@ class AutoScalingController(prom_wsgi.PrometheusPluginAPIController):
         if not CONF.prometheus_plugin.auto_scaling:
             raise sol_ex.PrometheusPluginNotEnabled(
                 name='Auto scaling')
-        cls = mon_base.get_class('auto_healing')
+        cls = mon_base.get_class(
+            CONF.prometheus_plugin.auto_scaling_package,
+            CONF.prometheus_plugin.auto_scaling_class)
         mon_base.MonitoringPlugin.get_instance(cls).alert(
             request=request, body=body)
         return prom_wsgi.PrometheusPluginResponse(204, None)

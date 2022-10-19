@@ -25,7 +25,9 @@ class ServerNotificationController(sn_wsgi.ServerNotificationAPIController):
     def notify(self, request, vnf_instance_id, server_id, body):
         if not CONF.server_notification.server_notification:
             raise sol_ex.ServerNotificationNotEnabled()
-        cls = mon_base.get_class('server_notification')
+        cls = mon_base.get_class(
+            CONF.server_notification.server_notification_package,
+            CONF.server_notification.server_notification_class)
         mon_base.MonitoringPlugin.get_instance(cls).alert(
             request=request, vnf_instance_id=vnf_instance_id,
             server_id=server_id, body=body)

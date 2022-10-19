@@ -463,7 +463,7 @@ class TestPrometheusPluginPm(base.TestCase):
             group='prometheus_plugin', performance_management=True)
         pp = mon_base.MonitoringPlugin.get_instance(
             prometheus_plugin.PrometheusPluginPm)
-        # noromal
+        # normal
         job = objects.PmJobV2.from_dict(_pm_job)
         pp.delete_job(context=self.context, pm_job=job)
         # error

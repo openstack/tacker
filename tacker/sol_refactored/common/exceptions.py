@@ -416,6 +416,11 @@ class ResourcesOtherOperationInProgress(SolHttpError409):
                 "is in progress.")
 
 
+# plugin base
+class MonitoringPluginClassError(SolHttpError503):
+    message = _("%(class_name)s is not a subclass of MonitoringPlugin.")
+
+
 # prometheus plugin
 class PrometheusPluginNotEnabled(SolHttpError404):
     message = _("%(name)s API is not enabled.")

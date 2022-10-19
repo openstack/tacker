@@ -18,6 +18,7 @@ from unittest import mock
 
 from tacker import context
 from tacker.sol_refactored.common import exceptions as sol_ex
+from tacker.sol_refactored.common import monitoring_plugin_base as mon_base
 from tacker.sol_refactored.common import server_notification as sn_common
 from tacker.sol_refactored.common import vnf_instance_utils as inst_utils
 from tacker.sol_refactored.controller import server_notification
@@ -77,6 +78,31 @@ _body2 = {
     'error_schema': {}
 }
 
+pkg = 'tacker.tests.unit.sol_refactored.controller.test_server_notification'
+
+
+class VendorSpecificMonitoringPlugin(mon_base.MonitoringPlugin):
+    _instance = None
+
+    @staticmethod
+    def instance():
+        if not VendorSpecificMonitoringPlugin._instance:
+            VendorSpecificMonitoringPlugin()
+        return VendorSpecificMonitoringPlugin._instance
+
+    def __init__(self):
+        if VendorSpecificMonitoringPlugin._instance:
+            raise SystemError(
+                "Not constructor but instance() should be used.")
+        VendorSpecificMonitoringPlugin._instance = self
+
+    def alert(self, **kwargs):
+        pass
+
+
+class NotASubClassOfMonitoringPlugin():
+    pass
+
 
 class TestServerNotification(base.TestCase):
     def setUp(self):
@@ -105,8 +131,7 @@ class TestServerNotification(base.TestCase):
             server_id='test_server_id', body=_body)
 
     @mock.patch.object(inst_utils, 'get_inst')
-    def test_notify(self,
-            mock_inst):
+    def test_notify(self, mock_inst):
         self.config_fixture.config(
             group='server_notification', server_notification=True)
         mock_inst.return_value = objects.VnfInstanceV2.from_dict(_inst1)
@@ -167,4 +192,31 @@ class TestServerNotification(base.TestCase):
             sol_ex.ServerNotificationValidationError,
             self.controller.notify, request=self.request,
             vnf_instance_id='test_id',
+            server_id='test_server_id', body=_body)
+
+    def test_vendor_specific_plugin(self):
+        self.config_fixture.config(
+            group='server_notification', server_notification=True)
+        self.config_fixture.config(
+            group='server_notification', server_notification_package=pkg)
+        self.config_fixture.config(
+            group='server_notification',
+            server_notification_class='VendorSpecificMonitoringPlugin')
+        response = self.controller.notify(
+            request=self.request,
+            vnf_instance_id='test_id',
+            server_id='test_server_id', body=_body)
+        self.assertEqual(204, response.status)
+
+    def test_vendor_specific_plugin_subclass(self):
+        self.config_fixture.config(
+            group='server_notification', server_notification=True)
+        self.config_fixture.config(
+            group='server_notification', server_notification_package=pkg)
+        self.config_fixture.config(
+            group='server_notification',
+            server_notification_class='NotASubClassOfMonitoringPlugin')
+        self.assertRaises(
+            sol_ex.MonitoringPluginClassError, self.controller.notify,
+            request=self.request, vnf_instance_id='test_id',
             server_id='test_server_id', body=_body)

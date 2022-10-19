@@ -398,7 +398,7 @@ class PrometheusPluginPm(PrometheusPlugin, mon_base.MonitoringPlugin):
                 collection_period))
         return rules
 
-    def get_compute_resouce_by_sub_obj(self, vnf_instance, sub_obj):
+    def get_compute_resource_by_sub_obj(self, vnf_instance, sub_obj):
         inst = vnf_instance
         if (not inst.obj_attr_is_set('instantiatedVnfInfo') or
                 not inst.instantiatedVnfInfo.obj_attr_is_set(
@@ -440,7 +440,7 @@ class PrometheusPluginPm(PrometheusPlugin, mon_base.MonitoringPlugin):
                 # resource id is like 'test-test1-756757f8f-xcwmt'
                 # obtain 'test-test1' as deployment
                 # obtain 'test' as container
-                compute_resource = self.get_compute_resouce_by_sub_obj(
+                compute_resource = self.get_compute_resource_by_sub_obj(
                     inst, sub_obj)
                 if not compute_resource:
                     continue
