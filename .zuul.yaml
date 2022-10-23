@@ -586,9 +586,10 @@
               v2_vnfm:
                 kubernetes_vim_rsc_wait_timeout: 800
               prometheus_plugin:
-                fault_management: True
-                performance_management: True
-                auto_scaling: True
+                fault_management: true
+                performance_management: true
+                auto_scaling: true
+                test_rule_with_promtool: true
         tox_envlist: dsvm-functional-sol-kubernetes-v2
     vars:
       prometheus_setup: true

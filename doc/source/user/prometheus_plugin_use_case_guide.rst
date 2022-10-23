@@ -52,6 +52,9 @@ performance_management, fault_management or auto_scaling below.
   * - ``CONF.prometheus_plugin.auto_scaling``
     - false
     - Enable prometheus plugin autoscaling.
+  * - ``CONF.prometheus_plugin.test_rule_with_promtool``
+    - false
+    - Enable rule file validation using promtool.
 
 System
 ~~~~~~
@@ -240,6 +243,14 @@ needs to activate sshd.
 - PasswordAuthentication setting should be "yes".
 - The directory indicated by "rule_files" setting of prometheus
   server config should be accessible by SSH.
+
+Supported versions
+------------------
+
+Tacker Zed release
+
+- Prometheus: 2.37
+- Alertmanager: 0.24
 
 Alert rule registration
 ~~~~~~~~~~~~~~~~~~~~~~~

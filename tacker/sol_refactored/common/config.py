@@ -161,6 +161,9 @@ PROMETHEUS_PLUGIN_OPTS = [
                       'This configuration is changed in case of replacing '
                       'the original function with a vendor specific '
                       'function.')),
+    cfg.BoolOpt('test_rule_with_promtool',
+                default=False,
+                help=_('Enable rule file validation using promtool.')),
 ]
 
 CONF.register_opts(PROMETHEUS_PLUGIN_OPTS, 'prometheus_plugin')
