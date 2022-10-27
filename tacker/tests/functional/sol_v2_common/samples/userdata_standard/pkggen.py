@@ -59,6 +59,7 @@ scale_out_req = paramgen.sample3_scale_out()
 scale_in_req = paramgen.sample3_scale_in()
 heal_req = paramgen.sample3_heal()
 change_ext_conn_req = paramgen.sample3_change_ext_conn(net_ids)
+update_req = paramgen.sample3_update_vnf_vnfd_id("replace real vnfd id")
 
 with open("create_req", "w") as f:
     f.write(json.dumps(create_req, indent=2))
@@ -81,3 +82,6 @@ with open("heal_req", "w") as f:
 
 with open("change_ext_conn_req", "w") as f:
     f.write(json.dumps(change_ext_conn_req, indent=2))
+
+with open("update_req", "w") as f:
+    f.write(json.dumps(update_req, indent=2))

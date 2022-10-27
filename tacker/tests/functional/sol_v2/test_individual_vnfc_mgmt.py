@@ -451,3 +451,111 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
 
         # Delete VNF instance
         self._delete_instance(inst_id)
+
+    def test_heal_vnfc_after_image_change(self):
+        """Test heal operation after image change using StandardUserData
+
+        * Note:
+          This test focuses on checking changed image when Heal operation
+          run after the vnfdId is changed by modify operation.
+
+        * About LCM operations:
+          This test includes the following operations.
+          -    Create VNF instance
+          - 1. Instantiate VNF instance
+          -    Show VNF instance / check
+          - 2. Update VNF instance
+          -    Show VNF instance / check
+          - 3. Heal operation
+          -    Show VNF instance / check
+          -    Terminate VNF instance
+          -    Delete VNF instance
+        """
+
+        net_ids = self.get_network_ids(['net0', 'net1', 'net_mgmt'])
+        subnet_ids = self.get_subnet_ids(['subnet0', 'subnet1'])
+
+        # Create VNF instance
+        create_req = paramgen.sample3_create(self.vnfd_id_1)
+        resp, body = self.create_vnf_instance(create_req)
+        self.assertEqual(201, resp.status_code)
+        inst_id = body['id']
+
+        # 1. Instantiate VNF instance
+        instantiate_req = paramgen.sample3_instantiate(
+            net_ids, subnet_ids, self.auth_url)
+        instantiate_req['instantiationLevelId'] = 'instantiation_level_2'
+        resp, body = self.instantiate_vnf_instance(inst_id, instantiate_req)
+        self.assertEqual(202, resp.status_code)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # Show VNF instance
+        resp, inst_1 = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+
+        # check number of VDUs and indexes
+        self.assertEqual({0, 1}, self._get_vdu_indexes(inst_1, 'VDU1'))
+        self.assertEqual({0}, self._get_vdu_indexes(inst_1, 'VDU2'))
+
+        # 2. Update VNF instance
+        update_req = paramgen.sample3_update_vnf_vnfd_id(self.vnfd_id_2)
+        resp, body = self.update_vnf_instance(inst_id, update_req)
+        self.assertEqual(202, resp.status_code)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # Show VNF instance
+        resp, inst_2 = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+
+        # check number of VDUs and indexes
+        self.assertEqual({0, 1}, self._get_vdu_indexes(inst_2, 'VDU1'))
+        self.assertEqual({0}, self._get_vdu_indexes(inst_2, 'VDU2'))
+
+        # check vnfdId is changed
+        self.assertEqual(self.vnfd_id_2, inst_2['vnfdId'])
+
+        # 3. Heal operation
+        heal_req = paramgen.sample3_heal()
+        # pick up VDU1-1 to heal
+        vnfc_id = self._get_vnfc_id(inst_2, 'VDU1', 1)
+        heal_req['vnfcInstanceId'] = [f'VDU1-{vnfc_id}']
+        resp, body = self.heal_vnf_instance(inst_id, heal_req)
+        self.assertEqual(202, resp.status_code)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # Show VNF instance
+        resp, inst_3 = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+
+        # check id of VDU1-1 is changed and other are not.
+        self.assertEqual(self._get_vnfc_id(inst_2, 'VDU1', 0),
+                         self._get_vnfc_id(inst_3, 'VDU1', 0))
+        self.assertNotEqual(self._get_vnfc_id(inst_2, 'VDU1', 1),
+                            self._get_vnfc_id(inst_3, 'VDU1', 1))
+        self.assertEqual(self._get_vnfc_id(inst_2, 'VDU2', 0),
+                         self._get_vnfc_id(inst_3, 'VDU2', 0))
+
+        # check image of VDU1-1 is changed and other are not.
+        self.assertEqual(self._get_vnfc_image(inst_2, 'VDU1', 0),
+                         self._get_vnfc_image(inst_3, 'VDU1', 0))
+        self.assertNotEqual(self._get_vnfc_image(inst_2, 'VDU1', 1),
+                            self._get_vnfc_image(inst_3, 'VDU1', 1))
+        self.assertEqual(self._get_vnfc_image(inst_2, 'VDU2', 0),
+                         self._get_vnfc_image(inst_3, 'VDU2', 0))
+
+        # Terminate VNF instance
+        terminate_req = paramgen.sample3_terminate()
+        resp, body = self.terminate_vnf_instance(inst_id, terminate_req)
+        self.assertEqual(202, resp.status_code)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # Delete VNF instance
+        self._delete_instance(inst_id)

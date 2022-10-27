@@ -138,9 +138,10 @@ class LocalNfvo(object):
     def _get_vim_info(self, context, grant_req):
         lcmocc = lcmocc_utils.get_lcmocc(context, grant_req.vnfLcmOpOccId)
         req = lcmocc.operationParams
-        if req.obj_attr_is_set('vimConnectionInfo'):
-            return inst_utils.select_vim_info(req.vimConnectionInfo)
-        elif grant_req.operation != v2_fields.LcmOperationType.INSTANTIATE:
+        if grant_req.operation == v2_fields.LcmOperationType.INSTANTIATE:
+            if req.obj_attr_is_set('vimConnectionInfo'):
+                return inst_utils.select_vim_info(req.vimConnectionInfo)
+        else:
             # should be found
             inst = inst_utils.get_inst(context, grant_req.vnfInstanceId)
             return inst_utils.select_vim_info(inst.vimConnectionInfo)
@@ -148,21 +149,38 @@ class LocalNfvo(object):
         # NOTE: exception is not raised.
         return vim_utils.get_default_vim(context)
 
-    def _handle_vim_assets(self, grant_req, grant_res, vnfd, sw_image_data,
-            vim_info):
+    def _handle_vim_assets(self, context, grant_req, grant_res, vnfd):
+        vim_info = self._get_vim_info(context, grant_req)
+        if vim_info is None:
+            msg = "No vimConnectionInfo to handle glance image"
+            raise sol_ex.LocalNfvoGrantFailed(sol_detail=msg)
+        elif vim_info.vimType != 'ETSINFV.OPENSTACK_KEYSTONE.V_3':
+            return
+
+        target_vdus = {res['resourceTemplateId']
+                       for res in grant_req['addResources']}
+        all_sw_image_data = vnfd.get_sw_image_data(grant_req.flavourId)
+        sw_image_data = {res_id: sw_data
+                         for res_id, sw_data in all_sw_image_data.items()
+                         if res_id in target_vdus}
+
         vim_sw_images = []
+        image_names = {}
+        if grant_req.operation != v2_fields.LcmOperationType.INSTANTIATE:
+            glance_client = glance_utils.GlanceClient(vim_info)
+            images = glance_client.list_images(tag=grant_req.vnfInstanceId)
+            image_names = {image.name: image.id for image in images}
+
         for res_id, sw_data in sw_image_data.items():
-            if 'file' in sw_data:
+            if 'file' in sw_data and sw_data['name'] in image_names:
+                image = image_names[sw_data['name']]
+            elif 'file' in sw_data:
                 # if artifact is specified, create glance image.
                 # it may fail. catch exception and raise 403(not granted)
-                # if error occur.
-                if vim_info is None:
-                    msg = "No vimConnectionInfo to create glance image"
-                    raise sol_ex.LocalNfvoGrantFailed(sol_detail=msg)
-
+                # if error occurs.
                 try:
                     image = self._glance_create_image(vim_info, vnfd, sw_data,
-                            grant_req.vnfInstanceId)
+                        grant_req.vnfInstanceId)
                 except Exception:
                     msg = "glance image create failed"
                     LOG.exception(msg)
@@ -180,42 +198,46 @@ class LocalNfvo(object):
                 softwareImages=vim_sw_images
             )
 
-    def instantiate_grant(self, context, grant_req, grant_res):
-        # handle ZoneInfo
+    def _handle_zoneinfo(self, grant_res):
         zone_list = config.CONF.v2_nfvo.test_grant_zone_list
-        zone_id = None
-        if len(zone_list) > 0:
-            zone_infos = []
-            for zone in zone_list:
-                zone_info = objects.ZoneInfoV1(
-                    id=uuidutils.generate_uuid(),
-                    zoneId=zone
-                )
-                zone_infos.append(zone_info)
-            grant_res.zones = zone_infos
-            zone_id = zone_infos[0].id
+        if len(zone_list) == 0:
+            return None
+        zone_infos = []
+        for zone in zone_list:
+            zone_info = objects.ZoneInfoV1(
+                id=uuidutils.generate_uuid(),
+                zoneId=zone
+            )
+            zone_infos.append(zone_info)
+        grant_res.zones = zone_infos
+        return zone_infos[0].id
 
-        # handle addResources.
+    def _handle_addresources(self, grant_req, grant_res, zone_id):
         # only copy req to res. i.e. grant all.
         attr = 'addResources'
-        if grant_req.obj_attr_is_set(attr):
-            add_res = []
-            for res_def in grant_req[attr]:
-                g_info = objects.GrantInfoV1(
-                    resourceDefinitionId=res_def.id
-                )
-                if zone_id is not None and res_def.type == 'COMPUTE':
-                    g_info.zoneId = zone_id
-                add_res.append(g_info)
-            grant_res[attr] = add_res
+        if not grant_req.obj_attr_is_set(attr):
+            return
+        add_res = []
+        for res_def in grant_req[attr]:
+            g_info = objects.GrantInfoV1(
+                resourceDefinitionId=res_def.id
+            )
+            if zone_id is not None and res_def.type == 'COMPUTE':
+                g_info.zoneId = zone_id
+            add_res.append(g_info)
+        grant_res[attr] = add_res
+
+    def instantiate_grant(self, context, grant_req, grant_res):
+        # handle ZoneInfo
+        zone_id = self._handle_zoneinfo(grant_res)
+
+        # handle addResources
+        self._handle_addresources(grant_req, grant_res, zone_id)
 
         # handle vimAssets
         # if there is an artifact, create glance image.
         vnfd = self.get_vnfd(context, grant_req.vnfdId)
-        sw_image_data = vnfd.get_sw_image_data(grant_req.flavourId)
-        vim_info = self._get_vim_info(context, grant_req)
-        self._handle_vim_assets(grant_req, grant_res, vnfd,
-                                sw_image_data, vim_info)
+        self._handle_vim_assets(context, grant_req, grant_res, vnfd)
 
     def change_vnfpkg_grant(self, context, grant_req, grant_res):
         if not grant_req.obj_attr_is_set('addResources'):
@@ -223,16 +245,31 @@ class LocalNfvo(object):
 
         # handle vimAssets
         # if there is an artifact, create glance image.
-        target_vdus = {res['resourceTemplateId']
-                       for res in grant_req['addResources']}
         vnfd = self.get_vnfd(context, grant_req.dstVnfdId)
-        all_sw_image_data = vnfd.get_sw_image_data(grant_req.flavourId)
-        sw_image_data = {res_id: sw_data
-                         for res_id, sw_data in all_sw_image_data.items()
-                         if res_id in target_vdus}
-        vim_info = self._get_vim_info(context, grant_req)
-        self._handle_vim_assets(grant_req, grant_res, vnfd,
-                                sw_image_data, vim_info)
+        self._handle_vim_assets(context, grant_req, grant_res, vnfd)
+
+    def scale_grant(self, context, grant_req, grant_res):
+        if not grant_req.obj_attr_is_set('addResources'):
+            return
+        # handle ZoneInfo
+        zone_id = self._handle_zoneinfo(grant_res)
+
+        # handle addResources
+        self._handle_addresources(grant_req, grant_res, zone_id)
+
+        # handle vimAssets
+        # if there is an artifact, create glance image.
+        vnfd = self.get_vnfd(context, grant_req.vnfdId)
+        self._handle_vim_assets(context, grant_req, grant_res, vnfd)
+
+    def heal_grant(self, context, grant_req, grant_res):
+        if not grant_req.obj_attr_is_set('addResources'):
+            return
+
+        # handle vimAssets
+        # if there is an artifact, create glance image.
+        vnfd = self.get_vnfd(context, grant_req.vnfdId)
+        self._handle_vim_assets(context, grant_req, grant_res, vnfd)
 
     def grant(self, context, grant_req):
         grant_res = objects.GrantV1(
@@ -246,6 +283,10 @@ class LocalNfvo(object):
             self.instantiate_grant(context, grant_req, grant_res)
         elif grant_req.operation == v2_fields.LcmOperationType.CHANGE_VNFPKG:
             self.change_vnfpkg_grant(context, grant_req, grant_res)
+        elif grant_req.operation == v2_fields.LcmOperationType.SCALE:
+            self.scale_grant(context, grant_req, grant_res)
+        elif grant_req.operation == v2_fields.LcmOperationType.HEAL:
+            self.heal_grant(context, grant_req, grant_res)
 
         endpoint = config.CONF.v2_vnfm.endpoint
         grant_res._links = objects.GrantV1_Links(

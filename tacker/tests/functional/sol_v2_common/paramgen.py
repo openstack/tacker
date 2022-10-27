@@ -1105,6 +1105,15 @@ def sample3_change_ext_conn(net_ids):
     }
 
 
+# sample3_update_vnf_vnfd_id is for test heal after vnfdId changed
+# in StandardUserData.
+#
+def sample3_update_vnf_vnfd_id(vnfd_id):
+    return {
+        "vnfdId": vnfd_id
+    }
+
+
 # sample4 is for change_vnfpkg test of StandardUserData
 #
 def sample4_change_vnfpkg(vnfd_id, net_ids, subnet_ids):

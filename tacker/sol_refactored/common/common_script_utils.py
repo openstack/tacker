@@ -109,6 +109,20 @@ def get_param_zone(vdu_name, grant_req, grant):
                             return zone['zoneId']
 
 
+def get_param_zone_by_vnfc(res_id, grant):
+    if 'zones' not in grant or 'addResources' not in grant:
+        return
+
+    for res in grant['addResources']:
+        if res['resourceDefinitionId'] == res_id:
+            if 'zoneId' not in res:
+                return
+            for zone in grant['zones']:
+                if zone['id'] == res['zoneId']:  # must be found
+                    return zone['zoneId']
+            return
+
+
 def get_current_capacity(vdu_name, inst):
     count = 0
     inst_vnfcs = (inst.get('instantiatedVnfInfo', {})
@@ -194,14 +208,9 @@ def get_param_fixed_ips_from_inst(cp_name, inst):
                 return _get_fixed_ips_from_extcp(extcp)
 
 
-def apply_ext_managed_vls(hot_dict, req, grant):
-    # see grant first then instantiateVnfRequest
-    mgd_vls = (grant.get('extManagedVirtualLinks', []) +
-               req.get('extManagedVirtualLinks', []))
-
+def _apply_ext_managed_vls(hot_dict, mgd_vls):
     # NOTE: refer HOT only here, not refer VNFD.
     # HOT and VNFD must be consistent.
-
     for mgd_vl in mgd_vls:
         vl_name = mgd_vl['vnfVirtualLinkDescId']
         network_id = mgd_vl['resourceId']
@@ -235,3 +244,27 @@ def apply_ext_managed_vls(hot_dict, req, grant):
 
         for res_name in del_reses:
             hot_dict['resources'].pop(res_name)
+
+
+def apply_ext_managed_vls(hot_dict, req, grant):
+    # see grant first then instantiateVnfRequest
+    mgd_vls = (grant.get('extManagedVirtualLinks', []) +
+               req.get('extManagedVirtualLinks', []))
+
+    _apply_ext_managed_vls(hot_dict, mgd_vls)
+
+
+def apply_ext_managed_vls_from_inst(hot_dict, inst):
+    mgd_vls = inst['instantiatedVnfInfo'].get('extManagedVirtualLinkInfo')
+
+    if mgd_vls:
+        # convert ExtVirtualLinkInfo to ExtManagedVirtualLinkData.
+        # necessary members only.
+        mgd_vls = [
+            {
+                'vnfVirtualLinkDescId': mgd_vl['vnfVirtualLinkDescId'],
+                'resourceId': mgd_vl['networkResource']['resourceId']
+            }
+            for mgd_vl in mgd_vls
+        ]
+        _apply_ext_managed_vls(hot_dict, mgd_vls)

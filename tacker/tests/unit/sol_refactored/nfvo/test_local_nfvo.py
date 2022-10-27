@@ -478,10 +478,11 @@ class TestLocalNfvo(base.BaseTestCase):
 
     @mock.patch.object(local_nfvo.LocalNfvo, 'get_csar_dir')
     @mock.patch.object(lcmocc_utils, 'get_lcmocc')
+    @mock.patch.object(glance_utils.GlanceClient, 'list_images')
     @mock.patch.object(glance_utils.GlanceClient, 'create_image')
     @mock.patch.object(inst_utils, 'get_inst')
     def test_change_vnfpkg_grant(self, mock_inst, mock_image,
-                                 mock_lcmocc, mock_dir):
+            mock_list_images, mock_lcmocc, mock_dir):
         grant_req = objects.GrantRequestV1.from_dict(
             _change_vnfkg_grant_req_example)
         grant_res = objects.GrantV1(
@@ -497,6 +498,7 @@ class TestLocalNfvo(base.BaseTestCase):
         mock_lcmocc.return_value = objects.VnfLcmOpOccV2(
             operation=fields.LcmOperationType.CHANGE_VNFPKG,
             operationParams=req)
+        mock_list_images.return_value = []
         mock_image.return_value = objects.GrantV1(
             id=uuidutils.generate_uuid()
         )
@@ -539,10 +541,11 @@ class TestLocalNfvo(base.BaseTestCase):
 
     @mock.patch.object(local_nfvo.LocalNfvo, 'get_csar_dir')
     @mock.patch.object(lcmocc_utils, 'get_lcmocc')
+    @mock.patch.object(glance_utils.GlanceClient, 'list_images')
     @mock.patch.object(glance_utils.GlanceClient, 'create_image')
     @mock.patch.object(inst_utils, 'get_inst')
     def test_change_vnfpkg_grant_no_image(self, mock_inst, mock_image,
-                                          mock_lcmocc, mock_dir):
+            mock_list_images, mock_lcmocc, mock_dir):
         grant_req = objects.GrantRequestV1.from_dict(
             _change_vnfkg_grant_req_example)
         grant_res = objects.GrantV1(
@@ -572,6 +575,7 @@ class TestLocalNfvo(base.BaseTestCase):
             vimConnectionInfo=req.vimConnectionInfo
         )
         mock_inst.return_value = inst
+        mock_list_images.return_value = []
         mock_image.return_value = Exception()
         self.assertRaises(
             sol_ex.LocalNfvoGrantFailed, self.local_nfvo.change_vnfpkg_grant,
@@ -579,9 +583,11 @@ class TestLocalNfvo(base.BaseTestCase):
 
     @mock.patch.object(local_nfvo.LocalNfvo, 'get_csar_dir')
     @mock.patch.object(lcmocc_utils, 'get_lcmocc')
+    @mock.patch.object(glance_utils.GlanceClient, 'list_images')
     @mock.patch.object(glance_utils.GlanceClient, 'create_image')
     @mock.patch.object(inst_utils, 'get_inst')
-    def test_grant(self, mock_inst, mock_image, mock_lcmocc, mock_dir):
+    def test_grant(self, mock_inst, mock_image, mock_list_images,
+            mock_lcmocc, mock_dir):
         # instantiate
         grant_req = objects.GrantRequestV1.from_dict(_inst_grant_req_example)
         cur_dir = os.path.dirname(__file__)
@@ -613,6 +619,7 @@ class TestLocalNfvo(base.BaseTestCase):
             operation=fields.LcmOperationType.CHANGE_VNFPKG,
             operationParams=req
         )
+        mock_list_images.return_value = []
         mock_image.return_value = objects.GrantV1(
             id=uuidutils.generate_uuid()
         )

@@ -37,7 +37,7 @@ terminate_req = paramgen.terminate_vnf_min()
 instantiate_req = paramgen.instantiate_vnf_min()
 scaleout_req = paramgen.scaleout_vnf_min()
 scalein_req = paramgen.scalein_vnf_min()
-update_seq = paramgen.update_vnf_min()
+update_req = paramgen.update_vnf_min()
 # fake vnfc id, should be get from show vnf
 VNFC_ID = "VDU1-9300a3cb-bd3b-45e4-9967-095040caf827"
 heal_req = paramgen.heal_vnf_vnfc_min(VNFC_ID)
@@ -62,8 +62,8 @@ with open("scaleout_req", "w", encoding='utf-8') as f:
 with open("scalein_req", "w", encoding='utf-8') as f:
     f.write(json.dumps(scalein_req, indent=2))
 
-with open("update_seq", "w", encoding='utf-8') as f:
-    f.write(json.dumps(update_seq, indent=2))
+with open("update_req", "w", encoding='utf-8') as f:
+    f.write(json.dumps(update_req, indent=2))
 
 with open("heal_req", "w", encoding='utf-8') as f:
     f.write(json.dumps(heal_req, indent=2))

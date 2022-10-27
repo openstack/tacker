@@ -1083,6 +1083,17 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             for name, ids in value.items():
                 self.assertEqual(expected_num[key][name], len(ids))
 
+        expected_placement_constraints = [{
+            'affinityOrAntiAffinity': 'ANTI_AFFINITY',
+            'scope': 'NFVI_NODE',
+            'resource': []}]
+        vdu_def_ids = check_reses['COMPUTE']['VDU1']
+        for def_id in vdu_def_ids:
+            expected_placement_constraints[0]['resource'].append(
+                {'idType': 'GRANT', 'resourceId': def_id})
+        self.assertEqual(expected_placement_constraints,
+                         grant_req['placementConstraints'])
+
     @mock.patch.object(nfvo_client.NfvoClient, 'grant')
     def test_scale_grant_scale_in(self, mocked_grant):
         # prepare

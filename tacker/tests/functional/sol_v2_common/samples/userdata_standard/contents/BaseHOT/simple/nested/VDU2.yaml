@@ -34,7 +34,7 @@ resources:
       - port:
           get_resource: VDU2_CP3
       scheduler_hints:
-        group: {get_param: affinity }
+        group: { get_param: affinity }
 
   VDU2-VirtualStorage:
     type: OS::Cinder::Volume

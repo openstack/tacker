@@ -142,7 +142,7 @@ class StandardUserData(userdata_utils.AbstractUserData):
         for vdu_name in vnfd.get_vdu_nodes(flavour_id).keys():
             poped_vdu[vdu_name] = top_hot.get('resources', {}).pop(vdu_name)
             vdu_idxes[vdu_name] = 0
-
+        zones = {}
         for res in grant_req['addResources']:
             if res['type'] != 'COMPUTE':
                 continue
@@ -151,14 +151,17 @@ class StandardUserData(userdata_utils.AbstractUserData):
                 continue
             vdu_idx = vdu_idxes[vdu_name]
             vdu_idxes[vdu_name] += 1
+            zones[add_idx(vdu_name, vdu_idx)] = (
+                common_script_utils.get_param_zone_by_vnfc(
+                    res['id'], grant))
             res = add_idx_to_vdu_template(poped_vdu[vdu_name], vdu_idx)
             top_hot['resources'][add_idx(vdu_name, vdu_idx)] = res
 
         nfv_dict = common_script_utils.init_nfv_dict(top_hot)
 
         vdus = nfv_dict.get('VDU', {})
-        for vdu_name, vdu_value in vdus.items():
-            vdu_name = rm_idx(vdu_name)
+        for vdu_name_idx, vdu_value in vdus.items():
+            vdu_name = rm_idx(vdu_name_idx)
             if 'computeFlavourId' in vdu_value:
                 vdu_value['computeFlavourId'] = (
                     common_script_utils.get_param_flavor(
@@ -167,9 +170,7 @@ class StandardUserData(userdata_utils.AbstractUserData):
                 vdu_value['vcImageId'] = common_script_utils.get_param_image(
                     vdu_name, flavour_id, vnfd, grant)
             if 'locationConstraints' in vdu_value:
-                vdu_value['locationConstraints'] = (
-                    common_script_utils.get_param_zone(
-                        vdu_name, grant_req, grant))
+                vdu_value['locationConstraints'] = zones[vdu_name_idx]
 
         cps = nfv_dict.get('CP', {})
         for cp_name, cp_value in cps.items():
@@ -237,6 +238,7 @@ class StandardUserData(userdata_utils.AbstractUserData):
             vdu_idxes[vdu_name] = common_script_utils.get_current_capacity(
                 vdu_name, inst)
 
+        zones = {}
         for res in grant_req['addResources']:
             if res['type'] != 'COMPUTE':
                 continue
@@ -245,14 +247,17 @@ class StandardUserData(userdata_utils.AbstractUserData):
                 continue
             vdu_idx = vdu_idxes[vdu_name]
             vdu_idxes[vdu_name] += 1
+            zones[add_idx(vdu_name, vdu_idx)] = (
+                common_script_utils.get_param_zone_by_vnfc(
+                    res['id'], grant))
             res = add_idx_to_vdu_template(poped_vdu[vdu_name], vdu_idx)
             top_hot['resources'][add_idx(vdu_name, vdu_idx)] = res
 
         nfv_dict = common_script_utils.init_nfv_dict(top_hot)
 
         vdus = nfv_dict.get('VDU', {})
-        for vdu_name, vdu_value in vdus.items():
-            vdu_name = rm_idx(vdu_name)
+        for vdu_name_idx, vdu_value in vdus.items():
+            vdu_name = rm_idx(vdu_name_idx)
             if 'computeFlavourId' in vdu_value:
                 vdu_value['computeFlavourId'] = (
                     common_script_utils.get_param_flavor(
@@ -261,9 +266,7 @@ class StandardUserData(userdata_utils.AbstractUserData):
                 vdu_value['vcImageId'] = common_script_utils.get_param_image(
                     vdu_name, flavour_id, vnfd, grant)
             if 'locationConstraints' in vdu_value:
-                vdu_value['locationConstraints'] = (
-                    common_script_utils.get_param_zone(
-                        vdu_name, grant_req, grant))
+                vdu_value['locationConstraints'] = zones[vdu_name_idx]
 
         cps = nfv_dict.get('CP', {})
         for cp_name, cp_value in cps.items():
@@ -288,6 +291,8 @@ class StandardUserData(userdata_utils.AbstractUserData):
                             'ip_address')
                     fixed_ips.append(ips_i)
                 cp_value['fixed_ips'] = fixed_ips
+
+        common_script_utils.apply_ext_managed_vls_from_inst(top_hot, inst)
 
         fields = {
             'template': yaml.safe_dump(top_hot),
@@ -443,9 +448,44 @@ class StandardUserData(userdata_utils.AbstractUserData):
 
     @staticmethod
     def heal(req, inst, grant_req, grant, tmp_csar_dir):
-        # It is not necessary to change parameters at heal basically.
+        vnfd = common_script_utils.get_vnfd(inst['vnfdId'], tmp_csar_dir)
+        flavour_id = inst['instantiatedVnfInfo']['flavourId']
 
-        fields = {'parameters': {'nfv': {}}}
+        hot_dict = vnfd.get_base_hot(flavour_id)
+        top_hot = hot_dict['template']
+
+        # first modify VDU resources
+        poped_vdu = {}
+        for vdu_name in vnfd.get_vdu_nodes(flavour_id).keys():
+            poped_vdu[vdu_name] = top_hot.get('resources', {}).pop(vdu_name)
+
+        for res in grant_req['removeResources']:
+            if res['type'] != 'COMPUTE':
+                continue
+            for inst_vnfc in inst['instantiatedVnfInfo']['vnfcResourceInfo']:
+                if (inst_vnfc['computeResource']['resourceId'] ==
+                        res['resource']['resourceId']):
+                    # must be found
+                    vdu_idx = inst_vnfc['metadata']['vdu_idx']
+                    break
+            vdu_name = res['resourceTemplateId']
+            res = add_idx_to_vdu_template(poped_vdu[vdu_name], vdu_idx)
+            top_hot['resources'][add_idx(vdu_name, vdu_idx)] = res
+
+        nfv_dict = common_script_utils.init_nfv_dict(top_hot)
+
+        vdus = nfv_dict.get('VDU', {})
+        for vdu_name, vdu_value in vdus.items():
+            vdu_name = rm_idx(vdu_name)
+            if 'computeFlavourId' in vdu_value:
+                vdu_value.pop('computeFlavourId')
+            if 'vcImageId' in vdu_value:
+                vdu_value['vcImageId'] = common_script_utils.get_param_image(
+                    vdu_name, flavour_id, vnfd, grant)
+            if 'locationConstraints' in vdu_value:
+                vdu_value.pop('locationConstraints')
+
+        fields = {'parameters': {'nfv': {'VDU': vdus}}}
 
         return fields
 

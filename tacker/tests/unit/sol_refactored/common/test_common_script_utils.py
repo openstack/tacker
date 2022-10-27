@@ -237,6 +237,71 @@ class TestCommontScriptUtils(base.BaseTestCase):
         result = common_script_utils.get_param_zone('VDU1', grant_req, grant)
         self.assertEqual('nova', result)
 
+    def test_get_param_zone_by_vnfc(self):
+        grant = {
+            'zones': [
+                {'id': '717f6ae9-3094-46b6-b070-89ede8337571',
+                 'zoneId': 'az-1'},
+                {'id': 'ebccc5a7-0ed4-492d-9d9e-d61414817563',
+                 'zoneId': 'az-2'}
+            ],
+            'addResources': [
+                {'resourceDefinitionId':
+                    'dd60c89a-29a2-43bc-8cff-a534515523df',
+                 'zoneId': '717f6ae9-3094-46b6-b070-89ede8337571'},
+                {'resourceDefinitionId':
+                    '3aa7450b-6d5f-4e82-9ad5-35d7e77f1ae9',
+                 'zoneId': 'ebccc5a7-0ed4-492d-9d9e-d61414817563'}
+            ]
+        }
+
+        result = common_script_utils.get_param_zone_by_vnfc(
+            'dd60c89a-29a2-43bc-8cff-a534515523df', grant)
+        self.assertEqual('az-1', result)
+        result = common_script_utils.get_param_zone_by_vnfc(
+            '3aa7450b-6d5f-4e82-9ad5-35d7e77f1ae9', grant)
+        self.assertEqual('az-2', result)
+
+    def test_get_param_zone_by_vnfc_no_zones(self):
+        grant = {
+            'addResources': [
+                {'resourceDefinitionId':
+                    'dd60c89a-29a2-43bc-8cff-a534515523df',
+                 'zoneId': '717f6ae9-3094-46b6-b070-89ede8337571'}
+            ]
+        }
+
+        result = common_script_utils.get_param_zone_by_vnfc(
+            'dd60c89a-29a2-43bc-8cff-a534515523df', grant)
+        self.assertEqual(None, result)
+
+    def test_get_param_zone_by_vnfc_no_add_resources(self):
+        grant = {
+            'zones': [
+                {'id': '717f6ae9-3094-46b6-b070-89ede8337571',
+                 'zoneId': 'az-1'}
+            ]
+        }
+
+        result = common_script_utils.get_param_zone_by_vnfc(
+            'dd60c89a-29a2-43bc-8cff-a534515523df', grant)
+        self.assertEqual(None, result)
+
+    def test_get_param_zone_by_vnfc_no_zone_id(self):
+        grant = {
+            'zones': [
+                {'id': '717f6ae9-3094-46b6-b070-89ede8337571',
+                 'zoneId': 'az-1'}
+            ],
+            'addResources': [
+                {'resourceDefinitionId':
+                    'dd60c89a-29a2-43bc-8cff-a534515523df'},
+            ]
+        }
+        result = common_script_utils.get_param_zone_by_vnfc(
+            'dd60c89a-29a2-43bc-8cff-a534515523df', grant)
+        self.assertEqual(None, result)
+
     def test_get_param_capacity(self):
         # test get_current_capacity at the same time
         grant_req = {

@@ -11,10 +11,10 @@ resources:
     properties:
       flavor: { get_param: [ nfv, VDU, VDU1, computeFlavourId ] }
       image-VDU1: { get_param: [ nfv, VDU, VDU1, vcImageId ] }
+      zone: { get_param: [ nfv, VDU, VDU1, locationConstraints] }
       net1: { get_param: [ nfv, CP, VDU1_CP1, network ] }
       net2: { get_resource: internalVL1 }
       net3: { get_resource: internalVL2 }
-      affinity: { get_resource: nfvi_node_affinity }
 
   VDU2:
     type: VDU2.yaml

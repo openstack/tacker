@@ -344,30 +344,7 @@ class VnfLcmDriverV2(object):
             grant_req.addResources = add_reses
 
         # placementConstraints
-        affinity_policies = {
-            'AFFINITY': vnfd.get_affinity_targets(flavour_id),
-            'ANTI_AFFINITY': vnfd.get_anti_affinity_targets(flavour_id)
-        }
-        plc_consts = []
-        for key, value in affinity_policies.items():
-            for targets, scope in value:
-                res_refs = []
-                for target in targets:
-                    for res in add_reses:
-                        if res.resourceTemplateId == target:
-                            res_ref = objects.ConstraintResourceRefV1(
-                                idType='GRANT',
-                                resourceId=res.id)
-                            res_refs.append(res_ref)
-
-                plc_const = objects.PlacementConstraintV1(
-                    affinityOrAntiAffinity=key,
-                    scope=scope.upper(),
-                    resource=res_refs)
-                plc_consts.append(plc_const)
-
-        if plc_consts:
-            grant_req.placementConstraints = plc_consts
+        self._make_placementconstraints(grant_req, vnfd, add_reses)
 
         if req.obj_attr_is_set('additionalParams'):
             grant_req.additionalParams = req.additionalParams
@@ -638,6 +615,10 @@ class VnfLcmDriverV2(object):
         aspect_id = req.aspectId
         num_steps = req.numberOfSteps
 
+        # NOTE: flavourId is not necessary according to the SOL003 spec.
+        # It is for local_nfvo to handle images.
+        grant_req.flavourId = flavour_id
+
         vdu_num_inst = vnfd.get_scale_vdu_and_num(flavour_id, aspect_id)
         if not vdu_num_inst:
             # should not occur. just check for consistency.
@@ -645,7 +626,7 @@ class VnfLcmDriverV2(object):
 
         if scale_type == 'SCALE_OUT':
             self._make_scale_out_grant_request(grant_req, inst, num_steps,
-                vdu_num_inst)
+                vdu_num_inst, vnfd)
         else:
             self._make_scale_in_grant_request(grant_req, inst, num_steps,
                 vdu_num_inst)
@@ -654,7 +635,7 @@ class VnfLcmDriverV2(object):
             grant_req.additionalParams = req.additionalParams
 
     def _make_scale_out_grant_request(self, grant_req, inst, num_steps,
-            vdu_num_inst):
+            vdu_num_inst, vnfd):
         inst_info = inst.instantiatedVnfInfo
         add_reses = []
 
@@ -689,6 +670,36 @@ class VnfLcmDriverV2(object):
 
         if add_reses:
             grant_req.addResources = add_reses
+
+        # placementConstraints
+        self._make_placementconstraints(grant_req, vnfd, add_reses)
+
+    def _make_placementconstraints(self, grant_req, vnfd, add_reses):
+        affinity_policies = {
+            'AFFINITY': vnfd.get_affinity_targets(grant_req.flavourId),
+            'ANTI_AFFINITY': vnfd.get_anti_affinity_targets(
+                grant_req.flavourId)
+        }
+        plc_consts = []
+        for key, value in affinity_policies.items():
+            for targets, scope in value:
+                res_refs = []
+                for target in targets:
+                    for res in add_reses:
+                        if res.resourceTemplateId == target:
+                            res_ref = objects.ConstraintResourceRefV1(
+                                idType='GRANT',
+                                resourceId=res.id)
+                            res_refs.append(res_ref)
+
+                plc_const = objects.PlacementConstraintV1(
+                    affinityOrAntiAffinity=key,
+                    scope=scope.upper(),
+                    resource=res_refs)
+                plc_consts.append(plc_const)
+
+        if plc_consts:
+            grant_req.placementConstraints = plc_consts
 
     def _make_scale_in_grant_request(self, grant_req, inst, num_steps,
             vdu_num_inst):
@@ -909,6 +920,10 @@ class VnfLcmDriverV2(object):
 
     def heal_grant(self, grant_req, req, inst, vnfd):
         inst_info = inst.instantiatedVnfInfo
+
+        # NOTE: flavourId is not necessary according to the SOL003 spec.
+        # It is for local_nfvo to handle images.
+        grant_req.flavourId = inst_info.flavourId
 
         is_all = False  # default is False
         if req.obj_attr_is_set('additionalParams'):
