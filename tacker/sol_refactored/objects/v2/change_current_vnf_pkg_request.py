@@ -30,8 +30,6 @@ class ChangeCurrentVnfPkgRequest(base.TackerObject,
         'vnfdId': fields.StringField(nullable=False),
         'extVirtualLinks': fields.ListOfObjectsField(
             'ExtVirtualLinkData', nullable=True),
-        # NOTE: 'extManagedVirtualLinks' is not supported.
-        # It can be specified but make no effect at all.
         'extManagedVirtualLinks': fields.ListOfObjectsField(
             'ExtManagedVirtualLinkData', nullable=True),
         'vimConnectionInfo': fields.DictOfObjectsField(

@@ -1,0 +1,9 @@
+features:
+  - |
+    Support Change Current VNF Package API to
+    add and delete external Connection Point (CP).
+    Support `extManagedVirtualLinks` attribute
+    in ChangeCurrentVnfPkgRequest to change
+    external management networks.
+    These support only when using StandardUserData
+    as the UserData class.

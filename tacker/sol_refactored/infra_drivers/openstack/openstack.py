@@ -126,11 +126,22 @@ class Openstack(object):
         stack_name = heat_utils.get_stack_name(inst)
         heat_client.delete_stack(stack_name)
 
+    def _is_full_fields(self, fields):
+        # NOTE: fields made by UserData class contains only update parts
+        # and 'existing' is not specified (and is thought as True) by
+        # default. if 'existing' is specified and it is False, fields is
+        # a full content.
+        return not fields.get('existing', True)
+
     def _update_fields(self, heat_client, stack_name, fields):
+        if self._is_full_fields(fields):
+            # used by change_vnfpkg(, rollback) only at the moment.
+            return fields
+
         if 'nfv' in fields.get('parameters', {}):
             parameters = heat_client.get_parameters(stack_name)
             LOG.debug("ORIG parameters: %s", parameters)
-            # NOTE: parameters['nfv'] is string
+            # NOTE: Using json.loads because parameters['nfv'] is string
             orig_nfv_dict = json.loads(parameters.get('nfv', '{}'))
             fields['parameters']['nfv'] = inst_utils.json_merge_patch(
                 orig_nfv_dict, fields['parameters']['nfv'])
@@ -334,6 +345,10 @@ class Openstack(object):
         vdu_name = _rsc_with_idx(vnfc.vduId, vnfc.metadata.get('vdu_idx'))
         return vdu_dict.get(vdu_name, {}).get('computeFlavourId')
 
+    def _get_zone_from_vdu_dict(self, vnfc, vdu_dict):
+        vdu_name = _rsc_with_idx(vnfc.vduId, vnfc.metadata.get('vdu_idx'))
+        return vdu_dict.get(vdu_name, {}).get('locationConstraints')
+
     def _get_images_from_vdu_dict(self, vnfc, storage_infos, vdu_dict):
         vdu_idx = vnfc.metadata.get('vdu_idx')
         vdu_name = _rsc_with_idx(vnfc.vduId, vdu_idx)
@@ -364,6 +379,20 @@ class Openstack(object):
                  for vnfc in inst.instantiatedVnfInfo.vnfcResourceInfo
                  if vnfc.computeResource.resourceId in vnfc_res_ids]
 
+        if self._is_full_fields(fields):
+            # NOTE: it is used by StandardUserData only at the moment,
+            # use it to check the fields is constructed by
+            # StandardUserData (and its inheritance) or not.
+            method = self._change_vnfpkg_rolling_update_user_data_standard
+        else:
+            # method for DefaultUserData (and its inheritance)
+            method = self._change_vnfpkg_rolling_update_user_data_default
+
+        method(req, inst, grant_req, grant, vnfd, fields, heat_client,
+            vnfcs, is_rollback)
+
+    def _change_vnfpkg_rolling_update_user_data_default(self, req, inst,
+            grant_req, grant, vnfd, fields, heat_client, vnfcs, is_rollback):
         templates = {}
 
         def _get_template(parent_stack_id):
@@ -400,8 +429,7 @@ class Openstack(object):
                 heat_client.update_stack(parent_stack_id, vdu_fields)
             else:
                 # pickup 'vcImageId' and 'computeFlavourId' from vdu_dict
-                vdu_idx = vnfc.metadata.get('vdu_idx')
-                vdu_name = _rsc_with_idx(vnfc.vduId, vdu_idx)
+                vdu_name = vnfc.vduId
                 new_vdus = {}
                 flavor = self._get_flavor_from_vdu_dict(vnfc, vdu_dict)
                 if flavor:
@@ -418,19 +446,90 @@ class Openstack(object):
                 # pickup 'CP' updates
                 cp_names = vnfd.get_vdu_cps(
                     inst.instantiatedVnfInfo.flavourId, vnfc.vduId)
-                new_cps = {}
-                for cp_name in cp_names:
-                    cp_name = _rsc_with_idx(cp_name, vdu_idx)
-                    if cp_name in cp_dict:
-                        new_cps[cp_name] = cp_dict[cp_name]
+                new_cps = {cp_name: cp_dict[cp_name]
+                           for cp_name in cp_names if cp_name in cp_dict}
 
                 update_fields = {
                     'parameters': {'nfv': {'VDU': new_vdus, 'CP': new_cps}}
                 }
                 update_fields = self._update_fields(heat_client, stack_name,
-                        update_fields)
+                    update_fields)
                 LOG.debug("stack fields: %s", update_fields)
                 heat_client.update_stack(stack_name, update_fields)
+
+            # execute coordinate_vnf_script
+            self._execute_coordinate_vnf_script(req, vnfd, vnfc, heat_client,
+                                                is_rollback)
+
+    def _change_vnfpkg_rolling_update_user_data_standard(self, req, inst,
+            grant_req, grant, vnfd, fields, heat_client, vnfcs, is_rollback):
+        stack_name = heat_utils.get_stack_name(inst)
+
+        # make base template
+        base_template = heat_client.get_template(stack_name)
+        new_template = yaml.safe_load(fields['template'])
+        diff_reses = {
+            res_name: res_value
+            for res_name, res_value in new_template['resources'].items()
+            if res_name not in base_template['resources'].keys()
+        }
+        base_template['resources'].update(diff_reses)
+
+        base_files = heat_client.get_files(stack_name)
+        base_files.update(fields['files'])
+
+        base_parameters = heat_client.get_parameters(stack_name)
+        # NOTE: Using json.loads because parameters['nfv'] is string
+        base_nfv_dict = json.loads(base_parameters.get('nfv', '{}'))
+        new_nfv_dict = fields['parameters']['nfv']
+
+        def _get_param_third_keys(res):
+            """Get third parameter keys
+
+            example:
+            ---
+            VDU1-1:
+              type: VDU1.yaml
+              properties:
+                flavor: { get_param: [ nfv, VDU, VDU1-1, computeFlavourId ] }
+                image-VDU1: { get_param: [ nfv, VDU, VDU1-1, vcImageId ] }
+                net1: { get_param: [ nfv, CP, VDU1_CP1-1, network ] }
+            ---
+            returns {'VDU1-1', 'VDU1_CP1-1'}
+            """
+
+            keys = set()
+            for prop_value in res.get('properties', {}).values():
+                if not isinstance(prop_value, dict):
+                    continue
+                for key, value in prop_value.items():
+                    if (key == 'get_param' and isinstance(value, list) and
+                            len(value) >= 4 and value[0] == 'nfv'):
+                        keys.add(value[2])
+            return keys
+
+        for vnfc in vnfcs:
+            vdu_idx = vnfc.metadata.get('vdu_idx')
+            vdu_name = _rsc_with_idx(vnfc.vduId, vdu_idx)
+
+            # replace VDU_{idx} part
+            target_res = new_template['resources'][vdu_name]
+            base_template['resources'][vdu_name] = target_res
+
+            # update parameters
+            third_keys = _get_param_third_keys(target_res)
+            for item in ['VDU', 'CP']:
+                for key, value in new_nfv_dict.get(item, {}).items():
+                    if key in third_keys:
+                        base_nfv_dict[item][key] = value
+
+            update_fields = {
+                'template': base_template,
+                'files': base_files,
+                'parameters': {'nfv': base_nfv_dict}
+            }
+            LOG.debug("update %s: stack fields: %s", vdu_name, update_fields)
+            heat_client.update_stack(stack_name, update_fields)
 
             # execute coordinate_vnf_script
             self._execute_coordinate_vnf_script(req, vnfd, vnfc, heat_client,
@@ -997,6 +1096,10 @@ class Openstack(object):
                     storage_infos, nfv_dict['VDU'])
                 for vdu_name, image in images.items():
                     metadata[f'image-{vdu_name}'] = image
+                zone = self._get_zone_from_vdu_dict(vnfc_res_info,
+                    nfv_dict['VDU'])
+                if zone is not None:
+                    metadata['zone'] = zone
 
     def _make_instantiated_vnf_info(self, req, inst, grant_req, grant, vnfd,
             heat_client, is_rollback=False, stack_id=None):
@@ -1005,6 +1108,7 @@ class Openstack(object):
             'stack_id']
         stack_name = heat_utils.get_stack_name(inst, stack_id)
         heat_reses = heat_client.get_resources(stack_name)
+        # NOTE: Using json.loads because parameters['nfv'] is string
         nfv_dict = json.loads(heat_client.get_parameters(stack_name)['nfv'])
 
         op = grant_req.operation

@@ -6,13 +6,13 @@ parameters:
     type: string
   image-VDU1:
     type: string
-  zone:
-    type: string
   net1:
     type: string
   net2:
     type: string
   net3:
+    type: string
+  zone:
     type: string
 
 resources:

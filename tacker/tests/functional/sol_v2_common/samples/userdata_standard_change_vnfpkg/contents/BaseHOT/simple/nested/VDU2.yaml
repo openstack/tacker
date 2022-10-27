@@ -27,8 +27,8 @@ resources:
       networks:
       - port:
           get_resource: VDU2_CP1
-# replace the following line to Port ID when extmanagedVLs' Ports are
-# specified in instantiatevnfrequest
+# replace the following line to Port ID when extManagedVLs' Ports are
+# specified in InstantiateVnfRequest
       - port:
           get_resource: VDU2_CP2
       - port:
@@ -45,7 +45,8 @@ resources:
   multi:
     type: OS::Cinder::VolumeType
     properties:
-      name: VDU2-multi
+      # making unique name to avoid conflicting with other packages
+      name: { list_join: ['-', [get_param: OS::stack_name, 'VDU2-multi']] }
       metadata: { multiattach: "<is> True" }
 
 # extVL with numDynamicAddresses and subnet
@@ -56,8 +57,8 @@ resources:
       fixed_ips:
       - subnet: { get_param: subnet1 }
 
-# CPs of internal VLs are deleted when extmanagedVLs and port are
-# specified in instantiatevnfrequest
+# CPs of internal VLs are deleted when extManagedVLs and port are
+# specified in InstantiateVnfRequest
   VDU2_CP2:
     type: OS::Neutron::Port
     properties:

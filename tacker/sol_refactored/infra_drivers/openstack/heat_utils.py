@@ -53,7 +53,13 @@ class HeatClient(object):
 
     def update_stack(self, stack_name, fields, wait=True):
         path = f"stacks/{stack_name}"
-        resp, body = self.client.do_request(path, "PATCH",
+        # It was assumed that PATCH is used and therefore 'fields'
+        # contains only update parts and 'existing' is not used.
+        # Now full replacing 'fields' is supported and it is indicated
+        # by 'existing' is False.  if 'existing' is specified and
+        # it is False, PUT is used.
+        method = "PATCH" if fields.pop('existing', True) else "PUT"
+        resp, body = self.client.do_request(path, method,
                  expected_status=[202], body=fields)
 
         if wait:
@@ -107,7 +113,7 @@ class HeatClient(object):
                 LOG.info("%s %s done.", operation, stack_name.split('/')[0])
                 raise loopingcall.LoopingCallDone()
             elif status in failed_status:
-                LOG.error("% %s failed.", operation, stack_name.split('/')[0])
+                LOG.error("%s %s failed.", operation, stack_name.split('/')[0])
                 sol_title = "%s failed" % operation
                 raise sol_ex.StackOperationFailed(sol_title=sol_title,
                                                   sol_detail=status_reason)
