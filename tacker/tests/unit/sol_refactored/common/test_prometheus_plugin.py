@@ -650,18 +650,6 @@ class TestPrometheusPluginPm(base.TestCase):
             sol_ex.PrometheusPluginError,
             pp.create_job, context=self.context, pm_job=job
         )
-        # resourcename mismatch: VirtualisedComputeResource
-        ins = copy.deepcopy(_inst1)
-        _ = ins['instantiatedVnfInfo']['vnfcResourceInfo'][0]
-        _['computeResource']['resourceId'] = 'test-xxx1-756757f8f-xcwmt'
-        mock_inst.return_value = objects.VnfInstanceV2.from_dict(ins)
-        job = copy.deepcopy(_pm_job)
-        job['subObjectInstanceIds'] = ['vnfc_info1']
-        job = objects.PmJobV2.from_dict(job)
-        self.assertRaises(
-            sol_ex.PrometheusPluginError,
-            pp.create_job, context=self.context, pm_job=job
-        )
 
         ins = copy.deepcopy(_inst1)
         _ = ins['instantiatedVnfInfo']['vnfcResourceInfo'][0]
