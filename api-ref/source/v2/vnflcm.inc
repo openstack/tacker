@@ -1396,6 +1396,12 @@ Request Parameters
   - clientId: authentication_params_oauth2_client_credentials_client_id
   - clientPassword: authentication_params_oauth2_client_credentials_client_password
   - tokenEndpoint: authentication_params_oauth2_client_credentials_token_endpoint
+  - paramsOauth2ClientCert: authentication_params_oauth2_client_cert
+  - clientId: authentication_params_oauth2_client_cert_client_id
+  - certificateRef: authentication_params_oauth2_client_cert_certificate_ref
+  - type: authentication_params_oauth2_client_cert_type
+  - value: authentication_params_oauth2_client_cert_value
+  - tokenEndpoint: authentication_params_oauth2_client_cert_token_endpoint
   - verbosity: vnf_subscription_create_request_verbosity
 
 Request Example

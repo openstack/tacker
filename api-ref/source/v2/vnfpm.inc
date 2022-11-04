@@ -66,6 +66,12 @@ Request Parameters
   - clientId: params_oauth2_client_credentials_client_id
   - clientPassword: params_oauth2_client_credentials_client_password
   - tokenEndpoint: params_oauth2_client_credentials_token_endpoint
+  - paramsOauth2ClientCert: authentication_params_oauth2_client_cert
+  - clientId: params_oauth2_client_cert_client_id
+  - certificateRef: params_oauth2_client_cert_certificate_ref
+  - type: params_oauth2_client_cert_type
+  - value: params_oauth2_client_cert_value
+  - tokenEndpoint: params_oauth2_client_cert_token_endpoint
   - metadata: vnf_pm_job_create_metadata
 
 Request Example
@@ -275,6 +281,12 @@ Request Parameters
   - clientId: params_oauth2_client_credentials_client_id
   - clientPassword: params_oauth2_client_credentials_client_password
   - tokenEndpoint: params_oauth2_client_credentials_token_endpoint
+  - paramsOauth2ClientCert: authentication_params_oauth2_client_cert
+  - clientId: params_oauth2_client_cert_client_id
+  - certificateRef: params_oauth2_client_cert_certificate_ref
+  - type: params_oauth2_client_cert_type
+  - value: params_oauth2_client_cert_value
+  - tokenEndpoint: params_oauth2_client_cert_token_endpoint
 
 Request Example
 ---------------
