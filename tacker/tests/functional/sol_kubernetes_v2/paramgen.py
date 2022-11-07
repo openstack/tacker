@@ -339,7 +339,8 @@ def helm_instantiate(auth_url, bearer_token, ssl_ca_cert):
         "additionalParams": {
             "helm_chart_path": "Files/kubernetes/test-chart-0.1.0.tgz",
             "helm_parameters": {
-                "service.port": 8081
+                "service.port": 8081,
+                "service.type": "NodePort"
             },
             "helm_value_names": {
                 "VDU1": {
