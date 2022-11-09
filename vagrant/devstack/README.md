@@ -19,14 +19,26 @@ instructions on official sites for installation.
 * [vagrant](https://www.vagrantup.com/)
 * [ansible](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html)
 
-Before launching your VMs, you should should install plugin `vagrant-disksize`
-for expanding size of volume of VM. It is because the default size of box
-provided from Ubuntu, 10GB or so, is not enough for deploying devstack
-environment. It's required for expanding the volume size.
+Please also notice the version of vagrant supporting experimental feature
+[Vagrant Disks](https://developer.hashicorp.com/vagrant/docs/disks) for
+expanding the size of volume if you use Ubuntu box image. 
+For other boxes than Ubuntu, plugin `vagrant-disksize` is required instead as
+below. It is because the default size is not enough for deploying OpenStack
+environment.
 
 ```sh
 $ vagrant plugin install vagrant-disksize
 ```
+
+Here is a list of current supported boxes in this tool.
+
+* bento/ubuntu-22.04
+* bento/ubuntu-20.04
+* ubuntu/jammy64
+* ubuntu/focal64
+* bento/centos-stream-8
+* centos/stream8
+
 
 ### Configure and Fire Up VMs
 
@@ -42,8 +54,11 @@ $ YOUR_FAVORITE_EDITOR machines.yml
 You should take care about `private_ips` which is used in `hosts` for
 `ansible-playbook` as explained later.
 
-You should confirm you have a SSH public key before you run vagrant. If your key
-is different from `~/.ssh/id_rsa.pub`, update `ssh_pub_key` in `machines.yml`.
+You should confirm you have a SSH key before you run the command. This tool
+expects the type of your key is not `rsa` but `ed25519` because `rsa`
+was deprecated as default in Ubuntu 22.04.
+Update key path `ssh_pub_key` in `machines.yml` without your key is
+`~/.ssh/id_ed25519.pub`.
 
 Run `vagrant up` after configurations are done. It launches VMs and create a
 user `stack` on them.

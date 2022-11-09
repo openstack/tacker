@@ -1,9 +1,17 @@
-[ubuntu-focal.controller]
+[ubuntu-jammy.controller]
 192.168.56.11
 
-[ubuntu-focal.compute]
+[ubuntu-jammy.compute]
 #192.168.56.12
+
+[ubuntu-focal.controller]
 #192.168.56.13
 
-[centos-stream8.controller]
+[ubuntu-focal.compute]
 #192.168.56.14
+
+[centos-stream8.controller]
+#192.168.56.15
+
+[centos-stream8.compute]
+#192.168.56.16

@@ -1,15 +1,16 @@
 global:
-  # (optional) Path of your SSH public key. Default is "~/.ssh/id_rsa.pub".
-  #ssh_pub_key: "~/.ssh/id_rsa.pub"
+  # (optional) Path of your SSH public key. Default is "~/.ssh/id_ed25519.pub".
+  #ssh_pub_key: "~/.ssh/id_ed25519.pub"
 
 machines:
 
   - hostname: controller
     provider: virtualbox
-    box: ubuntu/focal64
+    # Refer to the supported boxes in "Requirements" section in README.md
+    box: bento/ubuntu-22.04
     nof_cpus: 4
     mem_size: 12
-    disk_size: 50
+    disk_size: 160
     private_ips:
       - 192.168.56.11
     public_ips:
@@ -19,10 +20,10 @@ machines:
 
   - hostname: compute
     provider: virtualbox
-    box: ubuntu/focal64
+    box: bento/ubuntu-22.04
     nof_cpus: 4
     mem_size: 8
-    disk_size: 50
+    disk_size: 160
     private_ips:
       - 192.168.56.12
     public_ips:

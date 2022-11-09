@@ -1,0 +1,16 @@
+---
+- name: install software-properties-common
+  become: yes
+  apt: name=software-properties-common
+  environment: DEBIAN_FRONTEND=noninteractive
+
+- name: add apt repo ppa:deadsnakes/ppa
+  become: yes
+  apt_repository: repo='ppa:deadsnakes/ppa'
+
+- name: install python3 other than default version
+  become: yes
+  apt: name={{ item }}
+  with_items:
+      - python3.9
+      - python3.9-dev

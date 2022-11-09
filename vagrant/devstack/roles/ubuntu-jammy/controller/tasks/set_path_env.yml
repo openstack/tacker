@@ -1,0 +1,5 @@
+---
+- name: set PATH for '.local/bin'
+  lineinfile:
+      line="export PATH=$HOME/.local/bin:$PATH:/sbin"
+      dest={{ ansible_env.HOME }}/.bashrc
