@@ -40,6 +40,6 @@ class LifecycleChangeNotificationsFilterV2(base.TackerObject,
         ),
         'operationTypes': fields.Field(fields.List(
             v2fields.LcmOperationTypeField(), nullable=True)),
-        'operationStatus': fields.Field(fields.List(
+        'operationStates': fields.Field(fields.List(
             v2fields.LcmOperationStateTypeField(), nullable=True)),
     }

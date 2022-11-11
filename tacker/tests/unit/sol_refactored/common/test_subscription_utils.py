@@ -313,9 +313,9 @@ class TestSubscriptionUtils(base.BaseTestCase):
         inst = objects.VnfInstanceV2(id='test-instance', vnfProvider='company')
         notif_type = 'VnfLcmOperationOccurrenceNotification'
         op_type = 'INSTANTIATE'
-        op_status = 'COMPLETED'
+        op_state = 'COMPLETED'
 
-        subscs_no_fileter = objects.LccnSubscriptionV2(id='subsc-1')
+        subscs_no_filter = objects.LccnSubscriptionV2(id='subsc-1')
 
         products_vnfproducts_no_exist = objects._VnfProductsFromProviders(
             vnfProvider='company')
@@ -349,21 +349,21 @@ class TestSubscriptionUtils(base.BaseTestCase):
             id='subsc-7', filter=objects.LifecycleChangeNotificationsFilterV2(
                 operationTypes=['TERMINATE']))
 
-        subscs_op_status_match = objects.LccnSubscriptionV2(
+        subscs_op_state_match = objects.LccnSubscriptionV2(
             id='subsc-8', filter=objects.LifecycleChangeNotificationsFilterV2(
-                operationStatus=['COMPLETED']))
-        subscs_op_status_mismatch = objects.LccnSubscriptionV2(
+                operationStates=['COMPLETED']))
+        subscs_op_state_mismatch = objects.LccnSubscriptionV2(
             id='subsc-9', filter=objects.LifecycleChangeNotificationsFilterV2(
-                operationStatus=['FAILED_TEMP']))
+                operationStates=['FAILED_TEMP']))
 
         mock_subscs.return_value = [
-            subscs_no_fileter, subscs_filter_match, subscs_filter_mismatch,
+            subscs_no_filter, subscs_filter_match, subscs_filter_mismatch,
             subscs_noti_type_match, subscs_noti_type_mismatch,
             subscs_op_type_match, subscs_op_type_mismatch,
-            subscs_op_status_match, subscs_op_status_mismatch]
+            subscs_op_state_match, subscs_op_state_mismatch]
 
         result = subsc_utils.get_matched_subscs(
-            context, inst, notif_type, op_type, op_status)
+            context, inst, notif_type, op_type, op_state)
 
         expected_ids = ['subsc-1', 'subsc-2', 'subsc-4', 'subsc-6', 'subsc-8']
 
