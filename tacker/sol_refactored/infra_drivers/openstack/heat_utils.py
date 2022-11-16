@@ -200,12 +200,30 @@ def get_port_reses(heat_reses):
 
 
 def get_stack_name(inst, stack_id=None):
+    """Return different stack name for different operations
+
+    * A new "stack_id" will be generated after the instantiate and heal_all
+      perform the "create_stack" operation. When make instantiated_vnf_info,
+      the "stack_id" will be passed in as an input parameter.
+      :return: vnf-{inst.id}/{stack_id}
+    * In other lifecycle operations, "stack_id" is stored in the "metadata" of
+      "instantiatedVnfInfo".
+      :return: vnf-{inst.id}/{inst.instantiatedVnfInfo.metadata['stack_id']}
+    * In the instantiate and instantiate_rollback operations, the "stack_id"
+      is not yet known.
+      :return: vnf-{inst.id}
+    """
     stack_name = f"vnf-{inst.id}"
-    if inst.obj_attr_is_set('instantiatedVnfInfo') and not stack_id:
-        return f"{stack_name}/{inst.instantiatedVnfInfo.metadata['stack_id']}"
     if stack_id:
         return f"{stack_name}/{stack_id}"
-    return stack_name
+    # Add a check for the existence of "metadata" when instantiate again
+    # after terminate
+    elif (inst.obj_attr_is_set('instantiatedVnfInfo') and
+            inst.instantiatedVnfInfo.obj_attr_is_set('metadata') and
+            inst.instantiatedVnfInfo.metadata.get('stack_id')):
+        return f"{stack_name}/{inst.instantiatedVnfInfo.metadata['stack_id']}"
+    else:
+        return stack_name
 
 
 def get_resource_stack_id(heat_res):
