@@ -41,7 +41,7 @@ Hash: 2a83656567410141fb50086cdd3e73bd9fb9721bee444872c22338258dd076e0
 Name: Files/kubernetes/horizontal-pod-autoscaler.yaml
 Content-Type: test-data
 Algorithm: SHA-256
-Hash: aa95058d04ef61159712e7c567220b3f5c275251d78b0000bc04575f23c55894
+Hash: e0fcd3fe107ede4c21d436afbc28455a9c60909bf67f27886c88b379ca529e09
 
 Name: Files/kubernetes/job.yaml
 Content-Type: test-data

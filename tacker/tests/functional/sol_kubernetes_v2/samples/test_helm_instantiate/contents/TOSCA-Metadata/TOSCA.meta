@@ -6,4 +6,4 @@ Entry-Definitions: Definitions/sample_cnf_top.vnfd.yaml
 Name: Files/kubernetes/test-chart-0.1.0.tgz
 Content-Type: test-data
 Algorithm: SHA-256
-Hash: 96851c4f3e566d7e94eaa3f7a6ada7fcede501316ffc35b0e27bfdab7f23d4fc
+Hash: fa05dd35f45adb43ff1c6c77675ac82c477c5a55a3ad14a87a6b542c21cf4f7c

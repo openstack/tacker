@@ -1,6 +1,6 @@
 #!/bin/bash
 
-docker run -d \
+podman run -d \
 --net=host \
 -e KEYCLOAK_ADMIN=admin -e KEYCLOAK_ADMIN_PASSWORD=admin \
 -e KC_HTTP_PORT=8080 -e KC_HTTPS_PORT=8443 \
