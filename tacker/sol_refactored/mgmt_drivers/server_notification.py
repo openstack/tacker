@@ -19,6 +19,8 @@ import sys
 
 from oslo_log import log as logging
 from tacker.common import exceptions as common_ex
+from tacker.common import rpc
+from tacker import context
 from tacker.sol_refactored.common import config as cfg
 from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import http_client
@@ -38,6 +40,8 @@ class ServerNotificationMgmtDriver(object):
         self.csar_dir = csar_dir
         auth_handle = http_client.NoAuthHandle()
         self.client = http_client.HttpClient(auth_handle)
+        CONF(project='tacker')
+        rpc.init(CONF)
         self.rpc = conductor_rpc_v2.VnfLcmRpcApiV2()
 
     def make_output_dict(self):
@@ -45,7 +49,7 @@ class ServerNotificationMgmtDriver(object):
 
     def request_remove_timer(self, vnf_instance_id):
         self.rpc.server_notification_remove_timer(
-            None, vnf_instance_id)
+            context.get_admin_context(), vnf_instance_id)
 
     def _request_unregister(
             self, server_notifier_uri, tenant, server_id, alarm_id):
