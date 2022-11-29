@@ -2972,19 +2972,19 @@ _expected_inst_info_S = {
     ],
     "vnfcInfo": [
         {
-            "id": "VDU1-res_id_VDU1_1",
+            "id": "a-010",
             "vduId": "VDU1",
             "vnfcResourceInfoId": "res_id_VDU1_1",
             "vnfcState": "STARTED"
         },
         {
-            "id": "VDU1-res_id_VDU1_0",
+            "id": "a-001",
             "vduId": "VDU1",
             "vnfcResourceInfoId": "res_id_VDU1_0",
             "vnfcState": "STARTED"
         },
         {
-            "id": "VDU2-res_id_VDU2_0",
+            "id": "b-0",
             "vduId": "VDU2",
             "vnfcResourceInfoId": "res_id_VDU2_0",
             "vnfcState": "STARTED"
@@ -3660,9 +3660,16 @@ class TestOpenstack(base.BaseTestCase):
         # prepare
         req = objects.InstantiateVnfRequest.from_dict(
             _instantiate_req_example_S)
+        metadata = {
+            'VDU_VNFc_mapping': {
+                'VDU1': ['a-001', 'a-010', 'a-011'],
+                'VDU2': ['b-0']
+            }
+        }
         inst = objects.VnfInstanceV2(
             id=uuidutils.generate_uuid(),
-            vimConnectionInfo=req.vimConnectionInfo
+            vimConnectionInfo=req.vimConnectionInfo,
+            metadata=metadata
         )
         grant_req = objects.GrantRequestV1(
             operation=fields.LcmOperationType.INSTANTIATE

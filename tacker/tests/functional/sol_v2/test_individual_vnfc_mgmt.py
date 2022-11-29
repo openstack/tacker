@@ -93,6 +93,12 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         vnfc = self._get_vnfc_by_vdu_index(inst, vdu, index)
         return vnfc['id']
 
+    def _get_vnfc_info_id(self, inst, vdu, index):
+        vnfc = self._get_vnfc_by_vdu_index(inst, vdu, index)
+        for vnfc_info in inst['instantiatedVnfInfo']['vnfcInfo']:
+            if vnfc_info['vnfcResourceInfoId'] == vnfc['id']:
+                return vnfc_info['id']
+
     def _get_vnfc_cps(self, inst, vdu, index):
         vnfc = self._get_vnfc_by_vdu_index(inst, vdu, index)
         return {cp_info['cpdId'] for cp_info in vnfc['vnfcCpInfo']}
@@ -201,6 +207,9 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         # check number of VDUs and indexes
         self.assertEqual({0}, self._get_vdu_indexes(inst_1, 'VDU1'))
         self.assertEqual({0}, self._get_vdu_indexes(inst_1, 'VDU2'))
+        # check vnfcInfo ids
+        self.assertEqual('a-001', self._get_vnfc_info_id(inst_1, 'VDU1', 0))
+        self.assertEqual('b-000', self._get_vnfc_info_id(inst_1, 'VDU2', 0))
 
         # 2. Scale out operation
         scale_out_req = paramgen.sample3_scale_out()
@@ -217,12 +226,15 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         # check number of VDUs and indexes
         self.assertEqual({0, 1, 2}, self._get_vdu_indexes(inst_2, 'VDU1'))
         self.assertEqual({0}, self._get_vdu_indexes(inst_2, 'VDU2'))
+        # check vnfcInfo ids
+        self.assertEqual('a-010', self._get_vnfc_info_id(inst_2, 'VDU1', 1))
+        self.assertEqual('a-011', self._get_vnfc_info_id(inst_2, 'VDU1', 2))
 
         # 3. Heal operation
         heal_req = paramgen.sample3_heal()
         # pick up VDU1-1 to heal
-        vnfc_id = self._get_vnfc_id(inst_2, 'VDU1', 1)
-        heal_req['vnfcInstanceId'] = [f'VDU1-{vnfc_id}']
+        vnfc_info_id = self._get_vnfc_info_id(inst_2, 'VDU1', 1)  # 'a-010'
+        heal_req['vnfcInstanceId'] = [vnfc_info_id]
         resp, body = self.heal_vnf_instance(inst_id, heal_req)
         self.assertEqual(202, resp.status_code)
 
@@ -242,6 +254,8 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
                          self._get_vnfc_id(inst_3, 'VDU1', 2))
         self.assertEqual(self._get_vnfc_id(inst_2, 'VDU2', 0),
                          self._get_vnfc_id(inst_3, 'VDU2', 0))
+        # check vnfcInfo id of VDU1-1 is not changed.
+        self.assertEqual('a-010', self._get_vnfc_info_id(inst_3, 'VDU1', 1))
 
         # 4. Scale in operation
         scale_in_req = paramgen.sample3_scale_in()
@@ -326,6 +340,10 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
             self._get_vnfc_cp_net_id(inst_6, 'VDU1', 1, 'VDU1_CP1'))
         self.assertEqual(net_ids['net0'],
             self._get_vnfc_cp_net_id(inst_6, 'VDU2', 0, 'VDU2_CP1'))
+        # check all vnfcInfo ids are not changed.
+        self.assertEqual('a-001', self._get_vnfc_info_id(inst_6, 'VDU1', 0))
+        self.assertEqual('a-010', self._get_vnfc_info_id(inst_6, 'VDU1', 1))
+        self.assertEqual('b-000', self._get_vnfc_info_id(inst_6, 'VDU2', 0))
 
         # Terminate VNF instance
         terminate_req = paramgen.sample4_terminate()
@@ -552,8 +570,8 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         # 3. Heal operation
         heal_req = paramgen.sample3_heal()
         # pick up VDU1-1 to heal
-        vnfc_id = self._get_vnfc_id(inst_2, 'VDU1', 1)
-        heal_req['vnfcInstanceId'] = [f'VDU1-{vnfc_id}']
+        vnfc_info_id = self._get_vnfc_info_id(inst_2, 'VDU1', 1)
+        heal_req['vnfcInstanceId'] = [vnfc_info_id]
         resp, body = self.heal_vnf_instance(inst_id, heal_req)
         self.assertEqual(202, resp.status_code)
 
