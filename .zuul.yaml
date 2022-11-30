@@ -346,6 +346,19 @@
                 client_password: devstack
         tox_envlist: dsvm-functional-sol-separated-nfvo-v2
 
+# TODO(manpreetk): As per the 2023.1 testing runtime, we need to run atleast
+# one job on Focal. This job can be removed as per the future testing
+# runtime (whenever we drop the Ubuntu Focal testing).
+- job:
+    name: tacker-functional-devstack-multinode-sol-v2-ubuntu-focal
+    parent: tacker-functional-devstack-multinode-sol-v2
+    description: |
+      Multinode job for SOL V2 devstack-based functional tests on Ubuntu focal
+    nodeset: openstack-4-nodes-focal
+    host-vars:
+      controller-tacker:
+        tox_envlist: dsvm-functional-sol-v2-ubuntu-focal
+
 - job:
     name: tacker-functional-devstack-multinode-sol-kubernetes
     parent: devstack
@@ -637,6 +650,7 @@
             voting: false
         - tacker-functional-devstack-multinode-sol-v2
         - tacker-functional-devstack-multinode-sol-separated-nfvo-v2
+        - tacker-functional-devstack-multinode-sol-v2-ubuntu-focal
         - tacker-functional-devstack-multinode-sol-kubernetes-v2
         - tacker-functional-devstack-multinode-sol-multi-tenant
         - tacker-functional-devstack-multinode-sol-kubernetes-multi-tenant
