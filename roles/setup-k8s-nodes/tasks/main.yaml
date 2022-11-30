@@ -19,6 +19,18 @@
       - net.bridge.bridge-nf-call-iptables
       - net.ipv4.ip_forward
     become: yes
+  - name: configure containers unqualified-search-registries
+    lineinfile:
+      dest: /etc/containers/registries.conf
+      line: "unqualified-search-registries = {{ registries }}"
+      create: yes
+    vars:
+      registries:
+        - "docker.io"
+        - "k8s.gcr.io"
+        - "quay.io"
+        - "celebdor"
+    become: yes
   when:
     - inventory_hostname == 'controller-k8s'
     - kuryr_k8s_api_url is defined
