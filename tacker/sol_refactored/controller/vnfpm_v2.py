@@ -116,7 +116,9 @@ class VnfPmControllerV2(sol_wsgi.SolAPIController):
         self.nfvo_client = nfvo_client.NfvoClient()
         self.endpoint = CONF.v2_vnfm.endpoint
         self._pm_job_view = vnfpm_view.PmJobViewBuilder(self.endpoint)
-        cls = plugin.get_class('pm_event')
+        cls = plugin.get_class(
+            CONF.prometheus_plugin.performance_management_package,
+            CONF.prometheus_plugin.performance_management_class)
         self.plugin = plugin.MonitoringPlugin.get_instance(cls)
 
     @validator.schema(schema.CreatePmJobRequest_V210, '2.1.0')

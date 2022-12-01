@@ -145,7 +145,7 @@ _body_scale_alert1 = {
     'fingerprint': '5ef77f1f8a3ecb8d'
 }
 
-# fuction_type mismatch
+# function_type mismatch
 _body_scale_alert2 = copy.deepcopy(_body_scale_alert1)
 _body_scale_alert2['labels']['function_type'] = 'vnffm'
 

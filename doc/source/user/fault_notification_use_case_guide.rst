@@ -118,17 +118,17 @@ The ``additionalParams`` must be set when using FaultNotification.
       - Cardinality
       - Description
     * - additionalParams
-      - 0..1
       - KeyValuePairs (inlined)
+      - 0..1
       - Additional input parameters for the instantiation process,
         specific to the VNF being instantiated.
     * - >ServerNotifierUri
-      - 1
       - String
+      - 1
       - Base Uri for ServerNotifier.
     * - >ServerNotifierFaultID
-      - 1..N
       - String
+      - 1..N
       - List of string that indicates which type of alarms to detect.
 
 The value of ``ServerNotifierUri`` and ``ServerNotifierFaultID`` are stored
@@ -161,6 +161,28 @@ Tacker checks ``fault_id`` attribute in the fault event and determines
 whether AutoHealing should be performed. In case of performing
 AutoHealing, VMs are deleted and created via Heat. The client is
 no need to handle healing.
+
+Using Vendor Specific Plugin
+----------------------------
+
+ServerNotification plugin can be replaced with a vendor specific function.
+To replace a plugin, change the configurations below.
+The replaced class must be a subclass of
+tacker.sol_refactored.common.monitoring_plugin_base.MonitoringPlugin.
+
+.. list-table::
+  :header-rows: 1
+  :widths: 40 40 40
+
+  * - Configuration
+    - Default
+    - Description
+  * - ``CONF.server_notification.server_notification_package``
+    - tacker.sol_refactored.common.server_notification
+    - Package name for server notification.
+  * - ``CONF.server_notification.server_notification_class``
+    - ServerNotification
+    - Class name for server notification.
 
 References
 ==========

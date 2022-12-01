@@ -116,18 +116,51 @@ PROMETHEUS_PLUGIN_OPTS = [
     cfg.BoolOpt('performance_management',
                 default=False,
                 help=_('Enable prometheus plugin performance management')),
-
     cfg.IntOpt('reporting_period_margin',
                default=1,
                help=_('Some margin time for PM jos\'s reportingPeriod')),
-
     cfg.BoolOpt('fault_management',
                 default=False,
                 help=_('Enable prometheus plugin fault management')),
-
     cfg.BoolOpt('auto_scaling',
                 default=False,
                 help=_('Enable prometheus plugin autoscaling')),
+    cfg.StrOpt('performance_management_package',
+               default='tacker.sol_refactored.common.prometheus_plugin',
+               help=_('Package name for performance management. '
+                      'This configuration is changed in case of replacing '
+                      'the original function with a vendor specific '
+                      'function.')),
+    cfg.StrOpt('performance_management_class',
+               default='PrometheusPluginPm',
+               help=_('Class name for performance management. '
+                      'This configuration is changed in case of replacing '
+                      'the original function with a vendor specific '
+                      'function.')),
+    cfg.StrOpt('fault_management_package',
+               default='tacker.sol_refactored.common.prometheus_plugin',
+               help=_('Package name for fault management. '
+                      'This configuration is changed in case of replacing '
+                      'the original function with a vendor specific '
+                      'function.')),
+    cfg.StrOpt('fault_management_class',
+               default='PrometheusPluginFm',
+               help=_('Class name for fault management. '
+                      'This configuration is changed in case of replacing '
+                      'the original function with a vendor specific '
+                      'function.')),
+    cfg.StrOpt('auto_scaling_package',
+               default='tacker.sol_refactored.common.prometheus_plugin',
+               help=_('Package name for auto scaling. '
+                      'This configuration is changed in case of replacing '
+                      'the original function with a vendor specific '
+                      'function.')),
+    cfg.StrOpt('auto_scaling_class',
+               default='PrometheusPluginAutoScaling',
+               help=_('Class name for auto scaling. '
+                      'This configuration is changed in case of replacing '
+                      'the original function with a vendor specific '
+                      'function.')),
 ]
 
 CONF.register_opts(PROMETHEUS_PLUGIN_OPTS, 'prometheus_plugin')
@@ -136,7 +169,6 @@ SERVER_NOTIFICATION_OPTS = [
     cfg.BoolOpt('server_notification',
                 default=False,
                 help=_('Enable server notification autohealing')),
-
     cfg.StrOpt('uri_path_prefix',
                default='/server_notification',
                help=_('Uri path prefix string for server notification. '
@@ -147,6 +179,18 @@ SERVER_NOTIFICATION_OPTS = [
                default=20,
                help=_('Timeout (second) of packing for multiple '
                       'server notification.')),
+    cfg.StrOpt('server_notification_package',
+               default='tacker.sol_refactored.common.server_notification',
+               help=_('Package name for server notification. '
+                      'This configuration is changed in case of replacing '
+                      'the original function with a vendor specific '
+                      'function.')),
+    cfg.StrOpt('server_notification_class',
+               default='ServerNotification',
+               help=_('Class name for server notification. '
+                      'This configuration is changed in case of replacing '
+                      'the original function with a vendor specific '
+                      'function.')),
 ]
 
 CONF.register_opts(SERVER_NOTIFICATION_OPTS, 'server_notification')

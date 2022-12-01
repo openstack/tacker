@@ -147,8 +147,6 @@ class ServerNotificationTest(test_vnflcm_basic_common.CommonVnfLcmTest):
 
         # Test notification
         self.assert_notification_get(callback_url)
-        # check usageState of VNF Package
-        self._check_package_usage(is_nfvo, self.svn_pkg)
 
         # 1. LCM-Create
         # ETSI NFV SOL003 v3.3.1 5.5.2.2 VnfInstance

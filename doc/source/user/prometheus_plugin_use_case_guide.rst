@@ -334,3 +334,37 @@ rule file directly. Below is example of alert rule.
           auto_scale_type: SCALE_OUT,
           aspect_id: VDU1_aspect
         annotations:
+
+Using Vendor Specific Plugin
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Prometheus Plugin can be replaced with a vendor specific function.
+To replace a plugin, change the configurations below.
+The replaced class must be a subclass of
+tacker.sol_refactored.common.monitoring_plugin_base.MonitoringPlugin.
+
+.. list-table::
+  :header-rows: 1
+  :widths: 40 40 40
+
+  * - Configuration
+    - Default
+    - Description
+  * - ``CONF.prometheus_plugin.performance_management_package``
+    - tacker.sol_refactored.common.prometheus_plugin
+    - Package name for performance management.
+  * - ``CONF.prometheus_plugin.performance_management_class``
+    - PrometheusPluginPm
+    - Class name for performance management.
+  * - ``CONF.prometheus_plugin.fault_management_package``
+    - tacker.sol_refactored.common.prometheus_plugin
+    - Package name for fault management.
+  * - ``CONF.prometheus_plugin.fault_management_class``
+    - PrometheusPluginFm
+    - Class name for fault management.
+  * - ``CONF.prometheus_plugin.auto_scaling_package``
+    - tacker.sol_refactored.common.prometheus_plugin
+    - Package name for auto scaling.
+  * - ``CONF.prometheus_plugin.auto_scaling_class``
+    - PrometheusPluginAutoScaling
+    - Class name for auto scaling.

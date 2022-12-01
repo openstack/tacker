@@ -14,29 +14,20 @@
 #    under the License.
 
 from importlib import import_module
+from oslo_log import log as logging
 
-module_and_class = {
-    'stub':
-        ('tacker.sol_refactored.common.monitoring_plugin_base',
-         'MonitoringPluginStub'),
-    'pm_event':
-        ('tacker.sol_refactored.common.prometheus_plugin',
-         'PrometheusPluginPm'),
-    'alert':
-        ('tacker.sol_refactored.common.prometheus_plugin',
-         'PrometheusPluginFm'),
-    'auto_healing':
-        ('tacker.sol_refactored.common.prometheus_plugin',
-         'PrometheusPluginAutoScaling'),
-    'server_notification':
-        ('tacker.sol_refactored.common.server_notification',
-        'ServerNotification'),
-}
+from tacker.sol_refactored.common import exceptions as sol_ex
+
+LOG = logging.getLogger(__name__)
 
 
-def get_class(short_name):
-    module = import_module(module_and_class[short_name][0])
-    return getattr(module, module_and_class[short_name][1])
+def get_class(package_name, class_name):
+    module = import_module(package_name)
+    _class = getattr(module, class_name)
+    if not issubclass(_class, MonitoringPlugin):
+        LOG.error(f"Loading plugin failed: {package_name}.{class_name}.")
+        raise sol_ex.MonitoringPluginClassError(class_name=class_name)
+    return _class
 
 
 class MonitoringPlugin():
