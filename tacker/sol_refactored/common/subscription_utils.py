@@ -199,7 +199,7 @@ def get_lcmocc_subscs(context, lcmocc, inst):
             lcmocc.operation, lcmocc.operationState)
 
 
-def get_matched_subscs(context, inst, notif_type, op_type, op_status):
+def get_matched_subscs(context, inst, notif_type, op_type, op_state):
     subscs = []
     for subsc in get_subsc_all(context):
         # subsc: LccnSubscription
@@ -209,11 +209,11 @@ def get_matched_subscs(context, inst, notif_type, op_type, op_status):
             subscs.append(subsc)
             continue
 
-        # subsc.fulter: LifecycleChangeNotificationsFilter
+        # subsc.filter: LifecycleChangeNotificationsFilter
         # - vnfInstanceSubscriptionFilter 0..1
         # - notificationTypes 0..N
         # - operationTypes 0..N
-        # - operationStatus 0..N
+        # - operationStates 0..N
         if subsc.filter.obj_attr_is_set('vnfInstanceSubscriptionFilter'):
             inst_filter = subsc.filter.vnfInstanceSubscriptionFilter
             if not match_inst_subsc_filter(inst_filter, inst):
@@ -228,9 +228,9 @@ def get_matched_subscs(context, inst, notif_type, op_type, op_status):
             if op_type not in subsc.filter.operationTypes:
                 continue
 
-        if (op_status is not None and
-                subsc.filter.obj_attr_is_set('operationStatus')):
-            if op_status not in subsc.filter.operationStatus:
+        if (op_state is not None and
+                subsc.filter.obj_attr_is_set('operationStates')):
+            if op_state not in subsc.filter.operationStates:
                 continue
 
         # OK, matched
