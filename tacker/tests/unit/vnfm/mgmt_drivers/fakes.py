@@ -274,8 +274,8 @@ def fake_replicaset_container_config_changed():
                 )
             )
         ),
-        status=client.V1PodStatus(
-            phase='Running',
+        status=client.V1ReplicaSetStatus(
+            replicas=1,
         )
     )
 
@@ -345,8 +345,8 @@ def fake_replicaset_volume_config_changed():
                 )
             )
         ),
-        status=client.V1PodStatus(
-            phase='Running',
+        status=client.V1ReplicaSetStatus(
+            replicas=1,
         )
     )
 
@@ -393,8 +393,8 @@ def fake_replicaset_image_changed():
                 )
             )
         ),
-        status=client.V1PodStatus(
-            phase='Running',
+        status=client.V1ReplicaSetStatus(
+            replicas=1,
         )
     )
 
@@ -538,3 +538,21 @@ def return_cnf_additional_params():
         "namespace": "default"
     }
     return additional_params
+
+
+def fake_k8s_clients():
+    k8s_clients = {
+        'v1': client.CoreV1Api(),
+        'apiregistration.k8s.io/v1': client.ApiregistrationV1Api(),
+        'apps/v1': client.AppsV1Api(),
+        'authentication.k8s.io/v1': client.AuthenticationV1Api(),
+        'authorization.k8s.io/v1': client.AuthorizationV1Api(),
+        'autoscaling/v1': client.AutoscalingV1Api(),
+        'batch/v1': client.BatchV1Api(),
+        'coordination.k8s.io/v1': client.CoordinationV1Api(),
+        'networking.k8s.io/v1': client.NetworkingV1Api(),
+        'rbac.authorization.k8s.io/v1': client.RbacAuthorizationV1Api(),
+        'scheduling.k8s.io/v1': client.SchedulingV1Api(),
+        'storage.k8s.io/v1': client.StorageV1Api()
+    }
+    return k8s_clients

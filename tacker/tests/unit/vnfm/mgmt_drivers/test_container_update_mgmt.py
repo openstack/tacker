@@ -115,7 +115,7 @@ class TestContainerUpdate(base.TestCase):
         self.assertRaises(
             exceptions.MgmtDriverOtherError,
             self.cntr_update_mgmt._replace_wait_k8s, kube_driver,
-            k8s_pod_objs, client.CoreV1Api, self.vnf_instance)
+            k8s_pod_objs, mgmt_fakes.fake_k8s_clients(), self.vnf_instance)
 
     @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
     def test_container_update_replace_wait_k8s_unknown(self, mock_list_pod):
@@ -129,7 +129,25 @@ class TestContainerUpdate(base.TestCase):
         self.assertRaises(
             exceptions.MgmtDriverOtherError,
             self.cntr_update_mgmt._replace_wait_k8s, kube_driver,
-            k8s_pod_objs, client.CoreV1Api, self.vnf_instance)
+            k8s_pod_objs, mgmt_fakes.fake_k8s_clients(), self.vnf_instance)
+
+    @mock.patch.object(client.AppsV1Api, 'read_namespaced_replica_set')
+    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
+    def test_container_update_replace_wait_unmatch_podnum(
+            self, mock_list_pod, mock_read_namespaced_replicaset_scale):
+        k8s_pod_objs = [
+            {'namespace': 'default',
+             'object': mgmt_fakes.fake_replicaset_container_config_changed()}
+        ]
+        kube_driver = Kubernetes()
+        mock_list_pod.return_value = mgmt_fakes.fake_list_pod()
+        mock_read_namespaced_replicaset_scale.return_value = client.V1Scale(
+            spec=client.V1ScaleSpec(replicas=1),
+            status=client.V1ScaleStatus(replicas=1))
+        self.assertRaises(
+            exceptions.MgmtDriverOtherError,
+            self.cntr_update_mgmt._replace_wait_k8s, kube_driver,
+            k8s_pod_objs, mgmt_fakes.fake_k8s_clients(), self.vnf_instance)
 
     @mock.patch('tacker.objects.vnf_instance.VnfInstance.save')
     @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
@@ -160,6 +178,7 @@ class TestContainerUpdate(base.TestCase):
 
     @mock.patch('tacker.objects.vnf_instance.VnfInstance.save')
     @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch.object(client.AppsV1Api, 'read_namespaced_replica_set_scale')
     @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
     @mock.patch.object(client.CoreV1Api, 'replace_namespaced_secret')
     @mock.patch.object(client.CoreV1Api, 'replace_namespaced_config_map')
@@ -167,17 +186,24 @@ class TestContainerUpdate(base.TestCase):
     @mock.patch.object(client.CoreV1Api, 'read_namespaced_pod')
     @mock.patch.object(client.AppsV1Api, 'read_namespaced_replica_set')
     @mock.patch.object(client.AppsV1Api, 'replace_namespaced_replica_set')
+    @mock.patch.object(client.CoreV1Api, 'delete_namespaced_pod')
     def test_container_update_modify_information_end_container_config_changed(
-            self, mock_replace_replica_set, mock_read_replicaset,
+            self, mock_delete_namespaced_pod,
+            mock_replace_replica_set, mock_read_replicaset,
             mock_read_pod, mock_replace_pod, mock_replace_config_map,
-            mock_replace_secret, mock_list_pod, mock_vnfd_dict, mock_save,
+            mock_replace_secret, mock_list_pod,
+            mock_read_namespaced_replicaset_scale, mock_vnfd_dict, mock_save,
     ):
         mock_read_replicaset.return_value = (mgmt_fakes.
                                     fake_replicaset_container_config_changed())
         mock_read_pod.return_value = (mgmt_fakes.
                                       fake_pod_container_config_changed())
         mock_list_pod.return_value = client.V1PodList(items=[
-            mgmt_fakes.get_fake_pod_info(kind='Pod', name='vdu1')])
+            mgmt_fakes.get_fake_pod_info(kind='Pod', name='vdu1'),
+            mgmt_fakes.get_fake_pod_info(kind='ReplicaSet', name='vdu2')])
+        mock_read_namespaced_replicaset_scale.return_value = client.V1Scale(
+            spec=client.V1ScaleSpec(replicas=1),
+            status=client.V1ScaleStatus(replicas=1))
         mock_vnfd_dict.return_value = fakes.vnfd_dict_cnf()
         kwargs = {
             'old_vnf_package_path': self.yaml_path_before,
@@ -192,6 +218,7 @@ class TestContainerUpdate(base.TestCase):
 
     @mock.patch('tacker.objects.vnf_instance.VnfInstance.save')
     @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch.object(client.AppsV1Api, 'read_namespaced_replica_set_scale')
     @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
     @mock.patch.object(client.CoreV1Api, 'replace_namespaced_secret')
     @mock.patch.object(client.CoreV1Api, 'replace_namespaced_config_map')
@@ -199,17 +226,24 @@ class TestContainerUpdate(base.TestCase):
     @mock.patch.object(client.CoreV1Api, 'read_namespaced_pod')
     @mock.patch.object(client.AppsV1Api, 'read_namespaced_replica_set')
     @mock.patch.object(client.AppsV1Api, 'replace_namespaced_replica_set')
+    @mock.patch.object(client.CoreV1Api, 'delete_namespaced_pod')
     def test_container_update_modify_information_end_volume_config_changed(
-            self, mock_replace_replica_set, mock_read_replicaset,
+            self, mock_delete_namespaced_pod,
+            mock_replace_replica_set, mock_read_replicaset,
             mock_read_pod, mock_replace_pod, mock_replace_config_map,
-            mock_replace_secret, mock_list_pod, mock_vnfd_dict, mock_save,
+            mock_replace_secret, mock_list_pod,
+            mock_read_namespaced_replicaset_scale, mock_vnfd_dict, mock_save,
     ):
         mock_read_replicaset.return_value = (mgmt_fakes.
                                     fake_replicaset_volume_config_changed())
         mock_read_pod.return_value = (mgmt_fakes.
                                       fake_pod_volume_config_changed())
         mock_list_pod.return_value = client.V1PodList(items=[
-            mgmt_fakes.get_fake_pod_info(kind='Pod', name='vdu1')])
+            mgmt_fakes.get_fake_pod_info(kind='Pod', name='vdu1'),
+            mgmt_fakes.get_fake_pod_info(kind='ReplicaSet', name='vdu2')])
+        mock_read_namespaced_replicaset_scale.return_value = client.V1Scale(
+            spec=client.V1ScaleSpec(replicas=1),
+            status=client.V1ScaleStatus(replicas=1))
         mock_vnfd_dict.return_value = fakes.vnfd_dict_cnf()
         kwargs = {
             'old_vnf_package_path': self.yaml_path_before,
@@ -224,6 +258,7 @@ class TestContainerUpdate(base.TestCase):
 
     @mock.patch('tacker.objects.vnf_instance.VnfInstance.save')
     @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch.object(client.AppsV1Api, 'read_namespaced_replica_set_scale')
     @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
     @mock.patch.object(client.CoreV1Api, 'replace_namespaced_secret')
     @mock.patch.object(client.CoreV1Api, 'replace_namespaced_config_map')
@@ -231,16 +266,23 @@ class TestContainerUpdate(base.TestCase):
     @mock.patch.object(client.CoreV1Api, 'read_namespaced_pod')
     @mock.patch.object(client.AppsV1Api, 'read_namespaced_replica_set')
     @mock.patch.object(client.AppsV1Api, 'replace_namespaced_replica_set')
+    @mock.patch.object(client.CoreV1Api, 'delete_namespaced_pod')
     def test_container_update_modify_information_end_image_changed(
-            self, mock_replace_replica_set, mock_read_replicaset,
+            self, mock_delete_namespaced_pod,
+            mock_replace_replica_set, mock_read_replicaset,
             mock_read_pod, mock_replace_pod, mock_replace_config_map,
-            mock_replace_secret, mock_list_pod, mock_vnfd_dict, mock_save,
+            mock_replace_secret, mock_list_pod,
+            mock_read_namespaced_replicaset_scale, mock_vnfd_dict, mock_save,
     ):
         mock_read_replicaset.return_value = (mgmt_fakes.
                                              fake_replicaset_image_changed())
         mock_read_pod.return_value = mgmt_fakes.fake_pod_image_changed()
         mock_list_pod.return_value = client.V1PodList(items=[
-            mgmt_fakes.get_fake_pod_info(kind='Pod', name='vdu1')])
+            mgmt_fakes.get_fake_pod_info(kind='Pod', name='vdu1'),
+            mgmt_fakes.get_fake_pod_info(kind='ReplicaSet', name='vdu2')])
+        mock_read_namespaced_replicaset_scale.return_value = client.V1Scale(
+            spec=client.V1ScaleSpec(replicas=1),
+            status=client.V1ScaleStatus(replicas=1))
         mock_vnfd_dict.return_value = fakes.vnfd_dict_cnf()
         kwargs = {
             'old_vnf_package_path': self.yaml_path_before,
@@ -255,6 +297,7 @@ class TestContainerUpdate(base.TestCase):
 
     @mock.patch('tacker.objects.vnf_instance.VnfInstance.save')
     @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch.object(client.AppsV1Api, 'read_namespaced_replica_set_scale')
     @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
     @mock.patch.object(client.CoreV1Api, 'replace_namespaced_secret')
     @mock.patch.object(client.CoreV1Api, 'replace_namespaced_config_map')
@@ -267,14 +310,18 @@ class TestContainerUpdate(base.TestCase):
             self, mock_delete_namespaced_pod,
             mock_replace_replica_set, mock_read_replicaset,
             mock_read_pod, mock_replace_pod, mock_replace_config_map,
-            mock_replace_secret, mock_list_pod, mock_vnfd_dict, mock_save,
+            mock_replace_secret, mock_list_pod,
+            mock_read_namespaced_replicaset_scale, mock_vnfd_dict, mock_save,
     ):
         mock_read_replicaset.return_value = (mgmt_fakes.
                                              fake_replicaset_image_changed())
         mock_read_pod.return_value = mgmt_fakes.fake_pod()
         mock_list_pod.return_value = client.V1PodList(items=[
-            mgmt_fakes.get_fake_pod_info(kind='Pod',
-                                         name='vdu2-rldmg')])
+            mgmt_fakes.get_fake_pod_info(kind='Pod', name='vdu2-rldmg'),
+            mgmt_fakes.get_fake_pod_info(kind='ReplicaSet', name='vdu2')])
+        mock_read_namespaced_replicaset_scale.return_value = client.V1Scale(
+            spec=client.V1ScaleSpec(replicas=1),
+            status=client.V1ScaleStatus(replicas=1))
         mock_vnfd_dict.return_value = fakes.vnfd_dict_cnf()
         kwargs = {
             'old_vnf_package_path': self.yaml_path_before,

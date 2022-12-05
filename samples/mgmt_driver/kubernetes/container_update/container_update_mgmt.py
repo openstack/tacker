@@ -156,15 +156,50 @@ class ContainerUpdateMgmtDriver(vnflcm_abstract_driver.
 
         return response
 
+    def _read_scale_api(self, k8s_clients, namespace, k8s_obj):
+        # get api
+        name = k8s_obj['object'].metadata.name
+        kind = k8s_obj['object'].kind
+        api_version = k8s_obj['object'].api_version
+
+        def convert(name):
+            name_with_underscores = re.sub(
+                '(.)([A-Z][a-z]+)', r'\1_\2', name)
+            return re.sub('([a-z0-9])([A-Z])', r'\1_\2',
+                        name_with_underscores).lower()
+
+        snake_case_kind = convert(kind)
+        try:
+            read_scale_api = eval(f'k8s_clients["{api_version}"].'
+                                  f'read_namespaced_{snake_case_kind}_scale')
+            response = read_scale_api(name=name, namespace=namespace)
+        except Exception as exp:
+            raise exceptions.MgmtDriverOtherError(
+                error_message=encodeutils.exception_to_unicode(exp))
+
+        return response
+
     def _replace_wait_k8s(self, kube_driver, k8s_pod_objs,
-                          core_v1_api_client, vnf_instance):
+                          k8s_clients, vnf_instance):
         try:
             time.sleep(kube_driver.STACK_RETRY_WAIT)
             status = 'Pending'
             stack_retries = kube_driver.STACK_RETRIES
+            core_v1_api_client = k8s_clients['v1']
+
+            # get replicas of scalable resources for checking number of pod
+            scalable_kinds = ("Deployment", "ReplicaSet")
+            for k8s_pod_obj in k8s_pod_objs:
+                if k8s_pod_obj['object'].kind in scalable_kinds:
+                    scale_info = self._read_scale_api(
+                        k8s_clients=k8s_clients,
+                        namespace=k8s_pod_obj.get('namespace'),
+                        k8s_obj=k8s_pod_obj)
+                    k8s_pod_obj['replicas'] = scale_info.spec.replicas
 
             while status == 'Pending' and stack_retries > 0:
                 pods_information = []
+                unmatch_pods_num_flag = False
                 for k8s_pod_obj in k8s_pod_objs:
                     kind = k8s_pod_obj['object'].kind
                     namespace = k8s_pod_obj.get('namespace')
@@ -175,11 +210,29 @@ class ContainerUpdateMgmtDriver(vnflcm_abstract_driver.
 
                     response = core_v1_api_client.list_namespaced_pod(
                         namespace=namespace)
+                    tmp_pods_info = []
                     for pod in response.items:
                         match_result = kube_driver.is_match_pod_naming_rule(
                             kind, name, pod.metadata.name)
                         if match_result:
-                            pods_information.append(pod)
+                            tmp_pods_info.append(pod)
+                    # NOTE(ueha): The status of pod being replaced is retrieved
+                    # as "Running", which cause incorrect information to be
+                    # stored in vnfcResouceInfo. Therefore, for the scalable
+                    # kinds, by comparing the actual number of pods with the
+                    # replicas, it can wait until the pod deletion is complete
+                    # and store correct information to vnfcResourceInfo.
+                    if (k8s_pod_obj['object'].kind in scalable_kinds and
+                            k8s_pod_obj.get('replicas') != len(tmp_pods_info)):
+                        LOG.warning("Unmatch number of pod. (kind: %(kind)s,"
+                            " name: %(name)s, replicas: %(replicas)s,"
+                            " actual_pod_num: %(actual_pod_num)s)", {
+                                'kind': k8s_pod_obj['object'].kind,
+                                'name': k8s_pod_obj['object'].metadata.name,
+                                'replicas': str(k8s_pod_obj.get('replicas')),
+                                'actual_pod_num': str(len(tmp_pods_info))})
+                        unmatch_pods_num_flag = True
+                    pods_information.extend(tmp_pods_info)
                 status = kube_driver.get_pod_status(pods_information)
                 if status == 'Unknown':
                     wait = (kube_driver.STACK_RETRIES *
@@ -190,7 +243,7 @@ class ContainerUpdateMgmtDriver(vnflcm_abstract_driver.
                         f"{vnf_instance.id} is not completed")
                     raise exceptions.MgmtDriverOtherError(
                         error_message=error_reason)
-                if status == 'Pending':
+                if status == 'Pending' or unmatch_pods_num_flag:
                     stack_retries = stack_retries - 1
                     time.sleep(kube_driver.STACK_RETRY_WAIT)
             if stack_retries == 0 and status != 'Running':
@@ -371,7 +424,7 @@ class ContainerUpdateMgmtDriver(vnflcm_abstract_driver.
                             body=pod)
 
         # _replace_wait_k8s
-        self._replace_wait_k8s(kube_driver, k8s_pod_objs, core_v1_api_client,
+        self._replace_wait_k8s(kube_driver, k8s_pod_objs, k8s_clients,
                                vnf_instance)
         # Get all pod information under the specified namespace
         pods = core_v1_api_client.list_namespaced_pod(namespace=namespace)
