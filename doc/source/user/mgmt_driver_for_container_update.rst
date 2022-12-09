@@ -371,9 +371,9 @@ The resources information before update:
       ...
       Containers:
         nginx:
-          Container ID:   docker://623c652c7ab71d268e18129475d0391b72c88b1a8a778bbdd3d479fad2521bc2
+          Container ID:   cri-o://623c652c7ab71d268e18129475d0391b72c88b1a8a778bbdd3d479fad2521bc2
           Image:          nginx
-          Image ID:       docker-pullable://nginx@sha256:ecc068890de55a75f1a32cc8063e79f90f0b043d70c5fcf28f1713395a4b3d49
+          Image ID:       docker.io/library/nginx@sha256:ecc068890de55a75f1a32cc8063e79f90f0b043d70c5fcf28f1713395a4b3d49
       ...
       Volumes:
         cm-volume:
@@ -392,9 +392,9 @@ The resources information before update:
       ...
       Containers:
         nginx:
-          Container ID:   docker://74d38aa62097b3a1a80181195ebda3877e3773311d0273fdc3fbb27fa4b9600d
+          Container ID:   cri-o://74d38aa62097b3a1a80181195ebda3877e3773311d0273fdc3fbb27fa4b9600d
           Image:          nginx
-          Image ID:       docker-pullable://nginx@sha256:ecc068890de55a75f1a32cc8063e79f90f0b043d70c5fcf28f1713395a4b3d49
+          Image ID:       docker.io/library/nginx@sha256:ecc068890de55a75f1a32cc8063e79f90f0b043d70c5fcf28f1713395a4b3d49
       ...
       Volumes:
         cm-volume:
@@ -422,9 +422,9 @@ The resources information before update:
       ...
       Containers:
         nginx:
-          Container ID:   docker://50ffc03736a03c8d4546bb60bb5815b4c8f6cbbfb7b70da4121a06c5c8d6568a
+          Container ID:   cri-o://50ffc03736a03c8d4546bb60bb5815b4c8f6cbbfb7b70da4121a06c5c8d6568a
           Image:          nginx
-          Image ID:       docker-pullable://nginx@sha256:ecc068890de55a75f1a32cc8063e79f90f0b043d70c5fcf28f1713395a4b3d49
+          Image ID:       docker.io/library/nginx@sha256:ecc068890de55a75f1a32cc8063e79f90f0b043d70c5fcf28f1713395a4b3d49
       ...
           Environment Variables from:
             cm-data      ConfigMap with prefix 'CM_'  Optional: false
@@ -440,9 +440,9 @@ The resources information before update:
       ...
       Containers:
         nginx:
-          Container ID:   docker://6d7a8019984c04ab758b962a228f44fb14bfc0f4e1f525548d87a91d17b49f77
+          Container ID:   cri-o://6d7a8019984c04ab758b962a228f44fb14bfc0f4e1f525548d87a91d17b49f77
           Image:          nginx
-          Image ID:       docker-pullable://nginx@sha256:ecc068890de55a75f1a32cc8063e79f90f0b043d70c5fcf28f1713395a4b3d49
+          Image ID:       docker.io/library/nginx@sha256:ecc068890de55a75f1a32cc8063e79f90f0b043d70c5fcf28f1713395a4b3d49
       ...
           Environment Variables from:
             cm-data2      ConfigMap with prefix 'CM_'  Optional: false
@@ -466,9 +466,9 @@ The resources information before update:
       ...
       Containers:
         nginx:
-          Container ID:   docker://3f392217d5f22c417fc9da24f4bd27d41e90a2165d10356a44cd1b98b6b899d9
+          Container ID:   cri-o://3f392217d5f22c417fc9da24f4bd27d41e90a2165d10356a44cd1b98b6b899d9
           Image:          nginx
-          Image ID:       docker-pullable://nginx@sha256:ecc068890de55a75f1a32cc8063e79f90f0b043d70c5fcf28f1713395a4b3d49
+          Image ID:       docker.io/library/nginx@sha256:ecc068890de55a75f1a32cc8063e79f90f0b043d70c5fcf28f1713395a4b3d49
       ...
           Environment Variables from:
             cm-data      ConfigMap with prefix 'CM_'  Optional: false
@@ -494,9 +494,9 @@ The resources information before update:
       ...
       Containers:
         nginx:
-          Container ID:   docker://d8e5ea8404a8cd272b54cefac236fdf0c1963a6b0cf03b283e9f57c70fcd4eab
+          Container ID:   cri-o://d8e5ea8404a8cd272b54cefac236fdf0c1963a6b0cf03b283e9f57c70fcd4eab
           Image:          nginx
-          Image ID:       docker-pullable://nginx@sha256:ecc068890de55a75f1a32cc8063e79f90f0b043d70c5fcf28f1713395a4b3d49
+          Image ID:       docker.io/library/nginx@sha256:ecc068890de55a75f1a32cc8063e79f90f0b043d70c5fcf28f1713395a4b3d49
       ...
       Volumes:
         cm-volume:
@@ -632,9 +632,9 @@ The resources information after update:
       ...
       Containers:
         nginx:
-          Container ID:   docker://77f1518b617403115163874f1ea65793b92f7c8d22f5364fe5bb299b471decb1
+          Container ID:   cri-o://77f1518b617403115163874f1ea65793b92f7c8d22f5364fe5bb299b471decb1
           Image:          cirros
-          Image ID:       docker-pullable://cirros@sha256:be6f5d1ab1e463e7991ecb29f1e71993d633ff1d190188662085ef641bdcf389
+          Image ID:       docker.io/library/cirros@sha256:be6f5d1ab1e463e7991ecb29f1e71993d633ff1d190188662085ef641bdcf389
       ...
       Volumes:
         cm-volume:
@@ -653,9 +653,9 @@ The resources information after update:
       ...
       Containers:
         nginx:
-          Container ID:   docker://74d38aa62097b3a1a80181195ebda3877e3773311d0273fdc3fbb27fa4b9600d
+          Container ID:   cri-o://74d38aa62097b3a1a80181195ebda3877e3773311d0273fdc3fbb27fa4b9600d
           Image:          nginx
-          Image ID:       docker-pullable://nginx@sha256:ecc068890de55a75f1a32cc8063e79f90f0b043d70c5fcf28f1713395a4b3d49
+          Image ID:       docker.io/library/nginx@sha256:ecc068890de55a75f1a32cc8063e79f90f0b043d70c5fcf28f1713395a4b3d49
       ...
       Volumes:
         cm-volume:
@@ -683,9 +683,9 @@ The resources information after update:
       ...
       Containers:
         nginx:
-          Container ID:   docker://7b8bd5a7da875fea74a0b0d54ad8a6c1e65bf08a823ae864c6bd7f16b494b990
+          Container ID:   cri-o://7b8bd5a7da875fea74a0b0d54ad8a6c1e65bf08a823ae864c6bd7f16b494b990
           Image:          cirros
-          Image ID:       docker-pullable://cirros@sha256:be6f5d1ab1e463e7991ecb29f1e71993d633ff1d190188662085ef641bdcf389
+          Image ID:       docker.io/library/cirros@sha256:be6f5d1ab1e463e7991ecb29f1e71993d633ff1d190188662085ef641bdcf389
       ...
           Environment Variables from:
             cm-data      ConfigMap with prefix 'CM_'  Optional: false
@@ -701,9 +701,9 @@ The resources information after update:
       ...
       Containers:
         nginx:
-          Container ID:   docker://6d7a8019984c04ab758b962a228f44fb14bfc0f4e1f525548d87a91d17b49f77
+          Container ID:   cri-o://6d7a8019984c04ab758b962a228f44fb14bfc0f4e1f525548d87a91d17b49f77
           Image:          nginx
-          Image ID:       docker-pullable://nginx@sha256:ecc068890de55a75f1a32cc8063e79f90f0b043d70c5fcf28f1713395a4b3d49
+          Image ID:       docker.io/library/nginx@sha256:ecc068890de55a75f1a32cc8063e79f90f0b043d70c5fcf28f1713395a4b3d49
       ...
           Environment Variables from:
             cm-data2      ConfigMap with prefix 'CM_'  Optional: false
@@ -727,9 +727,9 @@ The resources information after update:
       ...
       Containers:
         nginx:
-          Container ID:   docker://98712bf43f41fce1983d46cefcfab7ed72f6159f6eb18ab763d9707caf887d8c
+          Container ID:   cri-o://98712bf43f41fce1983d46cefcfab7ed72f6159f6eb18ab763d9707caf887d8c
           Image:          cirros
-          Image ID:       docker-pullable://cirros@sha256:be6f5d1ab1e463e7991ecb29f1e71993d633ff1d190188662085ef641bdcf389
+          Image ID:       docker.io/library/cirros@sha256:be6f5d1ab1e463e7991ecb29f1e71993d633ff1d190188662085ef641bdcf389
       ...
           Environment Variables from:
             cm-data      ConfigMap with prefix 'CM_'  Optional: false
@@ -756,9 +756,9 @@ The resources information after update:
       ...
       Containers:
         nginx:
-          Container ID:   docker://a9cf17fd465780e5f3e557a1c5d27e0c8ccf5f31a0fd106d9dc891971fed455d
+          Container ID:   cri-o://a9cf17fd465780e5f3e557a1c5d27e0c8ccf5f31a0fd106d9dc891971fed455d
           Image:          cirros
-          Image ID:       docker-pullable://cirros@sha256:be6f5d1ab1e463e7991ecb29f1e71993d633ff1d190188662085ef641bdcf389
+          Image ID:       docker.io/library/cirros@sha256:be6f5d1ab1e463e7991ecb29f1e71993d633ff1d190188662085ef641bdcf389
       ...
       Volumes:
         cm-volume:
