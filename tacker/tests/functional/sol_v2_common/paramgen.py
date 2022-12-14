@@ -1340,3 +1340,84 @@ def sample5_terminate():
     return {
         "terminationType": "FORCEFUL"
     }
+
+
+# sample6 is for retry AZ selection test of StandardUserData
+#
+def sample6_create(vnfd_id):
+    return {
+        "vnfdId": vnfd_id,
+        "vnfInstanceName": "sample6",
+        "vnfInstanceDescription": "test for retry of AZ selection"
+    }
+
+
+def sample6_terminate():
+    return {
+        "terminationType": "FORCEFUL"
+    }
+
+
+def sample6_instantiate(net_ids, subnet_ids, auth_url):
+    ext_vl_1 = {
+        "id": "ext_vl_id_net1",
+        "resourceId": net_ids['net1'],
+        "extCps": [
+            {
+                "cpdId": "VDU1_CP1",
+                "cpConfig": {
+                    "VDU1_CP1_1": {
+                        "cpProtocolData": [{
+                            "layerProtocol": "IP_OVER_ETHERNET",
+                            "ipOverEthernet": {
+                                "ipAddresses": [{
+                                    "type": "IPV4",
+                                    "numDynamicAddresses": 1}]}}]}
+                }
+            }
+        ]
+    }
+
+    return {
+        "flavourId": "simple",
+        "instantiationLevelId": "instantiation_level_1",
+        "extVirtualLinks": [ext_vl_1],
+        "extManagedVirtualLinks": [
+            {
+                "id": "ext_managed_vl_1",
+                "vnfVirtualLinkDescId": "internalVL1",
+                "resourceId": net_ids['net_mgmt']
+            },
+        ],
+        "vimConnectionInfo": {
+            "vim1": {
+                "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3",
+                "vimId": uuidutils.generate_uuid(),
+                "interfaceInfo": {"endpoint": auth_url},
+                "accessInfo": {
+                    "username": "nfv_user",
+                    "region": "RegionOne",
+                    "password": "devstack",
+                    "project": "nfv",
+                    "projectDomain": "Default",
+                    "userDomain": "Default"
+                }
+            }
+        },
+        "additionalParams": {
+            "lcm-operation-user-data": "./UserData/userdata_standard.py",
+            "lcm-operation-user-data-class": "StandardUserData"
+        }
+    }
+
+
+def sample6_scale_out():
+    return {
+        "type": "SCALE_OUT",
+        "aspectId": "VDU1_scale",
+        "numberOfSteps": 1,
+        "additionalParams": {
+            "lcm-operation-user-data": "./UserData/userdata_standard.py",
+            "lcm-operation-user-data-class": "StandardUserData"
+        }
+    }

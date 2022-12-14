@@ -34,7 +34,7 @@ VNFM_OPTS = [
                help=_('Max content length for list APIs.')),
     cfg.IntOpt('openstack_vim_stack_create_timeout',
                default=20,
-               help=_('Timeout (in minuts) of heat stack creation.')),
+               help=_('Timeout (in minutes) of heat stack creation.')),
     cfg.IntOpt('kubernetes_vim_rsc_wait_timeout',
                default=500,
                help=_('Timeout (second) of k8s res creation.')),
@@ -64,6 +64,23 @@ VNFM_OPTS = [
                default=0,  # 0 means no paging
                help=_('Paged response size of the query result for '
                       'VNF PM job.')),
+    cfg.BoolOpt('placement_fallback_best_effort',
+               default=False,
+               help=_('If True, fallbackBestEffort setting is enabled '
+                      'and run Availability Zone reselection.')),
+    cfg.IntOpt('placement_az_select_retry',
+               default=0,  # 0 means unlimited number of retries
+               help=_('Number of retries to reselect Availability Zone. '
+                      'Default value "0" means unlimited number of retries.')),
+    cfg.StrOpt('placement_az_resource_error',
+               default=(r'Resource CREATE failed: ResourceInError: '
+                        r'resources\.(.*)\.(.*): (.*)|'
+                        r'Resource UPDATE failed: resources\.(.*): '
+                        r'Resource CREATE failed: ResourceInError: '
+                        r'resources\.(.*): (.*)'),
+               help=_('Error message for Availability Zone reselection. '
+                      'These configs are regular expressions to detect '
+                      'error messages from OpenStack Heat.')),
     # NOTE: This is for test use since it is convenient to be able to delete
     # under development.
     cfg.BoolOpt('test_enable_lcm_op_occ_delete',

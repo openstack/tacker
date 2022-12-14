@@ -1,0 +1,10 @@
+features:
+  - |
+    Add ``fallbackBestEffort`` parameter and
+    availability zone reselection to enhance
+    the placement functionality and
+    the applicability of Tacker to various systems.
+    It supports only when StandardUserData is used
+    as the UserData class.
+    And the target operations are "instantiate",
+    "scale out" and "heal" of v2 API.
