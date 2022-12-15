@@ -199,6 +199,7 @@ For example:
 
     route:
       group_by:
+        - "kubestatemetrics"
         - "k8smetricsresourceworker1"
         - "k8smetricscadvisorworker1"
         - "k8smetricsresourceworker2"
@@ -262,7 +263,7 @@ at "metadata" field.
             "performanceMetric": [
                 "VCpuUsageMeanVnf.507280d8-bfc5-4b88-904b-9280ba6bc3ea"],
             "collectionPeriod": 30,
-            "reportingPeriod": 30,
+            "reportingPeriod": 90,
             "reportingBoundary": "2099-08-05T02:24:46Z"
         },
         "callbackUri": "<client_callback_uri>",
@@ -286,6 +287,17 @@ at "metadata" field.
             }
         }
     }
+
+.. note::
+
+    With the parameter, pod name can be specified but container name can not.
+    And some prometheus metrics need container name. Therefore, ``max``
+    statement of PromQL is alternatively used in some measurements to
+    measure without container name. That means it provids only most
+    impacted value among the containers. For example:
+
+    ``avg(max(container_fs_usage_bytes{pod=~"pod name"} /
+    container_fs_limit_bytes{pod=~"pod name"}))``
 
 ETSI NFV-SOL 002/003 based Fault Management
 -------------------------------------------

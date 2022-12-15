@@ -76,7 +76,12 @@ class PrometheusPluginPm(PrometheusPlugin, mon_base.MonitoringPlugin):
         self.reporting_period_margin = (
             CONF.prometheus_plugin.reporting_period_margin)
         self.notification_callback = self.default_callback
-        self.sol_exp_map = {
+        # Pod name can be specified but container name can not.
+        # And some prometheus metrics need container name. Therefore, max
+        # statement of PromQL is alternatively used in some measurements to
+        # measure without container name. That means it provids only most
+        # impacted value among the containers.
+        self.sol_exprs = {
             'VCpuUsageMeanVnf':
                 'avg(sum(rate(pod_cpu_usage_seconds_total'
                 '{{pod=~"{pod}"}}[{reporting_period}s])))',
@@ -92,13 +97,11 @@ class PrometheusPluginPm(PrometheusPlugin, mon_base.MonitoringPlugin):
                 'on(pod) (kube_node_status_capacity{{resource="memory"}} * '
                 'on(node) group_right kube_pod_info))',
             'VDiskUsageMeanVnf':
-                'avg(container_fs_usage_bytes{{container="{container}",'
-                'pod=~"{pod}"}}/container_fs_limit_bytes{{container='
-                '"{container}",pod=~"{pod}"}})',
+                'avg(max(container_fs_usage_bytes{{pod=~"{pod}"}}/'
+                'container_fs_limit_bytes{{pod=~"{pod}"}}))',
             'VDiskUsagePeakVnf':
-                'max(container_fs_usage_bytes{{container="{container}",'
-                'pod=~"{pod}"}}/container_fs_limit_bytes{{container='
-                '"{container}",pod=~"{pod}"}})',
+                'max(max(container_fs_usage_bytes{{pod=~"{pod}"}}/'
+                'container_fs_limit_bytes{{pod=~"{pod}"}}))',
             'ByteIncomingVnfIntCp':
                 'sum(container_network_receive_bytes_total'
                 '{{interface="{sub_object_instance_id}",pod=~"{pod}"}})',
@@ -300,12 +303,11 @@ class PrometheusPluginPm(PrometheusPlugin, mon_base.MonitoringPlugin):
             )
         return metrics
 
-    def make_prom_ql(self, target, pod, container='', collection_period=30,
-                     reporting_period=60, sub_object_instance_id='*'):
+    def make_prom_ql(self, target, pod, collection_period=30,
+                     reporting_period=90, sub_object_instance_id='*'):
         reporting_period = max(reporting_period, 30)
-        expr = self.sol_exp_map[target].format(
+        expr = self.sol_exprs[target].format(
             pod=pod,
-            container=container,
             collection_period=collection_period,
             reporting_period=reporting_period,
             sub_object_instance_id=sub_object_instance_id
@@ -437,22 +439,13 @@ class PrometheusPluginPm(PrometheusPlugin, mon_base.MonitoringPlugin):
         if pm_job.objectType in {'Vnf', 'Vnfc'}:
             inst = inst_map[objs[0]]
             for sub_obj in sub_objs:
-                # resource id is like 'test-test1-756757f8f-xcwmt'
-                # obtain 'test-test1' as deployment
-                # obtain 'test' as container
                 compute_resource = self.get_compute_resource_by_sub_obj(
                     inst, sub_obj)
                 if not compute_resource:
                     continue
                 resource_id = compute_resource.resourceId
-                deployment = re.sub(
-                    r'\-[0-9a-f]{1,10}\-[0-9a-z]{5}$', '', resource_id)
-                g = re.match(r'^(.+)\-\1{1,}[0-9]+', deployment)
-                if not g:
-                    continue
-                container = g.group(1)
                 expr = self.make_prom_ql(
-                    target, resource_id, container=container,
+                    target, resource_id,
                     collection_period=collection_period,
                     reporting_period=reporting_period)
                 rules.append(self.make_rule(
