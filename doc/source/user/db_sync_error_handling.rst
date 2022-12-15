@@ -29,8 +29,9 @@ and some error-handling operations.
 
 * The maximum or minimum number of pods is out of range
 * Error compute scale_level
-* Conflict with LCM operation
-
+* LCM operation
+    * Conflict with LCM operation
+    * Abnormal LCM operation status
 
 The maximum or minimum number of pods is out of range
 -----------------------------------------------------
@@ -221,7 +222,7 @@ When tacker-conductor.log contains the following error log,
 it means compute scale_level error.
 
 .. note:: If you don't have tacker-conductor.log,
-          you can execute the following CLI command to create tacker-conductor.log.
+          you can execute the following CLI command to show tacker-conductor.log.
 
 .. code-block:: console
 
@@ -333,22 +334,26 @@ the initial increment is a multiple of the scale level.
           for details.
 
 
+LCM operation
+-------------
+
 Conflict with LCM operation
----------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 There are two kinds of conflicts:
 
 * Database synchronization occurs while LCM operation is in progress.
 * LCM operation occurs during DB synchronization.
 
 Database synchronization occurs while a LCM operation is in progress
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 When tacker-conductor.log contains the following info log,
 it means database synchronization conflict with LCM operation,
 and database synchronization will skip.
 
 .. note:: If you don't have tacker-conductor.log,
-          you can execute the following CLI command to create tacker-conductor.log.
+          you can execute the following CLI command to show tacker-conductor.log.
 
 .. code-block:: console
 
@@ -365,7 +370,7 @@ Waiting for LCM operation completes
 and database synchronization will be repeated at a default time.
 
 LCM operation occurs during DB synchronization
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+''''''''''''''''''''''''''''''''''''''''''''''
 
 When LCM operation responds 409, it conflicts with Database synchronization.
 
@@ -380,3 +385,37 @@ Debug log:
 .. code-block:: console
 
     Ended sync_db
+
+
+Abnormal LCM operation status
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+During synchronization, Tacker checks the operationState of VnfLcmOpOcc.
+For the same vnf instance, if ``FAILED_TEMP`` exists in the operationState,
+or the latest operationState is ``FAILED``,
+Tacker will output an error log and do not update database.
+
+.. note:: If you don't have tacker-conductor.log,
+          you can execute the following CLI command to show tacker-conductor.log.
+
+.. code-block:: console
+
+    journalctl -u devstack@tacker-conductor
+
+Error log:
+
+.. code-block:: console
+
+    The LCM operation status of the vnf: 81c4be9d-25ad-4726-8640-f2c4c326de2e is abnormal, so skip this DB synchronization.
+
+Error-handling operations:
+
+To solve this error, you can get with the following ways.
+
+* For the operation state of ``FAILED_TEMP``, please refer to
+  `VNF LCM error-handling`_.
+
+* For the operation state of ``FAILED``, please perform other LCM operations
+  on this vnf instance until the result is ``COMPLETED``.
+
+.. _VNF LCM error-handling: https://docs.openstack.org/tacker/latest/user/etsi_vnf_error_handling.html

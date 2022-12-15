@@ -372,6 +372,14 @@ class ConductorV2(object):
 
     @coordinate.lock_vnf_instance('{inst.id}')
     def _sync_inst(self, context, inst, vim_info):
+        # NOTE(fengyi): The operation_state in the opocc of vnf_instance
+        # has FAILED_TEMP or FAILED, then Tacker cannot perform DB sync for
+        # the vnf_instance.
+        if lcmocc_utils.is_lcmocc_failure_status(context, inst.id):
+            raise sol_ex.DbSyncFailed(
+                f"The LCM operation status of the vnf: {inst.id} is abnormal, "
+                "so skip this DB synchronization.")
+
         vnf_inst = inst_utils.get_inst(context, inst.id)
         self.vnflcm_driver.sync_db(
             context, vnf_inst, vim_info)

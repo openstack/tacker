@@ -3858,6 +3858,7 @@ class TestKubernetes(base.TestCase):
                         heal_vnf_request=heal_request_data_obj)
         self.assertEqual(mock_list_namespaced_pod.call_count, 0)
 
+    @mock.patch.object(objects.VnfLcmOpOccList, "get_by_filters")
     @mock.patch.object(kubernetes_driver.Kubernetes,
                        "_sync_vnfc_resource_and_pod_resource")
     @mock.patch.object(objects.VimConnectionInfo, "obj_from_primitive")
@@ -3869,10 +3870,14 @@ class TestKubernetes(base.TestCase):
     def test_sync_db(
             self, mock_list_namespaced_pod, mock_check_pod_information,
             mock_get_by_id, mock_save, mock_get_vim, mock_vim,
-            mock_sync_vnfc):
+            mock_sync_vnfc, mock_op_occs):
         mock_list_namespaced_pod.return_value = client.V1PodList(
             items=[fakes.get_fake_pod_info(kind='Deployment')])
         mock_check_pod_information.return_value = True
+
+        vnf_lcm_op_occ = vnflcm_fakes.vnflcm_scale_out_cnf()
+        vnf_lcm_op_occs = objects.VnfLcmOpOccList(objects=[vnf_lcm_op_occ])
+        mock_op_occs.return_value = vnf_lcm_op_occs
 
         vnf_instance_obj = vnflcm_fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED)
@@ -3966,6 +3971,7 @@ class TestKubernetes(base.TestCase):
             f"Failed to synchronize database vnf: "
             f"{vnf_instance_obj.id}", cm.output[0])
 
+    @mock.patch.object(objects.VnfLcmOpOccList, "get_by_filters")
     @mock.patch.object(objects.VimConnectionInfo, "obj_from_primitive")
     @mock.patch.object(vnflcm_utils, "get_vim")
     @mock.patch.object(VnfInstance, "save")
@@ -3974,7 +3980,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
     def test_sync_db_check_pod_false(
             self, mock_list_namespaced_pod, mock_check_pod_information,
-            mock_get_by_id, mock_save, mock_get_vim, mock_vim):
+            mock_get_by_id, mock_save, mock_get_vim, mock_vim, mock_op_occs):
         mock_list_namespaced_pod.return_value = client.V1PodList(
             items=[fakes.get_fake_pod_info(kind='Pod')])
         mock_check_pod_information.side_effect = [True, False]
@@ -3992,6 +3998,10 @@ class TestKubernetes(base.TestCase):
         mock_get_by_id.return_value = vnf_instance_obj
         mock_vim.return_value = vim_connection_object
 
+        vnf_lcm_op_occ = vnflcm_fakes.vnflcm_scale_out_cnf()
+        vnf_lcm_op_occs = objects.VnfLcmOpOccList(objects=[vnf_lcm_op_occ])
+        mock_op_occs.return_value = vnf_lcm_op_occs
+
         self.kubernetes.sync_db(
             context=self.context, vnf_instance=vnf_instance_obj,
             vim_info=vim_connection_object)
@@ -3999,6 +4009,7 @@ class TestKubernetes(base.TestCase):
         self.assertEqual(2, mock_check_pod_information.call_count)
         self.assertEqual(2, mock_save.call_count)
 
+    @mock.patch.object(objects.VnfLcmOpOccList, "get_by_filters")
     @mock.patch.object(kubernetes_driver.Kubernetes,
                        "_sync_vnfc_resource_and_pod_resource")
     @mock.patch.object(objects.VimConnectionInfo, "obj_from_primitive")
@@ -4010,7 +4021,7 @@ class TestKubernetes(base.TestCase):
     def test_sync_db_not_succeeded(
             self, mock_list_namespaced_pod, mock_check_pod_information,
             mock_get_by_id, mock_save, mock_get_vim, mock_vim,
-            mock_sync_vnfc):
+            mock_sync_vnfc, mock_op_occs):
         mock_list_namespaced_pod.return_value = client.V1PodList(
             items=[fakes.get_fake_pod_info(kind='Pod')])
         mock_check_pod_information.return_value = True
@@ -4029,11 +4040,16 @@ class TestKubernetes(base.TestCase):
         mock_vim.return_value = vim_connection_object
         mock_sync_vnfc.return_value = False
 
+        vnf_lcm_op_occ = vnflcm_fakes.vnflcm_scale_out_cnf()
+        vnf_lcm_op_occs = objects.VnfLcmOpOccList(objects=[vnf_lcm_op_occ])
+        mock_op_occs.return_value = vnf_lcm_op_occs
+
         self.kubernetes.sync_db(
             context=self.context, vnf_instance=vnf_instance_obj,
             vim_info=vim_connection_object)
         self.assertEqual(1, mock_sync_vnfc.call_count)
 
+    @mock.patch.object(objects.VnfLcmOpOccList, "get_by_filters")
     @mock.patch.object(objects.VimConnectionInfo, "obj_from_primitive")
     @mock.patch.object(vnflcm_utils, "get_vim")
     @mock.patch.object(VnfInstance, "save")
@@ -4042,7 +4058,7 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
     def test_sync_db_failed_update_db(
             self, mock_list_namespaced_pod, mock_check_pod_information,
-            mock_get_by_id, mock_save, mock_get_vim, mock_vim):
+            mock_get_by_id, mock_save, mock_get_vim, mock_vim, mock_op_occs):
         mock_list_namespaced_pod.return_value = client.V1PodList(
             items=[fakes.get_fake_pod_info(kind='Deployment')])
         mock_check_pod_information.return_value = True
@@ -4059,6 +4075,10 @@ class TestKubernetes(base.TestCase):
 
         mock_get_by_id.return_value = vnf_instance_obj
         mock_vim.return_value = vim_connection_object
+
+        vnf_lcm_op_occ = vnflcm_fakes.vnflcm_scale_out_cnf()
+        vnf_lcm_op_occs = objects.VnfLcmOpOccList(objects=[vnf_lcm_op_occ])
+        mock_op_occs.return_value = vnf_lcm_op_occs
 
         log_name = "tacker.vnfm.infra_drivers.kubernetes.kubernetes_driver"
         with self.assertLogs(logger=log_name, level=logging.ERROR) as cm:

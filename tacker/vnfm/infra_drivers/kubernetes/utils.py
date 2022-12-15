@@ -18,6 +18,8 @@
 from oslo_log import log as logging
 
 from tacker.common import exceptions
+from tacker import objects
+from tacker.objects import fields
 
 LOG = logging.getLogger(__name__)
 
@@ -81,3 +83,24 @@ def get_namespace_from_manifests(chk_namespaces):
     if namespaces:
         return namespaces.pop()
     return None
+
+
+def is_lcmocc_failure_status(context, inst_id):
+    filters = {'field': 'vnf_instance_id', 'model': 'VnfLcmOpOccs',
+               'value': inst_id, 'op': '=='}
+    vnf_lcm_op_occs = objects.VnfLcmOpOccList.get_by_filters(
+        context, read_deleted='no', filters=filters)
+
+    failed_temp_lcmoccs = [
+        lcmocc for lcmocc in vnf_lcm_op_occs.objects if
+        lcmocc.operation_state == fields.LcmOccsOperationState.FAILED_TEMP]
+    failed_lcmocc = [
+        latest_lcmocc for latest_lcmocc in vnf_lcm_op_occs.objects
+        if latest_lcmocc.start_time == max(
+            [lcmocc.start_time for lcmocc in vnf_lcm_op_occs.objects])]
+
+    if failed_temp_lcmoccs or (failed_lcmocc[0].operation_state ==
+                               fields.LcmOccsOperationState.FAILED):
+        return True
+
+    return False

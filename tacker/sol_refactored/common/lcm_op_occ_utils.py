@@ -555,6 +555,24 @@ def get_grant_req_and_grant(context, lcmocc):
     return grant_reqs[0], grant
 
 
+def is_lcmocc_failure_status(context, inst_id):
+    inst_lcmoccs = objects.VnfLcmOpOccV2.get_by_filter(
+        context, vnfInstanceId=inst_id)
+    failed_temp_lcmoccs = [
+        lcmocc for lcmocc in inst_lcmoccs
+        if lcmocc.operationState == fields.LcmOperationStateType.FAILED_TEMP]
+    failed_lcmocc = [
+        latest_lcmocc for latest_lcmocc in inst_lcmoccs
+        if latest_lcmocc.startTime == max(
+            [lcmocc.startTime for lcmocc in inst_lcmoccs])]
+
+    if failed_temp_lcmoccs or (failed_lcmocc[0].operationState ==
+                               fields.LcmOperationStateType.FAILED):
+        return True
+
+    return False
+
+
 def check_lcmocc_in_progress(context, inst_id):
     # if the controller or conductor executes an operation for the vnf
     # instance (i.e. operationState is ...ING), other operation for

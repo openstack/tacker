@@ -2734,6 +2734,15 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
             context, vnf_inst.id)
         if vnf_instance.instantiation_state != 'INSTANTIATED':
             return False
+
+        # NOTE(fengyi): The operation_state in the opocc of vnf_instance
+        # has FAILED_TEMP or FAILED, then Tacker cannot perform DB sync for
+        # the vnf_instance.
+        if k8s_utils.is_lcmocc_failure_status(context, vnf_inst.id):
+            LOG.error(f"The LCM operation status of the vnf: {vnf_inst.id} "
+                      f"is abnormal, so skip this DB synchronization.")
+            return False
+
         # change task_state
         vnf_instance.task_state = fields.VnfInstanceTaskState.DB_SYNCHRONIZING
         vnf_instance.save()
