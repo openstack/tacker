@@ -33,16 +33,50 @@
           - compute2
 
 - nodeset:
-    name: openstack-k8s-4-nodes-focal
+    name: openstack-4-nodes-jammy
     nodes:
       - name: controller
-        label: ubuntu-focal
+        label: ubuntu-jammy
       - name: controller-tacker
-        label: ubuntu-focal
-      - name: controller-k8s
-        label: ubuntu-focal
+        label: ubuntu-jammy
       - name: compute1
-        label: ubuntu-focal
+        label: ubuntu-jammy
+      - name: compute2
+        label: ubuntu-jammy
+    groups:
+      # Nodes running the compute service
+      - name: compute
+        nodes:
+          - compute1
+          - compute2
+      # Nodes that are not the controller
+      - name: subnode
+        nodes:
+          - controller-tacker
+          - compute1
+          - compute2
+      # Switch node for multinode networking setup
+      - name: switch
+        nodes:
+          - controller
+      # Peer nodes for multinode networking setup
+      - name: peers
+        nodes:
+          - controller-tacker
+          - compute1
+          - compute2
+
+- nodeset:
+    name: openstack-k8s-4-nodes-jammy
+    nodes:
+      - name: controller
+        label: ubuntu-jammy
+      - name: controller-tacker
+        label: ubuntu-jammy
+      - name: controller-k8s
+        label: ubuntu-jammy
+      - name: compute1
+        label: ubuntu-jammy
     groups:
       - name: compute
         nodes:
@@ -67,7 +101,7 @@
     parent: devstack
     description: |
       Base multinodes job for devstack-based functional tests
-    nodeset: openstack-4-nodes-focal
+    nodeset: openstack-4-nodes-jammy
     pre-run: playbooks/devstack/pre.yaml
     run: playbooks/devstack/run.yaml
     post-run: playbooks/devstack/post.yaml
@@ -86,7 +120,6 @@
       - openstack/blazar-nova
       - openstack/horizon
       - openstack/barbican
-      - openstack/ceilometer
       - openstack/heat
       - openstack/mistral
       - openstack/mistral-dashboard
@@ -179,7 +212,6 @@
         tox_install_siblings: false
       controller-tacker:
         devstack_plugins:
-          ceilometer: https://opendev.org/openstack/ceilometer
           tacker: https://opendev.org/openstack/tacker
         devstack_services:
           # OVN services
@@ -188,11 +220,6 @@
           ovsdb-server: true
           # Neutron services
           q-ovn-metadata-agent: true
-          # Ceilometer services
-          ceilometer-acompute: false
-          ceilometer-acentral: true
-          ceilometer-aipmi: false
-          ceilometer-anotification: true
           # Tacker services
           tacker: true
           tacker-conductor: true
@@ -236,10 +263,7 @@
           L2_AGENT_EXTENSIONS: qos
           ENABLE_CHASSIS_AS_GW: false
           Q_ML2_PLUGIN_MECHANISM_DRIVERS: ovn,logger
-        devstack_plugins:
-          ceilometer: https://opendev.org/openstack/ceilometer
         devstack_services:
-          ceilometer-acompute: true
           # To override the parent job's definitions.
           tls-proxy: false
           # OVN services
@@ -327,7 +351,7 @@
     parent: devstack
     description: |
       Multinodes job for SOL devstack-based kubernetes functional tests
-    nodeset: openstack-k8s-4-nodes-focal
+    nodeset: openstack-k8s-4-nodes-jammy
     pre-run: playbooks/devstack/pre.yaml
     run: playbooks/devstack/run.yaml
     post-run: playbooks/devstack/post.yaml
