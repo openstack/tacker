@@ -75,7 +75,16 @@ def vim_to_conn_info(vim):
             interfaceInfo=interface_info,
             accessInfo=access_info
         )
-    if vim['vim_type'] == "kubernetes":  # k8s
+    if vim['vim_type'] == "kubernetes":
+        # When vimType is kubernetes, it will be converted to the vimType name
+        # defined by ETSI and used in lifecycle.
+        # Typically, it will be converted to ETSINFV.KUBERNETES.V_1. If the
+        # content of helm is included in vim's extra information, it will be
+        # converted to ETSINFV.HELM.V_3.
+        # You can see
+        # https://nfvwiki.etsi.org/index.php?title=ETSINFV.KUBERNETES.V_1
+        # https://nfvwiki.etsi.org/index.php?title=ETSINFV.HELM.V_3
+        # for details.
         if 'oidc_token_url' in vim_auth:
             access_info = {
                 'oidc_token_url': vim_auth.get('oidc_token_url'),
@@ -102,7 +111,7 @@ def vim_to_conn_info(vim):
 
         vim_type = ('ETSINFV.HELM.V_3'
                     if vim.get('extra', {}).get('use_helm', False)
-                    else 'kubernetes')
+                    else 'ETSINFV.KUBERNETES.V_1')
         return objects.VimConnectionInfo(
             vimId=vim['vim_id'],
             vimType=vim_type,
