@@ -223,7 +223,6 @@ class TestDbMigrationToV2(SqlTestCase):
             name='fake_vim',
             description='fake_vim_description',
             type='openstack',
-            status='Active',
             deleted_at=datetime.datetime.min,
             placement_attr={'regions': ['RegionOne']})
         vim_auth_db = nfvo_db.VimAuth(

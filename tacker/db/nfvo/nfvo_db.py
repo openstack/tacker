@@ -37,7 +37,6 @@ class Vim(model_base.BASE,
     is_default = sa.Column(sa.Boolean, default=False, server_default=sql.false(
     ), nullable=False)
     vim_auth = orm.relationship('VimAuth')
-    status = sa.Column(sa.String(255), nullable=False)
     extra = sa.Column(types.Json, nullable=True)
 
     __table_args__ = (

@@ -241,7 +241,6 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             name='fake_vim',
             description='fake_vim_description',
             type='openstack',
-            status='Active',
             deleted_at=datetime.min,
             placement_attr={'regions': ['RegionOne']})
         vim_auth_db = nfvo_db.VimAuth(
@@ -264,7 +263,6 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             name='fake_vim',
             description='fake_vim_description',
             type='openstack',
-            status='Active',
             deleted_at=datetime.min,
             placement_attr={'regions': ['RegionOne']})
         vim_auth_db = nfvo_db.VimAuth(
@@ -288,7 +286,6 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             name='fake_vim',
             description='fake_vim_description',
             type='kubernetes',
-            status='Active',
             deleted_at=datetime.min,
             placement_attr={'regions': ['RegionOne']})
         vim_auth_db = nfvo_db.VimAuth(
@@ -311,7 +308,6 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             name='fake_vim',
             description='fake_vim_description',
             type='kubernetes',
-            status='Active',
             deleted_at=datetime.min,
             placement_attr={'regions': ['RegionOne']})
         vim_auth_db = nfvo_db.VimAuth(
@@ -334,7 +330,6 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             name='fake_vim',
             description='fake_vim_description',
             type='kubernetes',
-            status='Active',
             deleted_at=datetime.min,
             placement_attr={'regions': ['RegionOne']})
         vim_auth_db = nfvo_db.VimAuth(
@@ -479,9 +474,6 @@ class TestNfvoPlugin(db_base.SqlTestCase):
                    'CommonServicesPluginDb.create_event'
                    ).start()
         mock.patch('tacker.nfvo.nfvo_plugin.NfvoPlugin.get_auth_dict'
-                   ).start()
-        mock.patch('tacker.nfvo.workflows.vim_monitor.vim_monitor_utils.'
-                   'delete_vim_monitor'
                    ).start()
         self._cos_db_plugin =\
             common_services_db_plugin.CommonServicesPluginDb()

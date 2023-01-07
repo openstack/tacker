@@ -61,7 +61,6 @@ OPENSTACK_OPTS = [
                help=_('Number of seconds to wait between packets'))
 ]
 cfg.CONF.register_opts(OPTS, 'vim_keys')
-cfg.CONF.register_opts(OPENSTACK_OPTS, 'vim_monitor')
 
 _VALID_RESOURCE_TYPES = {'network': {'client': neutron_client.Client,
                                      'cmd': 'list_networks',
@@ -87,8 +86,7 @@ SFC_ENCAP = 'sfc_encap'
 
 
 def config_opts():
-    return [('vim_keys', OPTS),
-            ('vim_monitor', OPENSTACK_OPTS)]
+    return [('vim_keys', OPTS)]
 
 
 class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
