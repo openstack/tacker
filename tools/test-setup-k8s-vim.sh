@@ -30,11 +30,18 @@ register_vim() {
         $2
 }
 
-# regiter vim with bearer token
+# register vim with bearer token
 register_vim $conf_dir/local-k8s-vim.yaml vim-kubernetes
 
-# regiter vim with OpenID Connect info
+# register vim with OpenID Connect info
 if [ -f /tmp/keycloak.crt ]
 then
     register_vim $conf_dir/local-k8s-vim-oidc.yaml vim-kubernetes-oidc
 fi
+
+# register vim with extra used helm
+if [ -f $conf_dir/local-k8s-vim-helm.yaml ]
+then
+    register_vim $conf_dir/local-k8s-vim-helm.yaml vim-kubernetes-helm
+fi
+
