@@ -186,7 +186,7 @@ class TestVnfd(base.BaseTestCase):
             'VDU1_scale')
         self.assertEqual(2, result)
 
-    def test_init_from_zip_file(self):
+    def test_init_from_zip_data(self):
         vnfd_id = uuidutils.generate_uuid()
         tmp_dir = tempfile.mkdtemp()
         cur_dir = os.path.dirname(__file__)
@@ -196,32 +196,21 @@ class TestVnfd(base.BaseTestCase):
         vnfd = vnfd_utils.Vnfd(vnfd_id)
         with open(f'{tmp_dir}.zip', "rb") as f:
             content = f.read()
-        vnfd.init_from_zip_file(content)
+        vnfd.init_from_zip_data(content)
         with open(f'{sample_path}/TOSCA-Metadata/TOSCA.meta', 'r') as f:
             tosca_content = yaml.safe_load(f.read())
         with open(f'{sample_path}/Definitions/'
                   f'ut_sample1_df_simple.yaml', 'r') as f:
             definition_content = yaml.safe_load(f.read())
         self.assertEqual(tosca_content, vnfd.tosca_meta)
-        self.assertEqual(True, vnfd.csar_dir_is_tmp)
         self.assertEqual(
             definition_content, vnfd.definitions['ut_sample1_df_simple.yaml'])
 
     def test_init_vnfd_error(self):
         vnfd_id = uuidutils.generate_uuid()
         vnfd = vnfd_utils.Vnfd(vnfd_id)
-        vnfd.csar_dir = 'test'
-        self.assertRaises(sol_ex.InvalidVnfdFormat, vnfd.init_vnfd)
-
-    def test_delete(self):
-        os.mkdir("/tmp/test")
-        vnfd_id = uuidutils.generate_uuid()
-        vnfd = vnfd_utils.Vnfd(vnfd_id)
-        vnfd.csar_dir_is_tmp = True
-        vnfd.csar_dir = "/tmp/test"
-        vnfd.delete()
-        result = os.path.isdir(vnfd.csar_dir)
-        self.assertEqual(False, result)
+        csar_dir = 'test'
+        self.assertRaises(sol_ex.InvalidVnfdFormat, vnfd._init_vnfd, csar_dir)
 
     def test_get_vnfd_properties(self):
         vnfd_id = uuidutils.generate_uuid()

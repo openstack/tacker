@@ -12,9 +12,12 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+import os
 import requests
 from unittest import mock
+import zipfile
 
+from oslo_log import log as logging
 from oslo_utils import uuidutils
 
 from tacker import context
@@ -439,3 +442,20 @@ class TestNfvoClient(base.BaseTestCase):
         self.nfvo_client.send_pm_job_notification(
             report, "pm_job", 'timestamp', self.nfvo_client.endpoint
         )
+
+    def test_make_csar_cache_error(self):
+        csar_dir = "/tmp/test_csar_dir"
+        zip_file = b"no zip content"
+        self.assertRaises(zipfile.BadZipFile,
+            self.nfvo_client._make_csar_cache, csar_dir, zip_file)
+        self.assertFalse(os.path.exists(csar_dir))
+
+    def test_delete_csar_dir(self):
+        log_name = "tacker.sol_refactored.nfvo.nfvo_client"
+        csar_dir = "/tmp/not_exist"
+        with self.assertLogs(logger=log_name, level=logging.CRITICAL) as cm:
+            self.nfvo_client._delete_csar_dir(csar_dir)
+
+        msg = (f"CRITICAL:{log_name}:VNF package cache '{csar_dir}' "
+               "could not be deleted")
+        self.assertIn(msg, cm.output[0])

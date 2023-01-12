@@ -38,29 +38,30 @@ class Vnfd(object):
         self.definitions = {}
         self.vnfd_flavours = {}
         self.csar_dir = None
-        self.csar_dir_is_tmp = False
 
     def init_from_csar_dir(self, csar_dir):
         self.csar_dir = csar_dir
-        self.init_vnfd()
+        self._init_vnfd(csar_dir)
 
-    def init_from_zip_file(self, zip_file):
-        # NOTE: This is used when external NFVO is used.
-        # TODO(oda-g): There is no delete route at the moment.
-        # A possible enhance is that introducing cache management for
-        # extracted vnf packages from external NFVO.
-        self.csar_dir = tempfile.mkdtemp()
-        self.csar_dir_is_tmp = True
+    def init_from_zip_data(self, zip_data):
+        # NOTE: This is used when external NFVO is used and only VNFD in
+        # the vnf package is extracted.
+        csar_dir = tempfile.mkdtemp()
 
-        buff = io.BytesIO(zip_file)
+        buff = io.BytesIO(zip_data)
         with zipfile.ZipFile(buff, 'r') as zf:
-            zf.extractall(self.csar_dir)
+            zf.extractall(csar_dir)
 
-        self.init_vnfd()
+        self._init_vnfd(csar_dir)
 
-    def init_vnfd(self):
+        try:
+            shutil.rmtree(csar_dir)
+        except Exception:
+            LOG.exception("rmtree %s failed", csar_dir)
+
+    def _init_vnfd(self, csar_dir):
         # assume TOSCA-Metadata format
-        path = os.path.join(self.csar_dir, 'TOSCA-Metadata', 'TOSCA.meta')
+        path = os.path.join(csar_dir, 'TOSCA-Metadata', 'TOSCA.meta')
         if not os.path.isfile(path):
             raise sol_ex.InvalidVnfdFormat()
 
@@ -68,19 +69,17 @@ class Vnfd(object):
         with open(path, 'r') as f:
             self.tosca_meta = yaml.safe_load(f.read())
 
-        path = os.path.join(self.csar_dir, 'Definitions')
+        path = os.path.join(csar_dir, 'Definitions')
         for entry in os.listdir(path):
             if entry.endswith(('.yaml', '.yml')):
                 with open(os.path.join(path, entry), 'r') as f:
                     content = yaml.safe_load(f.read())
                 self.definitions[entry] = content
 
-    def delete(self):
-        if self.csar_dir_is_tmp:
-            try:
-                shutil.rmtree(self.csar_dir)
-            except Exception:
-                LOG.exception("rmtree %s failed", self.csar_dir)
+    def _assert_csar_dir(self):
+        if self.csar_dir is None:
+            # should not occur. code bug.
+            raise sol_ex.SolException(sol_detail="csar_dir is None.")
 
     def get_vnfd_flavour(self, flavour_id):
         if flavour_id in self.vnfd_flavours:
@@ -197,6 +196,7 @@ class Vnfd(object):
         return storages
 
     def get_base_hot(self, flavour_id):
+        self._assert_csar_dir()
         # NOTE: this method is openstack specific
         hot_dict = {}
         path = os.path.join(self.csar_dir, 'BaseHOT', flavour_id)
@@ -243,6 +243,7 @@ class Vnfd(object):
             return flavor
 
     def make_tmp_csar_dir(self):
+        self._assert_csar_dir()
         # If this fails, 500 which is not caused by programming error
         # but true 'Internal server error' raises.
         tmp_dir = tempfile.mkdtemp()
@@ -429,6 +430,7 @@ class Vnfd(object):
         return 0
 
     def get_vnf_artifact_files(self):
+        self._assert_csar_dir()
 
         def _get_file_contents(path):
             with open(path, 'rb') as file_object:

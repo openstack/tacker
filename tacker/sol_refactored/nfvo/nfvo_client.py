@@ -14,6 +14,11 @@
 #    under the License.
 
 
+import io
+import os
+import shutil
+import zipfile
+
 from oslo_log import log as logging
 
 from tacker.sol_refactored.common import config
@@ -50,6 +55,9 @@ class NfvoClient(object):
             self.client = http_client.HttpClient(auth_handle)
             self.grant_api_version = CONF.v2_nfvo.grant_api_version
             self.vnfpkgm_api_version = CONF.v2_nfvo.vnfpkgm_api_version
+            self.csar_cache_dir = CONF.v2_nfvo.vnf_package_cache_dir
+            if not os.path.exists(self.csar_cache_dir):
+                os.makedirs(self.csar_cache_dir)
 
     def get_vnf_package_info_vnfd(self, context, vnfd_id):
         if self.is_local:
@@ -108,15 +116,57 @@ class NfvoClient(object):
         if self.is_local:
             return self.nfvo.get_vnfd(context, vnfd_id)
 
-        if all_contents:
-            zip_file = self.onboarded_package_content(context, vnfd_id)
-        else:
-            zip_file = self.onboarded_show_vnfd(context, vnfd_id)
-
+        csar_dir = os.path.join(self.csar_cache_dir, vnfd_id)
         vnfd = vnfd_utils.Vnfd(vnfd_id)
-        vnfd.init_from_zip_file(zip_file)
+
+        if os.path.isdir(csar_dir):
+            # if cache exists, use it regardless of all_contents
+            vnfd.init_from_csar_dir(csar_dir)
+        elif not all_contents:
+            # need VNFD only. not make cache.
+            zip_data = self.onboarded_show_vnfd(context, vnfd_id)
+            vnfd.init_from_zip_data(zip_data)
+        else:  # all_contents=True
+            # get vnf package contents and make cache
+            zip_data = self.onboarded_package_content(context, vnfd_id)
+            self._make_csar_cache(csar_dir, zip_data)
+            vnfd.init_from_csar_dir(csar_dir)
 
         return vnfd
+
+    def _make_csar_cache(self, csar_dir, zip_data):
+        os.mkdir(csar_dir)
+        try:
+            buff = io.BytesIO(zip_data)
+            with zipfile.ZipFile(buff, 'r') as zf:
+                zf.extractall(csar_dir)
+        except Exception as ex:
+            self._delete_csar_dir(csar_dir)
+            raise ex
+
+    def _delete_csar_cache(self, context, vnfd_id):
+        insts = objects.VnfInstanceV2.get_by_filter(context,
+                                                    vnfdId=vnfd_id)
+
+        # NOTE: assume this method called after delete VnfInstance
+        if len(insts) > 0:
+            # if there are other vnfinstances using the same cache, do nothing.
+            return
+
+        csar_dir = os.path.join(self.csar_cache_dir, vnfd_id)
+        if os.path.exists(csar_dir):
+            self._delete_csar_dir(csar_dir)
+
+    def _delete_csar_dir(self, csar_dir):
+        try:
+            shutil.rmtree(csar_dir)
+        except Exception:
+            # NOTE: it is not failed basically since no one ought to
+            # access it. maybe critical system failure if failed.
+            # it is critical for tacker since incomplete cache may remain.
+            # should be deleted manually.
+            LOG.critical("VNF package cache '%s' could not be deleted",
+                         csar_dir)
 
     def send_inst_create_notification(self, context, inst, endpoint):
         subscs = subsc_utils.get_inst_create_subscs(context, inst)
@@ -137,6 +187,9 @@ class NfvoClient(object):
 
         if self.is_local:
             self.nfvo.recv_inst_delete_notification(context, inst)
+
+        if not self.is_local:
+            self._delete_csar_cache(context, inst.vnfdId)
 
     def send_lcmocc_notification(self, context, lcmocc, inst, endpoint):
         subscs = subsc_utils.get_lcmocc_subscs(context, lcmocc, inst)
