@@ -13,10 +13,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
+import yaml
 
 
 # vnfdId of samples must be this.
@@ -24,7 +27,7 @@ SAMPLE_VNFD_ID = "b1bb0ce7-ebca-4fa7-95ed-4840d7000000"
 
 
 def make_zip(sample_dir, tmp_dir, vnfd_id, image_path=None,
-        userdata_path=None):
+        userdata_path=None, provider=None, namespace=None):
     # NOTE: '.zip' will be added by shutil.make_archive
     zip_file_name = os.path.basename(os.path.abspath(sample_dir))
     zip_file_path = os.path.join(tmp_dir, zip_file_name)
@@ -60,7 +63,81 @@ def make_zip(sample_dir, tmp_dir, vnfd_id, image_path=None,
         os.makedirs(file_path)
         shutil.copy(userdata_path, file_path)
 
+    if provider:
+        # replace provider
+        def_path = os.path.join(tmp_contents, "Definitions")
+        for entry in os.listdir(def_path):
+            entry_path = os.path.join(def_path, entry)
+            with open(entry_path, 'r') as f:
+                data = yaml.safe_load(f)
+            _update_provider_in_yaml(data, provider)
+            with open(entry_path, 'w') as f:
+                yaml.dump(data, f, default_flow_style=False,
+                    allow_unicode=True)
+    if namespace:
+        file_path = os.path.join(
+            tmp_contents, "Files", "kubernetes", "namespace.yaml")
+        with open(file_path, 'r') as f:
+            data = yaml.safe_load(f)
+        data["metadata"]["name"] = namespace
+        with open(file_path, 'w') as f:
+            yaml.dump(data, f, default_flow_style=False,
+                      allow_unicode=True)
+        with open(file_path, 'r') as f:
+            content = f.read()
+        hash_value = hashlib.sha256(content.encode()).hexdigest()
+        tosca_file = os.path.join(tmp_contents, "TOSCA-Metadata", "TOSCA.meta")
+        with open(tosca_file, 'rb') as f:
+            artifacts_data = f.read()
+        artifacts_data_split = re.split(b'\n\n+', artifacts_data)
+        artifact_data_strs = []
+        for data in artifacts_data_split:
+            artifact_data_dict = yaml.safe_load(data)
+            if re.findall(b'.?Algorithm:.?|.?Hash:.?', data):
+                artifact_file = (artifact_data_dict['Source']
+                    if 'Source' in artifact_data_dict.keys()
+                    else artifact_data_dict['Name'])
+                if artifact_file.endswith('namespace.yaml'):
+                    artifact_data_dict['Hash'] = hash_value
+            if artifact_data_dict:
+                artifact_data_strs.append(
+                    yaml.dump(
+                        artifact_data_dict,
+                        default_flow_style=False,
+                        allow_unicode=True))
+        with open(tosca_file, 'w') as f:
+            f.write('\n'.join(artifact_data_strs))
+
     shutil.make_archive(zip_file_path, "zip", tmp_contents)
+
+
+def _update_provider_in_yaml(data, provider):
+    try:
+        prop = data['topology_template']['node_templates']['VNF'][
+            'properties']
+        if prop.get('provider', None):
+            prop['provider'] = provider
+    except KeyError:
+        # Let's check for 'node_types'
+        pass
+
+    if not data.get('node_types', None):
+        return
+
+    for ntype in data['node_types'].values():
+        if ntype['derived_from'] != 'tosca.nodes.nfv.VNF':
+            continue
+        try:
+            desc_id = ntype['properties']['provider']
+            if desc_id.get('constraints', None):
+                for constraint in desc_id.get('constraints'):
+                    if constraint.get('valid_values', None):
+                        constraint['valid_values'] = [provider]
+            if desc_id.get('default', None):
+                desc_id['default'] = provider
+        except KeyError:
+            # Let's check next node_type
+            pass
 
 
 def create_network(network):

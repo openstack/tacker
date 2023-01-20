@@ -104,7 +104,8 @@ class VnfPkgmController(wsgi.Controller):
     @wsgi.expected_errors((http_client.FORBIDDEN, http_client.NOT_FOUND))
     def show(self, request, id):
         context = request.environ['tacker.context']
-        context.can(vnf_package_policies.VNFPKGM % 'show')
+        if not CONF.oslo_policy.enhanced_tacker_policy:
+            context.can(vnf_package_policies.VNFPKGM % 'show')
 
         # check if id is of type uuid format
         if not uuidutils.is_uuid_like(id):
@@ -115,18 +116,33 @@ class VnfPkgmController(wsgi.Controller):
             vnf_package = vnf_package_obj.VnfPackage.get_by_id(
                 request.context, id, expected_attrs=[
                     "vnf_deployment_flavours", "vnfd", "vnf_artifacts"])
+            if CONF.oslo_policy.enhanced_tacker_policy:
+                context.can(vnf_package_policies.VNFPKGM % 'show',
+                            target=self._get_policy_target(vnf_package))
         except exceptions.VnfPackageNotFound:
             msg = _("Can not find requested vnf package: %s") % id
             raise webob.exc.HTTPNotFound(explanation=msg)
 
         return self._view_builder.show(vnf_package)
 
+    def _get_policy_target(self, vnf_package):
+        if vnf_package.onboarding_state == \
+                fields.PackageOnboardingStateType.ONBOARDED:
+
+            vendor = (vnf_package.vnfd.get('vnf_provider')
+                      if vnf_package.vnfd is not None else None)
+
+            return {'vendor': vendor} if vendor else {}
+
+        else:
+            return {'vendor': '*'}
+
     @wsgi.response(http_client.OK)
     @wsgi.expected_errors((http_client.BAD_REQUEST, http_client.FORBIDDEN))
     @validation.query_schema(vnf_packages.query_params_v1)
     def index(self, request):
-        if 'tacker.context' in request.environ:
-            context = request.environ['tacker.context']
+        context = request.environ['tacker.context']
+        if not CONF.oslo_policy.enhanced_tacker_policy:
             context.can(vnf_package_policies.VNFPKGM % 'index')
 
         search_opts = {}
@@ -178,6 +194,13 @@ class VnfPkgmController(wsgi.Controller):
             return self._make_problem_detail(
                 str(e), 500, title='Internal Server Error')
 
+        if CONF.oslo_policy.enhanced_tacker_policy:
+            result = [vnf_package for vnf_package in result
+                      if context.can(
+                          vnf_package_policies.VNFPKGM % 'index',
+                          target=self._get_policy_target(vnf_package),
+                          fatal=False)]
+
         results = self._view_builder.index(result,
                 all_fields=all_fields,
                 exclude_fields=exclude_fields,
@@ -206,9 +229,13 @@ class VnfPkgmController(wsgi.Controller):
                            http_client.CONFLICT))
     def delete(self, request, id):
         context = request.environ['tacker.context']
-        context.can(vnf_package_policies.VNFPKGM % 'delete')
+        if not CONF.oslo_policy.enhanced_tacker_policy:
+            context.can(vnf_package_policies.VNFPKGM % 'delete')
 
         vnf_package = self._get_vnf_package(id, request)
+        if CONF.oslo_policy.enhanced_tacker_policy:
+            context.can(vnf_package_policies.VNFPKGM % 'delete',
+                        target=self._get_policy_target(vnf_package))
 
         if (vnf_package.operational_state ==
                 fields.PackageOperationalStateType.ENABLED or
@@ -244,9 +271,13 @@ class VnfPkgmController(wsgi.Controller):
                            http_client.REQUESTED_RANGE_NOT_SATISFIABLE))
     def fetch_vnf_package_content(self, request, id):
         context = request.environ['tacker.context']
-        context.can(vnf_package_policies.VNFPKGM % 'fetch_package_content')
+        if not CONF.oslo_policy.enhanced_tacker_policy:
+            context.can(vnf_package_policies.VNFPKGM % 'fetch_package_content')
 
         vnf_package = self._get_vnf_package(id, request)
+        if CONF.oslo_policy.enhanced_tacker_policy:
+            context.can(vnf_package_policies.VNFPKGM % 'fetch_package_content',
+                        target=self._get_policy_target(vnf_package))
 
         if vnf_package.onboarding_state != \
            fields.PackageOnboardingStateType.ONBOARDED:
@@ -367,7 +398,9 @@ class VnfPkgmController(wsgi.Controller):
                            http_client.CONFLICT))
     def upload_vnf_package_content(self, request, id, body):
         context = request.environ['tacker.context']
-        context.can(vnf_package_policies.VNFPKGM % 'upload_package_content')
+        if not CONF.oslo_policy.enhanced_tacker_policy:
+            context.can(
+                vnf_package_policies.VNFPKGM % 'upload_package_content')
 
         # check if id is of type uuid format
         if not uuidutils.is_uuid_like(id):
@@ -404,11 +437,31 @@ class VnfPkgmController(wsgi.Controller):
         try:
             (location, size, checksum, multihash,
             loc_meta) = glance_store.store_csar(context, id, body)
+            if CONF.oslo_policy.enhanced_tacker_policy:
+                zip_path = glance_store.load_csar(vnf_package.id, location)
+                vnf_data, flavours, vnf_artifacts = csar_utils.load_csar_data(
+                    context.elevated(), vnf_package.id, zip_path)
+                context.can(
+                    vnf_package_policies.VNFPKGM % 'upload_package_content',
+                    target={'vendor': vnf_data.get('provider')})
         except exceptions.UploadFailedToGlanceStore:
             with excutils.save_and_reraise_exception():
                 vnf_package.onboarding_state = (
                     fields.PackageOnboardingStateType.CREATED)
                 try:
+                    vnf_package.save()
+                except Exception as e:
+                    return self._make_problem_detail(
+                        'Internal Server Error', str(e), 500)
+        except exceptions.Forbidden:
+            with excutils.save_and_reraise_exception():
+                vnf_package.onboarding_state = (
+                    fields.PackageOnboardingStateType.CREATED)
+                try:
+                    # Delete from glance store
+                    glance_store.delete_csar(context, vnf_package.id,
+                                             location)
+                    csar_utils.delete_csar_data(vnf_package.id)
                     vnf_package.save()
                 except Exception as e:
                     return self._make_problem_detail(
@@ -475,9 +528,13 @@ class VnfPkgmController(wsgi.Controller):
     @validation.schema(vnf_packages.patch)
     def patch(self, request, id, body):
         context = request.environ['tacker.context']
-        context.can(vnf_package_policies.VNFPKGM % 'patch')
+        if not CONF.oslo_policy.enhanced_tacker_policy:
+            context.can(vnf_package_policies.VNFPKGM % 'patch')
 
         old_vnf_package = self._get_vnf_package(id, request)
+        if CONF.oslo_policy.enhanced_tacker_policy:
+            context.can(vnf_package_policies.VNFPKGM % 'patch',
+                        target=self._get_policy_target(old_vnf_package))
         vnf_package = old_vnf_package.obj_clone()
 
         user_data = body.get('userDefinedData')
@@ -529,7 +586,8 @@ class VnfPkgmController(wsgi.Controller):
                            http_client.INTERNAL_SERVER_ERROR))
     def get_vnf_package_vnfd(self, request, id):
         context = request.environ['tacker.context']
-        context.can(vnf_package_policies.VNFPKGM % 'get_vnf_package_vnfd')
+        if not CONF.oslo_policy.enhanced_tacker_policy:
+            context.can(vnf_package_policies.VNFPKGM % 'get_vnf_package_vnfd')
 
         valid_accept_headers = ['application/zip', 'text/plain']
         accept_headers = request.headers['Accept'].split(',')
@@ -543,6 +601,9 @@ class VnfPkgmController(wsgi.Controller):
                                            valid_accept_headers)})
 
         vnf_package = self._get_vnf_package(id, request)
+        if CONF.oslo_policy.enhanced_tacker_policy:
+            context.can(vnf_package_policies.VNFPKGM % 'get_vnf_package_vnfd',
+                        target=self._get_policy_target(vnf_package))
 
         if vnf_package.onboarding_state != \
                 fields.PackageOnboardingStateType.ONBOARDED:
@@ -586,7 +647,8 @@ class VnfPkgmController(wsgi.Controller):
     def fetch_vnf_package_artifacts(self, request, id, artifact_path):
         context = request.environ['tacker.context']
         # get policy
-        context.can(vnf_package_policies.VNFPKGM % 'fetch_artifact')
+        if not CONF.oslo_policy.enhanced_tacker_policy:
+            context.can(vnf_package_policies.VNFPKGM % 'fetch_artifact')
 
         # get vnf_package
         if not uuidutils.is_uuid_like(id):
@@ -597,6 +659,10 @@ class VnfPkgmController(wsgi.Controller):
             vnf_package = vnf_package_obj.VnfPackage.get_by_id(
                 request.context, id,
                 expected_attrs=["vnf_artifacts"])
+            if CONF.oslo_policy.enhanced_tacker_policy:
+                # get policy
+                context.can(vnf_package_policies.VNFPKGM % 'fetch_artifact',
+                            target=self._get_policy_target(vnf_package))
         except exceptions.VnfPackageNotFound:
             msg = _("Can not find requested vnf package: %s") % id
             raise webob.exc.HTTPNotFound(explanation=msg)

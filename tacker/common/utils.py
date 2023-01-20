@@ -174,6 +174,18 @@ def is_valid_ipv4(address):
         return False
 
 
+def is_valid_area(area):
+    """Verify that the area attribute is valid.
+
+    Area attribute is an area-region pair. The value of this attribute should
+    be a string in the format of "area@region".
+    """
+    try:
+        return re.match(r'\w+@\w+', area) is not None
+    except Exception:
+        return False
+
+
 def change_memory_unit(mem, to):
     """Change the memory value(mem) based on the unit('to') specified.
 

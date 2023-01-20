@@ -78,7 +78,8 @@ class SessionClient(adapter.Adapter):
     def do_request(self, url, method, **kwargs):
         kwargs.setdefault('authenticated', True)
         resp = self.request(url, method, **kwargs)
-        if resp.headers['Content-Type'] == 'application/zip':
+        if ('Content-Type' not in resp.headers or
+                resp.headers['Content-Type'] == 'application/zip'):
             return resp, resp.content
         body = self._decode_json(resp)
         return resp, body

@@ -136,11 +136,13 @@ class BaseVnfLcmKubernetesV2Test(base.BaseTestCase):
         return None
 
     @classmethod
-    def create_vnf_package(cls, sample_path, user_data={}, image_path=None):
+    def create_vnf_package(cls, sample_path, user_data={}, image_path=None,
+                           provider=None, namespace=None):
         vnfd_id = uuidutils.generate_uuid()
         tmp_dir = tempfile.mkdtemp()
 
-        utils.make_zip(sample_path, tmp_dir, vnfd_id, image_path)
+        utils.make_zip(sample_path, tmp_dir, vnfd_id, image_path,
+                       provider=provider, namespace=namespace)
 
         zip_file_name = os.path.basename(os.path.abspath(sample_path)) + ".zip"
         zip_file_path = os.path.join(tmp_dir, zip_file_name)

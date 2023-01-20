@@ -1,4 +1,4 @@
-# Copyright (C) 2019 NTT DATA
+# Copyright (C) 2023 Fujitsu
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -13,21 +13,21 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import glance_store
 from oslo_config import cfg
 
-from tacker.conf import conductor
-from tacker.conf import coordination
-from tacker.conf import policy
-from tacker.conf import vnf_lcm
-from tacker.conf import vnf_package
 
 CONF = cfg.CONF
-CONF.import_group('keystone_authtoken', 'keystonemiddleware.auth_token')
 
-vnf_package.register_opts(CONF)
-vnf_lcm.register_opts(CONF)
-conductor.register_opts(CONF)
-coordination.register_opts(CONF)
-glance_store.register_opts(CONF)
-policy.register_opts(CONF)
+policy_opts = [
+    cfg.BoolOpt('enhanced_tacker_policy',
+               default=False,
+               help=_('Enable enhanced tacker policy')),
+]
+
+
+def register_opts(conf):
+    conf.register_opts(policy_opts, group='oslo_policy')
+
+
+def list_opts():
+    return {'oslo_policy': policy_opts}

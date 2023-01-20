@@ -14,6 +14,7 @@
 #    under the License.
 
 from collections import abc
+import copy
 import re
 import sys
 
@@ -28,6 +29,7 @@ from oslo_utils import importutils
 from tacker._i18n import _
 from tacker.api.v1 import attributes
 from tacker.common import exceptions
+from tacker.common.utils import is_valid_area
 from tacker import policies
 
 
@@ -60,10 +62,133 @@ def init(conf=cfg.CONF, policy_file=None):
         _ENFORCER.load_rules()
 
 
+def _pre_enhanced_policy_check(target, credentials):
+    """Preprocesses target and credentials for enhanced tacker policy.
+
+    This method does the following things:
+    1) Convert special roles to enhanced policy attributes in credentials.
+    Note: Special roles are roles that have prefixes 'AREA_', 'VENDOR_',
+        or 'TENANT_'.
+    Example::
+
+    Before conversion:
+        credentials = {
+            'roles': [
+                'AREA_area_A@region_A',
+                'VENDOR_company_A',
+                'TENANT_default'
+            ]
+        }
+    After conversion:
+        credentials = {
+            'roles': [
+                'AREA_area_A@region_A',
+                'VENDOR_company_A',
+                'TENANT_default'
+            ],
+            'area': ['*', 'area_A@region_A'],
+            'vendor': ['*', 'company_A'],
+            'tenant: ['*', 'default']
+        }
+    2) Convert special value `all` to the corresponding attribute value in
+    target.
+
+    :param target: a dictionary of the attributes of the object
+        being accessed.
+    :param credentials: The information about the user performing the action.
+    :return tgt: The preprocessed target is returned.
+    :return user_attrs: The preprocessed credentials is returned.
+    """
+    if not cfg.CONF.oslo_policy.enhanced_tacker_policy:
+        return target, credentials
+
+    if target is None:
+        tgt = {}
+    else:
+        tgt = copy.copy(target)
+
+    LOG.debug(f'target: {target}')
+
+    convert_map = {
+        'area_': 'area',
+        'vendor_': 'vendor',
+        'tenant_': 'tenant'
+    }
+    user_attrs = {
+        'area': ['*'],
+        'vendor': ['*'],
+        'tenant': ['*']
+    }
+    # Convert special roles to enhanced policy attributes in credentials.
+    for role in credentials.get('roles'):
+        role = role.lower()
+        for prefix, key in convert_map.items():
+            if role.startswith(prefix):
+                attr = role[len(prefix):]
+                if attr:
+                    user_attrs[key].append(attr)
+
+    common_keys = user_attrs.keys() & tgt.keys()
+
+    # Convert special value `all` to the corresponding attribute value in
+    # target.
+    for key in common_keys:
+        tgt[key] = tgt[key].lower()
+        attrs = user_attrs.get(key)
+        if tgt.get(key) == '*':
+            continue
+        to_remove = []
+        if 'area' == key:
+            if not is_valid_area(tgt.get(key)):
+                continue
+            for attr in attrs:
+                if not is_valid_area(attr):
+                    continue
+                if 'all@all' == attr:
+                    # example:
+                    #   target = {'area': 'area_A@region_A'}
+                    #   then:
+                    #       'all@all' -> 'area_A@region_A'
+                    to_remove.append('all@all')
+                    attrs.append(tgt.get(key))
+                elif attr.startswith('all@'):
+                    to_remove.append(attr)
+                    area, region = attr.split('@', 1)
+                    t_area, t_region = tgt.get(key).split('@', 1)
+                    if region == t_region:
+                        # example:
+                        #   target = {'area': 'area_A@region_A'}
+                        #   then:
+                        #       'all@region_A' -> 'area_A@region_A'
+                        attrs.append(f'{t_area}@{region}')
+                    # else:
+                    # example:
+                    #   target = {'area': 'area_A@region_B'}
+                    #   then:
+                    #       'all@region_A' -> to be removed.
+
+        else:
+            for attr in attrs:
+                if 'all' == attr:
+                    # example:
+                    #   target = {'vendor': 'company_A'}
+                    #   then:
+                    #       'all' -> 'company_A'
+                    to_remove.append('all')
+                    attrs.append(tgt.get(key))
+        for item in to_remove:
+            attrs.remove(item)
+
+    user_attrs.update(credentials)
+
+    return tgt, user_attrs
+
+
 def authorize(context, action, target, do_raise=True, exc=None):
 
     init()
     credentials = context.to_policy_values()
+    target, credentials = _pre_enhanced_policy_check(target, credentials)
     if not exc:
         exc = exceptions.PolicyNotAuthorized
     try:
@@ -387,6 +512,15 @@ def check(context, action, target, plugin=None, might_not_exist=False,
                                                      action,
                                                      target,
                                                      pluralized)
+    target = copy.copy(target)
+    if 'area' not in target:
+        area = target.get('extra', {}).get('area')
+        if area:
+            target.update({'area': area})
+    if 'tenant_id' in target:
+        target['project_id'] = target['tenant_id']
+    target, credentials = _pre_enhanced_policy_check(target, credentials)
+
     result = _ENFORCER.enforce(match_rule,
                                target,
                                credentials,
@@ -397,7 +531,8 @@ def check(context, action, target, plugin=None, might_not_exist=False,
     return result
 
 
-def enforce(context, action, target, plugin=None, pluralized=None):
+def enforce(context, action, target, plugin=None, pluralized=None,
+            exc=exceptions.PolicyNotAuthorized):
     """Verifies that the action is valid on the target in this context.
 
     :param context: tacker context
@@ -410,9 +545,12 @@ def enforce(context, action, target, plugin=None, pluralized=None):
         Kept for backward compatibility.
     :param pluralized: pluralized case of resource
         e.g. firewall_policy -> pluralized = "firewall_policies"
+    :param exc: Class of the exception to raise if the check fails.
+            If not specified, :class:`PolicyNotAuthorized` will be used.
 
-    :raises oslo_policy.policy.PolicyNotAuthorized:
-            if verification fails.
+    :raises tacker.common.exceptions.PolicyNotAuthorized or exc specified by
+            caller:
+                if verification fails.
     """
     # If we already know the context has admin rights do not perform an
     # additional check and authorize the operation
@@ -422,10 +560,19 @@ def enforce(context, action, target, plugin=None, pluralized=None):
                                                action,
                                                target,
                                                pluralized)
+    target = copy.copy(target)
+    if 'area' not in target:
+        area = target.get('extra', {}).get('area')
+        if area:
+            target.update({'area': area})
+    if 'tenant_id' in target:
+        target['project_id'] = target['tenant_id']
+    target, credentials = _pre_enhanced_policy_check(target, credentials)
+
     try:
         result = _ENFORCER.enforce(rule, target, credentials, action=action,
-                                   do_raise=True)
-    except policy.PolicyNotAuthorized:
+                                   do_raise=True, exc=exc)
+    except Exception:
         with excutils.save_and_reraise_exception():
             log_rule_list(rule)
             LOG.error("Failed policy check for '%s'", action)

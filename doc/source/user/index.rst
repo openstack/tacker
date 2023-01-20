@@ -60,3 +60,4 @@ Use Case Guide
    fault_notification_use_case_guide
    prometheus_plugin_use_case_guide
    db_migration_tool_usage_guide
+   enhanced_tacker_policy_usage_guide

@@ -684,6 +684,38 @@
       controller_tacker_hostname: "{{ hostvars['controller-tacker']['ansible_hostname'] }}"
 
 - job:
+    name: tacker-functional-devstack-enhanced-policy-sol
+    parent: tacker-functional-devstack-multinode-legacy
+    description: |
+      Enhanced policy job for SOL devstack-based functional tests
+    host-vars:
+      controller-tacker:
+        tox_envlist: dsvm-functional-enhanced-policy-sol
+        devstack_local_conf:
+          post-config:
+            $TACKER_CONF:
+              oslo_policy:
+                enhanced_tacker_policy: True
+    vars:
+      config_enhanced_policy: true
+
+- job:
+    name: tacker-functional-devstack-enhanced-policy-sol-kubernetes
+    parent: tacker-functional-devstack-multinode-sol-kubernetes-v2
+    description: |
+      Enhanced policy job for SOL Kubernetes devstack-based functional tests
+    host-vars:
+      controller-tacker:
+        tox_envlist: dsvm-functional-enhanced-policy-sol-kubernetes
+        devstack_local_conf:
+          post-config:
+            $TACKER_CONF:
+              oslo_policy:
+                enhanced_tacker_policy: True
+    vars:
+      config_enhanced_policy: true
+
+- job:
     name: tacker-compliance-devstack-multinode-sol
     parent: tacker-functional-devstack-multinode-legacy
     description: |
@@ -720,4 +752,6 @@
         - tacker-functional-devstack-multinode-sol-kubernetes-multi-tenant
         - tacker-functional-devstack-kubernetes-oidc-auth
         - tacker-functional-devstack-multinode-sol-v2-az-retry
+        - tacker-functional-devstack-enhanced-policy-sol
+        - tacker-functional-devstack-enhanced-policy-sol-kubernetes
         - tacker-compliance-devstack-multinode-sol

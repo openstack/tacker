@@ -48,6 +48,7 @@ def vim_to_conn_info(vim):
         region = vim['placement_attr']['regions'][0]
 
     vim_auth = vim['vim_auth']
+    extra = vim.get('extra', {})
 
     if vim['vim_type'] == "openstack":
         # see. https://nfvwiki.etsi.org/index.php
@@ -73,7 +74,8 @@ def vim_to_conn_info(vim):
             vimId=vim['vim_id'],
             vimType='ETSINFV.OPENSTACK_KEYSTONE.V_3',
             interfaceInfo=interface_info,
-            accessInfo=access_info
+            accessInfo=access_info,
+            extra=extra
         )
     if vim['vim_type'] == "kubernetes":
         # When vimType is kubernetes, it will be converted to the vimType name
@@ -116,7 +118,8 @@ def vim_to_conn_info(vim):
             vimId=vim['vim_id'],
             vimType=vim_type,
             interfaceInfo=interface_info,
-            accessInfo=access_info
+            accessInfo=access_info,
+            extra=extra
         )
 
     raise sol_ex.SolException(sol_detail='not support vim type')

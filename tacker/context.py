@@ -148,11 +148,14 @@ class ContextBase(oslo_context.RequestContext):
         :return: returns a non-False value (not necessarily "True") if
             authorized and False if not authorized and fatal is False.
         """
-        if target is None:
-            target = {'project_id': self.tenant_id,
-                      'user_id': self.user_id}
+        tgt = {
+            'project_id': self.tenant_id,
+            'user_id': self.user_id
+        }
+        if target is not None:
+            tgt.update(target)
         try:
-            return policy.authorize(self, action, target)
+            return policy.authorize(self, action, tgt)
         except exceptions.Forbidden:
             if fatal:
                 raise
