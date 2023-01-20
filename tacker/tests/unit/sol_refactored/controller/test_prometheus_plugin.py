@@ -145,13 +145,63 @@ _body_scale_alert1 = {
     'fingerprint': '5ef77f1f8a3ecb8d'
 }
 
+_body_heal_alert1 = {
+    'status': 'firing',
+    'labels': {
+        'receiver_type': 'tacker',
+        'function_type': 'auto_heal',
+        'vnf_instance_id': 'vnf instance id',
+        'vnfc_info_id': 'vnfc info id'
+    },
+    'annotations': {
+    },
+    'startsAt': '2022-06-21T23:47:36.453Z',
+    'endsAt': '0001-01-01T00:00:00Z',
+    'generatorURL': 'http://controller147:9090/graph?g0.expr='
+                    'up%7Bjob%3D%22node%22%7D+%3D%3D+0&g0.tab=1',
+    'fingerprint': '5ef77f1f8a3ecb8d'
+}
+
 # function_type mismatch
 _body_scale_alert2 = copy.deepcopy(_body_scale_alert1)
 _body_scale_alert2['labels']['function_type'] = 'vnffm'
 
+_body_scale_alert3 = copy.deepcopy(_body_scale_alert1)
+_body_scale_alert3['status'] = 'resolved'
+
+_body_scale_alert4 = copy.deepcopy(_body_scale_alert1)
+_body_scale_alert4['labels']['function_type'] = 'auto_heal'
+
+_body_scale_alert5 = copy.deepcopy(_body_scale_alert1)
+_body_scale_alert5['labels']['aspect_id'] = 'aspect id'
+
 _body_scale = copy.deepcopy(_body_base)
 _body_scale.update({
     'alerts': [_body_scale_alert1, _body_scale_alert2]
+})
+
+_body_scale_continue = copy.deepcopy(_body_base)
+_body_scale_continue.update({
+    'alerts': [_body_scale_alert3, _body_scale_alert4, _body_scale_alert5]
+})
+
+_body_heal = copy.deepcopy(_body_base)
+_body_heal.update({
+    'alerts': [_body_heal_alert1]
+})
+
+_body_heal_alert2 = copy.deepcopy(_body_heal_alert1)
+_body_heal_alert2['status'] = 'resolved'
+
+_body_heal_alert3 = copy.deepcopy(_body_heal_alert1)
+_body_heal_alert3['labels']['function_type'] = 'auto_scale'
+
+_body_heal_alert4 = copy.deepcopy(_body_heal_alert1)
+_body_heal_alert4['labels']['vnfc_info_id'] = 'vnfcInfoId'
+
+_body_heal_continue = copy.deepcopy(_body_base)
+_body_heal_continue.update({
+    'alerts': [_body_heal_alert2, _body_heal_alert3, _body_heal_alert4]
 })
 
 _inst1 = {
@@ -187,6 +237,14 @@ _inst1 = {
             'vduId': 'vdu_id',
             'vnfcResourceInfoId': 'id2',
             'vnfcState': 'STARTED'
+        }, {
+            'id': 'vnfc info id',
+            'vduId': 'vdu_id',
+            'vnfcResourceInfoId': 'id2',
+            'vnfcState': 'STARTED'
+        }],
+        'scaleStatus': [{
+            'aspectId': 'aspect'
         }]
     },
     'metadata': {
@@ -198,6 +256,31 @@ _inst2.update({
     'vnfConfigurableProperties': {
         'isAutoscaleEnabled': True
     },
+    'instantiationState': 'INSTANTIATED'
+})
+
+_inst3 = copy.deepcopy(_inst1)
+_inst3.update({
+    'vnfConfigurableProperties': {
+        'isAutoscaleEnabled': False
+    },
+    'instantiationState': 'INSTANTIATED'
+})
+
+_inst4 = copy.deepcopy(_inst1)
+_inst4.update({
+    'vnfConfigurableProperties': {
+        'isAutohealEnabled': False
+    },
+    'instantiationState': 'INSTANTIATED'
+})
+
+_inst5 = copy.deepcopy(_inst1)
+_inst5.update({
+    'vnfConfigurableProperties': {
+        'isAutohealEnabled': True
+    },
+    'instantiationState': 'INSTANTIATED'
 })
 
 datetime_test = datetime.datetime.fromisoformat(
@@ -324,6 +407,64 @@ class TestPrometheusPluginFm(base.TestCase):
         self.assertEqual(204, result.status)
 
 
+class TestPrometheusPluginAutoHealing(base.TestCase):
+    def setUp(self):
+        super(TestPrometheusPluginAutoHealing, self).setUp()
+        objects.register_all()
+        self.context = context.get_admin_context()
+        self.request = mock.Mock()
+        self.request.context = self.context
+        self.controller = prometheus_plugin_controller.AutoHealingController()
+        plugin.PrometheusPluginAutoHealing._instance = None
+
+    def tearDown(self):
+        super(TestPrometheusPluginAutoHealing, self).tearDown()
+        # delete singleton object
+        plugin.PrometheusPluginAutoHealing._instance = None
+
+    def test_auto_healing_config_false(self):
+        self.config_fixture.config(
+            group='prometheus_plugin', auto_healing=False)
+        self.assertRaises(
+            sol_ex.PrometheusPluginNotEnabled,
+            self.controller.auto_healing, self.request, {})
+
+    @mock.patch.object(inst_utils, 'get_inst')
+    def test_auto_healing_no_autoheal_enabled(self, mock_inst):
+        self.config_fixture.config(
+            group='prometheus_plugin', auto_healing=True)
+        mock_inst.return_value = objects.VnfInstanceV2.from_dict(_inst4)
+        result = self.controller.auto_healing(
+            self.request, _body_heal)
+        self.assertEqual(204, result.status)
+
+    @mock.patch.object(inst_utils, 'get_inst')
+    def test_auto_healing_is_autoheal_enabled(self, mock_inst):
+        self.config_fixture.config(
+            group='prometheus_plugin', auto_healing=True)
+        mock_inst.return_value = objects.VnfInstanceV2.from_dict(_inst5)
+        result = self.controller.auto_healing(self.request, _body_heal)
+        self.assertEqual(204, result.status)
+
+    @mock.patch.object(inst_utils, 'get_inst')
+    def test_auto_healing_multiple_continue(self, mock_inst):
+        self.config_fixture.config(
+            group='prometheus_plugin', auto_healing=True)
+        mock_inst.return_value = objects.VnfInstanceV2.from_dict(_inst5)
+        result = self.controller.auto_healing(
+            self.request, _body_heal_continue)
+        self.assertEqual(204, result.status)
+
+    @mock.patch.object(inst_utils, 'get_inst')
+    def test_auto_healing_not_instantiated(self, mock_inst):
+        self.config_fixture.config(
+            group='prometheus_plugin', auto_healing=True)
+        mock_inst.return_value = objects.VnfInstanceV2.from_dict(_inst1)
+        result = self.controller.auto_healing(
+            self.request, _body_heal)
+        self.assertEqual(204, result.status)
+
+
 class TestPrometheusPluginAutoScaling(base.TestCase):
     def setUp(self):
         super(TestPrometheusPluginAutoScaling, self).setUp()
@@ -344,15 +485,15 @@ class TestPrometheusPluginAutoScaling(base.TestCase):
             group='prometheus_plugin', auto_scaling=False)
         self.assertRaises(
             sol_ex.PrometheusPluginNotEnabled,
-            self.controller.auto_scaling_id, self.request, 'id', {})
+            self.controller.auto_scaling, self.request, {})
 
     @mock.patch.object(inst_utils, 'get_inst')
     def test_auto_scaling_no_autoscale_enabled(self, mock_inst):
         self.config_fixture.config(
             group='prometheus_plugin', auto_scaling=True)
-        mock_inst.return_value = objects.VnfInstanceV2.from_dict(_inst1)
-        result = self.controller.auto_scaling_id(
-            self.request, 'id', _body_scale)
+        mock_inst.return_value = objects.VnfInstanceV2.from_dict(_inst3)
+        result = self.controller.auto_scaling(
+            self.request, _body_scale)
         self.assertEqual(204, result.status)
 
     @mock.patch.object(inst_utils, 'get_inst')
@@ -377,4 +518,22 @@ class TestPrometheusPluginAutoScaling(base.TestCase):
         self.config_fixture.config(
             group='prometheus_plugin', auto_scaling=True)
         result = self.controller.auto_scaling(self.request, {})
+        self.assertEqual(204, result.status)
+
+    @mock.patch.object(inst_utils, 'get_inst')
+    def test_auto_scaling_multiple_continue(self, mock_inst):
+        self.config_fixture.config(
+            group='prometheus_plugin', auto_scaling=True)
+        mock_inst.return_value = objects.VnfInstanceV2.from_dict(_inst2)
+        result = self.controller.auto_scaling(
+            self.request, _body_scale_continue)
+        self.assertEqual(204, result.status)
+
+    @mock.patch.object(inst_utils, 'get_inst')
+    def test_auto_scaling_not_instantiated(self, mock_inst):
+        self.config_fixture.config(
+            group='prometheus_plugin', auto_scaling=True)
+        mock_inst.return_value = objects.VnfInstanceV2.from_dict(_inst1)
+        result = self.controller.auto_scaling(
+            self.request, _body_scale)
         self.assertEqual(204, result.status)

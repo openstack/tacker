@@ -27,7 +27,8 @@ REPORT_GET = '/vnfpm/v2/pm_jobs/{id}/reports/{report_id}'
 
 POLICY_NAME_PROM_PLUGIN = 'tacker_PROM_PLUGIN_api:PROM_PLUGIN:{}'
 PROM_PLUGIN_PM_PATH = '/pm_event'
-PROM_PLUGIN_AUTO_SCALING_PATH = '/alert/vnf_instances'
+PROM_PLUGIN_AUTO_HEALING_PATH = '/alert/auto_healing'
+PROM_PLUGIN_AUTO_SCALING_PATH = '/alert/auto_scaling'
 
 rules = [
     policy.DocumentedRuleDefault(
@@ -108,21 +109,21 @@ rules = [
         ]
     ),
     policy.DocumentedRuleDefault(
+        name=POLICY_NAME_PROM_PLUGIN.format('auto_healing'),
+        check_str=RULE_ANY,
+        description="auto_healing",
+        operations=[
+            {'method': 'POST',
+             'path': PROM_PLUGIN_AUTO_HEALING_PATH}
+        ]
+    ),
+    policy.DocumentedRuleDefault(
         name=POLICY_NAME_PROM_PLUGIN.format('auto_scaling'),
         check_str=RULE_ANY,
         description="auto_scaling",
         operations=[
             {'method': 'POST',
              'path': PROM_PLUGIN_AUTO_SCALING_PATH}
-        ]
-    ),
-    policy.DocumentedRuleDefault(
-        name=POLICY_NAME_PROM_PLUGIN.format('auto_scaling_id'),
-        check_str=RULE_ANY,
-        description="auto_scaling_id",
-        operations=[
-            {'method': 'POST',
-             'path': PROM_PLUGIN_AUTO_SCALING_PATH + '/{vnfInstanceId}'}
         ]
     )
 ]

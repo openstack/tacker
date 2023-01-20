@@ -95,5 +95,15 @@ class PrometheusPluginConductor(object):
     def store_job_info(self, context, report):
         self.cast(context, 'store_job_info', report=report)
 
-    def request_scale(self, context, id, scale_req):
-        self.cast(context, 'request_scale', id=id, scale_req=scale_req)
+    def trigger_scale(self, context, id, scale_req):
+        self.cast(context, 'trigger_scale', id=id, scale_req=scale_req)
+
+    def enqueue_auto_heal_instance(
+            self, context, vnf_instance_id, vnfc_info_id):
+        self.cast(context, 'enqueue_auto_heal_instance',
+                  vnf_instance_id=vnf_instance_id,
+                  vnfc_info_id=vnfc_info_id)
+
+    def dequeue_auto_heal_instance(self, context, vnf_instance_id):
+        self.cast(context, 'dequeue_auto_heal_instance',
+                  vnf_instance_id=vnf_instance_id)

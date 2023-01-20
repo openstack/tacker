@@ -299,6 +299,9 @@
             $TACKER_CONF:
               server_notification:
                 server_notification: true
+              prometheus_plugin:
+                auto_scaling: true
+                auto_healing: true
         tox_envlist: dsvm-functional-sol-v2
 
 - job:
@@ -608,6 +611,7 @@
                 fault_management: true
                 performance_management: true
                 auto_scaling: true
+                auto_healing: true
                 test_rule_with_promtool: true
         tox_envlist: dsvm-functional-sol-kubernetes-v2
     vars:

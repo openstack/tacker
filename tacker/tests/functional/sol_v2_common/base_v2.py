@@ -495,6 +495,16 @@ class BaseSolV2Test(base.BaseTestCase):
         return self.tacker_client.do_request(
             path, "POST", version="2.0.0")
 
+    def prometheus_auto_healing_alert(self, req_body):
+        path = "/alert/auto_healing"
+        return self.tacker_client.do_request(
+            path, "POST", body=req_body)
+
+    def prometheus_auto_scaling_alert(self, req_body):
+        path = "/alert/auto_scaling"
+        return self.tacker_client.do_request(
+            path, "POST", body=req_body)
+
     def create_subscription(self, req_body):
         path = "/vnflcm/v2/subscriptions"
         return self.tacker_client.do_request(

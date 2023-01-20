@@ -13,10 +13,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import webob
+import time
 
 from tacker import context
-from tacker.sol_refactored.common import http_client
+from tacker.sol_refactored.common import vnflcm_utils
 from tacker.sol_refactored.conductor import conductor_v2
 from tacker.sol_refactored.conductor import prometheus_plugin_driver as pp_drv
 from tacker.sol_refactored import objects
@@ -119,6 +119,7 @@ class TestPrometheusPlugin(db_base.SqlTestCase):
         self.context = context.get_admin_context()
         self.request = mock.Mock()
         self.request.context = self.context
+        self.timer_test = (None, None)
         self.config_fixture.config(
             group='prometheus_plugin', performance_management=True)
         self.conductor = conductor_v2.ConductorV2()
@@ -129,16 +130,13 @@ class TestPrometheusPlugin(db_base.SqlTestCase):
         # delete singleton object
         pp_drv.PrometheusPluginDriver._instance = None
 
-    @mock.patch.object(http_client.HttpClient, 'do_request')
-    def test_request_scale(self, mock_do_request):
-        resp = webob.Response()
-        resp.status_code = 202
-        mock_do_request.return_value = resp, {}
+    @mock.patch.object(vnflcm_utils, 'scale')
+    def test_trigger_scale(self, mock_do_scale):
         scale_req = {
             'type': 'SCALE_OUT',
-            'aspect_id': 'vdu',
+            'aspectId': 'vdu',
         }
-        self.conductor.request_scale(
+        self.conductor.trigger_scale(
             self.context, 'vnf_instance_id', scale_req)
 
     def test_constructor(self):
@@ -150,8 +148,7 @@ class TestPrometheusPlugin(db_base.SqlTestCase):
             group='prometheus_plugin', performance_management=False)
         pp_drv.PrometheusPluginDriver._instance = None
         drv = pp_drv.PrometheusPluginDriver.instance()
-        drv = pp_drv.PrometheusPluginDriver.instance()
-        drv.request_scale(None, None, None)
+        drv.trigger_scale(None, None, None)
         self.config_fixture.config(
             group='prometheus_plugin', performance_management=True)
         drv = pp_drv.PrometheusPluginDriver.instance()
@@ -163,3 +160,73 @@ class TestPrometheusPlugin(db_base.SqlTestCase):
         self.assertRaises(
             SystemError,
             pp_drv.PrometheusPluginDriver)
+
+    def test_conductor_vnfm_auto_heal_queue(self):
+        self.config_fixture.config(
+            group='prometheus_plugin', auto_healing=True)
+        pp_drv.PrometheusPluginDriver._instance = None
+        self.conductor.prom_driver = pp_drv.PrometheusPluginDriver.instance()
+        self.config_fixture.config(
+            group='prometheus_plugin', timer_interval=1)
+        # queueing test
+        id = 'test_id'
+        self.conductor.enqueue_auto_heal_instance(
+            self.context, id, 'id')
+        self.conductor.enqueue_auto_heal_instance(
+            self.context, id, 'id2')
+        self.assertEqual(
+            self.conductor.prom_driver.timer_map[id].queue,
+            {'id', 'id2'})
+        # Since the timeout period of `VnfmAutoHealTimer` is set to 1 second,
+        # it is also necessary to wait for 1 second before asserting.
+        time.sleep(1)
+        # remove_timer test
+        self.conductor.dequeue_auto_heal_instance(self.context, id)
+        self.assertNotIn(id, self.conductor.prom_driver.timer_map)
+        # remove_timer test: invalid_id
+        self.conductor.dequeue_auto_heal_instance(
+            self.context, 'invalid_id')
+
+    @mock.patch.object(vnflcm_utils, 'heal')
+    def test_conductor_timer_expired(self, mock_do_heal):
+        self.config_fixture.config(
+            group='prometheus_plugin', auto_healing=True)
+        pp_drv.PrometheusPluginDriver._instance = None
+        self.conductor.prom_driver = pp_drv.PrometheusPluginDriver.instance()
+        self.conductor.prom_driver._timer_expired(
+            self.context, 'test_id', ['id'])
+
+    def expired(self, context, id, queue):
+        queue.sort()
+        self.timer_test = (id, queue)
+
+    def test_timer(self):
+        # queueing test
+        timer = pp_drv.VnfmAutoHealTimer(self.context, 'id', 1, self.expired)
+        timer.add_vnfc_info_id('1')
+        timer.add_vnfc_info_id('3')
+        # Since the timeout period of `VnfmAutoHealTimer` is set to 1 second,
+        # it is also necessary to wait for 1 second before asserting.
+        time.sleep(1)
+        self.assertEqual(self.timer_test[0], 'id')
+        self.assertEqual(self.timer_test[1], ['1', '3'])
+
+    def test_timer_cancel(self):
+        # cancel test
+        timer = pp_drv.VnfmAutoHealTimer(self.context, 'id2', 1, self.expired)
+        timer.add_vnfc_info_id('5')
+        timer.cancel()
+        # Since the timeout period of `VnfmAutoHealTimer` is set to 1 second,
+        # it is also necessary to wait for 1 second before asserting.
+        time.sleep(1)
+        self.assertIsNone(self.timer_test[0])
+        self.assertIsNone(self.timer_test[1])
+
+    def test_timer_destructor(self):
+        # method call after cancel()
+        timer = pp_drv.VnfmAutoHealTimer(self.context, 'id', 1, self.expired)
+        timer.cancel()
+        timer.expire()
+        timer.add_vnfc_info_id(['4'])
+        timer.cancel()
+        timer.__del__()

@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    In Prometheus Plugin, two new interfaces are added to implement AutoHeal
+    and AutoScale for VNF and CNF.
+    As a VNFM, Tacker can decide whether to perform heal and scale operations
+    through the received alarms sent by External Monitoring Tools, without
+    NFVO.
+    Added new user guide to help users understand the function.

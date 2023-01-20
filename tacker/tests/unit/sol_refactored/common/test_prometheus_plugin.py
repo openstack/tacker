@@ -707,6 +707,40 @@ class TestPrometheusPluginFm(base.TestCase):
             pp._alert, self.request)
 
 
+class TestPrometheusPluginAutoHealing(base.TestCase):
+    def setUp(self):
+        super(TestPrometheusPluginAutoHealing, self).setUp()
+        objects.register_all()
+        self.context = context.get_admin_context()
+        self.request = mock.Mock()
+        self.request.context = self.context
+        prometheus_plugin.PrometheusPluginAutoHealing._instance = None
+
+    def tearDown(self):
+        super(TestPrometheusPluginAutoHealing, self).tearDown()
+        # delete singleton object
+        prometheus_plugin.PrometheusPluginAutoHealing._instance = None
+
+    def test_constructor_error(self):
+        self.config_fixture.config(
+            group='prometheus_plugin', auto_healing=False)
+        mon_base.MonitoringPlugin.get_instance(
+            prometheus_plugin.PrometheusPluginAutoHealing)
+        self.assertRaises(
+            SystemError,
+            prometheus_plugin.PrometheusPluginAutoHealing)
+
+    def test_constructor_stub(self):
+        self.config_fixture.config(
+            group='prometheus_plugin', auto_healing=False)
+        pp = mon_base.MonitoringPlugin.get_instance(
+            prometheus_plugin.PrometheusPluginAutoHealing)
+        self.assertIsInstance(pp._instance, mon_base.MonitoringPluginStub)
+        pp = mon_base.MonitoringPlugin.get_instance(
+            prometheus_plugin.PrometheusPluginAutoHealing)
+        self.assertIsInstance(pp._instance, mon_base.MonitoringPluginStub)
+
+
 class TestPrometheusPluginAutoScaling(base.TestCase):
     def setUp(self):
         super(TestPrometheusPluginAutoScaling, self).setUp()
