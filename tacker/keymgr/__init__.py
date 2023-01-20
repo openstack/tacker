@@ -20,6 +20,11 @@ key_manager_opts = [
                default='tacker.keymgr.barbican_key_manager'
                        '.BarbicanKeyManager',
                help='The full class name of the key manager API class'),
+    cfg.StrOpt('barbican_endpoint',
+               help='The endpoint for barbican API.'),
+    cfg.StrOpt('barbican_version',
+               default='v1',
+               help='The version for barbican API.'),
 ]
 
 

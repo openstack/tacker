@@ -19,7 +19,6 @@ from cryptography import fernet
 from oslo_config import cfg
 from oslo_log import log as logging
 
-
 from tacker.common import utils
 from tacker import context as t_context
 from tacker.extensions import nfvo
@@ -120,9 +119,11 @@ class VimClient(object):
         """
         cred = secret_value.encode('utf-8')
         if auth.get('key_type') == 'barbican_key':
-            keystone_conf = CONF.keystone_authtoken
             secret_uuid = auth['secret_uuid']
-            keymgr_api = KEYMGR_API(keystone_conf.auth_url)
+            if CONF.ext_oauth2_auth.use_ext_oauth2_auth:
+                keymgr_api = KEYMGR_API(CONF.ext_oauth2_auth.token_endpoint)
+            else:
+                keymgr_api = KEYMGR_API(CONF.keystone_authtoken.auth_url)
             k_context = t_context.generate_tacker_service_context()
             secret_obj = keymgr_api.get(k_context, secret_uuid)
             vim_key = secret_obj.payload

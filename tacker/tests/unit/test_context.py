@@ -15,11 +15,43 @@
 
 from unittest import mock
 
+from castellan.common.credentials import keystone_password
+from oslo_config import cfg
 from oslo_context import context as oslo_context
 from testtools import matchers
 
+from tacker.common.ext_oauth2_auth import ExtOAuth2Auth
 from tacker import context
 from tacker.tests import base
+
+
+def get_mock_conf_key_effect(cfg_keystone_authtoken=None,
+                             cfg_ext_oauth2_auth=None):
+    def mock_conf_key_effect(name):
+        if name == 'keystone_authtoken':
+            return MockConfig(name, conf=cfg_keystone_authtoken)
+        elif name == 'ext_oauth2_auth':
+            return MockConfig(name, conf=cfg_ext_oauth2_auth)
+        else:
+            return cfg.CONF._get(name)
+
+    return mock_conf_key_effect
+
+
+class MockConfig(cfg.OptGroup):
+    def __init__(self, name, conf=None):
+        self.name = name
+        self.conf = conf
+
+    def __getattr__(self, name):
+        if not self.conf:
+            raise cfg.NoSuchOptError('not found %s' % name)
+        if name not in self.conf:
+            raise cfg.NoSuchOptError('not found %s' % name)
+        return self.conf.get(name)
+
+    def __contains__(self, key):
+        return key in self.conf
 
 
 class TestTackerContext(base.BaseTestCase):
@@ -131,3 +163,66 @@ class TestTackerContext(base.BaseTestCase):
         self.assertEqual(req_id_before,
                          oslo_context.get_current().request_id)
         self.assertNotEqual(req_id_before, ctx_admin.request_id)
+
+    @mock.patch('oslo_config.cfg.ConfigOpts.__getattr__')
+    def test_generate_tacker_service_context_keystone(self, mock_get_conf_key):
+        password = 'test_password'
+        auth_url = 'http://keystone/test/auth_url'
+        username = 'test_user_name'
+        user_domain_name = 'test_user_domain_name'
+        project_name = 'test_project_name'
+        project_domain_name = 'test_project_domain_name'
+        token_endpoint = 'http://demo/token'
+        auth_method = 'client_secret_basic'
+        client_id = 'test_client_id'
+        client_secret = 'client_secret'
+        scope = 'tacker'
+        mock_get_conf_key.side_effect = get_mock_conf_key_effect(
+            cfg_keystone_authtoken={
+                'password': password,
+                'auth_url': auth_url,
+                'username': username,
+                'user_domain_name': user_domain_name,
+                'project_name': project_name,
+                'project_domain_name': project_domain_name},
+            cfg_ext_oauth2_auth={
+                'token_endpoint': token_endpoint,
+                'auth_method': auth_method,
+                'client_id': client_id,
+                'client_secret': client_secret,
+                'scope': scope,
+                'use_ext_oauth2_auth': False}
+        )
+        auth_context = context.generate_tacker_service_context()
+        self.assertIsInstance(auth_context, keystone_password.KeystonePassword)
+
+    @mock.patch('oslo_config.cfg.ConfigOpts.__getattr__')
+    def test_generate_tacker_service_context_external(self, mock_get_conf_key):
+        password = 'test_password'
+        auth_url = 'http://keystone/test/auth_url'
+        username = 'test_user_name'
+        user_domain_name = 'test_user_domain_name'
+        project_name = 'test_project_name'
+        project_domain_name = 'test_project_domain_name'
+        token_endpoint = 'http://demo/token'
+        auth_method = 'client_secret_basic'
+        client_id = 'test_client_id'
+        client_secret = 'client_secret'
+        scope = 'tacker'
+        mock_get_conf_key.side_effect = get_mock_conf_key_effect(
+            cfg_keystone_authtoken={
+                'password': password,
+                'auth_url': auth_url,
+                'username': username,
+                'user_domain_name': user_domain_name,
+                'project_name': project_name,
+                'project_domain_name': project_domain_name},
+            cfg_ext_oauth2_auth={
+                'token_endpoint': token_endpoint,
+                'auth_method': auth_method,
+                'client_id': client_id,
+                'client_secret': client_secret,
+                'scope': scope,
+                'use_ext_oauth2_auth': True})
+        auth_context = context.generate_tacker_service_context()
+        self.assertIsInstance(auth_context, ExtOAuth2Auth)

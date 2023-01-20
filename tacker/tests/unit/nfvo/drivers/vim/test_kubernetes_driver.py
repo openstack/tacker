@@ -52,6 +52,36 @@ cfg.CONF.register_opts(OPTS, 'keystone_authtoken')
 CONF = cfg.CONF
 
 
+def get_mock_conf_key_effect():
+    def mock_conf_key_effect(name):
+        if name == 'ext_oauth2_auth':
+            return MockConfig(
+                conf={
+                    'use_ext_oauth2_auth': True,
+                    'token_endpoint': 'http://demo/token_endpoint',
+                    'auth_method': 'client_secret_post',
+                    'client_id': 'client_id',
+                    'client_secret': 'client_secret',
+                    'scope': 'client_secret'
+                })
+        elif name == 'key_manager':
+            conf = {
+                'api_class': 'tacker.keymgr.barbican_key_manager'
+                             '.BarbicanKeyManager',
+                'barbican_version': 'v1',
+                'barbican_endpoint': 'http://test/barbican'
+            }
+            return MockConfig(conf=conf)
+        elif name == 'k8s_vim':
+            return MockConfig(
+                conf={
+                    'use_barbican': True
+                })
+        else:
+            return cfg.CONF._get(name)
+    return mock_conf_key_effect
+
+
 class FakeKubernetesAPI(mock.Mock):
     pass
 
@@ -65,6 +95,21 @@ class mock_dict(dict):
         return self.get(item)
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__
+
+
+class MockConfig(object):
+    def __init__(self, conf=None):
+        self.conf = conf
+
+    def __getattr__(self, name):
+        if not self.conf:
+            raise cfg.NoSuchOptError('not found %s' % name)
+        if name not in self.conf:
+            raise cfg.NoSuchOptError('not found %s' % name)
+        return self.conf.get(name)
+
+    def __contains__(self, key):
+        return key in self.conf
 
 
 class TestKubernetes_Driver(base.TestCase):
@@ -213,3 +258,32 @@ class TestKubernetes_Driver(base.TestCase):
         del self.vim_obj['auth_cred']['ssl_ca_cert']
         self.assertRaises(nfvo.VimUnauthorizedException,
                           self.kubernetes_driver.register_vim, self.vim_obj)
+
+    @mock.patch('oslo_config.cfg.ConfigOpts.__getattr__')
+    def test_deregister_vim_barbican_ext_oauth2_auth(self, mock_get_conf_key):
+        mock_get_conf_key.side_effect = get_mock_conf_key_effect()
+        self.keymgr.delete.return_value = None
+        vim_obj = self.get_vim_obj_barbican()
+        self.kubernetes_driver.deregister_vim(vim_obj)
+
+    @mock.patch('oslo_config.cfg.ConfigOpts.__getattr__')
+    def test_encode_vim_auth_barbican_ext_oauth2_auth(self, mock_get_conf_key):
+        mock_get_conf_key.side_effect = get_mock_conf_key_effect()
+        self.config_fixture.config(group='k8s_vim',
+                                   use_barbican=True)
+        fernet_attrs = {'encrypt.return_value': 'encrypted_password'}
+        mock_fernet_obj = mock.Mock(**fernet_attrs)
+        mock_fernet_key = 'test_fernet_key'
+        self.keymgr.store.return_value = 'fake-secret-uuid'
+        self.kubernetes_api.create_fernet_key.return_value = (mock_fernet_key,
+                                                              mock_fernet_obj)
+
+        vim_obj = self.get_vim_obj()
+        self.kubernetes_driver.encode_vim_auth(
+            vim_obj['id'], vim_obj['auth_cred'])
+
+        mock_fernet_obj.encrypt.assert_called_once_with(mock.ANY)
+        self.assertEqual(vim_obj['auth_cred']['key_type'],
+                         'barbican_key')
+        self.assertEqual(vim_obj['auth_cred']['secret_uuid'],
+                         'fake-secret-uuid')

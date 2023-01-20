@@ -19,7 +19,9 @@ import os
 from unittest import mock
 from unittest.mock import patch
 
+from oslo_config import cfg
 from oslo_utils import uuidutils
+from requests_mock.contrib import fixture as rm_fixture
 
 from tacker.common import exceptions
 from tacker import context
@@ -28,6 +30,7 @@ from tacker.db.nfvo import nfvo_db
 from tacker.db.nfvo import ns_db
 from tacker.db.nfvo import vnffg_db
 from tacker.extensions import nfvo
+from tacker.keymgr import API as KEYMGR_API
 from tacker.manager import TackerManager
 from tacker.nfvo import nfvo_plugin
 from tacker.plugins.common import constants
@@ -38,6 +41,53 @@ from tacker.vnfm import vim_client
 
 SECRET_PASSWORD = '***'
 DUMMY_NS_2 = 'ba6bf017-f6f7-45f1-a280-57b073bf78ef'
+
+
+def get_mock_conf_key_effect():
+    def mock_conf_key_effect(name):
+        if name == 'keystone_authtoken':
+            return MockConfig(conf=None)
+        elif name == 'ext_oauth2_auth':
+            return MockConfig(
+                conf={
+                    'use_ext_oauth2_auth': True,
+                    'token_endpoint': 'http://demo/token_endpoint',
+                    'auth_method': 'client_secret_post',
+                    'client_id': 'client_id',
+                    'client_secret': 'client_secret',
+                    'scope': 'client_secret'
+                })
+        elif name == 'key_manager':
+            conf = {
+                'api_class': 'tacker.keymgr.barbican_key_manager'
+                             '.BarbicanKeyManager',
+                'barbican_endpoint': 'http://demo/barbican',
+                'barbican_version': 'v1'
+            }
+            return MockConfig(conf=conf)
+        elif name == 'k8s_vim':
+            return MockConfig(
+                conf={
+                    'use_barbican': True
+                })
+        else:
+            return cfg.CONF._get(name)
+    return mock_conf_key_effect
+
+
+class MockConfig(object):
+    def __init__(self, conf=None):
+        self.conf = conf
+
+    def __getattr__(self, name):
+        if not self.conf:
+            raise cfg.NoSuchOptError('not found %s' % name)
+        if name not in self.conf:
+            raise cfg.NoSuchOptError('not found %s' % name)
+        return self.conf.get(name)
+
+    def __contains__(self, key):
+        return key in self.conf
 
 
 def dummy_get_vim(*args, **kwargs):
@@ -203,6 +253,9 @@ class FakeVNFMPlugin(mock.Mock):
 class TestNfvoPlugin(db_base.SqlTestCase):
     def setUp(self):
         super(TestNfvoPlugin, self).setUp()
+        self.requests_mock = self.useFixture(rm_fixture.Fixture())
+        KEYMGR_API('')
+        self.access_token = 'access_token_uuid'
         self.addCleanup(mock.patch.stopall)
         self.context = context.get_admin_context()
         self.nfvo_plugin = nfvo_plugin.NfvoPlugin()
@@ -215,6 +268,22 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         fake_driver_manager.return_value = self._driver_manager
         self._mock(
             'tacker.common.driver_manager.DriverManager', fake_driver_manager)
+
+    def _mock_external_token_api(self):
+        def mock_token_resp(request, context):
+            response = {
+                'access_token': self.access_token,
+                'expires_in': 1800,
+                'refresh_expires_in': 0,
+                'token_type': 'Bearer',
+                'not-before-policy': 0,
+                'scope': 'tacker_api'
+            }
+            context.status_code = 200
+            return response
+
+        self.requests_mock.post('http://demo/token_endpoint',
+                                json=mock_token_resp)
 
     def _insert_dummy_vim(self):
         session = self.context.session
@@ -1607,3 +1676,97 @@ class TestNfvoPlugin(db_base.SqlTestCase):
                               non_admin_context,
                               'ba6bf017-f6f7-45f1-a280-57b073bf78ea',
                               ns=nsattr)
+
+    @mock.patch('oslo_config.cfg.ConfigOpts.__getattr__')
+    @mock.patch('barbicanclient.base.validate_ref_and_return_uuid')
+    @mock.patch('cryptography.fernet.Fernet.decrypt')
+    def test_build_vim_auth_barbican_external(
+            self, mock_decrypt, mock_validate, mock_get_conf_key):
+        mock_get_conf_key.side_effect = get_mock_conf_key_effect()
+        self._mock_external_token_api()
+        barbican_uuid = 'test_uuid'
+        mock_validate.return_value = barbican_uuid
+        vim_dict = {'id': 'aaaa', 'name': 'VIM0', 'type': 'test_vim',
+                    'auth_cred': {'username': 'test',
+                                  'user_domain_name': 'test',
+                                  'cert_verify': 'True',
+                                  'project_id': 'test',
+                                  'project_name': 'test',
+                                  'project_domain_name': 'test',
+                                  'auth_url': 'http://test/identity/v3',
+                                  'key_type': 'barbican_key',
+                                  'secret_uuid': '***',
+                                  'password': '***'},
+                    'auth_url': 'http://127.0.0.1/identity/v3',
+                    'placement_attr': {'regions': ['TestRegionOne']},
+                    'tenant_id': 'test'}
+
+        def mock_barbican_resp(request, context):
+            auth_value = 'Bearer %s' % self.access_token
+            req_auth = request._request.headers.get('Authorization')
+            self.assertEqual(auth_value, req_auth)
+            response = {
+                'name': 'AES key',
+                'expiration': '2023-01-13T19:14:44.180394',
+                'algorithm': 'aes',
+                'bit_length': 256,
+                'mode': 'cbc',
+                'payload': 'YmVlcg==',
+                'payload_content_type': 'application/octet-stream',
+                'payload_content_encoding': 'base64'
+            }
+            context.status_code = 200
+            return response
+        self.requests_mock.get('http://demo/barbican/v1/secrets/%s' %
+                               barbican_uuid,
+                               json=mock_barbican_resp)
+
+        def mock_barbican_payload_resp(request, context):
+            auth_value = 'Bearer %s' % self.access_token
+            req_auth = request._request.headers.get('Authorization')
+            self.assertEqual(auth_value, req_auth)
+            response = '5cJeztZKzISf1JAt73oBeTPPCrymn96A3wqG96F4RxU='
+            context.status_code = 200
+            return response
+
+        def mock_get_barbican_resp(request, context):
+            auth_value = 'Bearer %s' % self.access_token
+            req_auth = request._request.headers.get('Authorization')
+            self.assertEqual(auth_value, req_auth)
+            context.status_code = 200
+            response = {
+                "versions": {
+                    "values": [
+                        {
+                            "id": "v1",
+                            "status": "stable",
+                            "links": [
+                                {
+                                    "rel": "self",
+                                    "href": "http://demo/barbican/v1/"
+                                },
+                                {
+                                    "rel": "describedby",
+                                    "type": "text/html",
+                                    "href": "https://docs.openstack.org/"}
+                            ],
+                            "media-types": [
+                                {
+                                    "base": "application/json",
+                                    "type": "application/"
+                                            "vnd.openstack.key-manager-v1+json"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            }
+            return response
+        self.requests_mock.get('http://demo/barbican/v1/secrets/%s/payload' %
+                               barbican_uuid,
+                               json=mock_barbican_payload_resp)
+        self.requests_mock.get('http://demo/barbican',
+                               json=mock_get_barbican_resp)
+        mock_decrypt.return_value = 'test'.encode('utf-8')
+
+        self.nfvo_plugin._build_vim_auth(vim_dict)

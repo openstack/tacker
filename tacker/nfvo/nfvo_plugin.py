@@ -569,9 +569,11 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
         cred = auth['password'].encode('utf-8')
         if auth.get('key_type') == 'barbican_key':
             k_context = t_context.generate_tacker_service_context()
-            keystone_conf = CONF.keystone_authtoken
             secret_uuid = auth['secret_uuid']
-            keymgr_api = KEYMGR_API(keystone_conf.auth_url)
+            if CONF.ext_oauth2_auth.use_ext_oauth2_auth:
+                keymgr_api = KEYMGR_API(CONF.ext_oauth2_auth.token_endpoint)
+            else:
+                keymgr_api = KEYMGR_API(CONF.keystone_authtoken.auth_url)
             secret_obj = keymgr_api.get(k_context, secret_uuid)
             vim_key = secret_obj.payload
         else:
