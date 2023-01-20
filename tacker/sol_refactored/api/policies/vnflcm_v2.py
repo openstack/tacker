@@ -36,6 +36,20 @@ VNF_LCM_OP_OCCS_PATH = V2_PATH + '/vnf_lcm_op_occs'
 VNF_LCM_OP_OCCS_ID_PATH = VNF_LCM_OP_OCCS_PATH + '/{vnfLcmOpOccId}'
 SERVER_NOTIFICATION_PATH = CONF.server_notification.uri_path_prefix
 
+ENHANCED_POLICY_ACTIONS = (
+    POLICY_NAME.format('create'),
+    POLICY_NAME.format('index'),
+    POLICY_NAME.format('show'),
+    POLICY_NAME.format('delete'),
+    POLICY_NAME.format('update'),
+    POLICY_NAME.format('instantiate'),
+    POLICY_NAME.format('terminate'),
+    POLICY_NAME.format('scale'),
+    POLICY_NAME.format('heal'),
+    POLICY_NAME.format('change_ext_conn'),
+    POLICY_NAME.format('change_vnfpkg'),
+)
+
 rules = [
     policy.DocumentedRuleDefault(
         name=POLICY_NAME.format('api_versions'),

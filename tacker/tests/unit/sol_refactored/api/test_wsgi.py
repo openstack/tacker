@@ -13,13 +13,18 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import ddt
+from oslo_config import cfg
 from unittest import mock
 
+from tacker import context
+from tacker.sol_refactored.api.policies.vnflcm_v2 import POLICY_NAME
 from tacker.sol_refactored.api import wsgi as sol_wsgi
 from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.tests.unit import base
 
 
+@ddt.ddt
 class TestWsgi(base.TestCase):
 
     def test_response_too_big(self):
@@ -46,3 +51,88 @@ class TestWsgi(base.TestCase):
         request.headers = {}
         self.assertRaises(sol_ex.APIVersionMissing,
             resource._check_api_version, request, 'action')
+
+    @mock.patch.object(context.Context, 'can')
+    def test_enhanced_policy_action(self, mock_can):
+        cfg.CONF.set_override(
+            "enhanced_tacker_policy", True, group='oslo_policy')
+        resource = sol_wsgi.SolResource(sol_wsgi.SolAPIController(),
+                                        policy_name=POLICY_NAME)
+        request = mock.Mock()
+        request.context = context.Context()
+        request.headers = {}
+        enhanced_policy_actions = [
+            'create',
+            'index',
+            'show',
+            'delete',
+            'update',
+            'instantiate',
+            'terminate',
+            'scale',
+            'heal',
+            'change_ext_conn',
+            'change_vnfpkg'
+        ]
+        for action in enhanced_policy_actions:
+            resource._check_policy(request, action)
+            mock_can.assert_not_called()
+
+    @ddt.data('api_versions',
+              'subscription_create',
+              'subscription_list',
+              'subscription_show',
+              'subscription_delete',
+              'lcm_op_occ_list',
+              'lcm_op_occ_show',
+              'lcm_op_occ_retry',
+              'lcm_op_occ_rollback',
+              'lcm_op_occ_fail',
+              'lcm_op_occ_delete')
+    @mock.patch.object(context.Context, 'can')
+    def test_not_enhanced_policy_action(self, action, mock_can):
+        cfg.CONF.set_override(
+            "enhanced_tacker_policy", True, group='oslo_policy')
+        resource = sol_wsgi.SolResource(sol_wsgi.SolAPIController(),
+                                        policy_name=POLICY_NAME)
+        request = mock.Mock()
+        request.context = context.Context()
+        request.headers = {}
+
+        resource._check_policy(request, action)
+        mock_can.assert_called_once()
+
+    @ddt.data('create',
+              'index',
+              'show',
+              'delete',
+              'update',
+              'instantiate',
+              'terminate',
+              'scale',
+              'heal',
+              'change_ext_conn',
+              'change_vnfpkg',
+              'api_versions',
+              'subscription_create',
+              'subscription_list',
+              'subscription_show',
+              'subscription_delete',
+              'lcm_op_occ_list',
+              'lcm_op_occ_show',
+              'lcm_op_occ_retry',
+              'lcm_op_occ_rollback',
+              'lcm_op_occ_fail',
+              'lcm_op_occ_delete')
+    @mock.patch.object(context.Context, 'can')
+    def test_enhanced_policy_is_false(self, action, mock_can):
+        cfg.CONF.set_override(
+            "enhanced_tacker_policy", False, group='oslo_policy')
+        resource = sol_wsgi.SolResource(sol_wsgi.SolAPIController(),
+                                        policy_name=POLICY_NAME)
+        request = mock.Mock()
+        request.context = context.Context()
+        request.headers = {}
+
+        resource._check_policy(request, action)
+        mock_can.assert_called_once()

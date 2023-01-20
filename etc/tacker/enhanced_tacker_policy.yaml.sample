@@ -1,0 +1,251 @@
+# Decides what is required for the 'is_admin:True' check to succeed.
+"context_is_admin": "role:admin"
+
+# Default rule for most non-Admin APIs.
+"admin_or_owner": "is_admin:True or project_id:%(project_id)s"
+
+# Default rule for most Admin APIs.
+"admin_only": "is_admin:True"
+
+# Default rule for sharing vims.
+"shared": "field:vims:shared=True"
+
+# Default rule for most non-Admin APIs.
+"default": "rule:admin_or_owner"
+
+# For manager
+"manager_and_owner": "role:manager and project_id:%(project_id)s"
+
+# For user
+"owner": "project_id:%(project_id)s"
+
+# VIM resource attributes compare rule.
+"vim_attrs_cmp": "area:%(area)s"
+
+# Register a VIM.
+# Post  /v1.0/vims
+"create_vim": "rule:manager_and_owner or role:admin"
+
+# List VIMs or show a VIM.
+# GET /v1.0/vims
+# GET /v1.0/vims/{vim_id}
+"get_vim": "rule:vim_attrs_cmp or role:admin"
+
+# Update a VIM.
+# PUT /v1.0/vims/{vim_id}
+"update_vim": "rule:vim_attrs_cmp and rule:manager_and_owner or role:admin"
+
+# Delete a VIM.
+# DELETE /v1.0/vims/{vim_id}
+"delete_vim": "rule:vim_attrs_cmp and rule:manager_and_owner or role:admin"
+
+# vnf_packages resource attributes compare rule.
+"vnf_pkg_attrs_cmp": "vendor:%(vendor)s"
+
+# Creates a VNF package.
+# POST  /vnf_packages
+"os_nfv_orchestration_api:vnf_packages:create": "rule:admin_or_owner"
+
+# Show a VNF package.
+# GET  /vnf_packages/{vnf_package_id}
+"os_nfv_orchestration_api:vnf_packages:show": "rule:vnf_pkg_attrs_cmp and rule:owner or role:admin"
+
+# List all VNF packages.
+# GET  /vnf_packages/
+"os_nfv_orchestration_api:vnf_packages:index": "rule:vnf_pkg_attrs_cmp and rule:owner or role:admin"
+
+# Delete a VNF package.
+# DELETE  /vnf_packages/{vnf_package_id}
+"os_nfv_orchestration_api:vnf_packages:delete": "rule:vnf_pkg_attrs_cmp and rule:manager_and_owner or role:admin"
+
+# Fetch the contents of an on-boarded VNF Package.
+# GET  /vnf_packages/{vnf_package_id}/package_content
+"os_nfv_orchestration_api:vnf_packages:fetch_package_content": "rule:vnf_pkg_attrs_cmp and rule:owner or role:admin"
+
+# Upload a VNF package content.
+# PUT  /vnf_packages/{vnf_package_id}/package_content
+"os_nfv_orchestration_api:vnf_packages:upload_package_content": "rule:vnf_pkg_attrs_cmp or role:admin"
+
+# Upload a VNF package content from URI.
+# POST  /vnf_packages/{vnf_package_id}/package_content/upload_from_uri
+"os_nfv_orchestration_api:vnf_packages:upload_from_uri": "rule:admin_or_owner"
+
+# Update information of VNF package.
+# PATCH  /vnf_packages/{vnf_package_id}
+"os_nfv_orchestration_api:vnf_packages:patch": "rule:vnf_pkg_attrs_cmp  and rule:manager_and_owner or role:admin"
+
+# Read the content of the VNFD within a VNF package.
+# GET  /vnf_packages/{vnf_package_id}/vnfd
+"os_nfv_orchestration_api:vnf_packages:get_vnf_package_vnfd": "rule:vnf_pkg_attrs_cmp and rule:owner or role:admin"
+
+# Read the content of the artifact within a VNF package.
+# GET  /vnf_packages/{vnfPkgId}/artifacts/{artifactPath}
+"os_nfv_orchestration_api:vnf_packages:fetch_artifact": "rule:vnf_pkg_attrs_cmp and rule:owner or role:admin"
+
+# vnflcm create attributes compare rule.
+"vnflcm_create_attrs_cmp": "vendor:%(vendor)s"
+
+# vnflcm instantiate attributes compare rule.
+"vnflcm_inst_attrs_cmp": "vendor:%(vendor)s"
+
+# vnflcm delete attributes compare rule.
+"vnflcm_delete_attrs_cmp": "vendor:%(vendor)s"
+
+# vnflcm resource attributes compare rule.
+"vnflcm_attrs_cmp": "area:%(area)s and vendor:%(vendor)s and tenant:%(tenant)s"
+
+# Get API Versions.
+# GET  /vnflcm/v1/api_versions
+"os_nfv_orchestration_api:vnf_instances:api_versions": "@"
+
+# Create VNF instance.
+# POST  /vnflcm/v1/vnf_instances
+"os_nfv_orchestration_api:vnf_instances:create": "rule:vnflcm_create_attrs_cmp and rule:manager_and_owner or role:admin"
+
+# Instantiate VNF instance.
+# POST  /vnflcm/v1/vnf_instances/{vnfInstanceId}/instantiate
+"os_nfv_orchestration_api:vnf_instances:instantiate": "rule:vnflcm_inst_attrs_cmp and rule:manager_and_owner or role:admin"
+
+# Query an Individual VNF instance.
+# GET  /vnflcm/v1/vnf_instances/{vnfInstanceId}
+"os_nfv_orchestration_api:vnf_instances:show": "rule:vnflcm_attrs_cmp and rule:owner or role:admin"
+
+# Terminate a VNF instance.
+# POST  /vnflcm/v1/vnf_instances/{vnfInstanceId}/terminate
+"os_nfv_orchestration_api:vnf_instances:terminate": "rule:vnflcm_attrs_cmp and rule:manager_and_owner or role:admin"
+
+# Heal a VNF instance.
+# POST  /vnflcm/v1/vnf_instances/{vnfInstanceId}/heal
+"os_nfv_orchestration_api:vnf_instances:heal": "rule:vnflcm_attrs_cmp and rule:manager_and_owner or role:admin"
+
+# Scale a VNF instance.
+# POST  /vnflcm/v1/vnf_instances/{vnfInstanceId}/scale
+"os_nfv_orchestration_api:vnf_instances:scale": "rule:vnflcm_attrs_cmp and rule:manager_and_owner or role:admin"
+
+# Query an Individual VNF LCM operation occurrence.
+# GET  /vnflcm/v1/vnf_lcm_op_occs/{vnfLcmOpOccId}
+"os_nfv_orchestration_api:vnf_instances:show_lcm_op_occs": "rule:admin_or_owner"
+
+# Query VNF LCM operation occurrence.
+# GET  /vnflcm/v1/vnf_lcm_op_occs
+"os_nfv_orchestration_api:vnf_instances:list_lcm_op_occs": "rule:admin_or_owner"
+
+# Query VNF instances.
+# GET  /vnflcm/v1/vnf_instances
+"os_nfv_orchestration_api:vnf_instances:index": "rule:vnflcm_attrs_cmp and rule:owner or role:admin"
+
+# Delete an Individual VNF instance.
+# DELETE  /vnflcm/v1/vnf_instances/{vnfInstanceId}
+"os_nfv_orchestration_api:vnf_instances:delete": "rule:vnflcm_delete_attrs_cmp and rule:manager_and_owner or role:admin"
+
+# Update an Individual VNF instance.
+# PATCH  /vnflcm/v1/vnf_instances/{vnfInstanceId}
+"os_nfv_orchestration_api:vnf_instances:update_vnf": "rule:vnflcm_attrs_cmp and rule:manager_and_owner or role:admin"
+
+# Rollback a VNF instance.
+# POST  /vnflcm/v1/vnf_lcm_op_occs/{vnfLcmOpOccId}/rollback
+"os_nfv_orchestration_api:vnf_instances:rollback": "rule:admin_or_owner"
+
+# Cancel a VNF instance.
+# POST  /vnflcm/v1/vnf_lcm_op_occs/{vnfLcmOpOccId}/cancel
+"os_nfv_orchestration_api:vnf_instances:cancel": "rule:admin_or_owner"
+
+# Fail a VNF instance.
+# POST  /vnflcm/v1/vnf_lcm_op_occs/{vnfLcmOpOccId}/fail
+"os_nfv_orchestration_api:vnf_instances:fail": "rule:admin_or_owner"
+
+# Retry a VNF instance.
+# POST  /vnflcm/v1/vnf_lcm_op_occs/{vnfLcmOpOccId}/retry
+"os_nfv_orchestration_api:vnf_instances:retry": "rule:admin_or_owner"
+
+# Change external VNF connectivity.
+# POST  /vnflcm/v1/vnf_instances/{vnfInstanceId}/change_ext_conn
+"os_nfv_orchestration_api:vnf_instances:change_ext_conn": "rule:vnflcm_attrs_cmp and rule:manager_and_owner or role:admin"
+
+# Get API Versions.
+# GET  /vnflcm/v2/api_versions
+"os_nfv_orchestration_api_v2:vnf_instances:api_versions": "@"
+
+# Creates VNF instance.
+# POST  /vnflcm/v2/vnf_instances
+"os_nfv_orchestration_api_v2:vnf_instances:create": "rule:vnflcm_create_attrs_cmp and rule:manager_and_owner or role:admin"
+
+# Query VNF instances.
+# GET  /vnflcm/v2/vnf_instances
+"os_nfv_orchestration_api_v2:vnf_instances:index": "rule:vnflcm_attrs_cmp and rule:owner or role:admin"
+
+# Query an Individual VNF instance.
+# GET  /vnflcm/v2/vnf_instances/{vnfInstanceId}
+"os_nfv_orchestration_api_v2:vnf_instances:show": "rule:vnflcm_attrs_cmp and rule:owner or role:admin"
+
+# Delete an Individual VNF instance.
+# DELETE  /vnflcm/v2/vnf_instances/{vnfInstanceId}
+"os_nfv_orchestration_api_v2:vnf_instances:delete": "rule:vnflcm_delete_attrs_cmp and rule:manager_and_owner or role:admin"
+
+# Modify VNF instance information.
+# PATCH  /vnflcm/v2/vnf_instances/{vnfInstanceId}
+"os_nfv_orchestration_api_v2:vnf_instances:update": "rule:vnflcm_attrs_cmp and rule:manager_and_owner or role:admin"
+
+# Instantiate VNF instance.
+# POST  /vnflcm/v2/vnf_instances/{vnfInstanceId}/instantiate
+"os_nfv_orchestration_api_v2:vnf_instances:instantiate": "rule:vnflcm_inst_attrs_cmp and rule:manager_and_owner or role:admin"
+
+# Terminate VNF instance.
+# POST  /vnflcm/v2/vnf_instances/{vnfInstanceId}/terminate
+"os_nfv_orchestration_api_v2:vnf_instances:terminate": "rule:vnflcm_attrs_cmp and rule:manager_and_owner or role:admin"
+
+# Scale VNF instance.
+# POST  /vnflcm/v2/vnf_instances/{vnfInstanceId}/scale
+"os_nfv_orchestration_api_v2:vnf_instances:scale": "rule:vnflcm_attrs_cmp and rule:manager_and_owner or role:admin"
+
+# Heal VNF instance.
+# POST  /vnflcm/v2/vnf_instances/{vnfInstanceId}/heal
+"os_nfv_orchestration_api_v2:vnf_instances:heal": "rule:vnflcm_attrs_cmp and rule:manager_and_owner or role:admin"
+
+# Change external VNF connectivity.
+# POST  /vnflcm/v2/vnf_instances/{vnfInstanceId}/change_ext_conn
+"os_nfv_orchestration_api_v2:vnf_instances:change_ext_conn": "rule:vnflcm_attrs_cmp and rule:manager_and_owner or role:admin"
+
+# Change VNF package.
+# POST  /vnflcm/v2/vnf_instances/{vnfInstanceId}/change_vnfpkg
+"os_nfv_orchestration_api_v2:vnf_instances:change_vnfpkg": "rule:vnflcm_attrs_cmp and rule:manager_and_owner or role:admin"
+
+# Create subscription.
+# POST  /vnflcm/v2/subscriptions
+"os_nfv_orchestration_api_v2:vnf_instances:subscription_create": "@"
+
+# List subscription.
+# GET  /vnflcm/v2/subscriptions
+"os_nfv_orchestration_api_v2:vnf_instances:subscription_list": "@"
+
+# Show subscription.
+# GET  /vnflcm/v2/vnf_instances/{subscriptionId}
+"os_nfv_orchestration_api_v2:vnf_instances:subscription_show": "@"
+
+# Delete subscription.
+# DELETE  /vnflcm/v2/vnf_instances/{subscriptionId}
+"os_nfv_orchestration_api_v2:vnf_instances:subscription_delete": "@"
+
+# List VnfLcmOpOcc.
+# GET  /vnflcm/v2/vnf_lcm_op_occs
+"os_nfv_orchestration_api_v2:vnf_instances:lcm_op_occ_list": "@"
+
+# Show VnfLcmOpOcc.
+# GET  /vnflcm/v2/vnf_lcm_op_occs/{vnfLcmOpOccId}
+"os_nfv_orchestration_api_v2:vnf_instances:lcm_op_occ_show": "@"
+
+# Retry VnfLcmOpOcc.
+# POST  /vnflcm/v2/vnf_lcm_op_occs/{vnfLcmOpOccId}/retry
+"os_nfv_orchestration_api_v2:vnf_instances:lcm_op_occ_retry": "@"
+
+# Rollback VnfLcmOpOcc.
+# POST  /vnflcm/v2/vnf_lcm_op_occs/{vnfLcmOpOccId}/rollback
+"os_nfv_orchestration_api_v2:vnf_instances:lcm_op_occ_rollback": "@"
+
+# Fail VnfLcmOpOcc.
+# POST  /vnflcm/v2/vnf_lcm_op_occs/{vnfLcmOpOccId}/fail
+"os_nfv_orchestration_api_v2:vnf_instances:lcm_op_occ_fail": "@"
+
+# Delete VnfLcmOpOcc.
+# DELETE  /vnflcm/v2/vnf_lcm_op_occs/{vnfLcmOpOccId}
+"os_nfv_orchestration_api_v2:vnf_instances:lcm_op_occ_delete": "@"

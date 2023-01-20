@@ -18,6 +18,7 @@ from oslo_log import log as logging
 from oslo_utils import uuidutils
 
 from tacker.sol_refactored.api import api_version
+from tacker.sol_refactored.api.policies.vnflcm_v2 import POLICY_NAME
 from tacker.sol_refactored.api.schemas import vnflcm_v2 as schema
 from tacker.sol_refactored.api import validator
 from tacker.sol_refactored.api import wsgi as sol_wsgi
@@ -62,6 +63,10 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
 
         pkg_info = self.nfvo_client.get_vnf_package_info_vnfd(
             context, vnfd_id)
+        if config.CONF.oslo_policy.enhanced_tacker_policy:
+            context.can(POLICY_NAME.format('create'),
+                        target={'vendor': pkg_info.vnfProvider})
+
         if pkg_info.operationalState != "ENABLED":
             raise sol_ex.VnfdIdNotEnabled(vnfd_id=vnfd_id)
 
@@ -122,6 +127,11 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
 
         insts = inst_utils.get_inst_all(request.context,
                                         marker=pager.marker)
+        if config.CONF.oslo_policy.enhanced_tacker_policy:
+            insts = [inst for inst in insts if request.context.can(
+                POLICY_NAME.format('index'),
+                target=self._get_policy_target(inst),
+                fatal=False)]
 
         resp_body = self._inst_view.detail_list(insts, filters,
                                                 selector, pager)
@@ -130,7 +140,9 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
 
     def show(self, request, id):
         inst = inst_utils.get_inst(request.context, id)
-
+        if config.CONF.oslo_policy.enhanced_tacker_policy:
+            request.context.can(POLICY_NAME.format('show'),
+                                target=self._get_policy_target(inst))
         resp_body = self._inst_view.detail(inst)
 
         return sol_wsgi.SolResponse(200, resp_body)
@@ -139,7 +151,9 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
     def delete(self, request, id):
         context = request.context
         inst = inst_utils.get_inst(context, id)
-
+        if config.CONF.oslo_policy.enhanced_tacker_policy:
+            context.can(POLICY_NAME.format('delete'),
+                        target=self._get_policy_target(inst))
         if inst.instantiationState != 'NOT_INSTANTIATED':
             raise sol_ex.VnfInstanceIsInstantiated(inst_id=id)
 
@@ -158,7 +172,9 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
     def update(self, request, id, body):
         context = request.context
         inst = inst_utils.get_inst(context, id)
-
+        if config.CONF.oslo_policy.enhanced_tacker_policy:
+            context.can(POLICY_NAME.format('update'),
+                        target=self._get_policy_target(inst))
         lcmocc_utils.check_lcmocc_in_progress(context, id)
         if (inst.instantiationState == 'NOT_INSTANTIATED'
                 and 'vimConnectionInfo' in body):
@@ -200,11 +216,54 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
 
         return sol_wsgi.SolResponse(202, None, location=location)
 
+    def _get_policy_target(self, vnf_instance):
+        vendor = vnf_instance.vnfProvider
+
+        if vnf_instance.instantiationState == 'NOT_INSTANTIATED':
+            area = '*'
+            tenant = '*'
+        else:
+            vim_type = None
+            area = None
+            if vnf_instance.obj_attr_is_set('vimConnectionInfo'):
+                for _, vim_conn_info in vnf_instance.vimConnectionInfo.items():
+                    area = vim_conn_info.get('extra', {}).get('area')
+                    vim_type = vim_conn_info.vimType
+                    if area and vim_type:
+                        break
+
+            tenant = None
+            if (vnf_instance.obj_attr_is_set('instantiatedVnfInfo') and
+                    vnf_instance.instantiatedVnfInfo.obj_attr_is_set(
+                        'metadata')):
+
+                tenant = (vnf_instance.instantiatedVnfInfo
+                          .metadata.get('namespace'))
+
+            # TODO(kexuesheng): Add steps to get tenant of VNFs deployed
+            #  in OpenStack VIM. This is a temporary workaround until that
+            #  information is available.
+            if vim_type == "ETSINFV.OPENSTACK_KEYSTONE.V_3":
+                tenant = '*'
+
+        target = {
+            'vendor': vendor,
+            'area': area,
+            'tenant': tenant
+        }
+
+        target = {k: v for k, v in target.items() if v is not None}
+
+        return target
+
     @validator.schema(schema.InstantiateVnfRequest_V200, '2.0.0')
     @coordinate.lock_vnf_instance('{id}')
     def instantiate(self, request, id, body):
         context = request.context
         inst = inst_utils.get_inst(context, id)
+        if config.CONF.oslo_policy.enhanced_tacker_policy:
+            context.can(POLICY_NAME.format('instantiate'),
+                        target=self._get_policy_target(inst))
 
         if inst.instantiationState != 'NOT_INSTANTIATED':
             raise sol_ex.VnfInstanceIsInstantiated(inst_id=id)
@@ -239,6 +298,9 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
     def terminate(self, request, id, body):
         context = request.context
         inst = inst_utils.get_inst(context, id)
+        if config.CONF.oslo_policy.enhanced_tacker_policy:
+            context.can(POLICY_NAME.format('terminate'),
+                        target=self._get_policy_target(inst))
 
         if inst.instantiationState != 'INSTANTIATED':
             raise sol_ex.VnfInstanceIsNotInstantiated(inst_id=id)
@@ -258,7 +320,12 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
     @validator.schema(schema.ScaleVnfRequest_V200, '2.0.0')
     def scale(self, request, id, body):
         context = request.context
-        lcmocc = vnflcm_utils.scale(context, id, body)
+        inst = inst_utils.get_inst(context, id)
+        if config.CONF.oslo_policy.enhanced_tacker_policy:
+            context.can(POLICY_NAME.format('scale'),
+                        target=self._get_policy_target(inst))
+
+        lcmocc = vnflcm_utils.scale(context, id, body, inst=inst)
 
         location = lcmocc_utils.lcmocc_href(lcmocc.id, self.endpoint)
 
@@ -267,7 +334,12 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
     @validator.schema(schema.HealVnfRequest_V200, '2.0.0')
     def heal(self, request, id, body):
         context = request.context
-        lcmocc = vnflcm_utils.heal(context, id, body)
+        inst = inst_utils.get_inst(context, id)
+        if config.CONF.oslo_policy.enhanced_tacker_policy:
+            context.can(POLICY_NAME.format('heal'),
+                        target=self._get_policy_target(inst))
+
+        lcmocc = vnflcm_utils.heal(context, id, body, inst=inst)
 
         location = lcmocc_utils.lcmocc_href(lcmocc.id, self.endpoint)
 
@@ -278,6 +350,9 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
     def change_ext_conn(self, request, id, body):
         context = request.context
         inst = inst_utils.get_inst(context, id)
+        if config.CONF.oslo_policy.enhanced_tacker_policy:
+            context.can(POLICY_NAME.format('change_ext_conn'),
+                        target=self._get_policy_target(inst))
 
         if inst.instantiationState != 'INSTANTIATED':
             raise sol_ex.VnfInstanceIsNotInstantiated(inst_id=id)
@@ -336,6 +411,9 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
     def change_vnfpkg(self, request, id, body):
         context = request.context
         inst = inst_utils.get_inst(context, id)
+        if config.CONF.oslo_policy.enhanced_tacker_policy:
+            context.can(POLICY_NAME.format('change_vnfpkg'),
+                        target=self._get_policy_target(inst))
         vnfd_id = body['vnfdId']
 
         if inst.instantiationState != 'INSTANTIATED':

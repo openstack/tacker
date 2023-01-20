@@ -288,7 +288,7 @@ class VnfLcmController(wsgi.Controller):
         vim_client_obj = vim_client.VimClient()
 
         try:
-            vim_client_obj.get_vim(
+            return vim_client_obj.get_vim(
                 context, vim_id, region_name=region_name)
         except nfvo.VimDefaultNotDefined as exp:
             raise webob.exc.HTTPBadRequest(explanation=exp.message)
@@ -439,7 +439,8 @@ class VnfLcmController(wsgi.Controller):
     @validation.schema(vnf_lcm.create)
     def create(self, request, body):
         context = request.environ['tacker.context']
-        context.can(vnf_lcm_policies.VNFLCM % 'create')
+        if not CONF.oslo_policy.enhanced_tacker_policy:
+            context.can(vnf_lcm_policies.VNFLCM % 'create')
         try:
             req_body = utils.convert_camelcase_to_snakecase(body)
             vnfd_id = req_body.get('vnfd_id')
@@ -466,6 +467,10 @@ class VnfLcmController(wsgi.Controller):
                     vnfd_id)
                 return self._make_problem_detail(
                     msg, 500, 'Internal Server Error')
+        if CONF.oslo_policy.enhanced_tacker_policy:
+            context.can(vnf_lcm_policies.VNFLCM % 'create',
+                        target={'vendor': vnfd.vnf_provider})
+
         try:
             # get default vim information
             vim_client_obj = vim_client.VimClient()
@@ -488,6 +493,17 @@ class VnfLcmController(wsgi.Controller):
 
             try:
                 vnf_instance.create()
+
+                vim_conn = objects.VimConnectionInfo(
+                    id=uuidutils.generate_uuid(),
+                    vim_id=default_vim.get('vim_id'),
+                    vim_type=default_vim.get('vim_type'),
+                    access_info={},
+                    interface_info={},
+                    extra=default_vim.get('extra', {})
+                )
+                vnf_instance.vim_connection_info = [vim_conn]
+                vnf_instance.save()
 
                 # create entry to 'vnf' table and 'vnf_attribute' table
                 attributes = {'placement_attr': default_vim.
@@ -560,12 +576,52 @@ class VnfLcmController(wsgi.Controller):
 
         return vnf_package_info[0]
 
+    def _get_policy_target(self, vnf_instance):
+        vendor = vnf_instance.vnf_provider
+
+        area = None
+        if vnf_instance.vim_connection_info:
+            for connection_info in vnf_instance.vim_connection_info:
+                area = connection_info.extra.get('area')
+                if area:
+                    break
+
+        tenant = None
+        if (vnf_instance.instantiation_state ==
+                fields.VnfInstanceState.INSTANTIATED):
+            if vnf_instance.vnf_metadata:
+                tenant = vnf_instance.vnf_metadata.get('namespace')
+
+            # TODO(kexuesheng): Add steps to get tenant of VNFs deployed
+            #  in OpenStack VIM. This is a temporary workaround until that
+            #  information is available.
+            if vnf_instance.vim_connection_info:
+                vim_type = vnf_instance.vim_connection_info[0].vim_type
+                if vim_type in ["openstack", "ETSINFV.OPENSTACK_KEYSTONE.v_2"]:
+                    tenant = '*'
+        else:
+            tenant = '*'
+
+        target = {
+            'vendor': vendor,
+            'area': area,
+            'tenant': tenant
+        }
+
+        target = {k: v for k, v in target.items() if v is not None}
+
+        return target
+
     @wsgi.response(http_client.OK)
     @wsgi.expected_errors((http_client.FORBIDDEN, http_client.NOT_FOUND))
     def show(self, request, id):
         context = request.environ['tacker.context']
-        context.can(vnf_lcm_policies.VNFLCM % 'show')
+        if not CONF.oslo_policy.enhanced_tacker_policy:
+            context.can(vnf_lcm_policies.VNFLCM % 'show')
         vnf_instance = self._get_vnf_instance(context, id)
+        if CONF.oslo_policy.enhanced_tacker_policy:
+            context.can(vnf_lcm_policies.VNFLCM % 'show',
+                        target=self._get_policy_target(vnf_instance))
 
         return self._view_builder.show(vnf_instance)
 
@@ -579,8 +635,8 @@ class VnfLcmController(wsgi.Controller):
     @api_common.validate_supported_params({'filter', 'nextpage_opaque_marker',
                                            'all_records'})
     def index(self, request):
-        if 'tacker.context' in request.environ:
-            context = request.environ['tacker.context']
+        context = request.environ['tacker.context']
+        if not CONF.oslo_policy.enhanced_tacker_policy:
             context.can(vnf_lcm_policies.VNFLCM % 'index')
 
         filters = request.GET.get('filter')
@@ -610,6 +666,13 @@ class VnfLcmController(wsgi.Controller):
             LOG.exception(traceback.format_exc())
             return self._make_problem_detail(
                 str(e), 500, title='Internal Server Error')
+
+        if CONF.oslo_policy.enhanced_tacker_policy:
+            result = [vnf_instance for vnf_instance in result
+                if context.can(
+                    vnf_lcm_policies.VNFLCM % 'index',
+                    target=self._get_policy_target(vnf_instance),
+                    fatal=False)]
 
         result = self._view_builder.index(result)
 
@@ -650,6 +713,10 @@ class VnfLcmController(wsgi.Controller):
         context = request.environ['tacker.context']
 
         vnf_instance = self._get_vnf_instance(context, id)
+        if CONF.oslo_policy.enhanced_tacker_policy:
+            context.can(vnf_lcm_policies.VNFLCM % 'delete',
+                        target=self._get_policy_target(vnf_instance))
+
         vnf = self._get_vnf(context, id)
         self._delete(context, vnf_instance, vnf)
 
@@ -683,7 +750,12 @@ class VnfLcmController(wsgi.Controller):
                 req_body, context=context)
 
         # validate the vim connection id passed through request is exist or not
-        self._validate_vim_connection(context, instantiate_vnf_request)
+        vim_res = self._validate_vim_connection(
+            context, instantiate_vnf_request)
+
+        if instantiate_vnf_request.vim_connection_info:
+            instantiate_vnf_request.vim_connection_info[0].extra = vim_res.get(
+                'extra', {})
 
         vnf_instance.task_state = fields.VnfInstanceTaskState.INSTANTIATING
         vnf_instance.save()
@@ -715,10 +787,14 @@ class VnfLcmController(wsgi.Controller):
     @validation.schema(vnf_lcm.instantiate)
     def instantiate(self, request, id, body):
         context = request.environ['tacker.context']
-        context.can(vnf_lcm_policies.VNFLCM % 'instantiate')
+        if not CONF.oslo_policy.enhanced_tacker_policy:
+            context.can(vnf_lcm_policies.VNFLCM % 'instantiate')
 
         vnf = self._get_vnf(context, id)
         vnf_instance = self._get_vnf_instance(context, id)
+        if CONF.oslo_policy.enhanced_tacker_policy:
+            context.can(vnf_lcm_policies.VNFLCM % 'instantiate',
+                        target=self._get_policy_target(vnf_instance))
 
         return self._instantiate(context, vnf_instance, vnf, body)
 
@@ -766,10 +842,14 @@ class VnfLcmController(wsgi.Controller):
     @validation.schema(vnf_lcm.terminate)
     def terminate(self, request, id, body):
         context = request.environ['tacker.context']
-        context.can(vnf_lcm_policies.VNFLCM % 'terminate')
+        if not CONF.oslo_policy.enhanced_tacker_policy:
+            context.can(vnf_lcm_policies.VNFLCM % 'terminate')
 
         vnf = self._get_vnf(context, id)
         vnf_instance = self._get_vnf_instance(context, id)
+        if CONF.oslo_policy.enhanced_tacker_policy:
+            context.can(vnf_lcm_policies.VNFLCM % 'terminate',
+                        target=self._get_policy_target(vnf_instance))
         return self._terminate(context, vnf_instance, vnf, body)
 
     @check_vnf_status_and_error_point(action="heal",
@@ -822,10 +902,14 @@ class VnfLcmController(wsgi.Controller):
     @validation.schema(vnf_lcm.heal)
     def heal(self, request, id, body):
         context = request.environ['tacker.context']
-        context.can(vnf_lcm_policies.VNFLCM % 'heal')
+        if not CONF.oslo_policy.enhanced_tacker_policy:
+            context.can(vnf_lcm_policies.VNFLCM % 'heal')
 
         vnf = self._get_vnf(context, id)
         vnf_instance = self._get_vnf_instance(context, id)
+        if CONF.oslo_policy.enhanced_tacker_policy:
+            context.can(vnf_lcm_policies.VNFLCM % 'heal',
+                        target=self._get_policy_target(vnf_instance))
 
         if vnf_instance.instantiation_state not in \
            [fields.VnfInstanceState.INSTANTIATED]:
@@ -865,7 +949,12 @@ class VnfLcmController(wsgi.Controller):
     @wsgi.expected_errors((http_client.FORBIDDEN, http_client.NOT_FOUND))
     def update(self, request, id, body):
         context = request.environ['tacker.context']
-        context.can(vnf_lcm_policies.VNFLCM % 'update_vnf')
+        if CONF.oslo_policy.enhanced_tacker_policy:
+            vnf_instance = self._get_vnf_instance(context, id)
+            context.can(vnf_lcm_policies.VNFLCM % 'update_vnf',
+                        target=self._get_policy_target(vnf_instance))
+        else:
+            context.can(vnf_lcm_policies.VNFLCM % 'update_vnf')
 
         # get body
         body_data = {}
@@ -1343,7 +1432,8 @@ class VnfLcmController(wsgi.Controller):
                            http_client.NOT_FOUND, http_client.CONFLICT))
     def scale(self, request, id, body):
         context = request.environ['tacker.context']
-        context.can(vnf_lcm_policies.VNFLCM % 'scale')
+        if not CONF.oslo_policy.enhanced_tacker_policy:
+            context.can(vnf_lcm_policies.VNFLCM % 'scale')
 
         try:
             vnf_info = self._vnfm_plugin.get_vnf(context, id)
@@ -1351,6 +1441,9 @@ class VnfLcmController(wsgi.Controller):
                 return self._make_problem_detail(
                     'VNF IS NOT ACTIVE', 409, title='VNF IS NOT ACTIVE')
             vnf_instance = self._get_vnf_instance(context, id)
+            if CONF.oslo_policy.enhanced_tacker_policy:
+                context.can(vnf_lcm_policies.VNFLCM % 'scale',
+                            target=self._get_policy_target(vnf_instance))
             if not vnf_instance.instantiated_vnf_info.scale_status:
                 return self._make_problem_detail(
                     'NOT SCALE VNF', 409, title='NOT SCALE VNF')
@@ -1361,6 +1454,8 @@ class VnfLcmController(wsgi.Controller):
         except webob.exc.HTTPNotFound as inst_e:
             return self._make_problem_detail(
                 str(inst_e), 404, title='VNF NOT FOUND')
+        except exceptions.PolicyNotAuthorized:
+            raise
         except Exception as e:
             LOG.error(traceback.format_exc())
             return self._make_problem_detail(
@@ -1819,10 +1914,14 @@ class VnfLcmController(wsgi.Controller):
     @validation.schema(vnf_lcm.change_ext_conn)
     def change_ext_conn(self, request, id, body):
         context = request.environ['tacker.context']
-        context.can(vnf_lcm_policies.VNFLCM % 'change_ext_conn')
+        if not CONF.oslo_policy.enhanced_tacker_policy:
+            context.can(vnf_lcm_policies.VNFLCM % 'change_ext_conn')
 
         vnf = self._get_vnf(context, id)
         vnf_instance = self._get_vnf_instance(context, id)
+        if CONF.oslo_policy.enhanced_tacker_policy:
+            context.can(vnf_lcm_policies.VNFLCM % 'change_ext_conn',
+                        target=self._get_policy_target(vnf_instance))
         if (vnf_instance.instantiation_state !=
                 fields.VnfInstanceState.INSTANTIATED):
             return self._make_problem_detail(

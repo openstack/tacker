@@ -16,8 +16,10 @@
 
 from copy import deepcopy
 import datetime
+from http import client as http_client
 import iso8601
 import os
+from oslo_utils import uuidutils
 import shutil
 import uuid
 import webob
@@ -30,6 +32,7 @@ from tacker.objects import vnf_deployment_flavour as vnf_deployment_flavour_obj
 from tacker.objects import vnf_package as vnf_package_obj
 from tacker.objects import vnf_package_vnfd as vnf_package_vnfd_obj
 from tacker.objects import vnf_software_image as vnf_software_image_obj
+from tacker.policies import vnf_package as vnf_package_policies
 from tacker.tests import constants
 from tacker.tests import utils
 from tacker.tests import uuidsentinel
@@ -296,3 +299,128 @@ def return_vnfd_data(csar_without_tosca_meta=False):
 
     shutil.rmtree(csar_temp_dir)
     return file_path_and_data
+
+
+def get_test_data_pkg_index():
+    rules = {
+        vnf_package_policies.VNFPKGM % 'index':
+            "vendor:%(vendor)s"
+    }
+    id_a = uuidutils.generate_uuid()
+    pkg_provider_a = return_vnfpkg_obj(
+        vnf_package_updates={'id': uuidutils.generate_uuid()},
+        vnfd_updates={
+            'vnf_provider': 'provider_A',
+            'id': id_a,
+        })
+    id_b = uuidutils.generate_uuid()
+    pkg_provider_b = return_vnfpkg_obj(
+        vnf_package_updates={'id': uuidutils.generate_uuid()},
+        vnfd_updates={
+            'vnf_provider': 'provider_B',
+            'id': id_b,
+        })
+    # id_c = uuidutils.generate_uuid()
+    updates = {'id': uuidutils.generate_uuid(),
+               'onboarding_state': 'CREATED',
+               'operational_state': 'DISABLED'}
+    pkg_provider_c = return_vnfpkg_obj(
+        vnf_package_updates=updates
+    )
+    test_data = [
+        {
+            'pkg_list': [pkg_provider_a],
+            'rules': rules,
+            'roles': ['VENDOR_provider_A'],
+            'expected_pkg_ids': [pkg_provider_a.id]
+        },
+        {
+            'pkg_list': [pkg_provider_b],
+            'rules': rules,
+            'roles': ['VENDOR_provider_B'],
+            'expected_pkg_ids': [pkg_provider_b.id]
+        },
+        {
+            'pkg_list': [pkg_provider_a, pkg_provider_b],
+            'rules': rules,
+            'roles': ['VENDOR_all'],
+            'expected_pkg_ids': [pkg_provider_a.id, pkg_provider_b.id]
+        },
+        {
+            'pkg_list': [pkg_provider_c],
+            'rules': rules,
+            'roles': [],
+            'expected_pkg_ids': [pkg_provider_c.id]
+        },
+        {
+            'pkg_list': [pkg_provider_c],
+            'rules': rules,
+            'roles': ['VENDOR_provider_A'],
+            'expected_pkg_ids': [pkg_provider_c.id]
+        },
+        {
+            'pkg_list': [pkg_provider_c],
+            'rules': rules,
+            'roles': ['VENDOR_all'],
+            'expected_pkg_ids': [pkg_provider_c.id]
+        },
+    ]
+    return test_data
+
+
+def get_test_data_pkg_uploaded(action, success_status_code):
+    rules = {
+        vnf_package_policies.VNFPKGM % action:
+            "vendor:%(vendor)s"
+    }
+    test_data = [
+        # 'expected_status_code': success_status_code
+        {
+            'vnfd_updates': {
+                'vnf_provider': 'provider_A',
+            },
+            'rules': rules,
+            'roles': [
+                'VENDOR_provider_A',
+            ],
+            'expected_status_code': success_status_code
+        },
+        {
+            'vnfd_updates': {
+                'vnf_provider': 'provider_A',
+            },
+            'rules': rules,
+            'roles': [
+                'VENDOR_all',
+            ],
+            'expected_status_code': success_status_code
+        },
+        # 'expected_status_code': http_client.FORBIDDEN
+        {
+            'vnfd_updates': {
+                'vnf_provider': 'provider_A',
+            },
+            'rules': rules,
+            'roles': [
+                'VENDOR_provider_B',
+            ],
+            'expected_status_code': http_client.FORBIDDEN
+        },
+        {
+            'vnfd_updates': {
+                'vnf_provider': 'provider_A',
+            },
+            'rules': rules,
+            'roles': [],
+            'expected_status_code': http_client.FORBIDDEN
+        },
+    ]
+    return test_data
+
+
+def get_test_data_pkg_to_upload(action, success_status_code):
+    test_data = get_test_data_pkg_uploaded(action, success_status_code)
+    for item in test_data:
+        item['vnf_data'] = item.pop('vnfd_updates')
+        item['vnf_data']['provider'] = item['vnf_data'].pop('vnf_provider')
+    return test_data

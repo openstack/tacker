@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Enhance the existing Tacker policy function so that users can obtain more
+    fine-grained access control based on user roles and VNF information for
+    API resources.

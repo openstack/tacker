@@ -12,14 +12,21 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+import copy
 from datetime import datetime
+import ddt
+from http import client as http_client
 import requests
 from unittest import mock
 
+from oslo_policy import policy as oslo_policy
 from oslo_utils import uuidutils
 
+from tacker.common.exceptions import PolicyNotAuthorized
 from tacker import context
+from tacker import policy
 from tacker.sol_refactored.api import api_version
+from tacker.sol_refactored.api.policies.vnflcm_v2 import POLICY_NAME
 from tacker.sol_refactored.common import common_script_utils
 from tacker.sol_refactored.common import config
 from tacker.sol_refactored.common import exceptions as sol_ex
@@ -34,6 +41,9 @@ from tacker.sol_refactored.nfvo import nfvo_client
 from tacker.sol_refactored import objects
 from tacker.sol_refactored.objects.v2 import fields
 from tacker.tests.unit.db import base as db_base
+
+
+objects.register_all()
 
 
 _change_ext_conn_req_example = {
@@ -110,6 +120,494 @@ _inst_cnf_req_example = {
 SAMPLE_VNFD_ID = "b1bb0ce7-ebca-4fa7-95ed-4840d7000000"
 
 CONF = config.CONF
+
+
+def get_test_data_policy_instantiate():
+    rules = {POLICY_NAME.format('instantiate'): "vendor:%(vendor)s"}
+    test_data = [
+        # 'expected_status_code': http_client.ACCEPTED
+        {
+            'vnf_instance_updates': {'vnfProvider': 'provider_A'},
+            'rules': rules,
+            'roles': ['VENDOR_provider_A'],
+            'expected_status_code': http_client.ACCEPTED
+        },
+        {
+            'vnf_instance_updates': {'vnfProvider': 'provider_A'},
+            'rules': rules,
+            'roles': ['VENDOR_all'],
+            'expected_status_code': http_client.ACCEPTED
+        },
+        # 'expected_status_code': http_client.FORBIDDEN
+        {
+            'vnf_instance_updates': {'vnfProvider': 'provider_A'},
+            'rules': rules,
+            'roles': [],
+            'expected_status_code': http_client.FORBIDDEN
+        },
+        {
+            'vnf_instance_updates': {'vnfProvider': 'provider_A'},
+            'rules': rules,
+            'roles': ['VENDOR_provider_B'],
+            'expected_status_code': http_client.FORBIDDEN
+        },
+    ]
+    return test_data
+
+
+def get_test_data_policy_vnf_instantiated(action, success_status_code):
+    vim_connection_info_area_a_region_a = objects.VimConnectionInfo(
+        id='f8c35bd0-4d67-4436-9f11-14b8a84c92aa',
+        vimId='f8c35bd0-4d67-4436-9f11-14b8a84c92aa',
+        vimType='openstack',
+        access_info={"key1": 'value1', "key2": 'value2'},
+        extra={'area': 'area_A@region_A'}
+    )
+    vim_connection_info_without_area = objects.VimConnectionInfo(
+        id='f8c35bd0-4d67-4436-9f11-14b8a84c92aa',
+        vimId='f8c35bd0-4d67-4436-9f11-14b8a84c92aa',
+        vimType='openstack',
+        access_info={"key1": 'value1', "key2": 'value2'}
+    )
+    vnf_instance_updates = {
+        'vnfProvider': 'provider_A',
+        'vimConnectionInfo': {'vim1': vim_connection_info_area_a_region_a}
+    }
+    vnf_instance_updates_without_area = {
+        'vnfProvider': 'provider_A',
+        'vimConnectionInfo': {'vim1': vim_connection_info_without_area}
+    }
+    rule_area_vendor_tenant = {
+        POLICY_NAME.format(action):
+            "area:%(area)s and vendor:%(vendor)s and "
+            "tenant:%(tenant)s"
+    }
+    rule_vendor = {
+        POLICY_NAME.format(action): "vendor:%(vendor)s"
+    }
+    test_data = [
+        # 'expected_status_code': success_status_code
+        {
+            'vnf_instance_updates': vnf_instance_updates,
+            'tenant': 'namespace_A',
+            'rules': rule_area_vendor_tenant,
+            'roles': [
+                'AREA_area_A@region_A',
+                'VENDOR_provider_A',
+                'TENANT_namespace_A'
+            ],
+            'expected_status_code': success_status_code
+        },
+        {
+            'vnf_instance_updates': vnf_instance_updates,
+            'tenant': 'namespace_A',
+            'rules': rule_area_vendor_tenant,
+            'roles': [
+                'AREA_all@all', 'VENDOR_all', 'TENANT_all'
+            ],
+            'expected_status_code': success_status_code
+        },
+        {
+            'vnf_instance_updates': vnf_instance_updates,
+            'tenant': 'namespace_A',
+            'rules': rule_area_vendor_tenant,
+            'roles': [
+                'AREA_all@region_A', 'VENDOR_all', 'TENANT_all'
+            ],
+            'expected_status_code': success_status_code
+        },
+        {
+            'vnf_instance_updates': vnf_instance_updates,
+            'tenant': 'namespace_A',
+            'rules': rule_vendor,
+            'roles': [
+                'AREA_area_A@region_A',
+                'VENDOR_provider_A',
+                'TENANT_namespace_A'
+            ],
+            'expected_status_code': success_status_code
+        },
+        # 'expected_status_code': http_client.FORBIDDEN
+        {
+            'vnf_instance_updates': vnf_instance_updates,
+            'tenant': None,
+            'rules': rule_area_vendor_tenant,
+            'roles': [
+                'AREA_area_A@region_A',
+                'VENDOR_provider_A',
+                'TENANT_namespace_A'
+            ],
+            'expected_status_code': http_client.FORBIDDEN
+        },
+        {
+            'vnf_instance_updates': vnf_instance_updates_without_area,
+            'tenant': 'namespace_A',
+            'rules': rule_area_vendor_tenant,
+            'roles': [
+                'AREA_area_A@region_A',
+                'VENDOR_provider_A',
+                'TENANT_namespace_A'
+            ],
+            'expected_status_code': http_client.FORBIDDEN
+        },
+        {
+            'vnf_instance_updates':
+                vnf_instance_updates_without_area,
+            'tenant': None,
+            'rules': rule_area_vendor_tenant,
+            'roles': [
+                'AREA_area_A@region_A',
+                'VENDOR_provider_A',
+                'TENANT_namespace_A'
+            ],
+            'expected_status_code': http_client.FORBIDDEN
+        },
+        {
+            'vnf_instance_updates': vnf_instance_updates,
+            'tenant': 'namespace_A',
+            'rules': rule_area_vendor_tenant,
+            'roles': [
+                'AREA_area_B@region_A',
+                'VENDOR_provider_A',
+                'TENANT_namespace_A'
+            ],
+            'expected_status_code': http_client.FORBIDDEN
+        },
+        {
+            'vnf_instance_updates': vnf_instance_updates,
+            'tenant': 'namespace_A',
+            'rules': rule_area_vendor_tenant,
+            'roles': [
+                'AREA_area_A@region_A',
+                'VENDOR_provider_B',
+                'TENANT_namespace_A'
+            ],
+            'expected_status_code': http_client.FORBIDDEN
+        },
+        {
+            'vnf_instance_updates': vnf_instance_updates,
+            'tenant': 'namespace_A',
+            'rules': rule_area_vendor_tenant,
+            'roles': [
+                'AREA_area_A@region_A',
+                'VENDOR_provider_A',
+                'TENANT_namespace_B'
+            ],
+            'expected_status_code': http_client.FORBIDDEN
+        },
+        {
+            'vnf_instance_updates': vnf_instance_updates,
+            'tenant': 'namespace_A',
+            'rules': rule_area_vendor_tenant,
+            'roles': [
+                'VENDOR_provider_A',
+                'TENANT_namespace_A'
+            ],
+            'expected_status_code': http_client.FORBIDDEN
+        },
+        {
+            'vnf_instance_updates': vnf_instance_updates,
+            'tenant': 'namespace_A',
+            'rules': rule_area_vendor_tenant,
+            'roles': [
+                'AREA_area_A@region_A',
+                'TENANT_namespace_A'
+            ],
+            'expected_status_code': http_client.FORBIDDEN
+        },
+        {
+            'vnf_instance_updates': vnf_instance_updates,
+            'tenant': 'namespace_A',
+            'rules': rule_area_vendor_tenant,
+            'roles': [
+                'AREA_area_A@region_A',
+                'VENDOR_provider_A',
+            ],
+            'expected_status_code': http_client.FORBIDDEN
+        },
+        {
+            'vnf_instance_updates': vnf_instance_updates,
+            'tenant': 'namespace_A',
+            'rules': rule_area_vendor_tenant,
+            'roles': [],
+            'expected_status_code': http_client.FORBIDDEN
+        },
+        {
+            'vnf_instance_updates': vnf_instance_updates,
+            'tenant': 'namespace_A',
+            'rules': rule_area_vendor_tenant,
+            'roles': [
+                'AREA_all@region_B',
+                'VENDOR_provider_A',
+                'TENANT_namespace_A'
+            ],
+            'expected_status_code': http_client.FORBIDDEN
+        },
+        {
+            'vnf_instance_updates': vnf_instance_updates,
+            'tenant': 'namespace_A',
+            'rules': rule_vendor,
+            'roles': [
+                'AREA_area_A@region_A',
+                'VENDOR_provider_B',
+                'TENANT_namespace_A'
+            ],
+            'expected_status_code': http_client.FORBIDDEN
+        },
+        {
+            'vnf_instance_updates': vnf_instance_updates,
+            'tenant': 'namespace_A',
+            'rules': rule_vendor,
+            'roles': [
+                'AREA_area_A@region_A',
+                'TENANT_namespace_A'
+            ],
+            'expected_status_code': http_client.FORBIDDEN
+        },
+        {
+            'vnf_instance_updates':
+                vnf_instance_updates_without_area,
+            'tenant': None,
+            'rules': rule_area_vendor_tenant,
+            'roles': [
+                'AREA_area_B@region_A',
+                'VENDOR_provider_B',
+                'TENANT_namespace_A'
+            ],
+            'expected_status_code': http_client.FORBIDDEN
+        },
+        {
+            'vnf_instance_updates':
+                vnf_instance_updates_without_area,
+            'tenant': None,
+            'rules': rule_area_vendor_tenant,
+            'roles': [
+                'VENDOR_provider_B',
+            ],
+            'expected_status_code': http_client.FORBIDDEN
+        },
+        {
+            'vnf_instance_updates':
+                vnf_instance_updates_without_area,
+            'tenant': None,
+            'rules': rule_vendor,
+            'roles': [
+                'VENDOR_provider_B',
+            ],
+            'expected_status_code': http_client.FORBIDDEN
+        }
+    ]
+    return test_data
+
+
+def make_vnf_instance(
+        vim_type, instantiation_state, vendor, area=None, tenant=None):
+    vim_connection_info = objects.VimConnectionInfo(
+        id='f8c35bd0-4d67-4436-9f11-14b8a84c92aa',
+        vimId='f8c35bd0-4d67-4436-9f11-14b8a84c92aa',
+        vimType=vim_type,
+        access_info={"key1": 'value1', "key2": 'value2'},
+    )
+
+    if area:
+        vim_connection_info.update({'extra': {'area': area}})
+
+    vnf_instance_updates = {
+        'id': uuidutils.generate_uuid(),
+        'vnfProvider': vendor,
+        'vimConnectionInfo': {'vim1': vim_connection_info}
+    }
+    vnf_inst_fields = {
+        'id': uuidutils.generate_uuid(),
+        'vnfdId': uuidutils.generate_uuid(),
+        'vnfProductName': 'product name',
+        'vnfSoftwareVersion': 'software version',
+        'vnfdVersion': 'vnfd version',
+        'instantiationState': instantiation_state
+    }
+
+    vnf_instance_updates.update(vnf_inst_fields)
+
+    vnf_instance = objects.VnfInstanceV2(**vnf_instance_updates)
+
+    if tenant:
+        vnf_instance.instantiatedVnfInfo = (
+            objects.VnfInstanceV2_InstantiatedVnfInfo(
+                flavourId='fake_flavour_id',
+                vnfState='STARTED',
+                metadata={'namespace': tenant}))
+        vnf_inst_fields.update({'metadata': {'namespace': tenant}})
+
+    return vnf_instance
+
+
+def get_test_data_policy_index():
+    rule_area_vendor_tenant = {
+        POLICY_NAME.format('index'):
+            "area:%(area)s and vendor:%(vendor)s and "
+            "tenant:%(tenant)s"
+    }
+
+    test_data = []
+
+    inst_1 = make_vnf_instance(
+        'ETSINFV.OPENSTACK_KEYSTONE.V_3', 'INSTANTIATED', 'provider_A',
+        area='area_A@region_A')
+    # OK
+    test_data.append({
+        'vnf_instance_list': [inst_1],
+        'rules': rule_area_vendor_tenant,
+        'roles': ['AREA_area_A@region_A', 'VENDOR_provider_A'],
+        'expected_vnf_inst_ids': [inst_1.id]
+    })
+    test_data.append({
+        'vnf_instance_list': [inst_1],
+        'rules': rule_area_vendor_tenant,
+        'roles': ['AREA_all@all', 'VENDOR_all'],
+        'expected_vnf_inst_ids': [inst_1.id]
+    })
+    test_data.append({
+        'vnf_instance_list': [inst_1],
+        'rules': rule_area_vendor_tenant,
+        'roles': ['AREA_all@region_A', 'VENDOR_all'],
+        'expected_vnf_inst_ids': [inst_1.id]
+    })
+    # wrong region role
+    test_data.append({
+        'vnf_instance_list': [inst_1],
+        'rules': rule_area_vendor_tenant,
+        'roles': ['AREA_all@region_B', 'VENDOR_all'],
+        'expected_vnf_inst_ids': []
+    })
+    # wrong area role
+    test_data.append({
+        'vnf_instance_list': [inst_1],
+        'rules': rule_area_vendor_tenant,
+        'roles': ['AREA_area_B@region_A', 'VENDOR_provider_A'],
+        'expected_vnf_inst_ids': []
+    })
+    # wrong vendor role
+    test_data.append({
+        'vnf_instance_list': [inst_1],
+        'rules': rule_area_vendor_tenant,
+        'roles': ['AREA_area_A@region_A', 'VENDOR_provider_B'],
+        'expected_vnf_inst_ids': []
+    })
+    # without area
+    inst_2 = make_vnf_instance(
+        'ETSINFV.OPENSTACK_KEYSTONE.V_3', 'INSTANTIATED', 'provider_A')
+    test_data.append({
+        'vnf_instance_list': [inst_2],
+        'rules': rule_area_vendor_tenant,
+        'roles': ['AREA_area_A@region_A', 'VENDOR_provider_A'],
+        'expected_vnf_inst_ids': []
+    })
+    # NOT_INSTANTIATED
+    inst_3 = make_vnf_instance(
+        'ETSINFV.OPENSTACK_KEYSTONE.V_3', 'NOT_INSTANTIATED', 'provider_A')
+    test_data.append({
+        'vnf_instance_list': [inst_3],
+        'rules': rule_area_vendor_tenant,
+        'roles': ['VENDOR_provider_A'],
+        'expected_vnf_inst_ids': [inst_3.id]
+    })
+
+    inst_4 = make_vnf_instance(
+        'kubernetes', 'INSTANTIATED', 'provider_A', area='area_A@region_A',
+        tenant='namespace_A')
+    # OK
+    test_data.append({
+        'vnf_instance_list': [inst_4],
+        'rules': rule_area_vendor_tenant,
+        'roles': [
+            'AREA_area_A@region_A',
+            'VENDOR_provider_A',
+            'TENANT_namespace_A'],
+        'expected_vnf_inst_ids': [inst_4.id]
+    })
+    test_data.append({
+        'vnf_instance_list': [inst_4],
+        'rules': rule_area_vendor_tenant,
+        'roles': [
+            'AREA_all@region_A',
+            'VENDOR_all',
+            'TENANT_all'],
+        'expected_vnf_inst_ids': [inst_4.id]
+    })
+    test_data.append({
+        'vnf_instance_list': [inst_4],
+        'rules': rule_area_vendor_tenant,
+        'roles': [
+            'AREA_all@all',
+            'VENDOR_all',
+            'TENANT_all'],
+        'expected_vnf_inst_ids': [inst_4.id]
+    })
+    # wrong region role
+    test_data.append({
+        'vnf_instance_list': [inst_4],
+        'rules': rule_area_vendor_tenant,
+        'roles': [
+            'AREA_all@region_B',
+            'VENDOR_all',
+            'TENANT_all'],
+        'expected_vnf_inst_ids': []
+    })
+    # wrong region role
+    test_data.append({
+        'vnf_instance_list': [inst_4],
+        'rules': rule_area_vendor_tenant,
+        'roles': [
+            'AREA_area_B@region_A',
+            'VENDOR_all',
+            'TENANT_all'],
+        'expected_vnf_inst_ids': []
+    })
+    # wrong vendor role
+    test_data.append({
+        'vnf_instance_list': [inst_4],
+        'rules': rule_area_vendor_tenant,
+        'roles': [
+            'AREA_area_A@region_A',
+            'VENDOR_provider_B',
+            'TENANT_all'],
+        'expected_vnf_inst_ids': []
+    })
+    # wrong namespace
+    test_data.append({
+        'vnf_instance_list': [inst_4],
+        'rules': rule_area_vendor_tenant,
+        'roles': [
+            'AREA_all@all',
+            'VENDOR_all',
+            'TENANT_namespace_b'],
+        'expected_vnf_inst_ids': []
+    })
+    # without namespace
+    inst_5 = make_vnf_instance(
+        'kubernetes', 'INSTANTIATED', 'provider_A', area='area_A@region_A')
+    test_data.append({
+        'vnf_instance_list': [inst_5],
+        'rules': rule_area_vendor_tenant,
+        'roles': [
+            'AREA_area_A@region_A',
+            'VENDOR_provider_A',
+            'TENANT_all'],
+        'expected_vnf_inst_ids': []
+    })
+    inst_6 = make_vnf_instance(
+        'kubernetes', 'NOT_INSTANTIATED', 'provider_A')
+    # OK
+    test_data.append({
+        'vnf_instance_list': [inst_6],
+        'rules': rule_area_vendor_tenant,
+        'roles': [
+            'VENDOR_provider_A',
+        ],
+        'expected_vnf_inst_ids': [inst_6.id]
+    })
+
+    return test_data
 
 
 class TestVnflcmV2(db_base.SqlTestCase):
@@ -1311,3 +1809,501 @@ class TestVnflcmV2(db_base.SqlTestCase):
         self.assertRaises(sol_ex.SolValidationError,
             self.controller.heal, request=self.request, id=inst_id,
             body=body)
+
+
+@ddt.ddt
+class TestVnflcmV2EnhancedPolicy(TestVnflcmV2):
+
+    def setUp(self):
+        super(TestVnflcmV2EnhancedPolicy, self).setUp()
+        CONF.set_override(
+            "enhanced_tacker_policy", True, group='oslo_policy')
+
+    def _create_inst_and_lcmocc(self, inst_state, op_state,
+                                vnf_inst_updates=None,
+                                tenant=None):
+        inst, lcmocc = self._set_inst_and_lcmocc(
+            inst_state, op_state, vnf_inst_updates=vnf_inst_updates)
+        if tenant:
+            inst.instantiatedVnfInfo = (
+                objects.VnfInstanceV2_InstantiatedVnfInfo(
+                    flavourId='fake_flavour_id',
+                    vnfState='STARTED',
+                    metadata={'namespace': 'namespace_A'}))
+        inst.create(self.context)
+        lcmocc.create(self.context)
+
+        return inst.id, lcmocc.id
+
+    def _set_inst_and_lcmocc(
+            self, inst_state, op_state, vnf_inst_updates=None):
+        vnf_inst_fields = {
+            # required fields
+            'id': uuidutils.generate_uuid(),
+            'vnfdId': uuidutils.generate_uuid(),
+            'vnfProvider': 'provider',
+            'vnfProductName': 'product name',
+            'vnfSoftwareVersion': 'software version',
+            'vnfdVersion': 'vnfd version',
+            'instantiationState': inst_state
+        }
+        if vnf_inst_updates:
+            vnf_inst_fields.update(vnf_inst_updates)
+        inst = objects.VnfInstanceV2(**vnf_inst_fields)
+
+        req = {"flavourId": "simple"}  # instantiate request
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=op_state,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.INSTANTIATE,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req
+        )
+
+        return inst, lcmocc
+
+    def _prepare_db_for_scale_param_check(self, scale_status,
+            max_scale_levels, vnf_inst_updates=None, tenant=None):
+        vnf_inst_fields = {
+            # required fields
+            'id': uuidutils.generate_uuid(),
+            'vnfdId': uuidutils.generate_uuid(),
+            'vnfProvider': 'provider',
+            'vnfProductName': 'product name',
+            'vnfSoftwareVersion': 'software version',
+            'vnfdVersion': 'vnfd version',
+            'instantiationState': 'INSTANTIATED'
+        }
+        if vnf_inst_updates:
+            vnf_inst_fields.update(vnf_inst_updates)
+        inst = objects.VnfInstanceV2(**vnf_inst_fields)
+        instantiated_vnf_info = {
+            'flavourId': 'small',
+            'vnfState': 'STARTED',
+            'scaleStatus': scale_status,
+            'maxScaleLevels': max_scale_levels,
+        }
+        if tenant:
+            instantiated_vnf_info.update({'metadata': {'namespace': tenant}})
+        inst.instantiatedVnfInfo = objects.VnfInstanceV2_InstantiatedVnfInfo(
+            **instantiated_vnf_info
+        )
+        inst.create(self.context)
+
+        return inst.id
+
+    def _prepare_db_for_change_vnfpkg_param(
+            self, vnf_inst_updates=None, tenant=None):
+        vnf_inst_fields = {
+            # required fields
+            'id': uuidutils.generate_uuid(),
+            'vnfdId': uuidutils.generate_uuid(),
+            'vnfProvider': 'provider',
+            'vnfProductName': 'product name',
+            'vnfSoftwareVersion': 'software version',
+            'vnfdVersion': 'vnfd version',
+            'instantiationState': 'INSTANTIATED'
+        }
+        if vnf_inst_updates:
+            vnf_inst_fields.update(vnf_inst_updates)
+        inst = objects.VnfInstanceV2(**vnf_inst_fields)
+        inst.instantiatedVnfInfo = objects.VnfInstanceV2_InstantiatedVnfInfo(
+            flavourId='small',
+            vnfState='STARTED',
+            vnfcResourceInfo=[
+                objects.VnfcResourceInfoV2(
+                    id="VDU1-vnfc_res_info_id_VDU1",
+                    vduId="VDU1"
+                )
+            ]
+        )
+        if tenant:
+            inst.instantiatedVnfInfo.metadata = {'namespace': tenant}
+        if not vnf_inst_updates:
+            inst.vimConnectionInfo = {
+                "vim1": objects.VimConnectionInfo.from_dict(
+                    _vim_connection_info_example)}
+        inst.create(self.context)
+        return inst.id
+
+    def _fake_request(self, roles):
+        request = requests.Request()
+        ctx = context.Context('fake', 'fake', roles=roles)
+        ctx.api_version = api_version.APIVersion("2.0.0")
+        request.context = ctx
+        return request
+
+    def _overwrite_policy(self, rules):
+        policy.set_rules(oslo_policy.Rules.from_dict(rules), overwrite=True)
+
+    @mock.patch.object(inst_utils, 'get_inst_all')
+    def test_index(self, mock_inst):
+        request = requests.Request()
+        request.context = self.context
+        request.GET = {'filter': f'(eq,vnfdId,{SAMPLE_VNFD_ID})'}
+        mock_inst.return_value = [objects.VnfInstanceV2(
+            id='inst-1', vnfdId=SAMPLE_VNFD_ID, vnfProvider='Company',
+            instantiationState='NOT_INSTANTIATED')]
+
+        result = self.controller.index(request)
+        self.assertEqual(200, result.status)
+
+        # no filter
+        request.GET = {}
+        result = self.controller.index(request)
+        self.assertEqual(200, result.status)
+
+    @mock.patch.object(inst_utils, 'get_inst')
+    def test_show(self, mock_inst):
+        request = requests.Request()
+        request.context = self.context
+        mock_inst.return_value = objects.VnfInstanceV2(
+            id='inst-1', vnfdId=SAMPLE_VNFD_ID, vnfProvider='Company',
+            instantiationState='NOT_INSTANTIATED')
+        result = self.controller.show(request, 'inst-1')
+        self.assertEqual(200, result.status)
+
+    @ddt.data(*get_test_data_policy_instantiate())
+    @ddt.unpack
+    @mock.patch.object(vim_utils, 'get_vim')
+    @mock.patch.object(conductor_rpc_v2.VnfLcmRpcApiV2, 'start_lcm_op')
+    def test_instantiate_enhanced_policy(self, mock_start,
+            mock_vim, vnf_instance_updates, rules, roles,
+            expected_status_code):
+        self._overwrite_policy(rules)
+        inst_id, _ = self._create_inst_and_lcmocc('NOT_INSTANTIATED',
+            fields.LcmOperationStateType.COMPLETED,
+            vnf_inst_updates=vnf_instance_updates)
+        body = {
+            "flavourId": "small",
+            "vimConnectionInfo": {
+                "vim1": {
+                    "vimId": "vim_id_1",
+                    "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3"
+                }
+            }
+        }
+        mock_vim.return_value = objects.VimConnectionInfo.from_dict(
+            _vim_connection_info_example)
+        try:
+            result = self.controller.instantiate(
+                request=self._fake_request(roles), id=inst_id, body=body)
+            self.assertEqual(expected_status_code, result.status)
+        except PolicyNotAuthorized:
+            if expected_status_code != http_client.FORBIDDEN:
+                raise
+
+    @mock.patch.object(vim_utils, 'get_vim')
+    @mock.patch.object(conductor_rpc_v2.VnfLcmRpcApiV2, 'start_lcm_op')
+    def test_instantiate_add_area(self, mock_start, mock_vim):
+        inst_id, _ = self._create_inst_and_lcmocc(
+            'NOT_INSTANTIATED', fields.LcmOperationStateType.COMPLETED)
+        body = {
+            "flavourId": "small",
+            "vimConnectionInfo": {
+                "vim1": {
+                    "vimId": "vim_id_1",
+                    "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3"
+                }
+            }
+        }
+        vim = copy.copy(_vim_connection_info_example)
+        vim.update({'extra': {'area': 'area_A@region_A'}})
+        mock_vim.return_value = objects.VimConnectionInfo.from_dict(vim)
+        result = self.controller.instantiate(
+            request=self.request, id=inst_id, body=body)
+        self.assertEqual(202, result.status)
+
+    @mock.patch.object(vim_utils, 'get_vim')
+    @mock.patch.object(conductor_rpc_v2.VnfLcmRpcApiV2, 'start_lcm_op')
+    def test_instantiate_with_area_in_vim_conn_info(
+            self, mock_start, mock_vim):
+        inst_id, _ = self._create_inst_and_lcmocc(
+            'NOT_INSTANTIATED', fields.LcmOperationStateType.COMPLETED)
+        body = {
+            "flavourId": "small",
+            "vimConnectionInfo": {
+                "vim1": {
+                    "vimId": "vim_id_1",
+                    "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3",
+                    "interfaceInfo": {"endpoint": "http://127.0.0.1/identity"},
+                    "accessInfo": {
+                        "username": "nfv_user",
+                        "region": "RegionOne",
+                        "password": "devstack",
+                        "project": "nfv",
+                        "projectDomain": "Default",
+                        "userDomain": "Default"
+                    },
+                    "extra": {"area": "area_A@region_A"}
+                }
+            }
+        }
+        vim = copy.copy(_vim_connection_info_example)
+        mock_vim.return_value = objects.VimConnectionInfo.from_dict(vim)
+        result = self.controller.instantiate(
+            request=self.request, id=inst_id, body=body)
+        self.assertEqual(202, result.status)
+
+    @ddt.data(*get_test_data_policy_vnf_instantiated(
+        'terminate', http_client.ACCEPTED))
+    @ddt.unpack
+    @mock.patch.object(conductor_rpc_v2.VnfLcmRpcApiV2, 'start_lcm_op')
+    def test_terminate_enhanced_policy(self, mock_start, vnf_instance_updates,
+            tenant, rules, roles, expected_status_code):
+        self._overwrite_policy(rules)
+        inst_id, _ = self._create_inst_and_lcmocc(
+            'INSTANTIATED', fields.LcmOperationStateType.COMPLETED,
+            vnf_inst_updates=vnf_instance_updates,
+            tenant=tenant)
+        body = {"terminationType": "FORCEFUL"}
+        try:
+            result = self.controller.terminate(
+                request=self._fake_request(roles), id=inst_id,
+                body=body)
+            self.assertEqual(202, result.status)
+        except PolicyNotAuthorized:
+            if expected_status_code != http_client.FORBIDDEN:
+                raise
+
+    @ddt.data(*get_test_data_policy_vnf_instantiated(
+        'heal', http_client.ACCEPTED))
+    @ddt.unpack
+    @mock.patch.object(conductor_rpc_v2.VnfLcmRpcApiV2, 'start_lcm_op')
+    def test_heal_enhanced_policy(self, mock_start, vnf_instance_updates,
+            tenant, rules, roles, expected_status_code):
+        self._overwrite_policy(rules)
+        inst_id, _ = self._create_inst_and_lcmocc('INSTANTIATED',
+            fields.LcmOperationStateType.COMPLETED,
+            vnf_inst_updates=vnf_instance_updates,
+            tenant=tenant)
+        body = {"cause": "Healing VNF instance"}
+        try:
+            result = self.controller.heal(
+                request=self._fake_request(roles), id=inst_id,
+                body=body)
+            self.assertEqual(http_client.ACCEPTED, result.status)
+        except PolicyNotAuthorized:
+            if expected_status_code != http_client.FORBIDDEN:
+                raise
+
+    @ddt.data(*get_test_data_policy_vnf_instantiated(
+        'delete', http_client.NO_CONTENT))
+    @ddt.unpack
+    @mock.patch.object(nfvo_client.NfvoClient, 'send_inst_delete_notification')
+    def test_delete_enhanced_policy(self, mock_delete, vnf_instance_updates,
+            tenant, rules, roles, expected_status_code):
+        self._overwrite_policy(rules)
+        inst_id, _ = self._create_inst_and_lcmocc('NOT_INSTANTIATED',
+            fields.LcmOperationStateType.COMPLETED,
+            vnf_inst_updates=vnf_instance_updates,
+            tenant=tenant)
+        try:
+            result = self.controller.delete(
+                self._fake_request(roles), id=inst_id)
+            self.assertEqual(http_client.NO_CONTENT, result.status)
+        except PolicyNotAuthorized:
+            if expected_status_code != http_client.FORBIDDEN:
+                raise
+
+    @ddt.data(*get_test_data_policy_vnf_instantiated(
+        'show', http_client.OK))
+    @ddt.unpack
+    @mock.patch.object(inst_utils, 'get_inst')
+    def test_show_enhanced_policy(self, mock_inst, vnf_instance_updates,
+            tenant, rules, roles, expected_status_code):
+        self._overwrite_policy(rules)
+        mock_inst.return_value = objects.VnfInstanceV2(
+            id='inst-1', vnfdId=SAMPLE_VNFD_ID,
+            instantiationState='NOT_INSTANTIATED', **vnf_instance_updates)
+        try:
+            result = self.controller.show(self._fake_request(roles), 'inst-1')
+            self.assertEqual(200, result.status)
+        except PolicyNotAuthorized:
+            if expected_status_code != http_client.FORBIDDEN:
+                raise
+
+    @ddt.data(*get_test_data_policy_vnf_instantiated(
+        'scale', http_client.ACCEPTED))
+    @ddt.unpack
+    @mock.patch.object(conductor_rpc_v2.VnfLcmRpcApiV2, 'start_lcm_op')
+    def test_scale_enhanced_policy(self, mock_start, vnf_instance_updates,
+            tenant, rules, roles, expected_status_code):
+        self._overwrite_policy(rules)
+        scale_status = [
+            objects.ScaleInfoV2(
+                aspectId="aspect_1",
+                scaleLevel=1
+            )
+        ]
+        max_scale_levels = [
+            objects.ScaleInfoV2(
+                aspectId="aspect_1",
+                scaleLevel=3
+            )
+        ]
+        inst_id = self._prepare_db_for_scale_param_check(
+            scale_status, max_scale_levels,
+            vnf_inst_updates=vnf_instance_updates,
+            tenant=tenant)
+        body = {"aspectId": "aspect_1", "type": "SCALE_OUT",
+                "numberOfSteps": 1}
+
+        try:
+            result = self.controller.scale(
+                request=self._fake_request(roles),
+                id=inst_id,
+                body=body)
+            self.assertEqual(http_client.ACCEPTED, result.status)
+        except PolicyNotAuthorized:
+            if expected_status_code != http_client.FORBIDDEN:
+                raise
+
+    @ddt.data(*get_test_data_policy_vnf_instantiated(
+        'update', http_client.ACCEPTED))
+    @ddt.unpack
+    @mock.patch.object(conductor_rpc_v2.VnfLcmRpcApiV2, 'modify_vnfinfo')
+    def test_update_enhanced_policy(self, mock_modify, vnf_instance_updates,
+            tenant, rules, roles, expected_status_code):
+        self._overwrite_policy(rules)
+        inst_fields = {
+            # required fields
+            'id': uuidutils.generate_uuid(),
+            'vnfdId': uuidutils.generate_uuid(),
+            'vnfProvider': 'provider',
+            'vnfProductName': 'product name',
+            'vnfSoftwareVersion': 'software version',
+            'vnfdVersion': 'vnfd version',
+            'instantiationState': 'INSTANTIATED'
+        }
+        if vnf_instance_updates:
+            inst_fields.update(vnf_instance_updates)
+        inst = objects.VnfInstanceV2(**inst_fields)
+        inst.instantiatedVnfInfo = objects.VnfInstanceV2_InstantiatedVnfInfo(
+            flavourId='small',
+            vnfState='STARTED',
+            vnfcInfo=[
+                objects.VnfcInfoV2(
+                    id="VDU1-vnfc_res_info_id_VDU1",
+                    vduId="VDU1",
+                    vnfcResourceInfoId="vnfc_res_info_id_VDU1",
+                    vnfcState="STARTED"
+                )
+            ]
+        )
+        if tenant:
+            inst.instantiatedVnfInfo.metadata = {'namespace': tenant}
+        # inst.instantiatedVnfInfo = objects.VnfInstanceV2_InstantiatedVnfInfo(
+        #     flavourId='fake_flavour_id',
+        #     vnfState='STARTED',
+        #     metadata={'namespace': tenant}
+        # )
+        inst.create(self.context)
+
+        body = {
+            "vnfcInfoModifications": [
+                {
+                    "id": "VDU1-vnfc_res_info_id_VDU1",
+                    "vnfcConfigurableProperties": {"key": "value"}
+                }
+            ]
+        }
+        try:
+            result = self.controller.update(
+                request=self._fake_request(roles), id=inst.id, body=body)
+            self.assertEqual(202, result.status)
+        except PolicyNotAuthorized:
+            if expected_status_code != http_client.FORBIDDEN:
+                raise
+
+    @ddt.data(*get_test_data_policy_vnf_instantiated(
+        'change_ext_conn', http_client.ACCEPTED))
+    @ddt.unpack
+    @mock.patch.object(conductor_rpc_v2.VnfLcmRpcApiV2, 'start_lcm_op')
+    def test_change_ext_conn_enhanced_policy(self, mock_start,
+            vnf_instance_updates, tenant, rules, roles,
+            expected_status_code):
+        self._overwrite_policy(rules)
+        inst_id, _ = self._create_inst_and_lcmocc('INSTANTIATED',
+            fields.LcmOperationStateType.COMPLETED,
+            vnf_inst_updates=vnf_instance_updates,
+            tenant=tenant)
+        try:
+            result = self.controller.change_ext_conn(
+                request=self._fake_request(roles), id=inst_id,
+                body=_change_ext_conn_req_example)
+            self.assertEqual(202, result.status)
+        except PolicyNotAuthorized:
+            if expected_status_code != http_client.FORBIDDEN:
+                raise
+
+    @ddt.data(*get_test_data_policy_vnf_instantiated(
+        'change_vnfpkg', http_client.ACCEPTED))
+    @ddt.unpack
+    @mock.patch.object(nfvo_client.NfvoClient, 'get_vnf_package_info_vnfd')
+    @mock.patch.object(conductor_rpc_v2.VnfLcmRpcApiV2, 'start_lcm_op')
+    def test_change_vnfpkg_pkg_enhanced_policy(
+            self, mock_start, mocked_get_vnf_package_info_vnfd,
+            vnf_instance_updates, tenant, rules, roles,
+            expected_status_code):
+        self._overwrite_policy(rules)
+        vnfd_id = uuidutils.generate_uuid()
+        inst_id = self._prepare_db_for_change_vnfpkg_param(
+            vnf_inst_updates=vnf_instance_updates, tenant=tenant)
+        body = {
+            "vnfdId": vnfd_id,
+            "additionalParams": {
+                "upgrade_type": "RollingUpdate",
+                "vdu_params": [{
+                    "vdu_id": "VDU1",
+                    "new_vnfc_param": {
+                        "username": "test",
+                        "password": "test",
+                        "cp_name": "VDU1_CP1"
+                    },
+                    "old_vnfc_param": {
+                        "username": "test",
+                        "password": "test",
+                        "cp_name": "VDU1_CP1"
+                    }
+                }]
+            }
+        }
+        pkg_info = objects.VnfPkgInfoV2(
+            id=uuidutils.generate_uuid(),
+            vnfdId=vnfd_id,
+            vnfProvider="provider",
+            vnfProductName="product",
+            vnfSoftwareVersion="software version",
+            vnfdVersion="vnfd version",
+            operationalState="ENABLED"
+        )
+        mocked_get_vnf_package_info_vnfd.return_value = pkg_info
+        try:
+            result = self.controller.change_vnfpkg(
+                request=self._fake_request(roles), id=inst_id, body=body)
+            self.assertEqual(202, result.status)
+        except PolicyNotAuthorized:
+            if expected_status_code != http_client.FORBIDDEN:
+                raise
+
+    @ddt.data(*get_test_data_policy_index())
+    @ddt.unpack
+    @mock.patch.object(inst_utils, 'get_inst_all')
+    def test_index_enhanced_policy(self, mock_inst, vnf_instance_list,
+            rules, roles, expected_vnf_inst_ids):
+        self._overwrite_policy(rules)
+        mock_inst.return_value = vnf_instance_list
+        request = self._fake_request(roles)
+        request.GET = {}
+
+        result = self.controller.index(request)
+        self.assertEqual(200, result.status)
+        result = result.body
+        self.assertEqual(
+            expected_vnf_inst_ids, [inst.get('id') for inst in result])

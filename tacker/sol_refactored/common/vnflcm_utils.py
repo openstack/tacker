@@ -33,8 +33,9 @@ from tacker.sol_refactored.objects.v2 import fields as v2fields
 #  and the creation of lcmocc and the call to start_lcm_op are
 #  all executed by the controller, notification driver, etc.
 @coordinate.lock_vnf_instance('{vnf_instance_id}')
-def heal(context, vnf_instance_id, body):
-    inst = inst_utils.get_inst(context, vnf_instance_id)
+def heal(context, vnf_instance_id, body, inst=None):
+    if not inst:
+        inst = inst_utils.get_inst(context, vnf_instance_id)
 
     if inst.instantiationState != 'INSTANTIATED':
         raise sol_ex.VnfInstanceIsNotInstantiated(inst_id=vnf_instance_id)
@@ -73,8 +74,9 @@ def heal(context, vnf_instance_id, body):
 #  and the creation of lcmocc and the call to start_lcm_op are
 #  all executed by the controller, notification driver, etc.
 @coordinate.lock_vnf_instance('{vnf_instance_id}')
-def scale(context, vnf_instance_id, body):
-    inst = inst_utils.get_inst(context, vnf_instance_id)
+def scale(context, vnf_instance_id, body, inst=None):
+    if not inst:
+        inst = inst_utils.get_inst(context, vnf_instance_id)
 
     if inst.instantiationState != 'INSTANTIATED':
         raise sol_ex.VnfInstanceIsNotInstantiated(inst_id=vnf_instance_id)

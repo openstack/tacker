@@ -109,12 +109,13 @@ class BaseSolV2Test(base.BaseTestCase):
 
     @classmethod
     def create_vnf_package(cls, sample_path, user_data={},
-                           image_path=None, nfvo=False, userdata_path=None):
+                           image_path=None, nfvo=False, userdata_path=None,
+                           provider=None):
         vnfd_id = uuidutils.generate_uuid()
         tmp_dir = tempfile.mkdtemp()
 
         utils.make_zip(sample_path, tmp_dir, vnfd_id, image_path,
-                       userdata_path)
+                       userdata_path, provider)
 
         zip_file_name = os.path.basename(os.path.abspath(sample_path)) + ".zip"
         zip_file_path = os.path.join(tmp_dir, zip_file_name)

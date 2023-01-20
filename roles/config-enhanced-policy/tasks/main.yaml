@@ -1,0 +1,12 @@
+- block:
+  - name: Copy policy.yaml
+    copy:
+       src: "{{ devstack_base_dir }}/tacker/etc/tacker/enhanced_tacker_policy.yaml.sample"
+       dest: "/etc/tacker/policy.yaml"
+       remote_src: true
+       mode: 0644
+       owner: stack
+       group: stack
+    become: yes
+  when:
+    - inventory_hostname == 'controller-tacker'

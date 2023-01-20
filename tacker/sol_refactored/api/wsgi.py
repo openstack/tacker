@@ -24,6 +24,8 @@ from tacker.common import exceptions as common_ex
 from tacker import context
 
 from tacker.sol_refactored.api import api_version
+from tacker.sol_refactored.api.policies.vnflcm_v2 import (
+    ENHANCED_POLICY_ACTIONS)
 from tacker.sol_refactored.common import config
 from tacker.sol_refactored.common import exceptions as sol_ex
 
@@ -159,7 +161,9 @@ class SolResource(object):
             return
         if action == 'reject':
             return
-        request.context.can(self.policy_name.format(action))
+        if not (self.policy_name.format(action) in ENHANCED_POLICY_ACTIONS
+                and config.CONF.oslo_policy.enhanced_tacker_policy):
+            request.context.can(self.policy_name.format(action))
 
     def _dispatch(self, request, action, action_args):
         controller_method = getattr(self.controller, action)

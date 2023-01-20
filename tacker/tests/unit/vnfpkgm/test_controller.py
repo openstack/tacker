@@ -24,17 +24,22 @@ import urllib
 from webob import exc
 
 from oslo_config import cfg
+from oslo_policy import policy as oslo_policy
 from oslo_serialization import jsonutils
 
 from tacker.api.vnfpkgm.v1 import controller
+from tacker.common import csar_utils
 from tacker.common import exceptions as tacker_exc
 from tacker.conductor.conductorrpc.vnf_pkgm_rpc import VNFPackageRPCAPI
+from tacker import context
 from tacker.glance_store import store as glance_store
 from tacker import objects
 from tacker.objects import fields
 from tacker.objects import vnf_package
 from tacker.objects.vnf_package import VnfPackagesList
 from tacker.objects.vnf_software_image import VnfSoftwareImage
+from tacker.policies import vnf_package as vnf_package_policies
+from tacker import policy
 from tacker.tests import constants
 from tacker.tests.unit import base
 from tacker.tests.unit import fake_request
@@ -679,25 +684,25 @@ class TestController(base.TestCase):
 
     @mock.patch.object(objects.VnfPackage, "get_by_id")
     def test_delete_with_operational_state_enabled(self, mock_vnf_by_id):
+        vnfpkg_updates = {
+            'operational_state': fields.PackageOperationalStateType.ENABLED}
+        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj(
+            vnf_package_updates=vnfpkg_updates)
         req = fake_request.HTTPRequest.blank(
             '/vnfpkgm/v1/vnf_packages/%s' % constants.UUID)
-        vnf_package_dict = fakes.fake_vnf_package()
-        vnf_package_dict['operational_state'] = \
-            fields.PackageOperationalStateType.ENABLED
-        vnf_package = objects.VnfPackage(**vnf_package_dict)
-        mock_vnf_by_id.return_value = vnf_package
+
         self.assertRaises(exc.HTTPConflict, self.controller.delete,
                           req, constants.UUID)
 
     @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
     def test_delete_with_usage_state_in_use(self, mock_vnf_by_id):
+        vnfpkg_updates = {
+            'usage_state': fields.PackageUsageStateType.IN_USE}
+        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj(
+            vnf_package_updates=vnfpkg_updates)
         req = fake_request.HTTPRequest.blank(
             '/vnfpkgm/v1/vnf_packages/%s' % constants.UUID)
-        vnf_package_dict = fakes.fake_vnf_package()
-        vnf_package_dict['usage_state'] = \
-            fields.PackageUsageStateType.IN_USE
-        vnf_package = objects.VnfPackage(**vnf_package_dict)
-        mock_vnf_by_id.return_value = vnf_package
+
         self.assertRaises(exc.HTTPConflict, self.controller.delete,
                           req, constants.UUID)
 
@@ -1370,3 +1375,297 @@ class TestController(base.TestCase):
                           self.controller.fetch_vnf_package_artifacts,
                           req, constants.UUID,
                           constants.ARTIFACT_PATH)
+
+
+@ddt.ddt
+class TestControllerEnhancedPolicy(TestController):
+
+    def setUp(self):
+        super(TestControllerEnhancedPolicy, self).setUp()
+        cfg.CONF.set_override(
+            "enhanced_tacker_policy", True, group='oslo_policy')
+
+    @mock.patch.object(csar_utils, 'load_csar_data')
+    @mock.patch.object(glance_store, 'load_csar')
+    @mock.patch.object(glance_store, 'store_csar')
+    @mock.patch.object(VNFPackageRPCAPI, "upload_vnf_package_content")
+    @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
+    @mock.patch.object(vnf_package.VnfPackage, "save")
+    def test_upload_vnf_package_content(self, mock_vnf_pack_save,
+                                        mock_vnf_by_id,
+                                        mock_upload_vnf_package_content,
+                                        mock_glance_store,
+                                        mock_load_csar,
+                                        mock_load_csar_data):
+        updates = {'onboarding_state': 'CREATED',
+                   'operational_state': 'DISABLED'}
+        vnf_package_dict = fakes.fake_vnf_package(updates)
+        vnf_package_obj = objects.VnfPackage(**vnf_package_dict)
+        mock_vnf_by_id.return_value = vnf_package_obj
+        mock_vnf_pack_save.return_value = vnf_package_obj
+        mock_glance_store.return_value = 'location', 0, 'checksum', \
+            'multihash', 'loc_meta'
+        mock_load_csar.return_value = '/var/lib/tacker/5f5d99c6-844a-4c3' \
+                                      '1-9e6d-ab21b87dcfff.zip'
+        mock_load_csar_data.return_value = (
+            {'provider': 'company'}, mock.ANY, mock.ANY)
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s/package_content'
+            % constants.UUID)
+        req.headers['Content-Type'] = 'application/zip'
+        req.method = 'PUT'
+        req.body = jsonutils.dump_as_bytes(mock.mock_open())
+        resp = req.get_response(self.app)
+        mock_glance_store.assert_called()
+        self.assertEqual(http_client.ACCEPTED, resp.status_code)
+
+    @ddt.data(*fakes.get_test_data_pkg_to_upload('upload_package_content',
+        http_client.ACCEPTED))
+    @ddt.unpack
+    @mock.patch.object(glance_store, 'delete_csar')
+    @mock.patch.object(csar_utils, 'load_csar_data')
+    @mock.patch.object(glance_store, 'load_csar')
+    @mock.patch.object(glance_store, 'store_csar')
+    @mock.patch.object(VNFPackageRPCAPI, "upload_vnf_package_content")
+    @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
+    @mock.patch.object(vnf_package.VnfPackage, "save")
+    def test_upload_vnf_package_content_enhanced_policy(
+            self, mock_vnf_pack_save,
+            mock_vnf_by_id,
+            mock_upload_vnf_package_content,
+            mock_glance_store,
+            mock_load_csar,
+            mock_load_csar_data,
+            mock_delete_csar,
+            vnf_data, rules, roles, expected_status_code):
+        updates = {'onboarding_state': 'CREATED',
+                   'operational_state': 'DISABLED'}
+        vnf_package_dict = fakes.fake_vnf_package(updates)
+        vnf_package_obj = objects.VnfPackage(**vnf_package_dict)
+        mock_vnf_by_id.return_value = vnf_package_obj
+        mock_vnf_pack_save.return_value = vnf_package_obj
+        mock_glance_store.return_value = 'location', 0, 'checksum', \
+            'multihash', 'loc_meta'
+        mock_load_csar.return_value = '/var/lib/tacker/5f5d99c6-844a-4c3' \
+                                      '1-9e6d-ab21b87dcfff.zip'
+        mock_load_csar_data.return_value = (
+            vnf_data, mock.ANY, mock.ANY)
+        policy.set_rules(oslo_policy.Rules.from_dict(rules), overwrite=True)
+        ctx = context.Context(
+            'fake', 'fake', roles=roles)
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s/package_content'
+            % constants.UUID)
+        req.headers['Content-Type'] = 'application/zip'
+        req.method = 'PUT'
+        req.body = jsonutils.dump_as_bytes(mock.mock_open())
+        resp = req.get_response(fakes.wsgi_app_v1(fake_auth_context=ctx))
+        mock_glance_store.assert_called()
+        self.assertEqual(expected_status_code, resp.status_code)
+        if expected_status_code == http_client.FORBIDDEN:
+            mock_delete_csar.assert_called()
+
+    @ddt.data(*fakes.get_test_data_pkg_uploaded('show', http_client.OK))
+    @ddt.unpack
+    @mock.patch.object(VnfSoftwareImage, 'get_by_id')
+    @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
+    def test_show_enhanced_policy(
+            self, mock_vnf_by_id, mock_sw_image_by_id,
+            vnfd_updates, rules, roles, expected_status_code):
+
+        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj(
+            vnfd_updates=vnfd_updates)
+        mock_sw_image_by_id.return_value = fakes.return_software_image()
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s' % constants.UUID)
+        req.method = 'GET'
+        policy.set_rules(oslo_policy.Rules.from_dict(rules), overwrite=True)
+        ctx = context.Context(
+            'fake', 'fake', roles=roles)
+
+        resp = req.get_response(fakes.wsgi_app_v1(fake_auth_context=ctx))
+        self.assertEqual(expected_status_code, resp.status_code)
+
+    @mock.patch.object(VnfSoftwareImage, 'get_by_id')
+    @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
+    @ddt.data(['VENDOR_provider_A'], [])
+    def test_show_enhanced_policy_created(
+            self, roles, mock_vnf_by_id, mock_sw_image_by_id):
+        updates = {'onboarding_state': 'CREATED',
+                   'operational_state': 'DISABLED'}
+        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj(
+            vnf_package_updates=updates)
+        mock_sw_image_by_id.return_value = fakes.return_software_image()
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s' % constants.UUID)
+        req.method = 'GET'
+        rules = {
+            vnf_package_policies.VNFPKGM % 'show':
+                "vendor:%(vendor)s"
+        }
+        policy.set_rules(oslo_policy.Rules.from_dict(rules), overwrite=True)
+        ctx = context.Context(
+            'fake', 'fake', roles=roles)
+
+        resp = req.get_response(fakes.wsgi_app_v1(fake_auth_context=ctx))
+        self.assertEqual(http_client.OK, resp.status_code)
+
+    @ddt.data(
+        *fakes.get_test_data_pkg_uploaded('delete', http_client.NO_CONTENT))
+    @ddt.unpack
+    @mock.patch.object(vnf_package.VnfPackage, "destroy")
+    @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
+    @mock.patch.object(VNFPackageRPCAPI, "delete_vnf_package")
+    def test_delete_enhanced_policy(
+            self, mock_delete_rpc, mock_vnf_by_id, mock_vnf_pack_destroy,
+            vnfd_updates, rules, roles, expected_status_code):
+        vnfpkg_updates = {'operational_state': 'DISABLED'}
+        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj(
+            vnf_package_updates=vnfpkg_updates, vnfd_updates=vnfd_updates)
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s' % constants.UUID)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'DELETE'
+        policy.set_rules(oslo_policy.Rules.from_dict(rules), overwrite=True)
+        ctx = context.Context(
+            'fake', 'fake', roles=roles)
+
+        resp = req.get_response(fakes.wsgi_app_v1(fake_auth_context=ctx))
+        self.assertEqual(expected_status_code, resp.status_code)
+
+    @ddt.data(*fakes.get_test_data_pkg_uploaded('patch', http_client.OK))
+    @ddt.unpack
+    @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
+    @mock.patch.object(vnf_package.VnfPackage, "save")
+    def test_patch_enhanced_policy(self, mock_save, mock_vnf_by_id,
+                   vnfd_updates, rules, roles, expected_status_code):
+        vnf_package_updates = {'operational_state': 'DISABLED'}
+        mock_vnf_by_id.return_value = \
+            fakes.return_vnfpkg_obj(
+                vnf_package_updates=vnf_package_updates,
+                vnfd_updates=vnfd_updates
+            )
+
+        req_body = {"operationalState": "ENABLED",
+                "userDefinedData": {"testKey1": "val01",
+                                    "testKey2": "val02", "testkey3": "val03"}}
+
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s'
+            % constants.UUID)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'PATCH'
+        req.body = jsonutils.dump_as_bytes(req_body)
+        policy.set_rules(oslo_policy.Rules.from_dict(rules), overwrite=True)
+        ctx = context.Context(
+            'fake', 'fake', roles=roles)
+
+        resp = req.get_response(fakes.wsgi_app_v1(fake_auth_context=ctx))
+
+        self.assertEqual(expected_status_code, resp.status_code)
+        if expected_status_code != http_client.FORBIDDEN:
+            self.assertEqual(req_body, jsonutils.loads(resp.body))
+
+    @ddt.data(*fakes.get_test_data_pkg_uploaded(
+        'get_vnf_package_vnfd', http_client.OK))
+    @ddt.unpack
+    @mock.patch.object(VNFPackageRPCAPI, "get_vnf_package_vnfd")
+    @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
+    def test_get_vnf_package_vnfd_enhanced_policy(
+            self, mock_vnf_by_id, mock_get_vnf_package_vnfd,
+            vnfd_updates, rules, roles, expected_status_code):
+
+        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj(
+            vnfd_updates=vnfd_updates)
+        mock_get_vnf_package_vnfd.return_value = fakes.return_vnfd_data()
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s/vnfd'
+            % constants.UUID)
+        req.headers['Accept'] = 'application/zip'
+        req.method = 'GET'
+
+        policy.set_rules(oslo_policy.Rules.from_dict(rules), overwrite=True)
+        ctx = context.Context('fake', 'fake', roles=roles)
+
+        resp = req.get_response(fakes.wsgi_app_v1(fake_auth_context=ctx))
+        self.assertEqual(expected_status_code, resp.status_code)
+
+    @ddt.data(*fakes.get_test_data_pkg_uploaded('fetch_package_content',
+                                                http_client.ACCEPTED))
+    @ddt.unpack
+    @mock.patch.object(controller.VnfPkgmController, "_download")
+    @mock.patch.object(controller.VnfPkgmController, "_get_range_from_request")
+    @mock.patch.object(glance_store, 'get_csar_size')
+    @mock.patch.object(controller.VnfPkgmController, '_get_vnf_package')
+    @mock.patch.object(vnf_package.VnfPackage, 'save')
+    def test_fetch_vnf_package_content_enhanced_policy(
+            self,
+            mock_save,
+            mock_get_vnf_package,
+            mock_get_csar_size,
+            mock_get_range,
+            mock_download,
+            vnfd_updates, rules, roles, expected_status_code):
+
+        mock_get_vnf_package.return_value = fakes.return_vnfpkg_obj(
+            vnfd_updates=vnfd_updates)
+        mock_get_csar_size.return_value = 1000
+        mock_get_range.return_value = "10-20, 21-30"
+        mock_download.return_value = "Response"
+
+        request = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s/package_content' % constants.UUID)
+        request.method = 'GET'
+
+        request.headers["Range"] = 'bytes=10-20,21-30'
+        request.response = ""
+
+        policy.set_rules(oslo_policy.Rules.from_dict(rules), overwrite=True)
+        ctx = context.Context('fake', 'fake', roles=roles)
+
+        resp = request.get_response(fakes.wsgi_app_v1(fake_auth_context=ctx))
+
+        self.assertEqual(expected_status_code, resp.status_code)
+
+    @ddt.data(*fakes.get_test_data_pkg_uploaded('fetch_artifact',
+                                                http_client.OK))
+    @ddt.unpack
+    @mock.patch.object(controller.VnfPkgmController, "_get_csar_path")
+    @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
+    def test_fetch_vnf_package_artifacts_enhanced_policy(
+            self, mock_vnf_by_id, mock_get_csar_path,
+            vnfd_updates, rules, roles, expected_status_code):
+        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj(
+            vnfd_updates=vnfd_updates)
+        base_path = os.path.dirname(os.path.abspath(__file__))
+        extract_path = os.path.join(base_path, '../../etc/samples/'
+                    'sample_vnf_package_csar_in_meta_and_manifest')
+        mock_get_csar_path.return_value = extract_path
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s/artifacts/%s'
+            % (constants.UUID, constants.ARTIFACT_PATH))
+        req.method = 'GET'
+
+        policy.set_rules(oslo_policy.Rules.from_dict(rules), overwrite=True)
+        ctx = context.Context('fake', 'fake', roles=roles)
+
+        resp = req.get_response(fakes.wsgi_app_v1(fake_auth_context=ctx))
+
+        self.assertEqual(expected_status_code, resp.status_code)
+
+    @ddt.data(*fakes.get_test_data_pkg_index())
+    @ddt.unpack
+    @mock.patch.object(VnfPackagesList, "get_by_marker_filter")
+    def test_index_enhanced_policy(
+            self, mock_vnf_list, pkg_list, rules, roles, expected_pkg_ids):
+        mock_vnf_list.return_value = pkg_list
+        req = fake_request.HTTPRequest.blank('/vnf_packages')
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'GET'
+        policy.set_rules(oslo_policy.Rules.from_dict(rules), overwrite=True)
+        ctx = context.Context('fake', 'fake', roles=roles)
+
+        resp = req.get_response(fakes.wsgi_app_v1(fake_auth_context=ctx))
+        self.assertEqual(http_client.OK, resp.status_code)
+        self.assertEqual(
+            expected_pkg_ids, [pkg.get('id') for pkg in resp.json])
