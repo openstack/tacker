@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import copy
 from oslo_utils import uuidutils
 
 
@@ -586,6 +587,95 @@ def terminate_vnf_min():
     return {
         "terminationType": "FORCEFUL"
     }
+
+
+def pm_job_external(callback_uri, inst_id, host_ip, rsc_id):
+    def pm_job(
+            callback_uri, inst_id, host_ip,
+            object_type, performance_metric,
+            sub_object_instance_id=None):
+        job = {
+            "objectType": object_type,
+            "objectInstanceIds": [inst_id],
+            "subObjectInstanceIds": ([sub_object_instance_id]
+                                     if sub_object_instance_id else []),
+            "criteria": {
+                "performanceMetric": [performance_metric],
+                "performanceMetricGroup": [],
+                "collectionPeriod": 30,
+                "reportingPeriod": 90
+            },
+            "callbackUri": callback_uri,
+            "metadata": {
+                "monitoring": {
+                    "monitorName": "prometheus",
+                    "driverType": "external",
+                    "targetsInfo": [
+                        {
+                            "prometheusHost": host_ip,
+                            "prometheusHostPort": 50022,
+                            "authInfo": {
+                                "ssh_username": "root",
+                                "ssh_password": "root"
+                            },
+                            "alertRuleConfigPath":
+                                "/tmp",
+                            "prometheusReloadApiEndpoint":
+                                "http://localhost:9990/-/reload",
+                        }
+                    ]
+                }
+            }
+        }
+        return copy.deepcopy(job)
+    return [
+        pm_job(callback_uri, inst_id, host_ip, "Vnf",
+               f"VCpuUsageMeanVnf.{inst_id}"),
+        pm_job(callback_uri, inst_id, host_ip, "Vnf",
+               f"VCpuUsagePeakVnf.{inst_id}"),
+        pm_job(callback_uri, inst_id, host_ip, "Vnf",
+               f"VMemoryUsageMeanVnf.{inst_id}"),
+        pm_job(callback_uri, inst_id, host_ip, "Vnf",
+               f"VMemoryUsagePeakVnf.{inst_id}"),
+        pm_job(callback_uri, inst_id, host_ip, "Vnf",
+               f"VDiskUsageMeanVnf.{inst_id}"),
+        pm_job(callback_uri, inst_id, host_ip, "Vnf",
+               f"VDiskUsagePeakVnf.{inst_id}"),
+        pm_job(callback_uri, inst_id, host_ip, "Vnfc",
+               f"VCpuUsageMeanVnf.{inst_id}",
+               sub_object_instance_id=rsc_id),
+        pm_job(callback_uri, inst_id, host_ip, "Vnfc",
+               f"VCpuUsagePeakVnf.{inst_id}",
+               sub_object_instance_id=rsc_id),
+        pm_job(callback_uri, inst_id, host_ip, "Vnfc",
+               f"VMemoryUsageMeanVnf.{inst_id}",
+               sub_object_instance_id=rsc_id),
+        pm_job(callback_uri, inst_id, host_ip, "Vnfc",
+               f"VMemoryUsagePeakVnf.{inst_id}",
+               sub_object_instance_id=rsc_id),
+        pm_job(callback_uri, inst_id, host_ip, "Vnfc",
+               f"VDiskUsageMeanVnf.{inst_id}",
+               sub_object_instance_id=rsc_id),
+        pm_job(callback_uri, inst_id, host_ip, "Vnfc",
+               f"VDiskUsagePeakVnf.{inst_id}",
+               sub_object_instance_id=rsc_id),
+        pm_job(callback_uri, inst_id, host_ip, "VnfIntCp",
+               "ByteIncomingVnfIntCp", sub_object_instance_id="eth0"),
+        pm_job(callback_uri, inst_id, host_ip, "VnfIntCp",
+               "PacketIncomingVnfIntCp", sub_object_instance_id="eth0"),
+        pm_job(callback_uri, inst_id, host_ip, "VnfIntCp",
+               "ByteOutgoingVnfIntCp", sub_object_instance_id="eth0"),
+        pm_job(callback_uri, inst_id, host_ip, "VnfIntCp",
+               "PacketOutgoingVnfIntCp", sub_object_instance_id="eth0"),
+        pm_job(callback_uri, inst_id, host_ip, "VnfExtCp",
+               "ByteIncomingVnfExtCp", sub_object_instance_id="eth1"),
+        pm_job(callback_uri, inst_id, host_ip, "VnfExtCp",
+               "PacketIncomingVnfExtCp", sub_object_instance_id="eth1"),
+        pm_job(callback_uri, inst_id, host_ip, "VnfExtCp",
+               "ByteOutgoingVnfExtCp", sub_object_instance_id="eth1"),
+        pm_job(callback_uri, inst_id, host_ip, "VnfExtCp",
+               "PacketOutgoingVnfExtCp", sub_object_instance_id="eth1")
+    ]
 
 
 def pm_job_min(callback_uri, inst_id, host_ip):

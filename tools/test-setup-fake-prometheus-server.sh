@@ -4,9 +4,7 @@
 # for functional testing.
 #
 
-cd /opt/stack/tacker/tacker/tests/functional/sol_kubernetes_v2/samples/
-sudo unzip tacker-monitoring-test.zip
-cd ./tacker-monitoring-test
+cd /opt/stack/tacker/tacker/tests/functional/sol_kubernetes_v2/samples/tacker-monitoring-test
 
 sudo docker build -t tacker-monitoring-test .
 sudo docker run -v ${PWD}/src:/work/src -v ${PWD}/rules:/etc/prometheus/rules \

@@ -321,6 +321,11 @@ Tacker Zed release
 - Prometheus: 2.37
 - Alertmanager: 0.24
 
+Tacker Antelope release
+
+- Prometheus: 2.37
+- Alertmanager: 0.25
+
 Alert rule registration
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -373,7 +378,7 @@ at "metadata" field.
     With the parameter, pod name can be specified but container name can not.
     And some prometheus metrics need container name. Therefore, ``max``
     statement of PromQL is alternatively used in some measurements to
-    measure without container name. That means it provids only most
+    measure without container name. That means it provides only most
     impacted value among the containers. For example:
 
     ``avg(max(container_fs_usage_bytes{pod=~"pod name"} /
@@ -448,6 +453,107 @@ rule file directly. Below is example of alert rule.
           vnfc_info_id: VDU1-85adebfa-d71c-49ab-9d39-d8dd7e393541
         annotations:
 
+External data file
+~~~~~~~~~~~~~~~~~~
+
+The PromQL statement data for Performance Management
+is able to customize with external data file. The operators can use the
+original PromQL statement with this file.
+
+The external data file includes configuration about PromQL statement for
+Performance Management. The template of the file is located
+at etc/tacker/prometheus-plugin.yaml from the tacker project source directory.
+Edit this file if you need and put it in the configuration directory
+(e.g. /etc/tacker).
+
+Default configuration file
+--------------------------
+
+Normally, the default external data file is automatically deployed at the
+installation process. However if you need to deploy the file manually,
+execute below command at the top directory of tacker project.
+
+.. code-block:: console
+
+  sudo python3 ./setup.py install
+
+Data format
+-----------
+
+The file is described in yaml format [#yaml]_.
+
+Root configuration
+------------------
+
+The configuration consists of PromQL config for PMJob API and
+PromQL config for Threshold API. The PMJob and the Threshold are
+defined in ETSI GS NFV-SOL 003 [#etsi_sol_003]_.
+
+.. code-block:: yaml
+
+  # PromQL config for PM Job API
+  PMJob:
+    PromQL: <PromQLConfig>
+  # PromQL config for Threshold API
+  Threshold:
+    PromQL: <PromQLConfig>
+
+<PromQLConfig>
+--------------
+
+The elements of PromQLConfig are key-value pairs of a performanceMetric
+and a PromQL statement. These performanceMetric are defined in
+ETSI GS NFV-SOL 003 [#etsi_sol_003]_.
+
+.. code-block:: yaml
+
+  <PromQLConfig>
+    VCpuUsageMeanVnf: <F-string of PromQL statement>
+    VCpuUsagePeakVnf: <F-string of PromQL statement>
+    VMemoryUsageMeanVnf: <F-string of PromQL statement>
+    VMemoryUsagePeakVnf: <F-string of PromQL statement>
+    VDiskUsageMeanVnf: <F-string of PromQL statement>
+    VDiskUsagePeakVnf: <F-string of PromQL statement>
+    ByteIncomingVnfIntCp: <F-string of PromQL statement>
+    PacketIncomingVnfIntCp: <F-string of PromQL statement>
+    ByteOutgoingVnfIntCp: <F-string of PromQL statement>
+    PacketOutgoingVnfIntCp: <F-string of PromQL statement>
+    ByteIncomingVnfExtCp: <F-string of PromQL statement>
+    PacketIncomingVnfExtCp: <F-string of PromQL statement>
+    ByteOutgoingVnfExtCp: <F-string of PromQL statement>
+    PacketOutgoingVnfExtCp: <F-string of PromQL statement>
+
+For example, VCpuUsageMeanVnf can be described as below.
+
+.. code-block:: yaml
+
+  VCpuUsageMeanVnf: >-
+    avg(sum(rate(pod_cpu_usage_seconds_total
+    {{namespace="{namespace}",pod=~"{pod}"}}[{reporting_period}s])))
+
+F-string of PromQL statement
+----------------------------
+
+For above PromQL statement, f-string of python [#f_string]_ is used.
+In the f-string, below replacement field can be used. They are replaced
+with a SOL-API's attribute [#etsi_sol_003]_ or Tacker internal value.
+
+``{collection_period}``
+   Replaced with collectionPeriod attribute of SOL-API.
+``{pod}``
+   Replaced with a resourceId when subObjectInstanceIds are specified
+   (e.g: "test-test1-8d6db447f-stzhb").
+   Or, replaced with regexp that matches each resourceIds in vnfInstance when
+   subObjectInstanceIds are not specified
+   (e.g: "(test-test1-[0-9a-f]{1,10}-[0-9a-z]{5}$|
+   test-test2-[0-9a-f]{1,10}-[0-9a-z]{5}$)").
+``{reporting_period}``
+   Replaced with reportingPeriod attribute of SOL-API.
+``{sub_object_instance_id}``
+   Replaced with an element of subObjectInstanceIds of SOL-API.
+``{namespace}``
+   Replaced with the kubernetes namespace that the vnfInstance belongs to.
+
 Using Vendor Specific Plugin
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -487,3 +593,8 @@ tacker.sol_refactored.common.monitoring_plugin_base.MonitoringPlugin.
   * - ``CONF.prometheus_plugin.auto_healing_class``
     - PrometheusPluginAutoHealing
     - Class name for auto healing.
+
+.. rubric:: Footnotes
+.. [#yaml] https://yaml.org/spec/1.2-old/spec.html
+.. [#etsi_sol_003] https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/003/03.03.01_60/gs_nfv-sol003v030301p.pdf
+.. [#f_string] https://docs.python.org/3.9/tutorial/inputoutput.html#fancier-output-formatting
