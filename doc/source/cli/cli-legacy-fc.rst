@@ -2,6 +2,11 @@
 Flow Classifier Management
 ==========================
 
+.. warning::
+    Flow Classifier Management commands are deprecated
+    and will be removed in the first major release after the Tacker server
+    version 9.0.0 (2023.1 Antelope release).
+
 Flow Classifier (FC) is a part of Network Forwarding Path (NFP) in VNF
 Forwarding Graph (VNFFG).
 

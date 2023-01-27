@@ -2,6 +2,11 @@
 VNF Component in Tacker
 ========================
 
+.. warning::
+    Legacy Tacker features excluding VIM feature are deprecated
+    and will be removed in the first major release after the Tacker server
+    version 9.0.0 (2023.1 Antelope release).
+
 This section will cover how to deploy `vnf component` in Tacker with the
 examples of how to write VNF descriptors.
 

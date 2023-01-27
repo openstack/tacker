@@ -16,6 +16,11 @@
 A Use Case of VNFFG Update
 ==========================
 
+.. warning::
+    Legacy Tacker features excluding VIM feature are deprecated
+    and will be removed in the first major release after the Tacker server
+    version 9.0.0 (2023.1 Antelope release).
+
 .. TODO(h-asahina): check this use case still works.
 
 This guide walks you through a specific usecase in which you can leverage

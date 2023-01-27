@@ -2,6 +2,11 @@
 VNF Descriptor (VNFD) Management
 ================================
 
+.. warning::
+    VNF Descriptor (VNFD) Management commands are deprecated
+    and will be removed in the first major release after the Tacker server
+    version 9.0.0 (2023.1 Antelope release).
+
 The behavioural and deployment information of a VNF in Tacker is defined in a
 template known as VNF Descriptor (VNFD). The template is based on TOSCA
 standards and is written in YAML.

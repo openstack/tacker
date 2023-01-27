@@ -17,6 +17,11 @@
 VNF zero impact host maintenance
 ================================
 
+.. warning::
+    Legacy Tacker features excluding VIM feature are deprecated
+    and will be removed in the first major release after the Tacker server
+    version 9.0.0 (2023.1 Antelope release).
+
 Tacker allows you to maintenance host with VNF zero impact. Maintenance
 workflows will be performed in the ``Fenix`` service by creating a session
 which can do scaling, migrating VNFs and patch hosts.

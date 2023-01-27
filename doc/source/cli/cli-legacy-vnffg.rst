@@ -2,6 +2,11 @@
 VNF Forwarding Graph (VNFFG) Management
 =======================================
 
+.. warning::
+    VNF Forwarding Graph (VNFFG) Management commands are deprecated
+    and will be removed in the first major release after the Tacker server
+    version 9.0.0 (2023.1 Antelope release).
+
 .. TODO(yoshito-ito): Update "Update VNFFG" operation after fixing the bug:
   * https://bugs.launchpad.net/python-tackerclient/+bug/1892152
 

@@ -17,6 +17,11 @@
 Orchestrating VNFs with attached Volumes
 =========================================
 
+.. warning::
+    Legacy Tacker features excluding VIM feature are deprecated
+    and will be removed in the first major release after the Tacker server
+    version 9.0.0 (2023.1 Antelope release).
+
 To support persistent volumes to VNF, the TOSCA NFV profile supports a new type
 of nodes. Tacker has now the feature of parsing of those new nodes and creation
 of cinder volumes which are attached to the VDUs.

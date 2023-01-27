@@ -17,6 +17,11 @@
 Multisite VIM Usage
 ===================
 
+.. warning::
+    Legacy Tacker features excluding VIM feature are deprecated
+    and will be removed in the first major release after the Tacker server
+    version 9.0.0 (2023.1 Antelope release).
+
 A single Tacker controller node can be used to manage multiple OpenStack sites
 without having the need to deploy Tacker server on each of these sites. Tacker
 allows users to deploy VNFs in multiple OpenStack sites using the multisite VIM

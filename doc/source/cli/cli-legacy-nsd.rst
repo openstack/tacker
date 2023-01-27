@@ -2,6 +2,11 @@
 Network Service Descriptor Management
 =====================================
 
+.. warning::
+    Network Service Descriptor Management commands are deprecated
+    and will be removed in the first major release after the Tacker server
+    version 9.0.0 (2023.1 Antelope release).
+
 To enable dynamic composition of network services, NFV introduces Network
 Service Descriptors (NSDs) that specify the network service to be created.
 

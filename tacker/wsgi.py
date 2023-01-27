@@ -25,6 +25,7 @@ import socket
 import ssl
 import sys
 import time
+from urllib import parse
 
 import eventlet.wsgi
 # eventlet.patcher.monkey_patch(all=False, socket=True, thread=True)
@@ -146,6 +147,20 @@ def expected_errors(errors):
         return wrapped
 
     return decorator
+
+
+# TODO(ueha): Remove this along with the deprecated APIs in the first major
+# Tacker release after version 9.0.0 (2023.1 Antelope release).
+def deprecate_legacy_warning(req):
+    parts = parse.urlparse(req.url)
+    p = parts.path.split('/')
+    if 'vims' not in p[2]:
+        # Emit warning log if the request is Legacy API not related to VIM
+        LOG.warning(
+            'The Legacy API interface has been deprecated. This API '
+            f'(path={parts.path}) will be removed in the first major '
+            'release after the Tacker server version 9.0.0 (2023.1 Antelope '
+            'release).')
 
 
 class Server(object):
@@ -329,6 +344,7 @@ class Middleware(object):
 
     @webob.dec.wsgify
     def __call__(self, req):
+        deprecate_legacy_warning(req)
         response = self.process_request(req)
         if response:
             return response
