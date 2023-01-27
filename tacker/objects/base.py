@@ -200,7 +200,7 @@ class TackerPersistentObject(object):
         'created_at': obj_fields.DateTimeField(nullable=False),
         'updated_at': obj_fields.DateTimeField(nullable=True),
         'deleted_at': obj_fields.DateTimeField(nullable=True),
-        'deleted': obj_fields.BooleanField(default=False)
+        'deleted': obj_fields.IntegerField(nullable=True, default=0)
     }
 
 

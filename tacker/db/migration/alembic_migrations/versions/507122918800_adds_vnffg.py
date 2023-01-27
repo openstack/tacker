@@ -35,6 +35,13 @@ from tacker.db.types import Json
 
 def upgrade(active_plugins=None, options=None):
 
+    bind = op.get_bind()
+    engine = bind.engine
+    if engine.name == 'postgresql':
+        deleted_type = sa.SmallInteger
+    else:
+        deleted_type = sa.Boolean
+
     op.create_table(
         'vnffgtemplates',
         sa.Column('id', sa.String(length=36), nullable=False),
@@ -68,7 +75,7 @@ def upgrade(active_plugins=None, options=None):
         sa.Column('name', sa.String(length=255), nullable=False),
         sa.Column('status', sa.String(length=255), nullable=False),
         sa.Column('path_id', sa.String(length=255), nullable=False),
-        sa.Column('symmetrical', sa.Boolean, default=False),
+        sa.Column('symmetrical', deleted_type, default=False),
         sa.ForeignKeyConstraint(['vnffg_id'], ['vnffgs.id'], ),
         sa.PrimaryKeyConstraint('id'),
         mysql_engine='InnoDB'
@@ -82,7 +89,7 @@ def upgrade(active_plugins=None, options=None):
         sa.Column('nfp_id', sa.String(length=36), nullable=False),
         sa.Column('status', sa.String(length=255), nullable=False),
         sa.Column('path_id', sa.String(length=255), nullable=False),
-        sa.Column('symmetrical', sa.Boolean, default=False),
+        sa.Column('symmetrical', deleted_type, default=False),
         sa.Column('chain', Json),
         sa.ForeignKeyConstraint(['nfp_id'], ['vnffgnfps.id'], ),
         sa.PrimaryKeyConstraint('id'),

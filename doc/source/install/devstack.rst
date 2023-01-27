@@ -174,6 +174,76 @@ So the first step of installing tacker is to clone Devstack and prepare your
 
        $ ./stack.sh
 
+Use PostgreSQL as Tacker database
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When installing via Devstack, MySQL is used as Tacker database backend
+by default.
+
+To use PostgreSQL as Tacker database backend, execute the following command.
+
+#. Install PostgreSQL and login.
+
+   .. code-block:: console
+
+       $ sudo apt install postgresql postgresql-contrib
+       $ sudo -i -u postgres
+       $ psql
+
+#. Create PostgreSQL database and user.
+
+   .. code-block::
+
+       CREATE DATABASE tacker;
+       CREATE ROLE tacker WITH CREATEDB LOGIN PASSWORD '<TACKERDB_PASSWORD>';
+       exit;
+
+#. Modify ``postgresql.conf`` and restart PostgreSQL server.
+
+   .. note::
+
+       The location of ``postgresql.conf`` is different for each distribution.
+       For Ubuntu distribution, modify
+       ``/etc/postgresql/{POSTGRESQL_VERSION}/main/postgresql.conf``.
+
+
+   Insert ``escape`` as the value of ``bytea_output`` in ``postgresql.conf``.
+
+   .. code-block:: ini
+
+       bytea_output = 'escape'
+
+   Restart PostgreSQL server.
+
+   .. code-block:: console
+
+       $ sudo service postgresql restart
+
+#. Modify ``tacker.conf`` for PostgreSQL and restart Tacker server.
+
+   Edit the configuration of [database] in ``/etc/tacker/tacker.conf``
+   as follows.
+
+   .. code-block:: ini
+
+       [database]
+       connection = postgresql://tacker:<POSTGRES_PASSWORD>@<POSTGRES_IP>/tacker?client_encoding=utf8
+
+   Restart Tacker server.
+
+   .. code-block:: console
+
+       $ sudo systemctl restart devstack@tacker.service
+       $ sudo systemctl restart devstack@tacker-conductor.service
+
+#. Populate Tacker database.
+
+   .. code-block:: console
+
+       $ /usr/local/bin/tacker-db-manage \
+           --config-file /etc/tacker/tacker.conf \
+           upgrade head
+
 .. rubric:: Footnotes
 
 .. [#f0] https://docs.openstack.org/devstack/latest/

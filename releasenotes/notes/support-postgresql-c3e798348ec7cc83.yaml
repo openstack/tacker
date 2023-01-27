@@ -1,0 +1,6 @@
+features:
+  - |
+    Support Tacker and tacker-db-manage for Multi DB backend,
+    especially PostgreSQL.
+    Use PostgreSQL as Tacker database via Devstack
+    for Tacker Installation.

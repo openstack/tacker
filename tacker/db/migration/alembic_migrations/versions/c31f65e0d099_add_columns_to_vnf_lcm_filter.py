@@ -34,6 +34,78 @@ down_revision = '3adac34764da'
 def upgrade(active_plugins=None, options=None):
     sql_text_length = 65535
 
+    bind = op.get_bind()
+    engine = bind.engine
+    if engine.name == 'postgresql':
+        type = sa.VARCHAR(length=sql_text_length)
+        operation_states = sa.Computed(
+            "decode(filter->>'$.operationStates','escape')")
+        operation_states_len = sa.Computed(
+            "coalesce(json_array_length(filter->'$.operationStates'),0)")
+        vnfd_ids = sa.Computed(
+            "decode(filter->>'$.vnfdIds','escape')")
+        vnfd_ids_len = sa.Computed(
+            "coalesce(json_array_length(filter->'$.vnfdIds'),0)")
+        vnf_provider = sa.Computed(
+            "(coalesce(decode("
+            "vnf_products_from_providers->>'$.vnfProvider','escape')),0)")
+        vnf_product_name = sa.Computed(
+            "(coalesce(decode("
+            "vnf_products_from_providers->>"
+            "'$.vnfProducts[0].vnfProductName','escape')),0)")
+        vnf_software_version = sa.Computed(
+            "(coalesce(decode("
+            "vnf_products_from_providers->>'$.vnfProducts[0]"
+            ".versions[0].vnfSoftwareVersion','escape')),0)")
+        vnfd_versions = sa.Computed(
+            "decode(vnf_products_from_providers->>"
+            "'$.vnfProducts[0].versions[0].vnfdVersions','escape')")
+        vnfd_versions_len = sa.Computed(
+            "coalesce(json_array_length(filter->"
+            "'$.vnfProducts[0].versions[0].vnfdVersions'),0)")
+        vnf_instance_ids = sa.Computed(
+            "decode(filter->>'$.vnfInstanceIds','escape')")
+        vnf_instance_ids_len = sa.Computed(
+            "coalesce(json_array_length(filter->'$.vnfInstanceIds'),0)")
+        vnf_instance_names = sa.Computed(
+            "decode(filter->>'$.vnfInstanceNames','escape')")
+        vnf_instance_names_len = sa.Computed(
+            "coalesce(json_array_length(filter->'$.vnfInstanceNames'),0)")
+    else:
+        type = sa.TEXT(length=sql_text_length)
+        operation_states = sa.Computed(
+            "json_unquote(json_extract(`filter`,'$.operationStates'))")
+        operation_states_len = sa.Computed(
+            "ifnull(json_length(`operation_states`),0)")
+        vnfd_ids = sa.Computed(
+            "json_unquote(json_extract(`filter`,'$.vnfdIds'))")
+        vnfd_ids_len = sa.Computed(
+            "ifnull(json_length(`vnfd_ids`),0)")
+        vnf_provider = sa.Computed(
+            "(ifnull(json_unquote(json_extract("
+            "`vnf_products_from_providers`,'$.vnfProvider')),''))")
+        vnf_product_name = sa.Computed(
+            "(ifnull(json_unquote(json_extract("
+            "`vnf_products_from_providers`,"
+            "'$.vnfProducts[0].vnfProductName')),''))")
+        vnf_software_version = sa.Computed(
+            "(ifnull(json_unquote(json_extract("
+            "`vnf_products_from_providers`,'$.vnfProducts[0]"
+            ".versions[0].vnfSoftwareVersion')),''))")
+        vnfd_versions = sa.Computed(
+            "json_unquote(json_extract(`vnf_products_from_providers`,"
+            "'$.vnfProducts[0].versions[0].vnfdVersions'))")
+        vnfd_versions_len = sa.Computed(
+            "ifnull(json_length(`vnfd_versions`),0)")
+        vnf_instance_ids = sa.Computed(
+            "json_unquote(json_extract(`filter`,'$.vnfInstanceIds'))")
+        vnf_instance_ids_len = sa.Computed(
+            "ifnull(json_length(`vnf_instance_ids`),0)")
+        vnf_instance_names = sa.Computed(
+            "json_unquote(json_extract(`filter`,'$.vnfInstanceNames'))")
+        vnf_instance_names_len = sa.Computed(
+            "ifnull(json_length(`vnf_instance_names`),0)")
+
     op.add_column(
         'vnf_lcm_filters',
         sa.Column(
@@ -42,96 +114,64 @@ def upgrade(active_plugins=None, options=None):
     op.add_column(
         'vnf_lcm_filters',
         sa.Column(
-            'operation_states', sa.TEXT(length=sql_text_length),
-            sa.Computed(
-                "json_unquote(json_extract(`filter`,'$.operationStates'))")))
+            'operation_states', type, operation_states))
 
     op.add_column(
         'vnf_lcm_filters',
         sa.Column(
-            'operation_states_len', sa.Integer,
-            sa.Computed(
-                "ifnull(json_length(`operation_states`),0)")))
+            'operation_states_len', sa.Integer, operation_states_len))
 
     op.add_column(
         'vnf_lcm_filters',
         sa.Column(
-            'vnfd_ids', sa.TEXT(length=sql_text_length),
-            sa.Computed(
-                "json_unquote(json_extract(`filter`,'$.vnfdIds'))")))
+            'vnfd_ids', type, vnfd_ids))
 
     op.add_column(
         'vnf_lcm_filters',
         sa.Column(
-            'vnfd_ids_len', sa.Integer,
-            sa.Computed(
-                "ifnull(json_length(`vnfd_ids`),0)")))
+            'vnfd_ids_len', sa.Integer, vnfd_ids_len))
 
     op.add_column(
         'vnf_lcm_filters',
         sa.Column(
-            'vnf_provider', sa.TEXT(length=sql_text_length),
-            sa.Computed(
-                "(ifnull(json_unquote(json_extract("
-                "`vnf_products_from_providers`,'$.vnfProvider')),''))")))
+            'vnf_provider', type, vnf_provider))
 
     op.add_column(
         'vnf_lcm_filters',
         sa.Column(
-            'vnf_product_name', sa.TEXT(length=sql_text_length),
-            sa.Computed(
-                "(ifnull(json_unquote(json_extract("
-                "`vnf_products_from_providers`,"
-                "'$.vnfProducts[0].vnfProductName')),''))")))
+            'vnf_product_name', type, vnf_product_name))
 
     op.add_column(
         'vnf_lcm_filters',
         sa.Column(
-            'vnf_software_version', sa.TEXT(length=sql_text_length),
-            sa.Computed(
-                "(ifnull(json_unquote(json_extract("
-                "`vnf_products_from_providers`,'$.vnfProducts[0]"
-                ".versions[0].vnfSoftwareVersion')),''))")))
+            'vnf_software_version', type, vnf_software_version))
 
     op.add_column(
         'vnf_lcm_filters',
         sa.Column(
-            'vnfd_versions', sa.TEXT(length=sql_text_length),
-            sa.Computed(
-                "json_unquote(json_extract(`vnf_products_from_providers`,"
-                "'$.vnfProducts[0].versions[0].vnfdVersions'))")))
+            'vnfd_versions', type, vnfd_versions))
 
     op.add_column(
         'vnf_lcm_filters',
         sa.Column(
-            'vnfd_versions_len', sa.Integer,
-            sa.Computed(
-                "ifnull(json_length(`vnfd_versions`),0)")))
+            'vnfd_versions_len', sa.Integer, vnfd_versions_len))
 
     op.add_column(
         'vnf_lcm_filters',
         sa.Column(
-            'vnf_instance_ids', sa.TEXT(length=sql_text_length),
-            sa.Computed(
-                "json_unquote(json_extract(`filter`,'$.vnfInstanceIds'))")))
+            'vnf_instance_ids', type, vnf_instance_ids))
 
     op.add_column(
         'vnf_lcm_filters',
         sa.Column(
-            'vnf_instance_ids_len', sa.Integer,
-            sa.Computed(
-                "ifnull(json_length(`vnf_instance_ids`),0)")))
+            'vnf_instance_ids_len', sa.Integer, vnf_instance_ids_len))
 
     op.add_column(
         'vnf_lcm_filters',
         sa.Column(
-            'vnf_instance_names', sa.TEXT(length=sql_text_length),
-            sa.Computed(
-                "json_unquote(json_extract(`filter`,'$.vnfInstanceNames'))")))
+            'vnf_instance_names', type, vnf_instance_names))
 
     op.add_column(
         'vnf_lcm_filters',
         sa.Column(
-            'vnf_instance_names_len', sa.Integer,
-            sa.Computed(
-                "ifnull(json_length(`vnf_instance_names`),0)")))
+            'vnf_instance_names_len', sa.Integer, vnf_instance_names_len))

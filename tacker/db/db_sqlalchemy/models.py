@@ -187,7 +187,7 @@ class VnfPackage(model_base.BASE, models.SoftDeleteMixin,
         VnfPackageVnfd, uselist=False,
         primaryjoin='and_(VnfPackage.id == '
                     'VnfPackageVnfd.package_uuid,'
-                    'VnfPackageVnfd.deleted == 0)')
+                    'VnfPackageVnfd.deleted == "0")')
 
     vnf_artifacts = orm.relationship(
         VnfPackageArtifactInfo,

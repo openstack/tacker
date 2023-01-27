@@ -36,6 +36,14 @@ from tacker.db import types
 
 
 def upgrade(active_plugins=None, options=None):
+
+    bind = op.get_bind()
+    engine = bind.engine
+    if engine.name == 'postgresql':
+        deleted_type = sa.SmallInteger
+    else:
+        deleted_type = Boolean
+
     op.create_table(
         'vnf_artifacts',
         sa.Column('id', types.Uuid(length=36), nullable=False),
@@ -47,7 +55,7 @@ def upgrade(active_plugins=None, options=None):
         sa.Column('created_at', sa.DateTime(), nullable=False),
         sa.Column('updated_at', sa.DateTime(), nullable=True),
         sa.Column('deleted_at', sa.DateTime(), nullable=True),
-        sa.Column('deleted', Boolean, default=False),
+        sa.Column('deleted', deleted_type, default=False),
         sa.PrimaryKeyConstraint('id'),
         sa.ForeignKeyConstraint(['package_uuid'],
                                 ['vnf_packages.id'], ),

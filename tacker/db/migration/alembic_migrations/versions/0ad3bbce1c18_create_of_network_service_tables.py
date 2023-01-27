@@ -34,6 +34,13 @@ from tacker.db import types
 
 
 def upgrade(active_plugins=None, options=None):
+    bind = op.get_bind()
+    engine = bind.engine
+    if engine.name == 'postgresql':
+        text_type_maxlen = sa.VARCHAR(length=65535)
+    else:
+        text_type_maxlen = sa.TEXT(length=65535)
+
     op.create_table('nsd',
         sa.Column('tenant_id', sa.String(length=64), nullable=False),
         sa.Column('id', types.Uuid(length=36), nullable=False),
@@ -56,8 +63,8 @@ def upgrade(active_plugins=None, options=None):
         sa.Column('vim_id', sa.String(length=64), nullable=False),
         sa.Column('name', sa.String(length=255), nullable=False),
         sa.Column('description', sa.Text(), nullable=True),
-        sa.Column('vnf_ids', sa.TEXT(length=65535), nullable=True),
-        sa.Column('mgmt_urls', sa.TEXT(length=65535), nullable=True),
+        sa.Column('vnf_ids', text_type_maxlen, nullable=True),
+        sa.Column('mgmt_urls', text_type_maxlen, nullable=True),
         sa.Column('status', sa.String(length=64), nullable=False),
         sa.Column('error_reason', sa.Text(), nullable=True),
         sa.ForeignKeyConstraint(['nsd_id'], ['nsd.id'], ),
@@ -68,7 +75,7 @@ def upgrade(active_plugins=None, options=None):
         sa.Column('id', types.Uuid(length=36), nullable=False),
         sa.Column('nsd_id', types.Uuid(length=36), nullable=False),
         sa.Column('key', sa.String(length=255), nullable=False),
-        sa.Column('value', sa.TEXT(length=65535), nullable=True),
+        sa.Column('value', text_type_maxlen, nullable=True),
         sa.ForeignKeyConstraint(['nsd_id'], ['nsd.id'], ),
         sa.PrimaryKeyConstraint('id'),
         mysql_engine='InnoDB'

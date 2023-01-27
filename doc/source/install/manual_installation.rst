@@ -64,7 +64,13 @@ Installing Tacker Server
 .. note::
 
    Make sure to replace the ``<branch_name>`` in command examples with
-   specific branch name, such as ``stable/ussuri``.
+   specific branch name, such as ``stable/2023.1``.
+
+.. note::
+
+   From Tacker Antelope, PostgreSQL is available as a Tacker DB.
+   If you would like to use PostgreSQL, please see
+   `Install via Devstack`_ document.
 
 #. Create MySQL database and user.
 
@@ -327,4 +333,6 @@ required because the console will be locked by a running process.
 .. code-block:: console
 
    $ sudo systemctl start tacker-conductor.service
+
+.. _Install via Devstack: https://docs.openstack.org/tacker/latest/install/devstack.html
 

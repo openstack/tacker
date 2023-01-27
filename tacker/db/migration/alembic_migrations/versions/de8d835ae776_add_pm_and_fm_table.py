@@ -42,15 +42,17 @@ def upgrade(active_plugins=None, options=None):
         sa.Column('alarmClearedTime', sa.DateTime(), nullable=True),
         sa.Column('alarmAcknowledgedTime', sa.DateTime(), nullable=True),
         sa.Column('ackState', sa.Enum(
-            'UNACKNOWLEDGED', 'ACKNOWLEDGED'), nullable=False),
+            'UNACKNOWLEDGED', 'ACKNOWLEDGED',
+            name='ackState'), nullable=False),
         sa.Column('perceivedSeverity', sa.Enum(
             'CRITICAL', 'MAJOR', 'MINOR', 'WARNING',
-            'INDETERMINATE', 'CLEARED'), nullable=False),
+            'INDETERMINATE', 'CLEARED',
+            name='perceivedSeverity'), nullable=False),
         sa.Column('eventTime', sa.DateTime(), nullable=False),
         sa.Column('eventType', sa.Enum(
             'COMMUNICATIONS_ALARM', 'PROCESSING_ERROR_ALARM',
             'ENVIRONMENTAL_ALARM', 'QOS_ALARM',
-            'EQUIPMENT_ALARM'), nullable=False),
+            'EQUIPMENT_ALARM', name='eventType'), nullable=False),
         sa.Column('faultType', sa.String(length=255), nullable=True),
         sa.Column('probableCause', sa.String(length=255), nullable=False),
         sa.Column('isRootCause', sa.Boolean(), nullable=False),
