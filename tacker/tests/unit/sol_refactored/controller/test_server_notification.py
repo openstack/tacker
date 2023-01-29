@@ -42,14 +42,18 @@ _inst1 = {
                 'vduId': 'vduId',
                 'computeResource': {},
                 'metadata': {
-                    "alarmId": "alarm_id"
+                    "server_notification": {
+                        "alarmId": "alarm_id"
+                    }
                 }
             }, {
                 'id': 'vnfc_resource_id2',
                 'vduId': 'vduId2',
                 'computeResource': {},
                 'metadata': {
-                    "alarmId": "alarm_id2"
+                    "server_notification": {
+                        "alarmId": "alarm_id2"
+                    }
                 }
             }
         ],
@@ -61,7 +65,7 @@ _inst1 = {
         }],
         'metadata': {
             'ServerNotifierUri': 'ServerNotifierUri',
-            'ServerNotifierFaultID': '1234'
+            'ServerNotifierFaultID': ['1111', '1234']
         }
     },
     'vnfConfigurableProperties': {
@@ -177,7 +181,7 @@ class TestServerNotification(base.TestCase):
             group='server_notification', server_notification=True)
         _inst = copy.deepcopy(_inst1)
         metadata = _inst['instantiatedVnfInfo']['metadata']
-        metadata['ServerNotifierFaultID'] = '0000'
+        metadata['ServerNotifierFaultID'] = ['0000']
 
         mock_inst.return_value = objects.VnfInstanceV2.from_dict(_inst)
         self.assertRaises(

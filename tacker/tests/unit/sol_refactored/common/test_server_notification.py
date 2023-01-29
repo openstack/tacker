@@ -40,14 +40,18 @@ _inst1 = {
                 'vduId': 'vduId',
                 'computeResource': {},
                 'metadata': {
-                    "alarmId": "alarm_id"
+                    "server_notification": {
+                        "alarmId": "alarm_id"
+                    }
                 }
             }, {
                 'id': 'vnfc_resource_id2',
                 'vduId': 'vduId2',
                 'computeResource': {},
                 'metadata': {
-                    "alarmId": "alarm_id2"
+                    "server_notification": {
+                        "alarmId": "alarm_id2"
+                    }
                 }
             }
         ],
@@ -59,7 +63,7 @@ _inst1 = {
         }],
         'metadata': {
             'ServerNotifierUri': 'ServerNotifierUri',
-            'ServerNotifierFaultID': '1234'
+            'ServerNotifierFaultID': ['1111', '1234']
         }
     }
 }

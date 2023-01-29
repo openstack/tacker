@@ -71,16 +71,17 @@ class ServerNotification(mon_base.MonitoringPlugin):
                     'vnfcInfo')):
             raise sol_ex.ServerNotificationValidationError(
                 detail="access info not found in the vnf instance.")
-        if fault_id != vnf_instance.instantiatedVnfInfo.metadata.get(
-                'ServerNotifierFaultID'):
+        if fault_id not in vnf_instance.instantiatedVnfInfo.metadata.get(
+                'ServerNotifierFaultID', []):
             raise sol_ex.ServerNotificationValidationError(
                 detail="fault_id does not match.")
 
         # Get the list of instantiatedVnfInfo.vnfcInfo[x].id where
-        #   vnfcInfo[x].vnfcResourceInfoId == vnfcResourceInfo[y].id and
-        #   vnfcResourceInfo[y].metadata.alarmId == alarm_id
+        #  vnfcInfo[x].vnfcResourceInfoId = vnfcResourceInfo[y].id and
+        #  vnfcResourceInfo[y].metadata.server_notification.alarmId = alarm_id
         rsc_info = filter(lambda x: ('metadata' in x and
-            alarm_id == x['metadata'].get('alarmId')),
+            alarm_id == x['metadata'].get(
+                'server_notification', {}).get('alarmId')),
             vnf_instance.instantiatedVnfInfo.vnfcResourceInfo)
         rsc_ids = list(map(lambda x: x['id'], rsc_info))
         vnfc_info = filter(lambda x:

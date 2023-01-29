@@ -23,6 +23,8 @@ from tacker.tests.functional.sol_v2_common import paramgen
 from tacker.tests.functional.sol_v2_common import test_vnflcm_basic_common
 
 test_count = 0
+RETRY_LIMIT = 10
+RETRY_TIMEOUT = 3
 
 
 def make_alarm_id(header, body):
@@ -133,6 +135,18 @@ class ServerNotificationTest(test_vnflcm_basic_common.CommonVnfLcmTest):
           - 8. LCM-Delete
         """
 
+        # Retrying LCM function in case that
+        # the lcmocc is completed but the lock is still remaining.
+        def _lcm_retry(func, *args):
+            retry = RETRY_LIMIT
+            while retry > 0:
+                resp, body = func(*args)
+                if 409 != resp.status_code:
+                    break
+                time.sleep(RETRY_TIMEOUT)
+                retry -= 1
+            return resp, body
+
         is_nfvo = False
         # 0. Pre setting
         create_req = paramgen.create_vnf_min(self.svn_id)
@@ -195,7 +209,7 @@ class ServerNotificationTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         instantiate_req = paramgen.instantiate_vnf_min()
         instantiate_req['additionalParams'] = {
             'ServerNotifierUri': server_notification_uri,
-            'ServerNotifierFaultID': '1234'
+            'ServerNotifierFaultID': ['1111', '1234']
         }
         instantiate_req['vnfConfigurableProperties'] = {
             'isAutohealEnabled': is_autoheal_enabled
@@ -264,11 +278,7 @@ class ServerNotificationTest(test_vnflcm_basic_common.CommonVnfLcmTest):
                 (stack['resource_name'] == 'VDU2')][0]
 
             heal_req = paramgen.heal_vnf_all_min()
-            while True:
-                resp, body = self.heal_vnf_instance(inst_id, heal_req)
-                if 409 != resp.status_code:
-                    break
-                time.sleep(3)
+            resp, body = _lcm_retry(self.heal_vnf_instance, inst_id, heal_req)
             self.assertEqual(202, resp.status_code)
             self.check_resp_headers_in_operation_task(resp)
             lcmocc_id = os.path.basename(resp.headers['Location'])
@@ -336,11 +346,7 @@ class ServerNotificationTest(test_vnflcm_basic_common.CommonVnfLcmTest):
             self.assertIsNotNone(vnfc_id)
 
             heal_req = paramgen.heal_vnf_vnfc_min(vnfc_id)
-            while True:
-                resp, body = self.heal_vnf_instance(inst_id, heal_req)
-                if 409 != resp.status_code:
-                    break
-                time.sleep(3)
+            resp, body = _lcm_retry(self.heal_vnf_instance, inst_id, heal_req)
             self.assertEqual(202, resp.status_code)
             self.check_resp_headers_in_operation_task(resp)
             lcmocc_id = os.path.basename(resp.headers['Location'])
@@ -381,11 +387,8 @@ class ServerNotificationTest(test_vnflcm_basic_common.CommonVnfLcmTest):
             nested_stacks = self.heat_client.get_resources(stack_name)
             count_before_scaleout = len(nested_stacks)
             scaleout_req = paramgen.scaleout_vnf_min()
-            while True:
-                resp, body = self.scale_vnf_instance(inst_id, scaleout_req)
-                if 409 != resp.status_code:
-                    break
-                time.sleep(3)
+            resp, body = _lcm_retry(
+                self.scale_vnf_instance, inst_id, scaleout_req)
             self.assertEqual(202, resp.status_code)
             self.check_resp_headers_in_operation_task(resp)
             lcmocc_id = os.path.basename(resp.headers['Location'])
@@ -415,11 +418,8 @@ class ServerNotificationTest(test_vnflcm_basic_common.CommonVnfLcmTest):
 
             # 6. LCM-Scale (SCALE_IN)
             scalein_req = paramgen.scalein_vnf_min()
-            while True:
-                resp, body = self.scale_vnf_instance(inst_id, scalein_req)
-                if 409 != resp.status_code:
-                    break
-                time.sleep(3)
+            resp, body = _lcm_retry(
+                self.scale_vnf_instance, inst_id, scalein_req)
             self.assertEqual(202, resp.status_code)
             self.check_resp_headers_in_operation_task(resp)
             lcmocc_id = os.path.basename(resp.headers['Location'])
@@ -434,11 +434,8 @@ class ServerNotificationTest(test_vnflcm_basic_common.CommonVnfLcmTest):
 
         # 7. LCM-Terminate
         terminate_req = paramgen.terminate_vnf_min()
-        while True:
-            resp, body = self.terminate_vnf_instance(inst_id, terminate_req)
-            if 409 != resp.status_code:
-                break
-            time.sleep(3)
+        resp, body = _lcm_retry(
+            self.terminate_vnf_instance, inst_id, terminate_req)
         self.assertEqual(202, resp.status_code)
         self.check_resp_headers_in_operation_task(resp)
 

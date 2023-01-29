@@ -124,22 +124,40 @@ The ``additionalParams`` must be set when using FaultNotification.
       - Additional VNF-specific attributes that
         provide the current values of the configurable
         properties of the VNF instance.
-    * - >isAutohealEnabled:
+    * - additionalParams
+      - KeyValuePairs
+      - 0..1
+      - Additional input parameters for the instantiation process,
+        specific to the VNF being instantiated.
+
+  .. list-table::
+    :header-rows: 1
+    :widths: 18 18 10 50
+
+    * - Attribute name (vnfConfigurableProperties)
+      - Data type
+      - Cardinality
+      - Description
+    * - isAutohealEnabled:
       - boolean
       - 0..1
       - If present, the VNF supports auto-healing. If set to
         true, auto-healing is currently enabled.
         If set to false, autohealing is currently disabled.
-    * - additionalParams
-      - KeyValuePairs (inlined)
-      - 0..1
-      - Additional input parameters for the instantiation process,
-        specific to the VNF being instantiated.
-    * - >ServerNotifierUri
+
+  .. list-table::
+    :header-rows: 1
+    :widths: 18 18 10 50
+
+    * - Attribute name (additionalParams)
+      - Data type
+      - Cardinality
+      - Description
+    * - ServerNotifierUri
       - String
       - 1
       - Base Uri for ServerNotifier.
-    * - >ServerNotifierFaultID
+    * - ServerNotifierFaultID
       - String
       - 1..N
       - List of string that indicates which type of alarms to detect.
@@ -159,11 +177,12 @@ with vnflcm show command. For example:
   |                             |  ....                                                                                                                                                                |
   |                             |     "metadata": {                                                                                                                                                    |
   |                             |         "ServerNotifierUri": "http://localhost:9990/server_notification",                                                                                            |
-  |                             |         "ServerNotifierFaultID": "1234"                                                                                                                              |
+  |                             |         "ServerNotifierFaultID": ["1111", "1234"]                                                                                                                    |
   |                             |     }                                                                                                                                                                |
   |                             |  ....                                                                                                                                                                |
-  | VNF Configurable Properties | isAutohealEnabled=True                                                                                                                                               |  +-----------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+  | VNF Configurable Properties | isAutohealEnabled=True                                                                                                                                               |
   |                             |  ....                                                                                                                                                                |
+  +-----------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 Auto Healing
 ------------
