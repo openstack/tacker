@@ -1164,12 +1164,28 @@ def sample4_change_vnfpkg(vnfd_id, net_ids, subnet_ids):
                     "old_vnfc_param": {
                         "cp_name": "VDU1_CP1",
                         "username": "ubuntu",
-                        "password": "ubuntu"
+                        "password": "ubuntu",
+                        "endpoint": "http://127.0.0.1:6789",
+                        "authentication": {
+                            "authType": ["BASIC"],
+                            "paramsBasic": {
+                                "userName": "tacker",
+                                "password": "tacker"
+                            }
+                        }
                     },
                     "new_vnfc_param": {
                         "cp_name": "VDU1_CP1",
                         "username": "ubuntu",
-                        "password": "ubuntu"
+                        "password": "ubuntu",
+                        "endpoint": "http://127.0.0.1:6789",
+                        "authentication": {
+                            "authType": ["BASIC"],
+                            "paramsBasic": {
+                                "userName": "tacker",
+                                "password": "tacker"
+                            }
+                        }
                     }
                 },
                 {
@@ -1177,12 +1193,28 @@ def sample4_change_vnfpkg(vnfd_id, net_ids, subnet_ids):
                     "old_vnfc_param": {
                         "cp_name": "VDU2_CP1",
                         "username": "ubuntu",
-                        "password": "ubuntu"
+                        "password": "ubuntu",
+                        "endpoint": "http://127.0.0.1:6789",
+                        "authentication": {
+                            "authType": ["BASIC"],
+                            "paramsBasic": {
+                                "userName": "tacker",
+                                "password": "tacker"
+                            }
+                        }
                     },
                     "new_vnfc_param": {
                         "cp_name": "VDU2_CP1",
                         "username": "ubuntu",
-                        "password": "ubuntu"
+                        "password": "ubuntu",
+                        "endpoint": "http://127.0.0.1:6789",
+                        "authentication": {
+                            "authType": ["BASIC"],
+                            "paramsBasic": {
+                                "userName": "tacker",
+                                "password": "tacker"
+                            }
+                        }
                     }
                 }
             ],

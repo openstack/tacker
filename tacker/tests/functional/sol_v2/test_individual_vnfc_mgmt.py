@@ -16,8 +16,24 @@
 import os
 import time
 
+from tacker.tests.functional.sol_v2_common import base_v2
 from tacker.tests.functional.sol_v2_common import paramgen
 from tacker.tests.functional.sol_v2_common import test_vnflcm_basic_common
+
+
+def create_coordinate_response(req_header, req_body):
+
+    resp_body = {
+        'id': 'aeca5328-085c-4cd6-a6f4-c010e9082528',
+        'coordinationResult': 'CONTINUE',
+        'vnfInstanceId': req_body.get('vnfInstanceId'),
+        'vnfLcmOpOccId': req_body.get('vnfLcmOpOccId'),
+        'lcmOperationType': req_body.get('lcmOperationType'),
+        'coordinationActionName': req_body.get('coordinationActionName'),
+        '_links': req_body.get('_links')
+    }
+
+    return resp_body
 
 
 class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
@@ -308,11 +324,31 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         # 6. Change_vnfpkg operation
         change_vnfpkg_req = paramgen.sample4_change_vnfpkg(self.vnfd_id_2,
             net_ids, subnet_ids)
+
+        for vdu_param in change_vnfpkg_req['additionalParams']['vdu_params']:
+            vdu_param['new_vnfc_param']['endpoint'] = (
+                f'http://localhost:{base_v2.FAKE_SERVER_MANAGER.SERVER_PORT}')
+
+        # Prepare coordination
+        base_v2.FAKE_SERVER_MANAGER.set_callback(
+            'POST',
+            '/lcmcoord/v1/coordinations',
+            status_code=201,
+            response_headers={"Content-Type": "application/json"},
+            callback=create_coordinate_response
+        )
+
+        with open('/tmp/change_vnfpkg_coordination', 'w'):
+            pass
+
+        # execute Change_vnfpkg operation
         resp, body = self.change_vnfpkg(inst_id, change_vnfpkg_req)
         self.assertEqual(202, resp.status_code)
 
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
+
+        os.remove('/tmp/change_vnfpkg_coordination')
 
         # Show VNF instance
         resp, inst_6 = self.show_vnf_instance(inst_id)
@@ -459,8 +495,24 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
 
         # 3. Change_vnfpkg operation
         self._put_fail_file('change_vnfpkg')
+        with open('/tmp/change_vnfpkg_coordination', 'w'):
+            pass
+
         change_vnfpkg_req = paramgen.sample4_change_vnfpkg(self.vnfd_id_2,
             net_ids, subnet_ids)
+        for vdu_param in change_vnfpkg_req['additionalParams']['vdu_params']:
+            vdu_param['old_vnfc_param']['endpoint'] = (
+                f'http://localhost:{base_v2.FAKE_SERVER_MANAGER.SERVER_PORT}')
+
+        # Prepare coordination
+        base_v2.FAKE_SERVER_MANAGER.set_callback(
+            'POST',
+            '/lcmcoord/v1/coordinations',
+            status_code=201,
+            response_headers={"Content-Type": "application/json"},
+            callback=create_coordinate_response
+        )
+
         resp, body = self.change_vnfpkg(inst_id, change_vnfpkg_req)
         self.assertEqual(202, resp.status_code)
 
@@ -472,6 +524,8 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         resp, body = self.rollback_lcmocc(lcmocc_id)
         self.assertEqual(202, resp.status_code)
         self.wait_lcmocc_rolled_back(lcmocc_id)
+
+        os.remove('/tmp/change_vnfpkg_coordination')
 
         # Show VNF instance
         resp, inst_3 = self.show_vnf_instance(inst_id)
