@@ -16,8 +16,11 @@
 import time
 import webob
 
+from oslo_log import log as logging
+
 from tacker import context
 from tacker.sol_refactored.common import http_client
+from tacker.sol_refactored.common import vnflcm_utils
 from tacker.sol_refactored.conductor import conductor_v2
 from tacker.sol_refactored.conductor import server_notification_driver as snd
 from tacker.sol_refactored import objects
@@ -69,19 +72,25 @@ class TestServerNotification(db_base.SqlTestCase):
         self.conductor.server_notification_remove_timer(
             self.context, 'invalid_id')
 
-    @mock.patch.object(http_client.HttpClient, 'do_request')
-    def test_conductor_timer_expired(self, mock_do_request):
+    @mock.patch.object(vnflcm_utils, 'heal')
+    def test_conductor_timer_expired(self, mock_heal):
         self.config_fixture.config(
             group='server_notification', server_notification=True)
         snd.ServerNotificationDriver._instance = None
         self.conductor.sn_driver = snd.ServerNotificationDriver.instance()
-        resp = webob.Response()
-        resp.status_code = 202
-        mock_do_request.return_value = resp, {}
         self.conductor.sn_driver.timer_expired('test_id', ['id'])
-        resp.status_code = 503
-        mock_do_request.return_value = resp, {}
-        self.conductor.sn_driver.timer_expired('test_id', ['id'])
+
+    def test_conductor_timer_expired_error(self):
+        self.config_fixture.config(
+            group='server_notification', server_notification=True)
+        snd.ServerNotificationDriver._instance = None
+        self.conductor.sn_driver = snd.ServerNotificationDriver.instance()
+
+        log_name = "tacker.sol_refactored.conductor.server_notification_driver"
+        with self.assertLogs(logger=log_name, level=logging.ERROR) as cm:
+            self.conductor.sn_driver.timer_expired('test_id', ['id'])
+        msg = f'ERROR:{log_name}:server_notification auto healing is failed:'
+        self.assertIn(msg, cm.output[1])
 
     def expired(self, id, queue):
         queue.sort()
