@@ -287,9 +287,9 @@ datetime_test = datetime.datetime.fromisoformat(
     '2022-06-22T01:23:45.678Z'.replace('Z', '+00:00'))
 
 
-class TestPrometheusPluginPm(base.TestCase):
+class TestPrometheusPluginPmEvent(base.TestCase):
     def setUp(self):
-        super(TestPrometheusPluginPm, self).setUp()
+        super(TestPrometheusPluginPmEvent, self).setUp()
         objects.register_all()
         self.context = context.get_admin_context()
         self.request = mock.Mock()
@@ -298,7 +298,7 @@ class TestPrometheusPluginPm(base.TestCase):
         plugin.PrometheusPluginPm._instance = None
 
     def tearDown(self):
-        super(TestPrometheusPluginPm, self).tearDown()
+        super(TestPrometheusPluginPmEvent, self).tearDown()
         # delete singleton object
         plugin.PrometheusPluginPm._instance = None
 
@@ -313,6 +313,35 @@ class TestPrometheusPluginPm(base.TestCase):
         self.config_fixture.config(
             group='prometheus_plugin', performance_management=True)
         result = self.controller.pm_event(self.request, {})
+        self.assertEqual(204, result.status)
+
+
+class TestPrometheusPluginPmThreshold(base.TestCase):
+    def setUp(self):
+        super(TestPrometheusPluginPmThreshold, self).setUp()
+        objects.register_all()
+        self.context = context.get_admin_context()
+        self.request = mock.Mock()
+        self.request.context = self.context
+        self.controller = prometheus_plugin_controller.PmThresholdController()
+        plugin.PrometheusPluginThreshold._instance = None
+
+    def tearDown(self):
+        super(TestPrometheusPluginPmThreshold, self).tearDown()
+        # delete singleton object
+        plugin.PrometheusPluginThreshold._instance = None
+
+    def test_pm_threshold_config_false(self):
+        self.config_fixture.config(
+            group='prometheus_plugin', performance_management=False)
+        self.assertRaises(
+            sol_ex.PrometheusPluginNotEnabled,
+            self.controller.pm_threshold, self.request, {})
+
+    def test_pm_exception(self):
+        self.config_fixture.config(
+            group='prometheus_plugin', performance_management=True)
+        result = self.controller.pm_threshold(self.request, {})
         self.assertEqual(204, result.status)
 
 

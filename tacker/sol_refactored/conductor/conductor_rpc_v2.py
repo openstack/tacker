@@ -95,6 +95,10 @@ class PrometheusPluginConductor(object):
     def store_job_info(self, context, report):
         self.cast(context, 'store_job_info', report=report)
 
+    def store_threshold_state_info(self, context, threshold_states):
+        self.cast(context, 'store_threshold_state_info',
+                  threshold_states=threshold_states)
+
     def trigger_scale(self, context, id, scale_req):
         self.cast(context, 'trigger_scale', id=id, scale_req=scale_req)
 

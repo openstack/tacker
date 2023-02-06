@@ -13,7 +13,31 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+
+import threading
+
+from oslo_log import log as logging
+
+
+from tacker.sol_refactored.api import api_version
+from tacker.sol_refactored.common import config
+from tacker.sol_refactored.common import exceptions as sol_ex
+from tacker.sol_refactored.common import http_client
+from tacker.sol_refactored.common import subscription_utils
 from tacker.sol_refactored.common import vnfd_utils
+from tacker.sol_refactored import objects
+
+
+LOG = logging.getLogger(__name__)
+
+CONF = config.CONF
+
+TEST_NOTIFICATION_TIMEOUT = 20  # seconds
+NOTIFY_TYPE_PM = 'PM'
+NOTIFY_TYPE_FM = 'FM'
+AUTH_TYPE_OAUTH2_CLIENT_CERT = 'OAUTH2_CLIENT_CERT'
+AUTH_TYPE_OAUTH2_CLIENT_CREDENTIALS = 'OAUTH2_CLIENT_CREDENTIALS'
+AUTH_TYPE_BASIC = 'BASIC'
 
 
 def get_vnfd(vnfd_id, csar_dir):
@@ -273,3 +297,107 @@ def apply_ext_managed_vls_from_inst(hot_dict, inst):
             for mgd_vl in mgd_vls
         ]
         _apply_ext_managed_vls(hot_dict, mgd_vls)
+
+
+def get_notification_auth_handle(obj_data):
+    auth_req = obj_data.get('authentication', None)
+    if auth_req:
+        auth = objects.SubscriptionAuthentication(
+            authType=auth_req['authType']
+        )
+        if AUTH_TYPE_OAUTH2_CLIENT_CERT in auth.authType:
+            param = obj_data.authentication.paramsOauth2ClientCert
+            ca_cert = CONF.v2_vnfm.notification_mtls_ca_cert_file
+            client_cert = CONF.v2_vnfm.notification_mtls_client_cert_file
+            return http_client.OAuth2MtlsAuthHandle(
+                None, param.tokenEndpoint,
+                param.clientId, ca_cert, client_cert)
+        elif AUTH_TYPE_OAUTH2_CLIENT_CREDENTIALS in auth.authType:
+            param = obj_data.authentication.paramsOauth2ClientCredentials
+            verify = CONF.v2_vnfm.notification_verify_cert
+            if verify and CONF.v2_vnfm.notification_ca_cert_file:
+                verify = CONF.v2_vnfm.notification_ca_cert_file
+            return http_client.OAuth2AuthHandle(
+                None, param.tokenEndpoint, param.clientId,
+                param.clientPassword,
+                verify=verify)
+        elif AUTH_TYPE_BASIC in auth.authType:
+            param = obj_data.authentication.paramsBasic
+            verify = CONF.v2_vnfm.notification_verify_cert
+            if verify and CONF.v2_vnfm.notification_ca_cert_file:
+                verify = CONF.v2_vnfm.notification_ca_cert_file
+            return http_client.BasicAuthHandle(
+                param.userName, param.password,
+                verify=verify)
+        else:
+            raise sol_ex.AuthTypeNotFound(auth.authType)
+    else:
+        verify = CONF.v2_vnfm.notification_verify_cert
+        if verify and CONF.v2_vnfm.notification_ca_cert_file:
+            verify = CONF.v2_vnfm.notification_ca_cert_file
+        return http_client.NoAuthHandle(verify=verify)
+
+
+def async_call(func):
+    def inner(*args, **kwargs):
+        th = threading.Thread(target=func, args=args,
+                              kwargs=kwargs, daemon=True)
+        th.start()
+    return inner
+
+
+@async_call
+def send_notification(obj_data, notif_data, notify_type=None):
+    version = api_version.CURRENT_VERSION
+    auth_handle = subscription_utils.get_notification_auth_handle(obj_data)
+    connect_retries = (CONF.v2_vnfm.notify_connect_retries
+                       if CONF.v2_vnfm.notify_connect_retries else None)
+    client = http_client.HttpClient(auth_handle,
+                                    version=version,
+                                    connect_retries=connect_retries)
+    if notify_type == NOTIFY_TYPE_PM:
+        version = api_version.CURRENT_PM_VERSION
+        auth_handle = get_notification_auth_handle(obj_data)
+        client = http_client.HttpClient(auth_handle,
+                                        version=version)
+    if notify_type == NOTIFY_TYPE_FM:
+        version = api_version.CURRENT_FM_VERSION
+        auth_handle = get_notification_auth_handle(obj_data)
+        client = http_client.HttpClient(auth_handle,
+                                        version=version)
+
+    url = obj_data.callbackUri
+    try:
+        resp, _ = client.do_request(
+            url, "POST", expected_status=[204], body=notif_data)
+    except sol_ex.SolException as ex:
+        # it may occur if test_notification was not executed.
+        LOG.exception(f"send_notification failed: {ex}")
+
+    if resp.status_code != 204:
+        LOG.error(f"send_notification failed: {resp.__dict__}")
+
+
+def test_notification(obj_data, notify_type=None):
+    version = api_version.CURRENT_VERSION
+    auth_handle = subscription_utils.get_notification_auth_handle(obj_data)
+    if notify_type == NOTIFY_TYPE_PM:
+        version = api_version.CURRENT_PM_VERSION
+        auth_handle = get_notification_auth_handle(obj_data)
+    if notify_type == NOTIFY_TYPE_FM:
+        version = api_version.CURRENT_FM_VERSION
+        auth_handle = get_notification_auth_handle(obj_data)
+
+    client = http_client.HttpClient(auth_handle,
+                                    version=version,
+                                    timeout=TEST_NOTIFICATION_TIMEOUT)
+
+    url = obj_data.callbackUri
+    try:
+        resp, _ = client.do_request(url, "GET", expected_status=[204])
+    except sol_ex.SolException as e:
+        # any notify_type of error is considered. avoid 500 error.
+        raise sol_ex.TestNotificationFailed() from e
+
+    if resp.status_code != 204:
+        raise sol_ex.TestNotificationFailed()

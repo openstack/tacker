@@ -68,6 +68,10 @@ VNFM_OPTS = [
                default=0,  # 0 means no paging
                help=_('Paged response size of the query result '
                       'for VNF Fault Management alarm.')),
+    cfg.IntOpt('vnfpm_pmthreshold_page_size',
+               default=0,  # 0 means no paging
+               help=_('Paged response size of the query result for '
+                      'VNF PM threshold.')),
     cfg.IntOpt('vnfpm_pmjob_page_size',
                default=0,  # 0 means no paging
                help=_('Paged response size of the query result for '
@@ -206,13 +210,25 @@ PROMETHEUS_PLUGIN_OPTS = [
                 help=_('Enable prometheus plugin autoscaling')),
     cfg.StrOpt('performance_management_package',
                default='tacker.sol_refactored.common.prometheus_plugin',
-               help=_('Package name for performance management. '
+               help=_('Package name for performance management PMJob. '
+                      'This configuration is changed in case of replacing '
+                      'the original function with a vendor specific '
+                      'function.')),
+    cfg.StrOpt('performance_management_threshold_package',
+               default='tacker.sol_refactored.common.prometheus_plugin',
+               help=_('Package name for performance management threshold. '
                       'This configuration is changed in case of replacing '
                       'the original function with a vendor specific '
                       'function.')),
     cfg.StrOpt('performance_management_class',
                default='PrometheusPluginPm',
-               help=_('Class name for performance management. '
+               help=_('Class name for performance management PMJob. '
+                      'This configuration is changed in case of replacing '
+                      'the original function with a vendor specific '
+                      'function.')),
+    cfg.StrOpt('performance_management_threshold_class',
+               default='PrometheusPluginThreshold',
+               help=_('Class name for performance management threshold. '
                       'This configuration is changed in case of replacing '
                       'the original function with a vendor specific '
                       'function.')),
@@ -259,6 +275,20 @@ PROMETHEUS_PLUGIN_OPTS = [
     cfg.BoolOpt('test_rule_with_promtool',
                 default=False,
                 help=_('Enable rule file validation using promtool.')),
+    cfg.IntOpt('reporting_period_threshold',
+               default=90,
+               help=_('The time of reportingPeriod for the PM Threshold. '
+                      'If there is a PromQL '
+                      'that requires `reporting_period`, '
+                      'it is read from the configuration file. '
+                      'The unit shall be seconds.')),
+    cfg.IntOpt('collection_period_threshold',
+               default=30,
+               help=_('The time of collectionPeriod for the PM threshold. '
+                      'If there is a PromQL '
+                      'that requires `collection_period`, '
+                      'it is read from the configuration file. '
+                      'The unit shall be seconds.')),
 ]
 
 CONF.register_opts(PROMETHEUS_PLUGIN_OPTS, 'prometheus_plugin')

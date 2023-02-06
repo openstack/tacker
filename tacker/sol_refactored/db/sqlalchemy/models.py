@@ -227,6 +227,28 @@ class PmJobV2(model_base.BASE):
     metadata__ = sa.Column("metadata", sa.JSON(), nullable=True)
 
 
+class ThresholdV2(model_base.BASE):
+    """Type: Threshold
+
+    NFV-SOL 003
+    - v3.3.1 6.5.2.9 (API version: 2.1.0)
+    """
+
+    __tablename__ = 'ThresholdV2'
+    id = sa.Column(sa.String(255), nullable=False, primary_key=True)
+    objectType = sa.Column(sa.String(32), nullable=False)
+    objectInstanceId = sa.Column(sa.String(255), nullable=False)
+    subObjectInstanceIds = sa.Column(sa.JSON(), nullable=True)
+    criteria = sa.Column(sa.JSON(), nullable=False)
+    callbackUri = sa.Column(sa.String(255), nullable=False)
+    # NOTE: 'authentication' attribute is not included in the
+    #       original 'Threshold' data type definition.
+    authentication = sa.Column(sa.JSON(), nullable=True)
+    # NOTE: 'metadata' attribute is not included in the
+    #       original 'Threshold' data type definition.
+    metadata__ = sa.Column("metadata", sa.JSON(), nullable=True)
+
+
 class PerformanceReportV2(model_base.BASE):
     """Type: Report
 

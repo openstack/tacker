@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    Add the Performance Management Threshold interfaces and CLI to support
+    AutoScale.
+    The Performance Management Threshold interfaces are based on ETSI NFV-SOL
+    003 v3.3.1, on which v2 VNF LCM API of Tacker is based.
+    Add the Prometheus Plugin that has an interface between Tacker and the
+    External Monitoring Tool.
+    Prometheus Plugin supports data model conversion from Prometheus format
+    data to SOL based PM Threshold schema, and vice versa.

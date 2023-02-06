@@ -41,7 +41,13 @@ class MonitoringPlugin():
     def create_job(self, **kwargs):
         pass
 
+    def create_threshold(self, **kwargs):
+        pass
+
     def delete_job(self, **kwargs):
+        pass
+
+    def delete_threshold(self, **kwargs):
         pass
 
     def alert(self, **kwargs):

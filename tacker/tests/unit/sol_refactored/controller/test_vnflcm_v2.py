@@ -20,6 +20,7 @@ from oslo_utils import uuidutils
 
 from tacker import context
 from tacker.sol_refactored.api import api_version
+from tacker.sol_refactored.common import common_script_utils
 from tacker.sol_refactored.common import config
 from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import lcm_op_occ_utils as lcmocc_utils
@@ -575,7 +576,7 @@ class TestVnflcmV2(db_base.SqlTestCase):
         self.assertEqual("paramsOauth2ClientCert must be specified.",
                          ex.detail)
 
-    @mock.patch.object(subsc_utils, 'test_notification')
+    @mock.patch.object(common_script_utils, 'test_notification')
     def test_subscription_create_201(self, mock_test):
         body_1 = {
             "callbackUri": "http://127.0.0.1:6789/notification",

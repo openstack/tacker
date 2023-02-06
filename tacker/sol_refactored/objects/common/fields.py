@@ -38,6 +38,8 @@ MACAddressField = ovoo_fields.MACAddressField
 NonNegativeIntegerField = ovoo_fields.NonNegativeIntegerField
 ObjectField = ovoo_fields.ObjectField
 StringField = ovoo_fields.StringField
+FloatField = ovoo_fields.FloatField
+NonNegativeFloatField = ovoo_fields.NonNegativeFloatField
 
 
 class BaseTackerEnum(Enum):

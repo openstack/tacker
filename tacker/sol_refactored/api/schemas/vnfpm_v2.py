@@ -84,3 +84,71 @@ PmJobModificationsRequest_V210 = {
     'required': [],
     'additionalProperties': True,
 }
+
+# SOL003 6.5.3.4
+ThresholdCriteria_V210 = {
+    'type': 'object',
+    'properties': {
+        'performanceMetric': {'type': 'string'},
+        'thresholdType': {
+            'type': 'string',
+            'enum': ['SIMPLE']
+        },
+        'simpleThresholdDetails': {
+            'type': 'object',
+            'properties': {
+                'thresholdValue': {'type': 'number'},
+                'hysteresis': {'type': 'number', 'minimum': 0.0},
+            },
+            'required': ['thresholdValue', 'hysteresis'],
+            'additionalProperties': True
+        },
+    },
+    'required': ['performanceMetric', 'thresholdType'],
+    'additionalProperties': True,
+}
+
+# SOL003 6.5.2.8
+CreateThresholdRequest_V210 = {
+    'type': 'object',
+    'properties': {
+        'objectType': {
+            'type': 'string',
+            'enum': [
+                # TODO(YiFeng): Currently, this API only supports CNF, and
+                # supports the following types. When VNF is supported,
+                # the types can be extended.
+                'Vnf',
+                'Vnfc',
+                'VnfIntCp',
+                'VnfExtCp']
+        },
+        'objectInstanceId': {
+            'type': 'string',
+        },
+        'subObjectInstanceIds': {
+            'type': 'array',
+            'items': common_types.IdentifierInVnf
+        },
+        'criteria': ThresholdCriteria_V210,
+        'callbackUri': {'type': 'string'},
+        'authentication': common_types.SubscriptionAuthentication,
+    },
+    'required': ['objectType', 'objectInstanceId', 'criteria', 'callbackUri'],
+    'additionalProperties': True,
+}
+
+# SOL003 6.5.2.11
+ThresholdModifications_V210 = {
+    'type': 'object',
+    'properties': {
+        'callbackUri': {'type': 'string'},
+        'authentication': common_types.SubscriptionAuthentication
+    },
+    'anyOf': [
+        {'required': ['callbackUri']},
+        {'required': ['authentication']}
+    ],
+    'required': [],
+    'additionalProperties': True,
+}

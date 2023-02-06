@@ -408,11 +408,19 @@ class PMJobNotExist(SolHttpError404):
     message = _("The specified PM job does not exist.")
 
 
+class PMThresholdNotExist(SolHttpError404):
+    message = _("The specified PM Threshold %(threshold_id)s does not exist.")
+
+
 class PMReportNotExist(SolHttpError404):
     message = _("The specified Performance Report does not exist.")
 
 
 class PMJobInvalidRequest(SolHttpError400):
+    message = _("Invalid request")
+
+
+class PMThresholdInvalidRequest(SolHttpError400):
     message = _("Invalid request")
 
 

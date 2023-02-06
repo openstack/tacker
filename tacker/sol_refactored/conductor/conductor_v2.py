@@ -393,6 +393,10 @@ class ConductorV2(object):
         # call pm_driver
         self.vnfpm_driver.store_job_info(context, report)
 
+    def store_threshold_state_info(self, context, threshold_states):
+        # call pm_driver
+        self.vnfpm_driver.store_threshold_info(context, threshold_states)
+
     @log.log
     def trigger_scale(self, context, id, scale_req):
         self.prom_driver.trigger_scale(context, id, scale_req)

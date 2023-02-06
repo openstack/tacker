@@ -19,6 +19,7 @@ from unittest import mock
 
 from tacker import context
 from tacker.sol_refactored.api import api_version
+from tacker.sol_refactored.common import common_script_utils
 from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import fm_alarm_utils as alarm_utils
 from tacker.sol_refactored.common import fm_subscription_utils as subsc_utils
@@ -109,7 +110,7 @@ class TestVnffmV1(base.BaseTestCase):
                           request=self.request, id=SAMPLE_ALARM_ID, body=body)
 
     @mock.patch.object(objects.base.TackerPersistentObject, 'create')
-    @mock.patch.object(subsc_utils, 'test_notification')
+    @mock.patch.object(common_script_utils, 'test_notification')
     def test_subscription_create(self, mock_test, mock_create):
         body_1 = {
             "callbackUri": "http://127.0.0.1:6789/notification",

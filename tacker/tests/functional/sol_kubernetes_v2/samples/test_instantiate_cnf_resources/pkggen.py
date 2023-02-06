@@ -46,6 +46,7 @@ max_sample_instantiate = paramgen.max_sample_instantiate(
 max_sample_terminate = paramgen.max_sample_terminate()
 max_sample_scale_out = paramgen.max_sample_scale_out()
 max_sample_scale_in = paramgen.max_sample_scale_in()
+scale_out = paramgen.scale_out()
 max_sample_heal = paramgen.max_sample_heal(["replace real vnfc ids"])
 
 # if you instantiate with only one resource
@@ -77,6 +78,9 @@ with open("max_sample_scale_out", "w", encoding='utf-8') as f:
 
 with open("max_sample_scale_in", "w", encoding='utf-8') as f:
     f.write(json.dumps(max_sample_scale_in, indent=2))
+
+with open("scale_out", "w", encoding='utf-8') as f:
+    f.write(json.dumps(scale_out, indent=2))
 
 with open("max_sample_heal", "w", encoding='utf-8') as f:
     f.write(json.dumps(max_sample_heal, indent=2))
