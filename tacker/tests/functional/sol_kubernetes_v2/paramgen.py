@@ -153,6 +153,15 @@ def max_sample_scale_in():
     }
 
 
+def scale_out():
+    return {
+        "type": "SCALE_OUT",
+        "aspectId": "vdu2_aspect",
+        "numberOfSteps": 1,
+        "additionalParams": {"dummy-key": "dummy-value"}
+    }
+
+
 def max_sample_heal(vnfc_ids):
     return {
         "vnfcInstanceId": vnfc_ids
@@ -756,6 +765,113 @@ def update_pm_job(callback_uri):
     }
 
 
+def pm_threshold_min(
+        callback_uri, inst_id, host_ip,
+        objectType="Vnf",
+        sub_object_instance_id=None,
+        p_metric=None,
+        thresholdValue=55,
+        hysteresis=30):
+    metric = f"VCpuUsageMeanVnf.{inst_id}"
+    if p_metric:
+        metric = f"{p_metric}"
+    return {
+        "objectType": objectType,
+        "objectInstanceId": inst_id,
+        "subObjectInstanceIds": ([sub_object_instance_id]
+                                 if sub_object_instance_id else []),
+        "criteria": {
+            "performanceMetric": metric,
+            "thresholdType": "SIMPLE",
+            "simpleThresholdDetails": {
+                "thresholdValue": thresholdValue,
+                "hysteresis": hysteresis
+            }
+        },
+        "callbackUri": callback_uri,
+        "metadata": {
+            "monitoring": {
+                "monitorName": "prometheus",
+                "driverType": "external",
+                "targetsInfo": [
+                    {
+                        "prometheusHost": host_ip,
+                        "prometheusHostPort": 50022,
+                        "authInfo": {
+                            "ssh_username": "root",
+                            "ssh_password": "root"
+                        },
+                        "alertRuleConfigPath":
+                            "/tmp",
+                        "prometheusReloadApiEndpoint":
+                            "http://localhost:9990/-/reload"
+                    }
+                ]
+            }
+        }
+    }
+
+
+def pm_threshold_max(
+        callback_uri, inst_id, host_ip,
+        objectType="Vnf",
+        sub_object_instance_id=None,
+        p_metric=None,
+        thresholdValue=55,
+        hysteresis=30):
+    metric = f"VCpuUsageMeanVnf.{inst_id}"
+    if p_metric:
+        metric = f"{p_metric}"
+    return {
+        "objectType": objectType,
+        "objectInstanceId": inst_id,
+        "subObjectInstanceIds": ([sub_object_instance_id]
+                                 if sub_object_instance_id else []),
+        "criteria": {
+            "performanceMetric": metric,
+            "thresholdType": "SIMPLE",
+            "simpleThresholdDetails": {
+                "thresholdValue": thresholdValue,
+                "hysteresis": hysteresis
+            }
+        },
+        "callbackUri": callback_uri,
+        "authentication": {
+            "authType": ["BASIC"],
+            "paramsBasic": {
+                "userName": "test",
+                "password": "test"
+            }
+        },
+        "metadata": {
+            "monitoring": {
+                "monitorName": "prometheus",
+                "driverType": "external",
+                "targetsInfo": [
+                    {
+                        "prometheusHost": host_ip,
+                        "prometheusHostPort": 50022,
+                        "authInfo": {
+                            "ssh_username": "root",
+                            "ssh_password": "root"
+                        },
+                        "alertRuleConfigPath":
+                            "/tmp",
+                        "prometheusReloadApiEndpoint":
+                            "http://localhost:9990/-/reload"
+                    }
+                ]
+            }
+        }
+    }
+
+
+def update_pm_threshold(callback_uri):
+    return {
+        "callbackUri": callback_uri
+    }
+
+
 def pm_event(job_id, inst_id):
     return {
         "receiver": "receiver",
@@ -774,6 +890,51 @@ def pm_event(job_id, inst_id):
                     "value": 99,
                 },
                 "startsAt": "2022-06-21T23:47:36.453Z",
+                "endsAt": "0001-01-01T00:00:00Z",
+                "generatorURL": "http://controller147:9090/graph?g0.expr=up%7B"
+                                "job%3D%22node%22%7D+%3D%3D+0&g0.tab=1",
+                "fingerprint": "5ef77f1f8a3ecb8d"
+            }
+        ],
+        "groupLabels": {},
+        "commonLabels": {
+            "alertname": "NodeInstanceDown",
+            "job": "node"
+        },
+        "commonAnnotations": {
+            "description": "sample"
+        },
+        "externalURL": "http://controller147:9093",
+        "version": "4",
+        "groupKey": "{}:{}",
+        "truncatedAlerts": 0
+    }
+
+
+def pm_threshold(threshold_id, inst_id,
+                 sub_inst_id=None, value=99, p_metric=None):
+    metric = f"VCpuUsageMeanVnf.{inst_id}"
+    if p_metric:
+        metric = f"{p_metric}"
+    # This data simulates the complete request body sent by alertmanager.
+    return {
+        "receiver": "receiver",
+        "status": "firing",
+        "alerts": [
+            {
+                "status": "firing",
+                "labels": {
+                    "receiver_type": "tacker",
+                    "function_type": "vnfpm_threshold",
+                    "threshold_id": threshold_id,
+                    "metric": metric,
+                    "object_instance_id": inst_id,
+                    "sub_object_instance_id": sub_inst_id
+                },
+                "annotations": {
+                    "value": value,
+                },
+                "startsAt": "2022-12-15T23:47:36.453Z",
                 "endsAt": "0001-01-01T00:00:00Z",
                 "generatorURL": "http://controller147:9090/graph?g0.expr=up%7B"
                                 "job%3D%22node%22%7D+%3D%3D+0&g0.tab=1",

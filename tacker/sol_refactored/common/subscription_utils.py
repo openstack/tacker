@@ -14,13 +14,11 @@
 #    under the License.
 
 
-import threading
-
 from oslo_log import log as logging
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
 
-from tacker.sol_refactored.api import api_version
+from tacker.sol_refactored.common import common_script_utils
 from tacker.sol_refactored.common import config
 from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import http_client
@@ -31,8 +29,6 @@ from tacker.sol_refactored import objects
 LOG = logging.getLogger(__name__)
 
 CONF = config.CONF
-
-TEST_NOTIFICATION_TIMEOUT = 20  # seconds
 
 
 def get_subsc(context, subsc_id):
@@ -50,85 +46,14 @@ def subsc_href(subsc_id, endpoint):
     return "{}/vnflcm/v2/subscriptions/{}".format(endpoint, subsc_id)
 
 
-def _get_notification_auth_handle(subsc):
+def get_notification_auth_handle(subsc):
     auth_req = subsc.get('authentication', None)
     if auth_req:
-        auth = objects.SubscriptionAuthentication(
-            authType=auth_req['authType']
-        )
-        if 'OAUTH2_CLIENT_CERT' in auth.authType:
-            param = subsc.authentication.paramsOauth2ClientCert
-            verify_cert = CONF.v2_vnfm.notification_mtls_ca_cert_file
-            client_cert = CONF.v2_vnfm.notification_mtls_client_cert_file
-            return http_client.OAuth2MtlsAuthHandle(None,
-                param.tokenEndpoint, param.clientId, verify_cert, client_cert)
-        elif 'OAUTH2_CLIENT_CREDENTIALS' in auth.authType:
-            param = subsc.authentication.paramsOauth2ClientCredentials
-            verify = CONF.v2_vnfm.notification_verify_cert
-            if verify and CONF.v2_vnfm.notification_ca_cert_file:
-                verify = CONF.v2_vnfm.notification_ca_cert_file
-            return http_client.OAuth2AuthHandle(None,
-                param.tokenEndpoint, param.clientId, param.clientPassword,
-                verify=verify)
-        elif 'BASIC' in auth.authType:
-            param = subsc.authentication.paramsBasic
-            verify = CONF.v2_vnfm.notification_verify_cert
-            if verify and CONF.v2_vnfm.notification_ca_cert_file:
-                verify = CONF.v2_vnfm.notification_ca_cert_file
-            return http_client.BasicAuthHandle(param.userName, param.password,
-                verify=verify)
-        else:
-            raise sol_ex.AuthTypeNotFound(auth.authType)
+        return common_script_utils.get_notification_auth_handle(subsc)
     else:
         return http_client.NoAuthHandle()
 
     # not reach here
-
-
-def async_call(func):
-    def inner(*args, **kwargs):
-        th = threading.Thread(target=func, args=args,
-                kwargs=kwargs, daemon=True)
-        th.start()
-    return inner
-
-
-@async_call
-def send_notification(subsc, notif_data):
-    auth_handle = _get_notification_auth_handle(subsc)
-    connect_retries = (CONF.v2_vnfm.notify_connect_retries
-        if CONF.v2_vnfm.notify_connect_retries else None)
-    client = http_client.HttpClient(auth_handle,
-        version=api_version.CURRENT_VERSION,
-        connect_retries=connect_retries)
-
-    url = subsc.callbackUri
-    try:
-        resp, body = client.do_request(
-            url, "POST", expected_status=[204], body=notif_data)
-    except sol_ex.SolException:
-        # it may occur if test_notification was not executed.
-        LOG.exception("send_notification failed")
-
-    if resp.status_code != 204:
-        LOG.error("send_notification failed: %d" % resp.status_code)
-
-
-def test_notification(subsc):
-    auth_handle = _get_notification_auth_handle(subsc)
-    client = http_client.HttpClient(auth_handle,
-        version=api_version.CURRENT_VERSION,
-        timeout=TEST_NOTIFICATION_TIMEOUT)
-
-    url = subsc.callbackUri
-    try:
-        resp, _ = client.do_request(url, "GET", expected_status=[204])
-    except sol_ex.SolException as e:
-        # any sort of error is considered. avoid 500 error.
-        raise sol_ex.TestNotificationFailed() from e
-
-    if resp.status_code != 204:
-        raise sol_ex.TestNotificationFailed()
 
 
 def match_version(version, inst):

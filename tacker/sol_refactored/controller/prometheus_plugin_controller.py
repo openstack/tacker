@@ -34,6 +34,19 @@ class PmEventController(prom_wsgi.PrometheusPluginAPIController):
         return prom_wsgi.PrometheusPluginResponse(204, None)
 
 
+class PmThresholdController(prom_wsgi.PrometheusPluginAPIController):
+    def pm_threshold(self, request, body):
+        if not CONF.prometheus_plugin.performance_management:
+            raise sol_ex.PrometheusPluginNotEnabled(
+                name='Performance management')
+        cls = mon_base.get_class(
+            CONF.prometheus_plugin.performance_management_threshold_package,
+            CONF.prometheus_plugin.performance_management_threshold_class)
+        mon_base.MonitoringPlugin.get_instance(cls).alert(
+            request=request, body=body)
+        return prom_wsgi.PrometheusPluginResponse(204, None)
+
+
 class FmAlertController(prom_wsgi.PrometheusPluginAPIController):
     def alert(self, request, body):
         if not CONF.prometheus_plugin.fault_management:

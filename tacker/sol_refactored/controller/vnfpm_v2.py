@@ -23,11 +23,13 @@ from tacker.sol_refactored.api import api_version
 from tacker.sol_refactored.api.schemas import vnfpm_v2 as schema
 from tacker.sol_refactored.api import validator
 from tacker.sol_refactored.api import wsgi as sol_wsgi
+from tacker.sol_refactored.common import common_script_utils
 from tacker.sol_refactored.common import config
 from tacker.sol_refactored.common import coordinate
 from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import monitoring_plugin_base as plugin
 from tacker.sol_refactored.common import pm_job_utils
+from tacker.sol_refactored.common import pm_threshold_utils
 from tacker.sol_refactored.common import subscription_utils as subsc_utils
 from tacker.sol_refactored.common import vnf_instance_utils as inst_utils
 from tacker.sol_refactored.controller import vnfpm_view
@@ -45,7 +47,7 @@ OBJ_TYPE_TO_GROUP_TYPE = {
     'VnfExtCp': 'VnfExternalCp'
 }
 
-OBJ_TYPE_TO_METRIC_LISt = {
+OBJ_TYPE_TO_METRIC_LIST = {
     'Vnf': {'VCpuUsageMeanVnf', 'VCpuUsagePeakVnf',
             'VMemoryUsageMeanVnf', 'VMemoryUsagePeakVnf',
             'VDiskUsageMeanVnf', 'VDiskUsagePeakVnf'},
@@ -71,8 +73,21 @@ def _check_performance_metric_or_group(
     # Check if the type in performance metric matches the standard type.
     if performance_metric:
         metric_types = {metric.split('.')[0] for metric in performance_metric}
-        if not metric_types.issubset(OBJ_TYPE_TO_METRIC_LISt[obj_type]):
+        if not metric_types.issubset(OBJ_TYPE_TO_METRIC_LIST[obj_type]):
             raise sol_ex.PMJobInvalidRequest
+
+
+def _check_metric_and_obj_type(performance_metric, obj_type):
+    metric_type = {performance_metric}
+    if obj_type == 'Vnf' or obj_type == 'Vnfc':
+        if metric_type.issubset(OBJ_TYPE_TO_METRIC_LIST[obj_type]):
+            raise sol_ex.PMThresholdInvalidRequest
+    if obj_type == 'VnfIntCp' or obj_type == 'VnfExtCp':
+        if len(performance_metric.split('.')) == 2:
+            raise sol_ex.PMThresholdInvalidRequest
+    metric_type = {performance_metric.split('.')[0]}
+    if not metric_type.issubset(OBJ_TYPE_TO_METRIC_LIST[obj_type]):
+        raise sol_ex.PMThresholdInvalidRequest
 
 
 class VnfPmControllerV2(sol_wsgi.SolAPIController):
@@ -81,10 +96,17 @@ class VnfPmControllerV2(sol_wsgi.SolAPIController):
         self.nfvo_client = nfvo_client.NfvoClient()
         self.endpoint = CONF.v2_vnfm.endpoint
         self._pm_job_view = vnfpm_view.PmJobViewBuilder(self.endpoint)
+        self._pm_threshold_view = (
+            vnfpm_view.PmThresholdViewBuilder(self.endpoint))
         cls = plugin.get_class(
             CONF.prometheus_plugin.performance_management_package,
             CONF.prometheus_plugin.performance_management_class)
         self.plugin = plugin.MonitoringPlugin.get_instance(cls)
+        threshold_cls = plugin.get_class(
+            CONF.prometheus_plugin.performance_management_threshold_package,
+            CONF.prometheus_plugin.performance_management_threshold_class)
+        self.threshold_plugin = (
+            plugin.MonitoringPlugin.get_instance(threshold_cls))
 
     @validator.schema(schema.CreatePmJobRequest_V210, '2.1.0')
     def create(self, request, body):
@@ -160,7 +182,8 @@ class VnfPmControllerV2(sol_wsgi.SolAPIController):
             pm_job.metadata = metadata
 
         if CONF.v2_nfvo.test_callback_uri:
-            pm_job_utils.test_notification(pm_job)
+            common_script_utils.test_notification(
+                pm_job, common_script_utils.NOTIFY_TYPE_PM)
 
         try:
             self.plugin.create_job(context=context, pm_job=pm_job)
@@ -216,7 +239,8 @@ class VnfPmControllerV2(sol_wsgi.SolAPIController):
                 body.get("authentication"))
 
         if CONF.v2_nfvo.test_callback_uri:
-            pm_job_utils.test_notification(pm_job)
+            common_script_utils.test_notification(
+                pm_job, common_script_utils.NOTIFY_TYPE_PM)
 
         with context.session.begin(subtransactions=True):
             pm_job.update(context)
@@ -253,7 +277,7 @@ class VnfPmControllerV2(sol_wsgi.SolAPIController):
                                     version=api_version.CURRENT_PM_VERSION)
 
     def allowed_content_types(self, action):
-        if action == 'update':
+        if action in {'update', 'update_threshold'}:
             # Content-Type of Modify request shall be
             # 'application/mergepatch+json' according to SOL spec.
             # But 'application/json' and 'text/plain' is OK for backward
@@ -262,5 +286,157 @@ class VnfPmControllerV2(sol_wsgi.SolAPIController):
                     'text/plain']
         return ['application/json', 'text/plain']
 
+    def allowed_accept(self, action):
+        return ['application/json', 'application/mergepatch+json',
+                'text/plain']
+
     def supported_api_versions(self, action):
         return api_version.v2_pm_versions
+
+    @validator.schema(schema.CreateThresholdRequest_V210, '2.1.0')
+    def create_threshold(self, request, body):
+        context = request.context
+
+        object_type = body['objectType']
+        performance_metric = body["criteria"]['performanceMetric']
+
+        # Check if the type in performance metric matches the standard type.
+        _check_metric_and_obj_type(performance_metric, object_type)
+
+        # According to nfv-sol003 6.5.3.4,
+        # currently criteria.thresholdType supports only "SIMPLE".
+        if body["criteria"]["thresholdType"] != "SIMPLE":
+            raise sol_ex.PMThresholdInvalidRequest
+        # check criteria.thresholdType and criteria.ThresholdDetails
+        if not body["criteria"].get("simpleThresholdDetails"):
+            raise sol_ex.PMThresholdInvalidRequest
+
+        threshold_value = (
+            body["criteria"]["simpleThresholdDetails"]["thresholdValue"])
+        threshold_hysteresis = (
+            body["criteria"]["simpleThresholdDetails"]["hysteresis"])
+
+        # check vnf instance status
+        inst_id = body.get("objectInstanceId")
+        inst = inst_utils.get_inst(context, inst_id)
+        if inst.instantiationState == 'NOT_INSTANTIATED':
+            raise sol_ex.VnfInstanceIsNotInstantiated(inst_id=inst_id)
+
+        threshold_criteria = objects.ThresholdCriteriaV2(
+            performanceMetric=performance_metric,
+            thresholdType=body["criteria"]['thresholdType']
+        )
+        threshold_details = objects.SimpleThresholdDetails(
+            thresholdValue=threshold_value,
+            hysteresis=threshold_hysteresis)
+        threshold_criteria.simpleThresholdDetails = threshold_details
+
+        threshold_id = uuidutils.generate_uuid()
+        threshold = objects.ThresholdV2(
+            id=threshold_id,
+            objectType=object_type,
+            objectInstanceId=inst_id,
+            criteria=threshold_criteria,
+            callbackUri=body["callbackUri"],
+        )
+        if body.get("subObjectInstanceIds"):
+            threshold.subObjectInstanceIds = body["subObjectInstanceIds"]
+        metadata = body.get('metadata')
+        if not metadata:
+            raise sol_ex.PMThresholdInvalidRequest
+        threshold.metadata = metadata
+
+        auth_req = body.get('authentication')
+        if auth_req:
+            threshold.authentication = subsc_utils.check_http_client_auth(
+                auth_req)
+
+        if CONF.v2_nfvo.test_callback_uri:
+            common_script_utils.test_notification(
+                threshold, common_script_utils.NOTIFY_TYPE_PM)
+
+        try:
+            self.threshold_plugin.create_threshold(
+                context=context,
+                pm_threshold=threshold)
+        except sol_ex.PrometheusPluginError as e:
+            LOG.error("Failed to create PM Threshold: %s", e.args[0])
+            raise sol_ex.PrometheusSettingFailed from e
+
+        threshold.create(context)
+
+        location = pm_threshold_utils.pm_threshold_href(threshold.id,
+                                                        self.endpoint)
+        resp_body = self._pm_threshold_view.detail(threshold)
+        return sol_wsgi.SolResponse(201, resp_body,
+                                    version=api_version.CURRENT_PM_VERSION,
+                                    location=location)
+
+    def index_threshold(self, request):
+        filter_param = request.GET.get('filter')
+        filters = (self._pm_threshold_view.parse_filter(filter_param)
+                   if filter_param else None)
+
+        page_size = CONF.v2_vnfm.vnfpm_pmthreshold_page_size
+        pager = self._pm_threshold_view.parse_pager(request, page_size)
+        pm_job = pm_threshold_utils.get_pm_threshold_all(request.context,
+                                                         marker=pager.marker)
+        resp_body = self._pm_threshold_view.detail_list(pm_job, filters,
+                                                        None, pager)
+
+        return sol_wsgi.SolResponse(200, resp_body,
+                                    version=api_version.CURRENT_PM_VERSION,
+                                    link=pager.get_link())
+
+    def show_threshold(self, request, thresholdId):
+        pm_threshold = pm_threshold_utils.get_pm_threshold(
+            request.context, thresholdId)
+        if not pm_threshold:
+            raise sol_ex.PMThresholdNotExist(threshold_id=thresholdId)
+        pm_threshold_resp = self._pm_threshold_view.detail(pm_threshold)
+        return sol_wsgi.SolResponse(200, pm_threshold_resp,
+                                    version=api_version.CURRENT_PM_VERSION)
+
+    @validator.schema(schema.ThresholdModifications_V210, '2.1.0')
+    @coordinate.lock_resources('{thresholdId}')
+    def update_threshold(self, request, thresholdId, body):
+        context = request.context
+
+        pm_threshold = pm_threshold_utils.get_pm_threshold(
+            context, thresholdId)
+        if not pm_threshold:
+            raise sol_ex.PMThresholdNotExist(threshold_id=thresholdId)
+
+        if body.get("callbackUri"):
+            pm_threshold.callbackUri = body.get("callbackUri")
+        if CONF.v2_nfvo.test_callback_uri:
+            common_script_utils.test_notification(
+                pm_threshold, common_script_utils.NOTIFY_TYPE_PM)
+        if body.get("authentication"):
+            pm_threshold.authentication = subsc_utils.check_http_client_auth(
+                body.get("authentication"))
+
+        with context.session.begin(subtransactions=True):
+            pm_threshold.update(context)
+
+        pm_threshold_modifications = objects.ThresholdModificationsV2(
+            callbackUri=pm_threshold.callbackUri)
+        resp = pm_threshold_modifications.to_dict()
+        return sol_wsgi.SolResponse(200, resp,
+                                    version=api_version.CURRENT_PM_VERSION)
+
+    @coordinate.lock_resources('{thresholdId}')
+    def delete_threshold(self, request, thresholdId):
+        context = request.context
+        pm_threshold = pm_threshold_utils.get_pm_threshold(
+            context, thresholdId)
+        if not pm_threshold:
+            raise sol_ex.PMThresholdNotExist(thresholdId=thresholdId)
+
+        self.threshold_plugin.delete_threshold(
+            context=context, pm_threshold=pm_threshold)
+
+        pm_threshold.delete(context)
+
+        return sol_wsgi.SolResponse(204, None,
+                                    version=api_version.CURRENT_PM_VERSION)

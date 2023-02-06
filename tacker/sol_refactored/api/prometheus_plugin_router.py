@@ -26,6 +26,13 @@ class PmEventRouter(prom_wsgi.PrometheusPluginAPIRouter):
     route_list = [("", {"POST": "pm_event"})]
 
 
+class PmThresholdRouter(prom_wsgi.PrometheusPluginAPIRouter):
+    controller = prom_wsgi.PrometheusPluginResource(
+        prometheus_plugin_controller.PmThresholdController(),
+        policy_name=vnfpm_policy_v2.POLICY_NAME_PROM_PLUGIN)
+    route_list = [("", {"POST": "pm_threshold"})]
+
+
 class FmAlertRouter(prom_wsgi.PrometheusPluginAPIRouter):
     controller = prom_wsgi.PrometheusPluginResource(
         prometheus_plugin_controller.FmAlertController(),

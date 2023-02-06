@@ -13,21 +13,17 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import threading
 
 from oslo_log import log as logging
 from oslo_utils import uuidutils
 
-from tacker.sol_refactored.api import api_version
 from tacker.sol_refactored.common import config
 from tacker.sol_refactored.common import exceptions as sol_ex
-from tacker.sol_refactored.common import http_client
 from tacker.sol_refactored.common import vnf_instance_utils as inst_utils
 from tacker.sol_refactored import objects
 
 LOG = logging.getLogger(__name__)
 CONF = config.CONF
-TEST_NOTIFICATION_TIMEOUT = 20  # seconds
 
 
 def update_report(context, job_id, report, timestamp):
@@ -92,54 +88,6 @@ def make_pm_job_links(pm_job, endpoint):
     return links
 
 
-def _get_notification_auth_handle(pm_job):
-    if not pm_job.obj_attr_is_set('authentication'):
-        verify = CONF.v2_vnfm.notification_verify_cert
-        if verify and CONF.v2_vnfm.notification_ca_cert_file:
-            verify = CONF.v2_vnfm.notification_ca_cert_file
-        return http_client.NoAuthHandle(verify=verify)
-    if pm_job.authentication.obj_attr_is_set('paramsBasic'):
-        param = pm_job.authentication.paramsBasic
-        verify = CONF.v2_vnfm.notification_verify_cert
-        if verify and CONF.v2_vnfm.notification_ca_cert_file:
-            verify = CONF.v2_vnfm.notification_ca_cert_file
-        return http_client.BasicAuthHandle(param.userName, param.password,
-            verify=verify)
-    if pm_job.authentication.obj_attr_is_set(
-            'paramsOauth2ClientCredentials'):
-        param = pm_job.authentication.paramsOauth2ClientCredentials
-        verify = CONF.v2_vnfm.notification_verify_cert
-        if verify and CONF.v2_vnfm.notification_ca_cert_file:
-            verify = CONF.v2_vnfm.notification_ca_cert_file
-        return http_client.OAuth2AuthHandle(
-            None, param.tokenEndpoint, param.clientId, param.clientPassword,
-            verify=verify)
-    if pm_job.authentication.obj_attr_is_set('paramsOauth2ClientCert'):
-        param = pm_job.authentication.paramsOauth2ClientCert
-        ca_cert = CONF.v2_vnfm.notification_mtls_ca_cert_file
-        client_cert = CONF.v2_vnfm.notification_mtls_client_cert_file
-        return http_client.OAuth2MtlsAuthHandle(None,
-            param.tokenEndpoint, param.clientId, ca_cert, client_cert)
-    return None
-
-
-def test_notification(pm_job):
-    auth_handle = _get_notification_auth_handle(pm_job)
-    client = http_client.HttpClient(auth_handle,
-                                    version=api_version.CURRENT_PM_VERSION,
-                                    timeout=TEST_NOTIFICATION_TIMEOUT)
-
-    url = pm_job.callbackUri
-    try:
-        resp, _ = client.do_request(url, "GET", expected_status=[204])
-    except sol_ex.SolException as e:
-        # any sort of error is considered. avoid 500 error.
-        raise sol_ex.TestNotificationFailed() from e
-
-    if resp.status_code != 204:
-        raise sol_ex.TestNotificationFailed()
-
-
 def make_pm_notif_data(instance_id, sub_instance_ids, report_id,
                        pm_job, timestamp, endpoint):
     notif_data = objects.PerformanceInformationAvailableNotificationV2(
@@ -163,30 +111,3 @@ def make_pm_notif_data(instance_id, sub_instance_ids, report_id,
     if sub_instance_ids:
         notif_data.subObjectInstanceIds = sub_instance_ids
     return notif_data
-
-
-def async_call(func):
-    def inner(*args, **kwargs):
-        th = threading.Thread(target=func, args=args,
-                              kwargs=kwargs, daemon=True)
-        th.start()
-
-    return inner
-
-
-@async_call
-def send_notification(pm_job, notif_data):
-    auth_handle = _get_notification_auth_handle(pm_job)
-    client = http_client.HttpClient(auth_handle,
-                                    version=api_version.CURRENT_PM_VERSION)
-
-    url = pm_job.callbackUri
-    try:
-        resp, _ = client.do_request(
-            url, "POST", expected_status=[204], body=notif_data)
-    except sol_ex.SolException:
-        # it may occur if test_notification was not executed.
-        LOG.exception("send_notification failed")
-
-    if resp.status_code != 204:
-        LOG.error(f'send_notification failed: {resp.status_code}')

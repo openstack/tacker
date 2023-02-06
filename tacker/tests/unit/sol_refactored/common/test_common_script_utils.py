@@ -13,11 +13,22 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+
 import os
+import requests
+from unittest import mock
+
+from oslo_config import cfg
+from oslo_utils import uuidutils
 
 from tacker.sol_refactored.common import common_script_utils
+from tacker.sol_refactored.common import exceptions as sol_ex
+from tacker.sol_refactored.common import fm_alarm_utils
+from tacker.sol_refactored.common import http_client
+from tacker.sol_refactored.common import pm_job_utils
+from tacker.sol_refactored import objects
 from tacker.tests import base
-
+from tacker.tests.unit.sol_refactored.samples import fakes_for_fm
 
 SAMPLE_VNFD_ID = "b1bb0ce7-ebca-4fa7-95ed-4840d7000000"
 SAMPLE_FLAVOUR_ID = "simple"
@@ -27,6 +38,7 @@ class TestCommontScriptUtils(base.BaseTestCase):
 
     def setUp(self):
         super(TestCommontScriptUtils, self).setUp()
+        objects.register_all()
         cur_dir = os.path.dirname(__file__)
         sample_dir = os.path.join(cur_dir, "..", "samples")
 
@@ -566,3 +578,276 @@ class TestCommontScriptUtils(base.BaseTestCase):
         # removed
         self.assertNotIn(vl, top_hot['resources'])
         self.assertNotIn(vl_subnet, top_hot['resources'])
+
+    @mock.patch.object(http_client.HttpClient, 'do_request')
+    def test_send_notification(self, mock_resp):
+        subsc_no_auth = objects.LccnSubscriptionV2(
+            id='sub-1', verbosity='SHORT',
+            callbackUri='http://127.0.0.1/callback')
+        notif_data_no_auth = objects.VnfLcmOperationOccurrenceNotificationV2(
+            id=uuidutils.generate_uuid()
+        )
+        resp_no_auth = requests.Response()
+        resp_no_auth.status_code = 204
+        mock_resp.return_value = (resp_no_auth, None)
+
+        # execute no_auth
+        common_script_utils.send_notification(
+            subsc_no_auth, notif_data_no_auth)
+
+        subsc_basic_auth = objects.LccnSubscriptionV2(
+            id='sub-2', verbosity='SHORT',
+            callbackUri='http://127.0.0.1/callback',
+            authentication=objects.SubscriptionAuthentication(
+                authType=['BASIC'],
+                paramsBasic=objects.SubscriptionAuthentication_ParamsBasic(
+                    userName='test', password='test')))
+
+        # execute basic_auth
+        common_script_utils.send_notification(
+            subsc_basic_auth, notif_data_no_auth)
+
+        subsc_oauth2 = objects.LccnSubscriptionV2(
+            id='sub-3', verbosity='SHORT',
+            callbackUri='http://127.0.0.1/callback',
+            authentication=objects.SubscriptionAuthentication(
+                authType=['OAUTH2_CLIENT_CREDENTIALS'],
+                paramsOauth2ClientCredentials=(
+                    objects.SubscriptionAuthentication_ParamsOauth2(
+                        clientId='test', clientPassword='test',
+                        tokenEndpoint='http://127.0.0.1/token'))))
+
+        # execute oauth2
+        common_script_utils.send_notification(subsc_oauth2, notif_data_no_auth)
+
+        subsc_oauth2_mtls = objects.LccnSubscriptionV2(
+            id='sub-4', verbosity='SHORT',
+            callbackUri='http://127.0.0.1/callback',
+            authentication=objects.SubscriptionAuthentication(
+                authType=["OAUTH2_CLIENT_CERT"],
+                paramsOauth2ClientCert=(
+                    objects.SubscriptionAuthentication_ParamsOauth2ClientCert(
+                        clientId='test',
+                        certificateRef=objects.
+                        ParamsOauth2ClientCert_CertificateRef(
+                            type='x5t#256',
+                            value='03c6e188d1fe5d3da8c9bc9a8dc531a2'
+                                  'b3ecf812b03aede9bec7ba1b410b6b64'
+                        ),
+                        tokenEndpoint='http://127.0.0.1/token'
+                    )
+                )
+            )
+        )
+
+        # execute oauth2 mtls
+        common_script_utils.send_notification(
+            subsc_oauth2_mtls, notif_data_no_auth)
+
+        cfg.CONF.set_override("notification_verify_cert", "True",
+                              group="v2_vnfm")
+
+        subsc_no_auth = objects.LccnSubscriptionV2(
+            id='sub-5', verbosity='SHORT',
+            callbackUri='http://127.0.0.1/callback')
+        notif_data_no_auth = objects.VnfLcmOperationOccurrenceNotificationV2(
+            id=uuidutils.generate_uuid()
+        )
+        resp_no_auth = requests.Response()
+        resp_no_auth.status_code = 204
+        mock_resp.return_value = (resp_no_auth, None)
+
+        # execute no_auth
+        common_script_utils.send_notification(
+            subsc_no_auth, notif_data_no_auth)
+
+        subsc_basic_auth = objects.LccnSubscriptionV2(
+            id='sub-6', verbosity='SHORT',
+            callbackUri='http://127.0.0.1/callback',
+            authentication=objects.SubscriptionAuthentication(
+                authType=['BASIC'],
+                paramsBasic=objects.SubscriptionAuthentication_ParamsBasic(
+                    userName='test', password='test')
+            )
+        )
+
+        # execute basic_auth
+        common_script_utils.send_notification(
+            subsc_basic_auth, notif_data_no_auth)
+
+        subsc_oauth2 = objects.LccnSubscriptionV2(
+            id='sub-7', verbosity='SHORT',
+            callbackUri='http://127.0.0.1/callback',
+            authentication=objects.SubscriptionAuthentication(
+                authType=['OAUTH2_CLIENT_CREDENTIALS'],
+                paramsOauth2ClientCredentials=(
+                    objects.SubscriptionAuthentication_ParamsOauth2(
+                        clientId='test', clientPassword='test',
+                        tokenEndpoint='http://127.0.0.1/token')
+                )
+            )
+        )
+
+        # execute oauth2
+        common_script_utils.send_notification(subsc_oauth2, notif_data_no_auth)
+
+    @mock.patch.object(http_client.HttpClient, 'do_request')
+    def test_send_notification_error_code(self, mock_resp):
+        subsc_no_auth = objects.LccnSubscriptionV2(
+            id='sub-1', verbosity='SHORT',
+            callbackUri='http://127.0.0.1/callback')
+        notif_data_no_auth = objects.VnfLcmOperationOccurrenceNotificationV2(
+            id=uuidutils.generate_uuid()
+        )
+        resp_no_auth = requests.Response()
+        resp_no_auth.status_code = 200
+        mock_resp.return_value = (resp_no_auth, None)
+
+        # execute no_auth
+        common_script_utils.send_notification(
+            subsc_no_auth, notif_data_no_auth)
+
+    @mock.patch.object(http_client.HttpClient, 'do_request')
+    def test_send_notification_error(self, mock_resp):
+        subsc_no_auth = objects.LccnSubscriptionV2(
+            id='sub-1', verbosity='SHORT',
+            callbackUri='http://127.0.0.1/callback')
+        notif_data_no_auth = objects.VnfLcmOperationOccurrenceNotificationV2(
+            id=uuidutils.generate_uuid()
+        )
+        resp_no_auth = Exception()
+        mock_resp.return_value = (resp_no_auth, None)
+
+        # execute no_auth
+        common_script_utils.send_notification(
+            subsc_no_auth, notif_data_no_auth)
+
+    @mock.patch.object(http_client.HttpClient, 'do_request')
+    def test_test_notification(self, mock_resp):
+        subsc_no_auth = objects.LccnSubscriptionV2(
+            id='sub-1', verbosity='SHORT',
+            callbackUri='http://127.0.0.1/callback')
+
+        resp_no_auth = requests.Response()
+        resp_no_auth.status_code = 204
+        mock_resp.return_value = (resp_no_auth, None)
+
+        # execute no_auth
+        common_script_utils.test_notification(subsc_no_auth)
+
+    @mock.patch.object(http_client.HttpClient, 'do_request')
+    def test_test_notification_error_code(self, mock_resp):
+        subsc_no_auth = objects.LccnSubscriptionV2(
+            id='sub-1', verbosity='SHORT',
+            callbackUri='http://127.0.0.1/callback')
+        resp_no_auth = requests.Response()
+        resp_no_auth.status_code = 200
+        mock_resp.return_value = (resp_no_auth, None)
+
+        # execute no_auth
+        self.assertRaises(sol_ex.TestNotificationFailed,
+                          common_script_utils.test_notification, subsc_no_auth)
+
+    class mock_session():
+
+        def request(url, method, raise_exc=False, **kwargs):
+            resp = requests.Response()
+            resp.status_code = 400
+            resp.headers['Content-Type'] = 'application/zip'
+            return resp
+
+    @mock.patch.object(http_client.HttpClient, '_decode_body')
+    @mock.patch.object(http_client.NoAuthHandle, 'get_session')
+    def test_test_notification_error(self, mock_session, mock_decode_body):
+        subsc_no_auth = objects.LccnSubscriptionV2(
+            id='sub-1', verbosity='SHORT',
+            callbackUri='http://127.0.0.1/callback')
+        mock_session.return_value = self.mock_session
+        mock_decode_body.return_value = None
+
+        self.assertRaises(sol_ex.TestNotificationFailed,
+                          common_script_utils.test_notification, subsc_no_auth)
+
+    @mock.patch.object(http_client.HttpClient, 'do_request')
+    def test_test_notification_fm_subscription(self, mock_resp):
+        resp_no_auth = requests.Response()
+        resp_no_auth.status_code = 204
+        mock_resp.return_value = (resp_no_auth, None)
+
+        subsc_basic_auth = objects.FmSubscriptionV1.from_dict(
+            fakes_for_fm.fm_subsc_example)
+        subsc_basic_auth.authentication = objects.SubscriptionAuthentication(
+            authType=["BASIC"],
+            paramsBasic=objects.SubscriptionAuthentication_ParamsBasic(
+                userName='test', password='test'))
+
+        common_script_utils.test_notification(
+            subsc_basic_auth, common_script_utils.NOTIFY_TYPE_FM)
+
+    @mock.patch.object(http_client.HttpClient, 'do_request')
+    def test_test_notification_pm_job(self, mock_do_request):
+        resp_no_auth = requests.Response()
+        resp_no_auth.status_code = 204
+        mock_do_request.return_value = (resp_no_auth, None)
+        pm_job = objects.PmJobV2(
+            id='pm_job_1',
+            authentication=objects.SubscriptionAuthentication(
+                authType=["BASIC"],
+                paramsBasic=objects.SubscriptionAuthentication_ParamsBasic(
+                    userName='test',
+                    password='test'
+                )
+            ),
+            callbackUri='http://127.0.0.1/callback'
+        )
+        common_script_utils.test_notification(
+            pm_job, common_script_utils.NOTIFY_TYPE_PM)
+
+    @mock.patch.object(http_client.HttpClient, 'do_request')
+    def test_send_notification_fm_subscribtion(self, mock_resp):
+        resp_no_auth = requests.Response()
+        resp_no_auth.status_code = 204
+        mock_resp.return_value = (resp_no_auth, None)
+
+        subsc_basic_auth = objects.FmSubscriptionV1.from_dict(
+            fakes_for_fm.fm_subsc_example)
+        subsc_basic_auth.authentication = objects.SubscriptionAuthentication(
+            authType=["BASIC"],
+            paramsBasic=objects.SubscriptionAuthentication_ParamsBasic(
+                userName='test', password='test'))
+
+        alarm = objects.AlarmV1.from_dict(
+            fakes_for_fm.alarm_example)
+        notif_data = fm_alarm_utils.make_alarm_notif_data(
+            subsc_basic_auth, alarm, 'http://127.0.0.1:9890')
+
+        common_script_utils.send_notification(
+            subsc_basic_auth, notif_data)
+        self.assertEqual(1, mock_resp.call_count)
+
+    @mock.patch.object(http_client.HttpClient, 'do_request')
+    def test_send_notification_pm_job(self, mock_resp):
+        pm_job = objects.PmJobV2(
+            id='pm_job_1',
+            objectType='VNF',
+            authentication=objects.SubscriptionAuthentication(
+                authType=["BASIC"],
+                paramsBasic=objects.SubscriptionAuthentication_ParamsBasic(
+                    userName='test',
+                    password='test'
+                ),
+            ),
+            callbackUri='http://127.0.0.1/callback'
+        )
+        sub_instance_ids = ['1', '2', '3', '4']
+        notif_data = pm_job_utils.make_pm_notif_data('instance_id',
+                                                     sub_instance_ids,
+                                                     'report_id',
+                                                     pm_job,
+                                                     '2008-01-03 08:04:34',
+                                                     'endpoint')
+        resp_no_auth = requests.Response()
+        resp_no_auth.status_code = 204
+        mock_resp.return_value = (resp_no_auth, None)
+        common_script_utils.send_notification(
+            pm_job, notif_data, common_script_utils.NOTIFY_TYPE_PM)

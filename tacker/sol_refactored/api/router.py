@@ -84,4 +84,9 @@ class VnfPmAPIRouterV2(sol_wsgi.SolAPIRouter):
         ("/pm_jobs/{id}", {
             "PATCH": "update", "GET": "show", "DELETE": "delete"}),
         ("/pm_jobs/{id}/reports/{report_id}", {"GET": "report_get"}),
+        ("/thresholds", {"POST": "create_threshold",
+                         "GET": "index_threshold"}),
+        ("/thresholds/{thresholdId}", {"PATCH": "update_threshold",
+                                       "GET": "show_threshold",
+                                       "DELETE": "delete_threshold"}),
     ]

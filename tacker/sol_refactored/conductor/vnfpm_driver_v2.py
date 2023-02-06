@@ -13,8 +13,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import datetime
+
+from tacker.sol_refactored.common import common_script_utils
 from tacker.sol_refactored.common import config
+from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import pm_job_utils
+from tacker.sol_refactored.common import pm_threshold_utils
 from tacker.sol_refactored.nfvo import nfvo_client
 from tacker.sol_refactored import objects
 
@@ -43,6 +48,31 @@ class VnfPmDriverV2():
         # POST /{pmjob.callbackUri}
         self.nfvo_client.send_pm_job_notification(
             report, pm_job, timestamp, self.endpoint)
+
+    def store_threshold_info(self, context, threshold_states):
+        for threshold_state in threshold_states:
+            update_threshold_state_data = {
+                'subObjectInstanceId': threshold_state[
+                    'subObjectInstanceId'],
+                'performanceValue': threshold_state['performanceValue'],
+                'metrics': threshold_state['metrics'],
+                'crossingDirection': threshold_state['crossingDirection']
+            }
+            pm_threshold_utils.update_threshold_state_data(
+                context, threshold_state['thresholdId'],
+                update_threshold_state_data)
+            datetime_now = datetime.datetime.now(datetime.timezone.utc)
+            threshold = pm_threshold_utils.get_pm_threshold(
+                context, threshold_state['thresholdId'])
+            if not threshold:
+                raise sol_ex.PMThresholdNotExist(
+                    threshold_id=threshold_state['thresholdId'])
+            if threshold_state['crossingDirection'] in {"UP", "DOWN"}:
+                notif_data = pm_threshold_utils.make_threshold_notif_data(
+                    datetime_now, threshold_state,
+                    self.endpoint, threshold)
+                common_script_utils.send_notification(
+                    threshold, notif_data, common_script_utils.NOTIFY_TYPE_PM)
 
     def _store_report(self, context, report):
         report = objects.PerformanceReportV2.from_dict(report)

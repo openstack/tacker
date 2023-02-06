@@ -34,6 +34,7 @@ from tacker.sol_refactored.common import fm_alarm_utils
 from tacker.sol_refactored.common import http_client
 from tacker.sol_refactored.common import monitoring_plugin_base as mon_base
 from tacker.sol_refactored.common import pm_job_utils
+from tacker.sol_refactored.common import pm_threshold_utils
 from tacker.sol_refactored.common import vnf_instance_utils as inst_utils
 from tacker.sol_refactored.conductor import conductor_rpc_v2 as rpc
 from tacker.sol_refactored import objects
@@ -62,6 +63,64 @@ class PrometheusPluginPmBase(PrometheusPlugin):
         auth_handle = http_client.NoAuthHandle()
         self.client = http_client.HttpClient(auth_handle)
 
+    def set_callback(self, notification_callback):
+        self.notification_callback = notification_callback
+
+    def alert(self, **kwargs):
+        try:
+            self._alert(kwargs['request'], body=kwargs['body'])
+        except Exception as e:
+            # All exceptions are ignored here and 204 response will always
+            # be returned because when Tacker responds errors to alertmanager,
+            # alertmanager may repeat the same reports.
+            LOG.error("%s: %s", e.__class__.__name__, e.args[0])
+
+    def decompose_metrics(self, pm_job_or_threshold):
+        if pm_job_or_threshold.objectType in {'Vnf', 'Vnfc'}:
+            return self.decompose_metrics_vnfc(pm_job_or_threshold)
+        if pm_job_or_threshold.objectType in {'VnfIntCp', 'VnfExtCp'}:
+            return self.decompose_metrics_vnfintextcp(pm_job_or_threshold)
+        raise sol_ex.PrometheusPluginError(
+            f"Invalid objectType: {pm_job_or_threshold.objectType}.")
+
+    def _make_rules(self, pm_job_or_threshold, metric, inst_map):
+        sub_objs = []
+        if (pm_job_or_threshold.obj_attr_is_set('subObjectInstanceIds')
+                and pm_job_or_threshold.subObjectInstanceIds):
+            sub_objs = pm_job_or_threshold.subObjectInstanceIds
+
+        # Cardinality of objectInstanceIds and subObjectInstanceIds
+        # is N:0 or 1:N.
+        if len(sub_objs) > 0:
+            return self._make_rules_for_each_sub_obj(
+                pm_job_or_threshold, inst_map, metric)
+        return self._make_rules_for_each_obj(
+            pm_job_or_threshold, inst_map, metric)
+
+    def make_rules(self, context, pm_job_or_threshold):
+        target_list, reload_list = self.get_access_info(pm_job_or_threshold)
+        metrics = self.decompose_metrics(pm_job_or_threshold)
+        inst_map = self.get_vnf_instances(context, pm_job_or_threshold)
+        rules = sum(
+            [self._make_rules(pm_job_or_threshold, metric, inst_map)
+             for metric in metrics], [])
+        if len(rules) == 0:
+            raise sol_ex.PrometheusPluginError(
+                "Converting from a PM job/threshold to alert rules is failed."
+                f" PM job/threshold id: {pm_job_or_threshold.id}")
+        rule_group = {
+            'groups': [
+                {
+                    'name': f'tacker_{pm_job_or_threshold.id}',
+                    'rules': rules
+                }
+            ]
+        }
+        self.upload_rules(
+            context, target_list, reload_list,
+            rule_group, pm_job_or_threshold.id)
+        return rule_group
+
     def convert_measurement_unit(self, metric, value):
         if re.match(r'^V(Cpu|Memory|Disk)Usage(Mean|Peak)Vnf\..+', metric):
             value = float(value)
@@ -69,7 +128,7 @@ class PrometheusPluginPmBase(PrometheusPlugin):
                       metric):
             value = int(value)
         else:
-            raise sol_ex.PrometheusPluginError(
+            raise sol_ex.PrometheusPluginSkipped(
                   "Failed to convert annotations.value to measurement unit.")
         return value
 
@@ -116,7 +175,7 @@ class PrometheusPluginPmBase(PrometheusPlugin):
             labels = {
                 'alertname': '',
                 'receiver_type': 'tacker',
-                'function_type': 'vnfpm-threshold',
+                'function_type': 'vnfpm_threshold',
                 'threshold_id': id,
                 'object_instance_id': object_instance_id,
                 'sub_object_instance_id': sub_object_instance_id,
@@ -588,16 +647,6 @@ class PrometheusPluginPm(PrometheusPluginPmBase, mon_base.MonitoringPlugin):
                     collection_period=collection_period))
         return rules
 
-    def _make_rules(self, pm_job, metric, inst_map):
-        sub_objs = pm_job.subObjectInstanceIds\
-            if (pm_job.obj_attr_is_set('subObjectInstanceIds') and
-                pm_job.subObjectInstanceIds) else []
-        # Cardinality of objectInstanceIds and subObjectInstanceIds
-        # is N:0 or 1:N.
-        if len(sub_objs) > 0:
-            return self._make_rules_for_each_sub_obj(pm_job, inst_map, metric)
-        return self._make_rules_for_each_obj(pm_job, inst_map, metric)
-
     def decompose_metrics_vnfintextcp(self, pm_job):
         group_name = 'VnfInternalCp'\
             if pm_job.objectType == 'VnfIntCp' else 'VnfExternalCp'
@@ -623,14 +672,6 @@ class PrometheusPluginPm(PrometheusPluginPmBase, mon_base.MonitoringPlugin):
             )
         return metrics
 
-    def decompose_metrics(self, pm_job):
-        if pm_job.objectType in {'Vnf', 'Vnfc'}:
-            return self.decompose_metrics_vnfc(pm_job)
-        if pm_job.objectType in {'VnfIntCp', 'VnfExtCp'}:
-            return self.decompose_metrics_vnfintextcp(pm_job)
-        raise sol_ex.PrometheusPluginError(
-            f"Invalid objectType: {pm_job.objectType}.")
-
     def get_vnf_instances(self, context, pm_job):
         object_instance_ids = list(set(pm_job.objectInstanceIds))
         return dict(zip(
@@ -639,27 +680,267 @@ class PrometheusPluginPm(PrometheusPluginPmBase, mon_base.MonitoringPlugin):
                 lambda inst: inst_utils.get_inst(context, inst),
                 object_instance_ids))))
 
-    def make_rules(self, context, pm_job):
-        target_list, reload_list = self.get_access_info(pm_job)
-        metrics = self.decompose_metrics(pm_job)
-        inst_map = self.get_vnf_instances(context, pm_job)
-        rules = sum([self._make_rules(pm_job, metric, inst_map)
-                     for metric in metrics], [])
-        if len(rules) == 0:
+
+class PrometheusPluginThreshold(PrometheusPluginPmBase,
+                                mon_base.MonitoringPlugin):
+
+    _instance = None
+
+    @staticmethod
+    def instance():
+        if PrometheusPluginThreshold._instance is None:
+            if not CONF.prometheus_plugin.performance_management:
+                stub = mon_base.MonitoringPluginStub.instance()
+                PrometheusPluginThreshold._instance = stub
+            else:
+                PrometheusPluginThreshold()
+        return PrometheusPluginThreshold._instance
+
+    def __init__(self):
+        if PrometheusPluginThreshold._instance:
+            raise SystemError(
+                "Not constructor but instance() should be used.")
+        super(PrometheusPluginThreshold, self).__init__()
+        self.notification_callback = self.default_callback
+        PrometheusPluginThreshold._instance = self
+
+    def create_threshold(self, **kwargs):
+        return self.make_rules(kwargs['context'], kwargs['pm_threshold'])
+
+    def delete_threshold(self, **kwargs):
+        self.delete_rules(kwargs['context'], kwargs['pm_threshold'])
+
+    def default_callback(self, context, threshold_states):
+        self.rpc.store_threshold_state_info(context, threshold_states)
+
+    def valid_alert(self, pm_threshold, metric, object_instance_id,
+                    sub_object_instance_id):
+        instance_id = (
+            pm_threshold.objectInstanceId
+            if (pm_threshold.obj_attr_is_set('objectInstanceId') and
+                pm_threshold.objectInstanceId) else None)
+        if object_instance_id != instance_id:
+            LOG.error(
+                f"labels.object_instance_id {object_instance_id} "
+                "doesn't match pm_threshold.")
+            raise sol_ex.PrometheusPluginSkipped()
+
+        sub_object_instance_ids = (
+            pm_threshold.subObjectInstanceIds
+            if (pm_threshold.obj_attr_is_set('subObjectInstanceIds') and
+                pm_threshold.subObjectInstanceIds) else [])
+        if (sub_object_instance_id and
+                (not sub_object_instance_ids or
+                 sub_object_instance_id not in sub_object_instance_ids)):
+            LOG.error(
+                f"labels.sub_object_instance_id {sub_object_instance_id} "
+                "doesn't match pm_threshold.")
+            raise sol_ex.PrometheusPluginSkipped()
+
+        if metric != pm_threshold.criteria.performanceMetric:
+            LOG.error(
+                f"labels.metric {metric} doesn't match pm_threshold.")
+            raise sol_ex.PrometheusPluginSkipped()
+
+    def set_threshold_last_value(
+            self, threshold_value, pm_threshold_state):
+        threshold_last_value = threshold_value
+        if pm_threshold_state and pm_threshold_state.get('performanceValue'):
+            threshold_last_value = pm_threshold_state['performanceValue']
+        return float(threshold_last_value)
+
+    def set_crossing_direction(self, threshold_new_value, threshold_last_value,
+                               threshold_value, threshold_hysteresis):
+        # NOTE: "IN" is simply used to mark not to send
+        # ThresholdCrossedNotification.
+        crossing_direction = "IN"
+        if (threshold_new_value > (threshold_value + threshold_hysteresis) >=
+                threshold_last_value):
+            crossing_direction = "UP"
+        if (threshold_new_value < (threshold_value - threshold_hysteresis) <=
+                threshold_last_value):
+            crossing_direction = "DOWN"
+        return crossing_direction
+
+    @validator.schema(prometheus_plugin_schemas.AlertMessage)
+    def _alert(self, request, body):
+        result = []
+        context = request.context
+        alerts = (alert for alert in body['alerts'] if
+                  alert['status'] == 'firing' and
+                  alert['labels']['receiver_type'] == 'tacker' and
+                  alert['labels']['function_type'] == 'vnfpm_threshold')
+
+        for alert in alerts:
+            try:
+                pm_threshold_id = alert['labels']['threshold_id']
+                object_instance_id = alert['labels']['object_instance_id']
+                metric = alert['labels']['metric']
+                sub_object_instance_id = alert['labels'].get(
+                    'sub_object_instance_id')
+                value = alert['annotations']['value']
+
+                pm_threshold = pm_threshold_utils.get_pm_threshold(
+                    context, pm_threshold_id)
+                if not pm_threshold:
+                    raise sol_ex.PMThresholdNotExist(
+                        threshold_id=pm_threshold_id)
+                threshold_type = pm_threshold.criteria.thresholdType
+                simple_threshold_details = (
+                    pm_threshold.criteria.simpleThresholdDetails)
+
+                self.valid_alert(pm_threshold, metric, object_instance_id,
+                                 sub_object_instance_id)
+
+                if threshold_type == "SIMPLE" and simple_threshold_details:
+                    threshold_value = simple_threshold_details.thresholdValue
+                    threshold_hysteresis = simple_threshold_details.hysteresis
+
+                    pm_threshold_state = (
+                        pm_threshold_utils.get_pm_threshold_state(
+                            pm_threshold, sub_object_instance_id))
+
+                    threshold_new_value = self.convert_measurement_unit(
+                        metric, value)
+                    threshold_last_value = self.set_threshold_last_value(
+                        threshold_value, pm_threshold_state)
+
+                    crossing_direction = self.set_crossing_direction(
+                        threshold_new_value, threshold_last_value,
+                        threshold_value, threshold_hysteresis
+                    )
+
+                    result.append({
+                        'thresholdId': pm_threshold.id,
+                        'subObjectInstanceId': sub_object_instance_id,
+                        'performanceValue': threshold_new_value,
+                        'metrics': metric,
+                        'crossingDirection': crossing_direction
+                    })
+                else:
+                    LOG.error("Lack thresholdValue and hysteresis")
+            except (sol_ex.PrometheusPluginSkipped,
+                    sol_ex.PMThresholdNotExist):
+                pass
+
+        # Call ConductorV2
+        if result and self.notification_callback:
+            self.notification_callback(
+                context, result)
+            for res in result:
+                res.pop('thresholdId')
+        return result
+
+    def decompose_metrics_vnfc(self, pm_threshold):
+        # pm_threshold.criteria.performanceMetric : String  1
+        # pm_threshold.objectInstanceId : String   1
+        metrics = []
+        metric = (pm_threshold.criteria.performanceMetric
+                  if pm_threshold.criteria.obj_attr_is_set('performanceMetric')
+                  else None)
+
+        _metric = (re.match(
+            r'^V(Cpu|Memory|Disk)Usage(Mean|Peak)Vnf\..+', metric) and re.sub(
+            r'^V(Cpu|Memory|Disk)Usage(Mean|Peak)Vnf\.', '', metric))
+        if _metric == pm_threshold.objectInstanceId:
+            metrics.append(metric)
+            return metrics
+        else:
             raise sol_ex.PrometheusPluginError(
-                  f"Converting from a PM job to alert rules is failed."
-                  f" PM job id: {pm_job.id}")
-        rule_group = {
-            'groups': [
-                {
-                    'name': f'tacker_{pm_job.id}',
-                    'rules': rules
-                }
-            ]
+                "Invalid performanceMetric.")
+
+    def decompose_metrics_vnfintextcp(self, pm_threshold):
+        # pm_threshold.criteria.performanceMetric : String  1
+        metrics = []
+        metric = (pm_threshold.criteria.performanceMetric
+                  if pm_threshold.criteria.obj_attr_is_set('performanceMetric')
+                  else None)
+
+        _metric = re.match(r'^(Byte|Packet)(Incoming|Outgoing)' +
+                           pm_threshold.objectType, metric)
+        if _metric:
+            metrics.append(metric)
+            return metrics
+        else:
+            raise sol_ex.PrometheusPluginError(
+                "Invalid performanceMetric.")
+
+    def _make_rules_for_each_obj(self, pm_threshold, inst_map, metric):
+        target = re.sub(r'\..+$', '', metric)
+        obj = pm_threshold.objectInstanceId
+        rules = []
+        # resource ids are like:
+        #   ['test-test1-756757f8f-xcwmt',
+        #    'test-test2-756757f8f-kmghr', ...]
+        # convert them to a regex string such as:
+        #   '(test-test1-[0-9a-f]{1,10}-[0-9a-z]{5}$|
+        #    test-test2-[0-9a-f]{1,10}-[0-9a-z]{5}$|...)'
+        pods_regexp = self.get_pod_regexp(inst_map[obj])
+        namespace = self.get_namespace(inst_map[obj])
+        reporting_period = CONF.prometheus_plugin.reporting_period_threshold
+        collection_period = CONF.prometheus_plugin.collection_period_threshold
+
+        expr = self.make_prom_ql(
+            target, pods_regexp, collection_period=collection_period,
+            reporting_period=reporting_period, pm_type="Threshold",
+            namespace=namespace)
+        rules.append(self.make_rule(
+            'Threshold', pm_threshold.id, obj, None, metric, expr,
+            collection_period=collection_period))
+        return rules
+
+    def _make_rules_for_each_sub_obj(self, pm_threshold, inst_map, metric):
+        reporting_period = CONF.prometheus_plugin.reporting_period_threshold
+        collection_period = CONF.prometheus_plugin.collection_period_threshold
+        target = re.sub(r'\..+$', '', metric)
+        obj = pm_threshold.objectInstanceId
+        sub_objs = (pm_threshold.subObjectInstanceIds
+                    if (pm_threshold.obj_attr_is_set('subObjectInstanceIds')
+                        and pm_threshold.subObjectInstanceIds) else [])
+        rules = []
+        if pm_threshold.objectType in {'Vnf', 'Vnfc'}:
+            inst = inst_map[obj]
+            for sub_obj in sub_objs:
+                compute_resource = self.get_compute_resource_by_sub_obj(
+                    inst, sub_obj)
+                if not compute_resource:
+                    continue
+                resource_id = compute_resource.resourceId
+                namespace = self.get_namespace(inst)
+                expr = self.make_prom_ql(
+                    target, resource_id,
+                    collection_period=collection_period,
+                    reporting_period=reporting_period,
+                    pm_type="Threshold",
+                    namespace=namespace
+                )
+                rules.append(self.make_rule(
+                    'Threshold', pm_threshold.id, obj, sub_obj, metric, expr,
+                    collection_period=collection_period))
+        else:
+            pods_regexp = self.get_pod_regexp(inst_map[obj])
+            if pods_regexp is None:
+                return []
+            for sub_obj in sub_objs:
+                namespace = self.get_namespace(inst_map[obj])
+                expr = self.make_prom_ql(
+                    target, pods_regexp,
+                    collection_period=collection_period,
+                    reporting_period=reporting_period,
+                    sub_object_instance_id=sub_obj,
+                    pm_type="Threshold",
+                    namespace=namespace
+                )
+                rules.append(self.make_rule(
+                    'Threshold', pm_threshold.id, obj, sub_obj, metric, expr,
+                    collection_period=collection_period))
+        return rules
+
+    def get_vnf_instances(self, context, pm_threshold):
+        return {
+            pm_threshold.objectInstanceId: inst_utils.get_inst(
+                context, pm_threshold.objectInstanceId)
         }
-        self.upload_rules(
-            context, target_list, reload_list, rule_group, pm_job.id)
-        return rule_group
 
 
 class PrometheusPluginFm(PrometheusPlugin, mon_base.MonitoringPlugin):

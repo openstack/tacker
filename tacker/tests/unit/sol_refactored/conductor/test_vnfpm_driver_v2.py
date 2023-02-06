@@ -18,7 +18,9 @@ from unittest import mock
 from tacker.tests import base
 
 from tacker import context
+from tacker.sol_refactored.common import common_script_utils
 from tacker.sol_refactored.common import pm_job_utils
+from tacker.sol_refactored.common import pm_threshold_utils
 from tacker.sol_refactored.conductor.vnfpm_driver_v2 import VnfPmDriverV2
 from tacker.sol_refactored.nfvo.nfvo_client import NfvoClient
 from tacker.sol_refactored import objects
@@ -69,6 +71,40 @@ class TestVnfPmDriverV2(base.BaseTestCase):
         mock_send.return_value = None
         VnfPmDriverV2().store_job_info(context=self.context,
                                        report=report)
+
+    @mock.patch.object(common_script_utils, 'send_notification')
+    @mock.patch.object(objects.base.TackerPersistentObject, 'get_by_id')
+    @mock.patch.object(pm_threshold_utils,
+                       'update_threshold_state_data')
+    def test_store_threshold_info(self,
+                                  mock_update_threshold_state_data,
+                                  mock_pm, mock_send):
+        threshold_states = [{
+            'thresholdId': 'pm_threshold_1',
+            'subObjectInstanceId': "sub_id_1",
+            'performanceValue': '200.5',
+            'metrics': 'VCpuUsageMeanVnf.VNF',
+            'crossingDirection': 'UP'
+        }]
+        mock_pm.return_value = objects.ThresholdV2(
+            id='pm_threshold_1',
+            objectType='Vnf',
+            objectInstanceId='id_1',
+            callbackUri='http://127.0.0.1/callback',
+            authentication=objects.SubscriptionAuthentication(
+                authType=["OAUTH2_CLIENT_CREDENTIALS"],
+                paramsOauth2ClientCredentials=(
+                    objects.SubscriptionAuthentication_ParamsOauth2(
+                        clientId='test',
+                        clientPassword='test',
+                        tokenEndpoint='http://127.0.0.1/token'
+                    ))
+            )
+        )
+        mock_send.return_value = None
+        mock_update_threshold_state_data.return_value = threshold_states[0]
+        VnfPmDriverV2().store_threshold_info(context=self.context,
+                                             threshold_states=threshold_states)
 
     @mock.patch.object(objects.base.TackerPersistentObject, 'create')
     def test_store_report(self, mock_create):

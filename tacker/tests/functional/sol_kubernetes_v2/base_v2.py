@@ -206,6 +206,16 @@ class BaseVnfLcmKubernetesV2Test(base.BaseTestCase):
         self.assertEqual(notify_type, notify_mock_responses[0].request_body[
             'notificationType'])
 
+    def _check_no_notification(self, callback_url):
+        notify_mock_responses = FAKE_SERVER_MANAGER.get_history(
+            callback_url)
+        self.assertEqual(0, len(notify_mock_responses))
+
+    def _get_crossing_direction(self, callback_url):
+        notify_mock_responses = FAKE_SERVER_MANAGER.get_history(
+            callback_url)
+        return notify_mock_responses[0].request_body['crossingDirection']
+
     @classmethod
     def delete_vnf_package(cls, pkg_id):
         path = f"/vnfpkgm/v1/vnf_packages/{pkg_id}"
@@ -373,6 +383,39 @@ class BaseVnfLcmKubernetesV2Test(base.BaseTestCase):
 
     def delete_pm_job(self, pm_job_id):
         path = f"/vnfpm/v2/pm_jobs/{pm_job_id}"
+        return self.tacker_client.do_request(
+            path, "DELETE", version="2.1.0")
+
+    def create_pm_threshold(self, req_body):
+        path = "/vnfpm/v2/thresholds"
+        return self.tacker_client.do_request(
+            path, "POST", body=req_body, version="2.1.0")
+
+    def update_pm_threshold(self, pm_threshold_id, req_body):
+        path = f"/vnfpm/v2/thresholds/{pm_threshold_id}"
+        return self.tacker_client.do_request(
+            path, "PATCH", body=req_body, version="2.1.0",
+            content_type="application/mergepatch+json")
+
+    def pm_threshold(self, req_body):
+        path = "/pm_threshold"
+        return self.tacker_client.do_request(
+            path, "POST", body=req_body, version="2.1.0")
+
+    def list_pm_threshold(self, filter_expr=None):
+        path = "/vnfpm/v2/thresholds"
+        if filter_expr:
+            path = "{}?{}".format(path, urllib.parse.urlencode(filter_expr))
+        return self.tacker_client.do_request(
+            path, "GET", version="2.1.0")
+
+    def show_pm_threshold(self, pm_threshold_id):
+        path = f"/vnfpm/v2/thresholds/{pm_threshold_id}"
+        return self.tacker_client.do_request(
+            path, "GET", version="2.1.0")
+
+    def delete_pm_threshold(self, pm_threshold_id):
+        path = f"/vnfpm/v2/thresholds/{pm_threshold_id}"
         return self.tacker_client.do_request(
             path, "DELETE", version="2.1.0")
 

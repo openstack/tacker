@@ -18,6 +18,7 @@ from unittest import mock
 from oslo_utils import uuidutils
 
 from tacker import context
+from tacker.sol_refactored.common import common_script_utils
 from tacker.sol_refactored.common import fm_subscription_utils
 from tacker.sol_refactored.common import vnf_instance_utils as inst_utils
 from tacker.sol_refactored.conductor import vnffm_driver_v1
@@ -34,7 +35,7 @@ class TestVnffmDriverV1(base.BaseTestCase):
         self.driver = vnffm_driver_v1.VnfFmDriverV1()
         self.context = context.get_admin_context()
 
-    @mock.patch.object(fm_subscription_utils, 'send_notification')
+    @mock.patch.object(common_script_utils, 'send_notification')
     @mock.patch.object(fm_subscription_utils, 'get_alarm_subscs')
     @mock.patch.object(objects.base.TackerPersistentObject, 'create')
     @mock.patch.object(objects.base.TackerPersistentObject, 'update')

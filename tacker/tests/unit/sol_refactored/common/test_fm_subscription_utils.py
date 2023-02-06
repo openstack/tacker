@@ -12,18 +12,16 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+
+
 import copy
-import requests
 from unittest import mock
 
-from oslo_config import cfg
 from oslo_log import log as logging
 
 from tacker import context
 from tacker.sol_refactored.common import exceptions as sol_ex
-from tacker.sol_refactored.common import fm_alarm_utils as alarm_utils
 from tacker.sol_refactored.common import fm_subscription_utils as subsc_utils
-from tacker.sol_refactored.common import http_client
 from tacker.sol_refactored import objects
 from tacker.tests import base
 from tacker.tests.unit.sol_refactored.samples import fakes_for_fm
@@ -59,156 +57,6 @@ class TestFmSubscriptionUtils(base.BaseTestCase):
 
         result = subsc_utils.get_subsc_all(context)
         self.assertEqual(fakes_for_fm.fm_subsc_example['id'], result[0].id)
-
-    @mock.patch.object(http_client.HttpClient, 'do_request')
-    def test_send_notification(self, mock_resp):
-        subsc_no_auth = objects.FmSubscriptionV1.from_dict(
-            fakes_for_fm.fm_subsc_example)
-        alarm = objects.AlarmV1.from_dict(fakes_for_fm.alarm_example)
-        notif_data_no_auth = alarm_utils.make_alarm_notif_data(
-            subsc_no_auth, alarm, 'http://127.0.0.1:9890')
-        resp_no_auth = requests.Response()
-        resp_no_auth.status_code = 204
-        mock_resp.return_value = (resp_no_auth, None)
-
-        # 1. execute no_auth
-        subsc_utils.send_notification(subsc_no_auth, notif_data_no_auth)
-
-        subsc_basic_auth = copy.deepcopy(subsc_no_auth)
-        subsc_basic_auth.authentication = objects.SubscriptionAuthentication(
-            paramsBasic=objects.SubscriptionAuthentication_ParamsBasic(
-                userName='test', password='test'))
-
-        # 2. execute basic_auth
-        subsc_utils.send_notification(subsc_basic_auth, notif_data_no_auth)
-
-        subsc_oauth2 = copy.deepcopy(subsc_no_auth)
-        subsc_oauth2.authentication = objects.SubscriptionAuthentication(
-            paramsOauth2ClientCredentials=(
-                objects.SubscriptionAuthentication_ParamsOauth2(
-                    clientId='test', clientPassword='test',
-                    tokenEndpoint='http://127.0.0.1/token')))
-
-        # 3. execute oauth2
-        subsc_utils.send_notification(subsc_oauth2, notif_data_no_auth)
-
-        subsc_oauth2_mtls = copy.deepcopy(subsc_no_auth)
-        subsc_oauth2_mtls.authentication = objects.SubscriptionAuthentication(
-            paramsOauth2ClientCert=(
-                objects.SubscriptionAuthentication_ParamsOauth2ClientCert(
-                    clientId='test',
-                    certificateRef=objects.
-                    ParamsOauth2ClientCert_CertificateRef(
-                        type='x5t#256',
-                        value='03c6e188d1fe5d3da8c9bc9a8dc531a2'
-                              'b3ecf812b03aede9bec7ba1b410b6b64'
-                    ),
-                    tokenEndpoint='http://127.0.0.1/token'
-                )
-            )
-        )
-
-        # 4. execute oauth2 mTLS
-        subsc_utils.send_notification(subsc_oauth2_mtls, notif_data_no_auth)
-
-        cfg.CONF.set_override("notification_verify_cert", "True",
-            group="v2_vnfm")
-
-        subsc_no_auth = objects.FmSubscriptionV1.from_dict(
-            fakes_for_fm.fm_subsc_example)
-
-        # 5. execute no_auth
-        subsc_utils.send_notification(subsc_no_auth, notif_data_no_auth)
-
-        subsc_basic_auth = copy.deepcopy(subsc_no_auth)
-        subsc_basic_auth.authentication = objects.SubscriptionAuthentication(
-            paramsBasic=objects.SubscriptionAuthentication_ParamsBasic(
-                userName='test', password='test'))
-
-        # 6. execute basic_auth
-        subsc_utils.send_notification(subsc_basic_auth, notif_data_no_auth)
-
-        subsc_oauth2 = copy.deepcopy(subsc_no_auth)
-        subsc_oauth2.authentication = objects.SubscriptionAuthentication(
-            paramsOauth2ClientCredentials=(
-                objects.SubscriptionAuthentication_ParamsOauth2(
-                    clientId='test', clientPassword='test',
-                    tokenEndpoint='http://127.0.0.1/token')))
-
-        # 7. execute oauth2
-        subsc_utils.send_notification(subsc_oauth2, notif_data_no_auth)
-
-        self.assertEqual(7, mock_resp.call_count)
-
-    @mock.patch.object(http_client.HttpClient, 'do_request')
-    def test_send_notification_error_code(self, mock_resp):
-        subsc_no_auth = objects.FmSubscriptionV1.from_dict(
-            fakes_for_fm.fm_subsc_example)
-        alarm = objects.AlarmV1.from_dict(fakes_for_fm.alarm_example)
-        notif_data_no_auth = alarm_utils.make_alarm_notif_data(
-            subsc_no_auth, alarm, 'http://127.0.0.1:9890')
-        resp_no_auth = requests.Response()
-        resp_no_auth.status_code = 200
-        mock_resp.return_value = (resp_no_auth, None)
-
-        # execute no_auth
-        subsc_utils.send_notification(subsc_no_auth, notif_data_no_auth)
-        self.assertLogs(LOG, 'ERROR')
-
-    def test_send_notification_error(self):
-        subsc_no_auth = objects.FmSubscriptionV1.from_dict(
-            fakes_for_fm.fm_subsc_example)
-        alarm = objects.AlarmV1.from_dict(fakes_for_fm.alarm_example)
-        notif_data_no_auth = alarm_utils.make_alarm_notif_data(
-            subsc_no_auth, alarm, 'http://127.0.0.1:9890')
-
-        # execute no_auth
-        subsc_utils.send_notification(subsc_no_auth, notif_data_no_auth)
-        self.assertLogs(LOG, 'EXCEPTION')
-
-    @mock.patch.object(http_client.HttpClient, 'do_request')
-    def test_test_notification(self, mock_resp):
-        subsc_no_auth = objects.FmSubscriptionV1.from_dict(
-            fakes_for_fm.fm_subsc_example)
-
-        resp_no_auth = requests.Response()
-        resp_no_auth.status_code = 204
-        mock_resp.return_value = (resp_no_auth, None)
-
-        # execute no_auth
-        subsc_utils.test_notification(subsc_no_auth)
-
-    @mock.patch.object(http_client.HttpClient, 'do_request')
-    def test_test_notification_error_code(self, mock_resp):
-        subsc_no_auth = objects.FmSubscriptionV1.from_dict(
-            fakes_for_fm.fm_subsc_example)
-        resp_no_auth = requests.Response()
-        resp_no_auth.status_code = 200
-        mock_resp.return_value = (resp_no_auth, None)
-
-        # execute no_auth
-        self.assertRaises(sol_ex.TestNotificationFailed,
-                          subsc_utils.test_notification, subsc_no_auth)
-
-    class mock_session():
-
-        def request(url, method, raise_exc=False, **kwargs):
-            resp = requests.Response()
-            resp.status_code = 400
-            resp.headers['Content-Type'] = 'application/zip'
-            return resp
-
-    @mock.patch.object(http_client.HttpClient, '_decode_body')
-    @mock.patch.object(http_client.NoAuthHandle, 'get_session')
-    def test_test_notification_error(self, mock_session, mock_decode_body):
-        subsc_no_auth = objects.FmSubscriptionV1.from_dict(
-            fakes_for_fm.fm_subsc_example)
-
-        mock_session.return_value = self.mock_session
-        mock_decode_body.return_value = None
-
-        self.assertRaises(sol_ex.TestNotificationFailed,
-                          subsc_utils.test_notification, subsc_no_auth)
 
     @mock.patch.object(objects.base.TackerPersistentObject, 'get_all')
     def test_get_matched_subscs(self, mock_subscs):
