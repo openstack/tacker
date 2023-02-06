@@ -51,6 +51,8 @@ class BaseSolV2Test(base.BaseTestCase):
         super(BaseSolV2Test, cls).setUpClass()
 
         FAKE_SERVER_MANAGER.prepare_http_server()
+        if getattr(cls, 'is_https', False):
+            FAKE_SERVER_MANAGER.set_https_server()
         FAKE_SERVER_MANAGER.start_server()
 
         cfg.CONF(args=['--config-file', '/etc/tacker/tacker.conf'],

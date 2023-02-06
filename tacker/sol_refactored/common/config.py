@@ -95,6 +95,34 @@ VNFM_OPTS = [
                 default=False,
                 help=_('Enable to delete LCM operation occurrence if True. '
                        'This is intended to use under development.')),
+    cfg.BoolOpt('notification_verify_cert',
+                default=False,
+                help=_('Enable certificate verification during SSL/TLS '
+                       'communication to notification server.')),
+    cfg.StrOpt('notification_ca_cert_file',
+               default='',
+               help=_('Specifies the root CA certificate to use when the '
+                      'notification_verify_cert option is True.')),
+    cfg.BoolOpt('use_oauth2_mtls_for_heat',
+                default=False,
+                help=_('Enable OAuth2.0 mTLS authentication for heat '
+                       'server.')),
+    cfg.StrOpt('heat_mtls_ca_cert_file',
+               default='',
+               help=_('CA Certificate file used by OAuth2.0 mTLS '
+                      'authentication.')),
+    cfg.StrOpt('heat_mtls_client_cert_file',
+               default='',
+               help=_('Client Certificate file used by OAuth2.0 mTLS '
+                      'authentication.')),
+    cfg.BoolOpt('heat_verify_cert',
+                default=False,
+                help=_('Enable certificate verification during SSL/TLS '
+                       'communication to heat server.')),
+    cfg.StrOpt('heat_ca_cert_file',
+               default='',
+               help=_('Specifies the root CA certificate to use when the '
+                      'heat_verify_cert option is True.'))
 ]
 
 CONF.register_opts(VNFM_OPTS, 'v2_vnfm')
@@ -147,7 +175,15 @@ NFVO_OPTS = [
     cfg.BoolOpt('use_client_secret_basic',
                 default=False,
                 help=_('Use password authenticatiojn if True, '
-                       'use certificate authentication if False.'))
+                       'use certificate authentication if False.')),
+    cfg.BoolOpt('nfvo_verify_cert',
+                default=False,
+                help=_('Enable certificate verification during SSL/TLS '
+                       'communication to NFVO.')),
+    cfg.StrOpt('nfvo_ca_cert_file',
+               default='',
+               help=_('Specifies the root CA certificate to use when the'
+                      'nfvo_verify_cert option is True.'))
 ]
 
 CONF.register_opts(NFVO_OPTS, 'v2_nfvo')

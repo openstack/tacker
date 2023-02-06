@@ -50,17 +50,35 @@ def subsc_href(subsc_id, endpoint):
 
 def _get_notification_auth_handle(subsc):
     if not subsc.obj_attr_is_set('authentication'):
-        return http_client.NoAuthHandle()
+        verify = CONF.v2_vnfm.notification_verify_cert
+        if verify and CONF.v2_vnfm.notification_ca_cert_file:
+            verify = CONF.v2_vnfm.notification_ca_cert_file
+        return http_client.NoAuthHandle(verify=verify)
 
     if subsc.authentication.obj_attr_is_set('paramsBasic'):
         param = subsc.authentication.paramsBasic
-        return http_client.BasicAuthHandle(param.userName, param.password)
+        verify = CONF.v2_vnfm.notification_verify_cert
+        if verify and CONF.v2_vnfm.notification_ca_cert_file:
+            verify = CONF.v2_vnfm.notification_ca_cert_file
+        return http_client.BasicAuthHandle(
+            param.userName, param.password, verify=verify)
 
     if subsc.authentication.obj_attr_is_set(
             'paramsOauth2ClientCredentials'):
         param = subsc.authentication.paramsOauth2ClientCredentials
+        verify = CONF.v2_vnfm.notification_verify_cert
+        if verify and CONF.v2_vnfm.notification_ca_cert_file:
+            verify = CONF.v2_vnfm.notification_ca_cert_file
         return http_client.OAuth2AuthHandle(None,
-            param.tokenEndpoint, param.clientId, param.clientPassword)
+            param.tokenEndpoint, param.clientId, param.clientPassword,
+            verify=verify)
+
+    if subsc.authentication.obj_attr_is_set('paramsOauth2ClientCert'):
+        param = subsc.authentication.paramsOauth2ClientCert
+        ca_cert = CONF.v2_vnfm.notification_mtls_ca_cert_file
+        client_cert = CONF.v2_vnfm.notification_mtls_client_cert_file
+        return http_client.OAuth2MtlsAuthHandle(None,
+            param.tokenEndpoint, param.clientId, ca_cert, client_cert)
 
     # not reach here
 

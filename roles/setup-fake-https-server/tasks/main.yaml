@@ -1,0 +1,36 @@
+- block:
+  - name: Generate directory for SSL certificate
+    file:
+      path: "{{ ssl_dir }}"
+      state: directory
+      owner: "root"
+      group: "root"
+      mode: "0755"
+    become: yes
+
+  - name: Generate CA key and csr for fake https server
+    shell: openssl req -newkey rsa:2048 -nodes -subj "/CN=rootca" -keyout {{ ca_key }} -out {{ ca_csr }}
+    become: yes
+
+  - name: Generate CA certificate for fake https server
+    shell: openssl x509 -req -signkey {{ ca_key }} -days 10000 -in {{ ca_csr }} -out {{ ca_crt }}
+    become: yes
+
+  - name: Generate server key and csr for fake https server
+    shell: openssl req -newkey rsa:2048 -nodes -subj "/CN=localhost" -keyout {{ serv_key }} -out {{ serv_csr }}
+    become: yes
+
+  - name: Generate server certificate for fake https server
+    shell: openssl x509 -req -CA {{ ca_crt }} -CAkey {{ ca_key }} -CAcreateserial -days 10000 -in {{ serv_csr }} -out {{ serv_crt }}
+    become: yes
+
+  - name: Generate server pem file for fake https server
+    shell: cat {{ serv_key }} {{ serv_crt }} > {{ serv_pem }}
+    become: yes
+
+  - name: Update server pem file permission
+    shell: chmod 755 {{ serv_pem }}
+    become: yes
+
+  when:
+    - inventory_hostname == 'controller-tacker'

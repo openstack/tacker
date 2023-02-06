@@ -94,21 +94,32 @@ def make_pm_job_links(pm_job, endpoint):
 
 def _get_notification_auth_handle(pm_job):
     if not pm_job.obj_attr_is_set('authentication'):
-        return http_client.NoAuthHandle()
+        verify = CONF.v2_vnfm.notification_verify_cert
+        if verify and CONF.v2_vnfm.notification_ca_cert_file:
+            verify = CONF.v2_vnfm.notification_ca_cert_file
+        return http_client.NoAuthHandle(verify=verify)
     if pm_job.authentication.obj_attr_is_set('paramsBasic'):
         param = pm_job.authentication.paramsBasic
-        return http_client.BasicAuthHandle(param.userName, param.password)
+        verify = CONF.v2_vnfm.notification_verify_cert
+        if verify and CONF.v2_vnfm.notification_ca_cert_file:
+            verify = CONF.v2_vnfm.notification_ca_cert_file
+        return http_client.BasicAuthHandle(param.userName, param.password,
+            verify=verify)
     if pm_job.authentication.obj_attr_is_set(
             'paramsOauth2ClientCredentials'):
         param = pm_job.authentication.paramsOauth2ClientCredentials
+        verify = CONF.v2_vnfm.notification_verify_cert
+        if verify and CONF.v2_vnfm.notification_ca_cert_file:
+            verify = CONF.v2_vnfm.notification_ca_cert_file
         return http_client.OAuth2AuthHandle(
-            None, param.tokenEndpoint, param.clientId, param.clientPassword)
+            None, param.tokenEndpoint, param.clientId, param.clientPassword,
+            verify=verify)
     if pm_job.authentication.obj_attr_is_set('paramsOauth2ClientCert'):
         param = pm_job.authentication.paramsOauth2ClientCert
-        verify_cert = CONF.v2_vnfm.notification_mtls_ca_cert_file
+        ca_cert = CONF.v2_vnfm.notification_mtls_ca_cert_file
         client_cert = CONF.v2_vnfm.notification_mtls_client_cert_file
         return http_client.OAuth2MtlsAuthHandle(None,
-            param.tokenEndpoint, param.clientId, verify_cert, client_cert)
+            param.tokenEndpoint, param.clientId, ca_cert, client_cert)
     return None
 
 

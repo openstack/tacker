@@ -315,6 +315,13 @@ class TestNfvoClient(base.BaseTestCase):
         self.nfvo_client.grant_api_version = '1.4.0'
         self.nfvo_client.vnfpkgm_api_version = '2.1.0'
 
+        cfg.CONF.set_override("nfvo_verify_cert", True, group="v2_nfvo")
+        self.nfvo_client_https = nfvo_client.NfvoClient()
+        self.nfvo_client_https.endpoint = 'http://127.0.0.1:9990'
+        self.nfvo_client_https.client = http_client.HttpClient(auth_handle)
+        self.nfvo_client_https.grant_api_version = '1.4.0'
+        self.nfvo_client_https.vnfpkgm_api_version = '2.1.0'
+
         cfg.CONF.set_override("use_external_nfvo", True, group="v2_nfvo")
         cfg.CONF.set_override("mtls_ca_cert_file", "/path/to/cacert",
             group="v2_nfvo")
@@ -326,6 +333,17 @@ class TestNfvoClient(base.BaseTestCase):
         self.addCleanup(mock.patch.stopall)
         mock.patch('os.makedirs').start()
         self.nfvo_client_mtls = nfvo_client.NfvoClient()
+        self.nfvo_client_mtls.endpoint = 'http://127.0.0.1:9990'
+        auth_handle_mtls = http_client.OAuth2MtlsAuthHandle(
+            self.nfvo_client.endpoint,
+            'http://127.0.0.1:9990/token',
+            'test',
+            '/path/to/cacert',
+            '/path/to/clientcert'
+        )
+        self.nfvo_client_mtls.client = http_client.HttpClient(auth_handle_mtls)
+        self.nfvo_client_mtls.grant_api_version = '1.4.0'
+        self.nfvo_client_mtls.vnfpkgm_api_version = '2.1.0'
 
     @mock.patch.object(local_nfvo.LocalNfvo, 'onboarded_show')
     @mock.patch.object(http_client.HttpClient, 'do_request')
@@ -346,6 +364,12 @@ class TestNfvoClient(base.BaseTestCase):
         self.nfvo_client.is_local = False
         mock_request.return_value = (requests.Response(), _vnfpkg_body_example)
         result = self.nfvo_client.get_vnf_package_info_vnfd(
+            self.context, SAMPLE_VNFD_ID)
+        self.assertEqual(SAMPLE_VNFD_ID, result.vnfdId)
+
+        # external nfvo oauth2 https
+        self.nfvo_client_https.is_local = False
+        result = self.nfvo_client_https.get_vnf_package_info_vnfd(
             self.context, SAMPLE_VNFD_ID)
         self.assertEqual(SAMPLE_VNFD_ID, result.vnfdId)
 

@@ -109,6 +109,9 @@ For it to work, we need to find ``fault_management`` in
     ...
     [prometheus_plugin]
     fault_management = True
+    [v2_vnfm]
+    # Enable https access to notification server from Tacker (boolean value)
+    notification_verify_cert = true
     ...
 
 After modifying the configuration file, don't forget to restart the
