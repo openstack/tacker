@@ -21,6 +21,7 @@ import paramiko
 import re
 import tempfile
 
+from keystoneauth1 import exceptions as ks_exc
 from oslo_log import log as logging
 from oslo_utils import uuidutils
 from tacker.sol_refactored.api import prometheus_plugin_validator as validator
@@ -37,6 +38,7 @@ from tacker.sol_refactored import objects
 
 
 LOG = logging.getLogger(__name__)
+logging.getLogger("paramiko").setLevel(logging.WARNING)
 
 CONF = cfg.CONF
 
@@ -510,12 +512,23 @@ class PrometheusPluginPm(PrometheusPlugin, mon_base.MonitoringPlugin):
 
     def delete_rules(self, context, pm_job):
         target_list, reload_list = self.get_access_info(pm_job)
-        for info in target_list:
-            self._delete_rule(
-                info['host'], info['port'], info['user'],
-                info['password'], info['path'], pm_job.id)
+        for target in target_list:
+            try:
+                self._delete_rule(
+                    target['host'], target['port'], target['user'],
+                    target['password'], target['path'], pm_job.id)
+            except (sol_ex.PrometheusPluginError, ks_exc.ClientException,
+                    paramiko.SSHException):
+                # This exception is ignored. DELETE /pm_jobs/{id}
+                # will be success even if _delete_rule() is failed.
+                # Because the rule file was already deleted.
+                pass
         for uri in reload_list:
-            self.reload_prom_server(context, uri)
+            try:
+                self.reload_prom_server(context, uri)
+            except (sol_ex.PrometheusPluginError, ks_exc.ClientException,
+                    paramiko.SSHException):
+                pass
 
     def decompose_metrics(self, pm_job):
         if pm_job.objectType in {'Vnf', 'Vnfc'}:
@@ -528,9 +541,10 @@ class PrometheusPluginPm(PrometheusPlugin, mon_base.MonitoringPlugin):
     def reload_prom_server(self, context, reload_uri):
         resp, _ = self.client.do_request(
             reload_uri, "PUT", context=context)
-        if resp.status_code != 202:
-            LOG.error("reloading request to prometheus is failed: %d.",
-                      resp.status_code)
+        if resp.status_code >= 400 and resp.status_code < 600:
+            raise sol_ex.PrometheusPluginError(
+                f"Reloading request to prometheus is failed: "
+                f"{resp.status_code}.")
 
     def _upload_rule(self, rule_group, host, port, user, password, path,
                      pm_job_id):
@@ -544,6 +558,25 @@ class PrometheusPluginPm(PrometheusPlugin, mon_base.MonitoringPlugin):
                 client.connect(username=user, password=password)
                 sftp = paramiko.SFTPClient.from_transport(client)
                 sftp.put(filename, f'{path}/{pm_job_id}.json')
+        self.verify_rule(host, port, user, password, path, pm_job_id)
+
+    def verify_rule(self, host, port, user, password, path, pm_job_id):
+        if not CONF.prometheus_plugin.test_rule_with_promtool:
+            return
+        with paramiko.SSHClient() as client:
+            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            client.connect(host, port=port, username=user, password=password)
+            command = f"promtool check rules {path}/{pm_job_id}.json"
+            LOG.info("Rule file validation command: %s", command)
+            _, stdout, stderr = client.exec_command(command)
+            if stdout.channel.recv_exit_status() != 0:
+                error_byte = stderr.read()
+                error_str = error_byte.decode('utf-8')
+                LOG.error(
+                    "Rule file validation with promtool failed: %s",
+                    error_str)
+                raise sol_ex.PrometheusPluginError(
+                    "Rule file validation with promtool failed.")
 
     def get_access_info(self, pm_job):
         target_list = []
@@ -579,12 +612,32 @@ class PrometheusPluginPm(PrometheusPlugin, mon_base.MonitoringPlugin):
 
     def upload_rules(
             self, context, target_list, reload_list, rule_group, pm_job):
-        for info in target_list:
-            self._upload_rule(
-                rule_group, info['host'], info['port'], info['user'],
-                info['password'], info['path'], pm_job.id)
-        for uri in reload_list:
-            self.reload_prom_server(context, uri)
+        def _cleanup_error(target_list):
+            for target in target_list:
+                try:
+                    self._delete_rule(target['host'], target['port'],
+                        target['user'], target['password'], target['path'],
+                        pm_job.id)
+                except (sol_ex.PrometheusPluginError, ks_exc.ClientException,
+                        paramiko.SSHException):
+                    pass
+
+        try:
+            for target in target_list:
+                self._upload_rule(
+                    rule_group, target['host'], target['port'],
+                    target['user'], target['password'], target['path'],
+                    pm_job.id)
+            for uri in reload_list:
+                self.reload_prom_server(context, uri)
+        except (sol_ex.PrometheusPluginError, ks_exc.ClientException,
+                paramiko.SSHException) as e:
+            LOG.error("failed to upload rule files: %s", e.args[0])
+            _cleanup_error(target_list)
+            raise e
+        except Exception as e:
+            _cleanup_error(target_list)
+            raise e
 
     def get_vnf_instances(self, context, pm_job):
         object_instance_ids = list(set(pm_job.objectInstanceIds))

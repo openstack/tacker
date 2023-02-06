@@ -60,4 +60,4 @@ class PrometheusPluginDriver():
         url = f'{ep}/vnflcm/v2/vnf_instances/{vnf_instance_id}/scale'
         resp, _ = self.client.do_request(
             url, "POST", context=context, body=scale_req, version="2.0.0")
-        LOG.info("AutoHealing request is processed: %d.", resp.status_code)
+        LOG.info("AutoScaling request is processed: %d.", resp.status_code)

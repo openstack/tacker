@@ -199,6 +199,7 @@ class VnfPmControllerV2(sol_wsgi.SolAPIController):
         try:
             self.plugin.create_job(context=context, pm_job=pm_job)
         except sol_ex.PrometheusPluginError as e:
+            LOG.error("Failed to create PM job: %s", e.args[0])
             raise sol_ex.PrometheusSettingFailed from e
 
         pm_job.create(context)
