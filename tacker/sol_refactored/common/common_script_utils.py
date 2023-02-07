@@ -75,7 +75,7 @@ def get_param_flavor(vdu_name, flavour_id, vnfd, grant):
     return vnfd.get_compute_flavor(flavour_id, vdu_name)
 
 
-def get_param_image(vdu_name, flavour_id, vnfd, grant):
+def get_param_image(vdu_name, flavour_id, vnfd, grant, fallback_vnfd=True):
     # try to get from grant
     if 'vimAssets' in grant:
         assets = grant['vimAssets']
@@ -85,13 +85,18 @@ def get_param_image(vdu_name, flavour_id, vnfd, grant):
                 if image['vnfdSoftwareImageId'] == vdu_name:
                     return image['vimSoftwareImageId']
 
-    # if specified in VNFD, use it
+    if fallback_vnfd:
+        # if this flag is True, VNFD is refered to.
+        # if specified in VNFD, use it.
+        # NOTE: image name is assumed to be unique in the system.
+        # NFVO should be return vimAssets basically.
+        sw_images = vnfd.get_sw_image(flavour_id)
+        for name, image in sw_images.items():
+            if name == vdu_name:
+                return image
+
     # NOTE: if not found. parameter is set to None.
     #       may be error when stack create
-    sw_images = vnfd.get_sw_image(flavour_id)
-    for name, image in sw_images.items():
-        if name == vdu_name:
-            return image
 
 
 def get_param_zone(vdu_name, grant_req, grant):
