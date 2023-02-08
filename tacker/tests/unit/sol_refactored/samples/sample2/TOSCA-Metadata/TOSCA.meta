@@ -96,7 +96,7 @@ Hash: 6c97b1a8fc8d21a6a9e7ab1c383b49d3ec31f79a83de218f5537d18531ddfbd8
 Name: Files/kubernetes/replicaset_service_secret.yaml
 Content-Type: test-data
 Algorithm: SHA-256
-Hash: 7d83ba61def65be3203b164b496057e4d062249804df82eba1831111cc4614a0
+Hash: 0b19a45148f284ced24f34f3a387cb7e6358840d333f4027897060ed90283588
 
 Name: Files/kubernetes/resource-quota.yaml
 Content-Type: test-data

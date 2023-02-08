@@ -13,4 +13,4 @@ spec:
     targetPort: 8080
   selector:
     app: webserver
-  type: ClusterIP
+  type: NodePort
