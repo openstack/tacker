@@ -97,7 +97,10 @@ def make_lcmocc_notif_data(subsc, lcmocc, endpoint):
     else:
         notif_data.notificationStatus = 'RESULT'
 
-    if lcmocc.obj_attr_is_set('error'):
+    if lcmocc.operationState in [fields.LcmOperationStateType.FAILED_TEMP,
+                                 fields.LcmOperationStateType.FAILED,
+                                 fields.LcmOperationStateType.ROLLED_BACK]:
+        # The existence of lcmocc.error is guaranteed.
         notif_data.error = lcmocc.error
 
     if notif_data.verbosity == fields.LcmOpOccNotificationVerbosityType.FULL:
