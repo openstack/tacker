@@ -152,6 +152,11 @@
       controller:
         devstack_local_conf:
           post-config:
+            # NOTE: workaround for Heat timeout due to communication
+            # problem between nova and neutron.
+            $NEUTRON_CONF:
+              DEFAULT:
+                client_socket_timeout: 60
             $NEUTRON_DHCP_CONF:
               DEFAULT:
                 enable_isolated_metadata: True
