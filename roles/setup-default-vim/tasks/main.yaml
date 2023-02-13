@@ -264,8 +264,8 @@
   - name: Replace the config file path in the test-setup-k8s-vim.sh
     replace:
        path: "{{ zuul_work_dir }}/tools/test-setup-k8s-vim.sh"
-       regexp: '(?<=config-file )([^ ]+)(?= )'
-       replace: "{{ ansible_env.HOME }}/{{ zuul_work_dir }}/tacker/tests/etc/samples/local-k8s-vim.yaml"
+       regexp: '(?<=conf_dir=)([^\n]+)(?=\n)'
+       replace: "{{ ansible_env.HOME }}/{{ zuul_work_dir }}/tacker/tests/etc/samples"
 
   - name: Run tools/test-setup-k8s-vim.sh
     command: tools/test-setup-k8s-vim.sh

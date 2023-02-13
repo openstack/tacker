@@ -34,7 +34,7 @@ register_vim() {
 register_vim $conf_dir/local-k8s-vim.yaml vim-kubernetes
 
 # regiter vim with OpenID Connect info
-if [ -f $conf_dir/local-k8s-vim-oidc.yaml ]
+if [ -f /tmp/keycloak.crt ]
 then
     register_vim $conf_dir/local-k8s-vim-oidc.yaml vim-kubernetes-oidc
 fi
