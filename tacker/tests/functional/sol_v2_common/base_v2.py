@@ -531,7 +531,7 @@ class BaseSolV2Test(base.BaseTestCase):
             path, "GET", version="2.0.0")
 
     def _check_resp_headers(self, resp, supported_headers):
-        unsupported_headers = ['Link', 'Retry-After',
+        unsupported_headers = ['Retry-After',
                                'Content-Range', 'WWW-Authenticate']
         for s in supported_headers:
             if s not in resp.headers:
@@ -552,9 +552,15 @@ class BaseSolV2Test(base.BaseTestCase):
         self._check_resp_headers(resp, supported_headers)
 
     def check_resp_headers_in_get(self, resp):
-        # includes response body and no location header
+        # includes a single data in response body and no location header
         supported_headers = ['Version', 'Content-Type',
                              'Accept-Ranges']
+        self._check_resp_headers(resp, supported_headers)
+
+    def check_resp_headers_in_index(self, resp):
+        # includes some data in response body and no location header
+        supported_headers = ['Version', 'Content-Type',
+                             'Accept-Ranges', 'Link']
         self._check_resp_headers(resp, supported_headers)
 
     def check_resp_headers_in_delete(self, resp):

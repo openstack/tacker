@@ -1,0 +1,87 @@
+heat_template_version: 2013-05-23
+description: 'VDU2 HOT for Sample VNF'
+
+parameters:
+  flavor:
+    type: string
+  image-VDU2-VirtualStorage:
+    type: string
+  zone:
+    type: string
+# The individual vnfc mgmt (StandardUserData) does not support extVirtualLink Port now.
+#  port1-1:
+#    type: string
+#  port1-2:
+#    type: string
+  net2:
+    type: string
+  ipaddress2:
+    type: string
+  subnet2-0:
+    type: string
+  subnet2-1:
+    type: string
+  net3:
+    type: string
+  net4:
+    type: string
+  net5:
+    type: string
+  volume_type:
+    type: string
+
+resources:
+  VDU2:
+    type: OS::Nova::Server
+    properties:
+      flavor: { get_param: flavor }
+      name: VDU2
+      availability_zone: { get_param: zone }
+      block_device_mapping_v2: [{"volume_id": { get_resource: VDU2-VirtualStorage }}]
+      networks:
+      # The individual vnfc mgmt (StandardUserData) does not support extVirtualLink Port now.
+      # - port: { get_param: port1-1  }
+      # - port: { get_param: port1-2  }
+      - port:
+          get_resource: VDU2_CP2
+      - port:
+          get_resource: VDU2_CP3
+      - port:
+          get_resource: VDU2_CP4
+      - port:
+          get_resource: VDU2_CP5
+
+  VDU2-VirtualStorage:
+    type: OS::Cinder::Volume
+    properties:
+      image: { get_param: image-VDU2-VirtualStorage }
+      size: 1
+      volume_type: { get_param: volume_type }
+
+# extVL with FixedIP and Subnet
+  VDU2_CP2:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: net2  }
+      fixed_ips:
+      - ip_address: { get_param: ipaddress2}
+        subnet: { get_param: subnet2-0}
+      - subnet: { get_param: subnet2-1}
+
+  VDU2_CP3:
+    type: OS::Neutron::Port
+    properties:
+# replace the following line to VL's ID when extmanagedVLs are specified in InstantiateVnfRequest
+      network: { get_param: net3 }
+
+  VDU2_CP4:
+    type: OS::Neutron::Port
+    properties:
+# replace the following line to VL's ID when extmanagedVLs are specified in InstantiateVnfRequest
+      network: { get_param: net4 }
+
+  VDU2_CP5:
+    type: OS::Neutron::Port
+    properties:
+# replace the following line to VL's ID when extmanagedVLs are specified in InstantiateVnfRequest
+      network: { get_param: net5 }

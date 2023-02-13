@@ -365,6 +365,25 @@
         tox_envlist: dsvm-functional-sol-v2-ubuntu-focal
 
 - job:
+    name: tacker-functional-devstack-multinode-sol-v2-individual-vnfc-mgmt
+    parent: tacker-functional-devstack-multinode-sol
+    description: |
+      Multinode job for SOL V2 devstack-based individual vnfc mgmt functional
+      tests
+    host-vars:
+      controller-tacker:
+        devstack_local_conf:
+          post-config:
+            $TACKER_CONF:
+              v2_vnfm:
+                # Notes: The List API will return 'Link' Header in response
+                # body only if page_size is not 0. This job will check 'Link'
+                # Header, so these page_size parameters are set to 1.
+                vnf_instance_page_size: 1
+                lcm_op_occ_page_size: 1
+        tox_envlist: dsvm-functional-sol-v2-individual-vnfc-mgmt
+
+- job:
     name: tacker-functional-devstack-multinode-sol-kubernetes
     parent: devstack
     description: |
@@ -746,6 +765,7 @@
         - tacker-functional-devstack-multinode-sol-v2
         - tacker-functional-devstack-multinode-sol-separated-nfvo-v2
         - tacker-functional-devstack-multinode-sol-v2-ubuntu-focal
+        - tacker-functional-devstack-multinode-sol-v2-individual-vnfc-mgmt
         - tacker-functional-devstack-multinode-sol-kubernetes-v2
         - tacker-functional-devstack-multinode-sol-multi-tenant
         - tacker-functional-devstack-multinode-sol-https-v2

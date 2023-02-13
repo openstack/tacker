@@ -157,7 +157,7 @@ def sub_create_max(callback_uri):
     }
 
 
-def create_vnf_max(vnfd_id):
+def create_vnf_max(vnfd_id, description="test sample"):
     # All attributes are set.
     # NOTE: All of the following cardinality attributes are set.
     # In addition, 0..N or 1..N attributes are set to 2 or more.
@@ -168,7 +168,7 @@ def create_vnf_max(vnfd_id):
     return {
         "vnfdId": vnfd_id,
         "vnfInstanceName": "sample",
-        "vnfInstanceDescription": "test sample",
+        "vnfInstanceDescription": description,
         "metadata": {"dummy-key": "dummy-val"}
     }
 
@@ -188,7 +188,7 @@ def terminate_vnf_max():
     }
 
 
-def instantiate_vnf_max(net_ids, subnets, ports, auth_url):
+def instantiate_vnf_max(net_ids, subnets, ports, auth_url, user_data=False):
     # All attributes are set.
     # NOTE: All of the following cardinality attributes are set.
     # In addition, 0..N or 1..N attributes are set to 2 or more.
@@ -233,57 +233,59 @@ def instantiate_vnf_max(net_ids, subnets, ports, auth_url):
                     },
                     # { "VDU1_CP1_2": omitted }
                 }
-            },
-            {
-                "cpdId": "VDU2_CP1-1",
-                "cpConfig": {
-                    "VDU2_CP1-1": {
-                        "parentCpConfigId": uuidutils.generate_uuid(),
-                        "linkPortId": link_port_id_1,
-                        "cpProtocolData": [{
-                            "layerProtocol": "IP_OVER_ETHERNET",
-                            "ipOverEthernet": {
-                                # "macAddress": omitted,
-                                # "segmentationId": omitted,
-                                "ipAddresses": [{
-                                    "type": "IPV4",
-                                    # "fixedAddresses": omitted,
-                                    "numDynamicAddresses": 1,
-                                    # "addressRange": omitted,
-                                    "subnetId": subnets['subnet0']
-                                }]
-                            }
-                        }]
-                    },
-                    # { "VDU2_CP1_2": omitted }
-                }
-            },
-            {
-                "cpdId": "VDU2_CP1-2",
-                "cpConfig": {
-                    "VDU2_CP1-2": {
-                        "parentCpConfigId": uuidutils.generate_uuid(),
-                        "linkPortId": link_port_id_2,
-                        "cpProtocolData": [{
-                            "layerProtocol": "IP_OVER_ETHERNET",
-                            "ipOverEthernet": {
-                                # "macAddress": omitted,
-                                # "segmentationId": omitted,
-                                "ipAddresses": [{
-                                    "type": "IPV4",
-                                    # "fixedAddresses": omitted,
-                                    "numDynamicAddresses": 1,
-                                    # "addressRange": omitted,
-                                    "subnetId": subnets['subnet0']
-                                }]
-                            }
-                        }]
-                    },
-                    # { "VDU2_CP1_2": omitted }
-                }
             }
-        ],
-        "extLinkPorts": [
+        ]
+    }
+    if ports:
+        vdu2_cp1_info = [{
+            "cpdId": "VDU2_CP1-1",
+            "cpConfig": {
+                "VDU2_CP1-1": {
+                    "parentCpConfigId": uuidutils.generate_uuid(),
+                    "linkPortId": link_port_id_1,
+                    "cpProtocolData": [{
+                        "layerProtocol": "IP_OVER_ETHERNET",
+                        "ipOverEthernet": {
+                            # "macAddress": omitted,
+                            # "segmentationId": omitted,
+                            "ipAddresses": [{
+                                "type": "IPV4",
+                                # "fixedAddresses": omitted,
+                                "numDynamicAddresses": 1,
+                                # "addressRange": omitted,
+                                "subnetId": subnets['subnet0']
+                            }]
+                        }
+                    }]
+                },
+                # { "VDU2_CP1_2": omitted }
+            }
+        }, {
+            "cpdId": "VDU2_CP1-2",
+            "cpConfig": {
+                "VDU2_CP1-2": {
+                    "parentCpConfigId": uuidutils.generate_uuid(),
+                    "linkPortId": link_port_id_2,
+                    "cpProtocolData": [{
+                        "layerProtocol": "IP_OVER_ETHERNET",
+                        "ipOverEthernet": {
+                            # "macAddress": omitted,
+                            # "segmentationId": omitted,
+                            "ipAddresses": [{
+                                "type": "IPV4",
+                                # "fixedAddresses": omitted,
+                                "numDynamicAddresses": 1,
+                                # "addressRange": omitted,
+                                "subnetId": subnets['subnet0']
+                            }]
+                        }
+                    }]
+                },
+                # { "VDU2_CP1_2": omitted }
+            }
+        }]
+        ext_vl_1['extCps'].extend(vdu2_cp1_info)
+        ext_vl_1['extLinkPorts'] = [
             {
                 "id": link_port_id_1,
                 "resourceHandle": {
@@ -298,7 +300,6 @@ def instantiate_vnf_max(net_ids, subnets, ports, auth_url):
                 }
             }
         ]
-    }
 
     # NOTE: The following is not supported so it is omitted
     #  - "segmentationId"
@@ -419,12 +420,17 @@ def instantiate_vnf_max(net_ids, subnets, ports, auth_url):
         },
         "extra": {"dummy-key": "dummy-val"}
     }
-    add_params = {
-        "lcm-operation-user-data": "./UserData/userdata.py",
-        "lcm-operation-user-data-class": "UserData",
-        "nfv": {"CP": {"VDU2_CP1-2": {"port": ports['VDU2_CP1-2']}}}
-    }
-
+    if not user_data:
+        add_params = {
+            "lcm-operation-user-data": "./UserData/userdata.py",
+            "lcm-operation-user-data-class": "UserData",
+            "nfv": {"CP": {"VDU2_CP1-2": {"port": ports['VDU2_CP1-2']}}}
+        }
+    else:
+        add_params = {
+            "lcm-operation-user-data": "./UserData/userdata_standard.py",
+            "lcm-operation-user-data-class": "StandardUserData"
+        }
     return {
         "flavourId": "simple",
         "instantiationLevelId": "instantiation_level_1",
@@ -1526,6 +1532,154 @@ def sample6_scale_out():
         "aspectId": "VDU1_scale",
         "numberOfSteps": 1,
         "additionalParams": {
+            "lcm-operation-user-data": "./UserData/userdata_standard.py",
+            "lcm-operation-user-data-class": "StandardUserData"
+        }
+    }
+
+
+def change_vnf_pkg_individual_vnfc_max(vnfd_id, net_ids, subnet_ids):
+    return {
+        "vnfdId": vnfd_id,
+        "extVirtualLinks": [{
+            "id": "external-net-changed",
+            "resourceId": net_ids['net1'],
+            "extCps": [{
+                "cpdId": "VDU1_CP1",
+                "cpConfig": {
+                    "VDU1_CP1": {
+                        "cpProtocolData": [{
+                            "layerProtocol": "IP_OVER_ETHERNET",
+                            "ipOverEthernet": {
+                                "ipAddresses": [{
+                                    "type": "IPV4",
+                                    "numDynamicAddresses": 1,
+                                    "subnetId": subnet_ids['subnet1']
+                                }]
+                            }
+                        }]
+                    }
+                }
+            }]
+        }, {
+            "id": "ext_vl_id_net6",
+            "resourceId": net_ids['net0'],
+            "extCps": [{
+                "cpdId": "VDU1_CP6",
+                "cpConfig": {
+                    "VDU1_CP6_1": {
+                        "cpProtocolData": [{
+                            "layerProtocol": "IP_OVER_ETHERNET",
+                            "ipOverEthernet": {
+                                "ipAddresses": [{
+                                    "type": "IPV4",
+                                    "numDynamicAddresses": 1
+                                }]
+                            }
+                        }]
+                    }
+                }
+            }, {
+                "cpdId": "VDU2_CP6",
+                "cpConfig": {
+                    "VDU2_CP6_1": {
+                        "cpProtocolData": [{
+                            "layerProtocol": "IP_OVER_ETHERNET",
+                            "ipOverEthernet": {
+                                "ipAddresses": [{
+                                    "type": "IPV4",
+                                    "numDynamicAddresses": 1
+                                }]
+                            }
+                        }]
+                    }
+                }
+            }]
+        }],
+        "extManagedVirtualLinks": [{
+            "id": uuidutils.generate_uuid(),
+            "vnfVirtualLinkDescId": "internalVL1",
+            "vimConnectionId": uuidutils.generate_uuid(),
+            "resourceProviderId": "Company",
+            "resourceId": net_ids['net_mgmt'],
+            "extManagedMultisiteVirtualLinkId": uuidutils.generate_uuid()
+        }, {
+            "id": uuidutils.generate_uuid(),
+            "vnfVirtualLinkDescId": "internalVL2",
+            "vimConnectionId": uuidutils.generate_uuid(),
+            "resourceProviderId": "Company",
+            "resourceId": net_ids['net_mgmt'],
+            "extManagedMultisiteVirtualLinkId": uuidutils.generate_uuid()
+        }],
+        "additionalParams": {
+            "upgrade_type": "RollingUpdate",
+            "lcm-operation-coordinate-new-vnf": "./Scripts/coordinate_vnf.py",
+            "lcm-operation-coordinate-old-vnf": "./Scripts/coordinate_vnf.py",
+            "vdu_params": [{
+                "vdu_id": "VDU1",
+                "old_vnfc_param": {
+                    "cp_name": "VDU1_CP1",
+                    "username": "ubuntu",
+                    "password": "ubuntu"
+                },
+                "new_vnfc_param": {
+                    "cp_name": "VDU1_CP1",
+                    "username": "ubuntu",
+                    "password": "ubuntu"
+                }
+            }, {
+                "vdu_id": "VDU2",
+                "old_vnfc_param": {
+                    "cp_name": "VDU2_CP2",
+                    "username": "ubuntu",
+                    "password": "ubuntu"
+                },
+                "new_vnfc_param": {
+                    "cp_name": "VDU2_CP2",
+                    "username": "ubuntu",
+                    "password": "ubuntu"
+                }
+            }],
+            "lcm-operation-user-data": "./UserData/userdata_standard.py",
+            "lcm-operation-user-data-class": "StandardUserData"
+        }
+    }
+
+
+def change_vnf_pkg_individual_vnfc_min(vnfd_id, vdu2_old_vnfc='VDU2_CP1'):
+    return {
+        "vnfdId": vnfd_id,
+        "additionalParams": {
+            "upgrade_type": "RollingUpdate",
+            "lcm-operation-coordinate-new-vnf": "./Scripts/coordinate_vnf.py",
+            "lcm-operation-coordinate-old-vnf": "./Scripts/coordinate_vnf.py",
+            "vdu_params": [
+                {
+                    "vdu_id": "VDU1",
+                    "old_vnfc_param": {
+                        "cp_name": "VDU1_CP1",
+                        "username": "ubuntu",
+                        "password": "ubuntu"
+                    },
+                    "new_vnfc_param": {
+                        "cp_name": "VDU1_CP1",
+                        "username": "ubuntu",
+                        "password": "ubuntu"
+                    }
+                },
+                {
+                    "vdu_id": "VDU2",
+                    "old_vnfc_param": {
+                        "cp_name": vdu2_old_vnfc,
+                        "username": "ubuntu",
+                        "password": "ubuntu"
+                    },
+                    "new_vnfc_param": {
+                        "cp_name": "VDU2_CP1",
+                        "username": "ubuntu",
+                        "password": "ubuntu"
+                    }
+                }],
             "lcm-operation-user-data": "./UserData/userdata_standard.py",
             "lcm-operation-user-data-class": "StandardUserData"
         }

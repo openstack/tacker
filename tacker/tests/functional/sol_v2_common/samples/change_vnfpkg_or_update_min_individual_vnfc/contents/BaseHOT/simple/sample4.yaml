@@ -1,0 +1,42 @@
+heat_template_version: 2013-05-23
+description: 'Simple Base HOT for Sample VNF'
+
+parameters:
+  nfv:
+    type: json
+
+resources:
+  VDU1:
+    type: VDU1.yaml
+    properties:
+      flavor: { get_param: [ nfv, VDU, VDU1, computeFlavourId ] }
+      image-VDU1: { get_param: [ nfv, VDU, VDU1, vcImageId ] }
+      net5: { get_resource: internalVL3 }
+      affinity: { get_resource: nfvi_node_affinity }
+
+  VDU2:
+    type: VDU2.yaml
+    properties:
+      flavor: { get_param: [ nfv, VDU, VDU2, computeFlavourId ] }
+      image-VDU2: { get_param: [ nfv, VDU, VDU2, vcImageId] }
+      net5: { get_resource: internalVL3 }
+      affinity: { get_resource: nfvi_node_affinity }
+
+  internalVL3:
+    type: OS::Neutron::Net
+
+  internalVL3_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      ip_version: 4
+      network:
+        get_resource: internalVL3
+      cidr: 192.168.5.0/24
+
+  nfvi_node_affinity:
+    type: OS::Nova::ServerGroup
+    properties:
+      name: nfvi_node_affinity
+      policies: [ 'affinity' ]
+
+outputs: {}

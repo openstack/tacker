@@ -1,0 +1,88 @@
+heat_template_version: 2013-05-23
+description: 'Simple Base HOT for Sample VNF'
+
+parameters:
+  nfv:
+    type: json
+
+resources:
+  VDU1:
+    type: VDU1-after.yaml
+    properties:
+      flavor: { get_param: [ nfv, VDU, VDU1, computeFlavourId ] }
+      image-VDU1-VirtualStorage: { get_param: [ nfv, VDU, VDU1-VirtualStorage, vcImageId ] }
+      zone: { get_param: [ nfv, VDU, VDU1, locationConstraints] }
+      net1: { get_param: [ nfv, CP, VDU1_CP1, network] }
+      net2: { get_param: [ nfv, CP, VDU1_CP2, network ] }
+      subnet1: { get_param: [nfv, CP, VDU1_CP1, fixed_ips, 0, subnet ]}
+      subnet2: { get_param: [nfv, CP, VDU1_CP2, fixed_ips, 0, subnet ]}
+      net3: { get_resource: internalVL1 }
+      net4: { get_resource: internalVL2 }
+      net5: { get_resource: internalVL4 }
+      net6: { get_param: [ nfv, CP, VDU1_CP6, network] }
+      volume_type: { get_resource: VDU1-VolumeType }
+
+# NOTE: Resource definition of OS::Heat::ScalingPolicy is omitted.
+# It is not used by v2API scale implementation unlike v1API.
+
+  VDU1-VolumeType:
+    type: OS::Cinder::VolumeType
+    properties:
+      name: VDU1-multi
+      metadata: { multiattach: "<is> True" }
+
+  VDU2:
+    type: VDU2-after.yaml
+    properties:
+      flavor: { get_param: [ nfv, VDU, VDU2, computeFlavourId ] }
+      zone: { get_param: [ nfv, VDU, VDU2, locationConstraints] }
+      image-VDU2-VirtualStorage: { get_param: [ nfv, VDU, VDU2-VirtualStorage, vcImageId ] }
+      # The individual vnfc mgmt (StandardUserData) does not support extVirtualLink Port now.
+      # port1-1: { get_param: [ nfv, CP, VDU2_CP1-1, port ]  }
+      # port1-2: { get_param: [ nfv, CP, VDU2_CP1-2, port ]  }
+      net2: { get_param: [ nfv, CP, VDU2_CP2, network ]  }
+      ipaddress2: { get_param: [nfv, CP, VDU2_CP2, fixed_ips, 0, ip_address]}
+      subnet2-0: { get_param: [nfv, CP, VDU2_CP2, fixed_ips, 0, subnet]}
+      subnet2-1: { get_param: [nfv, CP, VDU2_CP2, fixed_ips, 1, subnet]}
+      net3: { get_resource: internalVL1 }
+      net4: { get_resource: internalVL2 }
+      net5: { get_resource: internalVL4 }
+      net6: { get_param: [ nfv, CP, VDU2_CP6, network] }
+      volume_type: { get_resource: VDU2-VolumeType }
+
+  VDU2-VolumeType:
+    type: OS::Cinder::VolumeType
+    properties:
+      name: VDU2-multi
+      metadata: { multiattach: "<is> True" }
+
+# delete the following lines when extmanagedVLs are specified in InstantiateVnfRequest
+  internalVL1:
+    type: OS::Neutron::Net
+  internalVL2:
+    type: OS::Neutron::Net
+  internalVL4:
+    type: OS::Neutron::Net
+
+  internalVL1_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      ip_version: 4
+      network:
+        get_resource: internalVL1
+      cidr: 192.168.3.0/24
+  internalVL2_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      ip_version: 4
+      network:
+        get_resource: internalVL2
+      cidr: 192.168.4.0/24
+  internalVL4_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      ip_version: 4
+      network:
+        get_resource: internalVL4
+      cidr: 192.168.6.0/24
+outputs: {}
