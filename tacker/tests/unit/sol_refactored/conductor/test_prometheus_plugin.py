@@ -122,6 +122,12 @@ class TestPrometheusPlugin(db_base.SqlTestCase):
         self.config_fixture.config(
             group='prometheus_plugin', performance_management=True)
         self.conductor = conductor_v2.ConductorV2()
+        pp_drv.PrometheusPluginDriver._instance = None
+
+    def tearDown(self):
+        super(TestPrometheusPlugin, self).tearDown()
+        # delete singleton object
+        pp_drv.PrometheusPluginDriver._instance = None
 
     @mock.patch.object(http_client.HttpClient, 'do_request')
     def test_request_scale(self, mock_do_request):
@@ -138,7 +144,6 @@ class TestPrometheusPlugin(db_base.SqlTestCase):
     def test_constructor(self):
         self.config_fixture.config(
             group='prometheus_plugin', performance_management=True)
-        pp_drv.PrometheusPluginDriver._instance = None
 
     def test_driver_stub(self):
         self.config_fixture.config(
@@ -149,13 +154,11 @@ class TestPrometheusPlugin(db_base.SqlTestCase):
         drv.request_scale(None, None, None)
         self.config_fixture.config(
             group='prometheus_plugin', performance_management=True)
-        pp_drv.PrometheusPluginDriver._instance = None
         drv = pp_drv.PrometheusPluginDriver.instance()
 
     def test_driver_constructor(self):
         self.config_fixture.config(
             group='prometheus_plugin', performance_management=True)
-        pp_drv.PrometheusPluginDriver._instance = None
         pp_drv.PrometheusPluginDriver.instance()
         self.assertRaises(
             SystemError,
