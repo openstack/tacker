@@ -1,5 +1,5 @@
 heat_template_version: 2013-05-23
-description: 'Simple Base HOT for Sample VNF'
+description: 'For Test of Individual Vnfc Management: sample3'
 
 parameters:
   nfv:

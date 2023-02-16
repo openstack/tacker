@@ -1015,7 +1015,7 @@ def sample3_instantiate(net_ids, subnet_ids, auth_url):
         "extVirtualLinks": [ext_vl_1],
         "extManagedVirtualLinks": [
             {
-                "id": uuidutils.generate_uuid(),
+                "id": "ext_managed_vl_1",
                 "vnfVirtualLinkDescId": "internalVL1",
                 "resourceId": net_ids['net_mgmt']
             },
@@ -1141,6 +1141,13 @@ def sample4_change_vnfpkg(vnfd_id, net_ids, subnet_ids):
                 ]
             }
         ],
+        "extManagedVirtualLinks": [
+            {
+                "id": "ext_managed_vl_1",
+                "vnfVirtualLinkDescId": "internalVL1",
+                "resourceId": net_ids['net_mgmt']
+            },
+        ],
         "additionalParams": {
             "upgrade_type": "RollingUpdate",
             "lcm-operation-coordinate-new-vnf": "./Scripts/coordinate_vnf.py",
@@ -1196,4 +1203,140 @@ def server_notification(alarm_id):
                 'detail': 'server is down.'
             }
         }
+    }
+
+
+# sample5 is for change_vnfpkg network change test of StandardUserData
+#
+def sample5_change_vnfpkg(vnfd_id, net_ids, subnet_ids):
+    ext_vl_4 = {
+        "id": "ext_vl_id_net4",
+        "resourceId": net_ids['net0'],
+        "extCps": [
+            {
+                "cpdId": "VDU1_CP4",
+                "cpConfig": {
+                    "VDU1_CP4_1": {
+                        "cpProtocolData": [{
+                            "layerProtocol": "IP_OVER_ETHERNET",
+                            "ipOverEthernet": {
+                                "ipAddresses": [{
+                                    "type": "IPV4",
+                                    "numDynamicAddresses": 1}]}}]}
+                }
+            },
+            {
+                "cpdId": "VDU2_CP4",
+                "cpConfig": {
+                    "VDU2_CP4_1": {
+                        "cpProtocolData": [{
+                            "layerProtocol": "IP_OVER_ETHERNET",
+                            "ipOverEthernet": {
+                                "ipAddresses": [{
+                                    "type": "IPV4",
+                                    "numDynamicAddresses": 1}]}}]}
+                }
+            }
+        ]
+    }
+
+    return {
+        "vnfdId": vnfd_id,
+        "extVirtualLinks": [ext_vl_4],
+        "extManagedVirtualLinks": [
+            {
+                "id": "ext_managed_vl_1",
+                "vnfVirtualLinkDescId": "internalVL1",
+                "resourceId": net_ids['net_mgmt']
+            },
+        ],
+        "additionalParams": {
+            "upgrade_type": "RollingUpdate",
+            "lcm-operation-coordinate-new-vnf": "./Scripts/coordinate_vnf.py",
+            "lcm-operation-coordinate-old-vnf": "./Scripts/coordinate_vnf.py",
+            "vdu_params": [
+                {
+                    "vdu_id": "VDU1",
+                    "old_vnfc_param": {
+                        "cp_name": "VDU1_CP1",
+                        "username": "ubuntu",
+                        "password": "ubuntu"
+                    },
+                    "new_vnfc_param": {
+                        "cp_name": "VDU1_CP1",
+                        "username": "ubuntu",
+                        "password": "ubuntu"
+                    }
+                },
+                {
+                    "vdu_id": "VDU2",
+                    "old_vnfc_param": {
+                        "cp_name": "VDU2_CP1",
+                        "username": "ubuntu",
+                        "password": "ubuntu"
+                    },
+                    "new_vnfc_param": {
+                        "cp_name": "VDU2_CP1",
+                        "username": "ubuntu",
+                        "password": "ubuntu"
+                    }
+                }
+            ],
+            "lcm-operation-user-data": "./UserData/userdata_standard.py",
+            "lcm-operation-user-data-class": "StandardUserData"
+        }
+    }
+
+
+def sample5_change_vnfpkg_back(vnfd_id, net_ids, subnet_ids):
+    return {
+        "vnfdId": vnfd_id,
+        "extManagedVirtualLinks": [
+            {
+                "id": "ext_managed_vl_1",
+                "vnfVirtualLinkDescId": "internalVL1",
+                "resourceId": net_ids['net_mgmt']
+            },
+        ],
+        "additionalParams": {
+            "upgrade_type": "RollingUpdate",
+            "lcm-operation-coordinate-new-vnf": "./Scripts/coordinate_vnf.py",
+            "lcm-operation-coordinate-old-vnf": "./Scripts/coordinate_vnf.py",
+            "vdu_params": [
+                {
+                    "vdu_id": "VDU1",
+                    "old_vnfc_param": {
+                        "cp_name": "VDU1_CP1",
+                        "username": "ubuntu",
+                        "password": "ubuntu"
+                    },
+                    "new_vnfc_param": {
+                        "cp_name": "VDU1_CP1",
+                        "username": "ubuntu",
+                        "password": "ubuntu"
+                    }
+                },
+                {
+                    "vdu_id": "VDU2",
+                    "old_vnfc_param": {
+                        "cp_name": "VDU2_CP1",
+                        "username": "ubuntu",
+                        "password": "ubuntu"
+                    },
+                    "new_vnfc_param": {
+                        "cp_name": "VDU2_CP1",
+                        "username": "ubuntu",
+                        "password": "ubuntu"
+                    }
+                }
+            ],
+            "lcm-operation-user-data": "./UserData/userdata_standard.py",
+            "lcm-operation-user-data-class": "StandardUserData"
+        }
+    }
+
+
+def sample5_terminate():
+    return {
+        "terminationType": "FORCEFUL"
     }

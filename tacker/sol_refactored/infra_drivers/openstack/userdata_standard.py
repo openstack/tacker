@@ -137,24 +137,24 @@ class StandardUserData(userdata_utils.AbstractUserData):
         top_hot = hot_dict['template']
 
         # first modify VDU resources
-        poped_vdu = {}
+        popped_vdu = {}
         vdu_idxes = {}
         for vdu_name in vnfd.get_vdu_nodes(flavour_id).keys():
-            poped_vdu[vdu_name] = top_hot.get('resources', {}).pop(vdu_name)
+            popped_vdu[vdu_name] = top_hot.get('resources', {}).pop(vdu_name)
             vdu_idxes[vdu_name] = 0
         zones = {}
         for res in grant_req['addResources']:
             if res['type'] != 'COMPUTE':
                 continue
             vdu_name = res['resourceTemplateId']
-            if vdu_name not in poped_vdu:
+            if vdu_name not in popped_vdu:
                 continue
             vdu_idx = vdu_idxes[vdu_name]
             vdu_idxes[vdu_name] += 1
             zones[add_idx(vdu_name, vdu_idx)] = (
                 common_script_utils.get_param_zone_by_vnfc(
                     res['id'], grant))
-            res = add_idx_to_vdu_template(poped_vdu[vdu_name], vdu_idx)
+            res = add_idx_to_vdu_template(popped_vdu[vdu_name], vdu_idx)
             top_hot['resources'][add_idx(vdu_name, vdu_idx)] = res
 
         nfv_dict = common_script_utils.init_nfv_dict(top_hot)
@@ -231,10 +231,10 @@ class StandardUserData(userdata_utils.AbstractUserData):
         top_hot = hot_dict['template']
 
         # first modify VDU resources
-        poped_vdu = {}
+        popped_vdu = {}
         vdu_idxes = {}
         for vdu_name in vnfd.get_vdu_nodes(flavour_id).keys():
-            poped_vdu[vdu_name] = top_hot.get('resources', {}).pop(vdu_name)
+            popped_vdu[vdu_name] = top_hot.get('resources', {}).pop(vdu_name)
             vdu_idxes[vdu_name] = common_script_utils.get_current_capacity(
                 vdu_name, inst)
 
@@ -243,14 +243,14 @@ class StandardUserData(userdata_utils.AbstractUserData):
             if res['type'] != 'COMPUTE':
                 continue
             vdu_name = res['resourceTemplateId']
-            if vdu_name not in poped_vdu:
+            if vdu_name not in popped_vdu:
                 continue
             vdu_idx = vdu_idxes[vdu_name]
             vdu_idxes[vdu_name] += 1
             zones[add_idx(vdu_name, vdu_idx)] = (
                 common_script_utils.get_param_zone_by_vnfc(
                     res['id'], grant))
-            res = add_idx_to_vdu_template(poped_vdu[vdu_name], vdu_idx)
+            res = add_idx_to_vdu_template(popped_vdu[vdu_name], vdu_idx)
             top_hot['resources'][add_idx(vdu_name, vdu_idx)] = res
 
         nfv_dict = common_script_utils.init_nfv_dict(top_hot)
@@ -393,9 +393,9 @@ class StandardUserData(userdata_utils.AbstractUserData):
         top_hot = hot_dict['template']
 
         # first modify VDU resources
-        poped_vdu = {}
+        popped_vdu = {}
         for vdu_name in vnfd.get_vdu_nodes(flavour_id).keys():
-            poped_vdu[vdu_name] = top_hot.get('resources', {}).pop(vdu_name)
+            popped_vdu[vdu_name] = top_hot.get('resources', {}).pop(vdu_name)
 
         for inst_vnfc in inst['instantiatedVnfInfo'].get(
                 'vnfcResourceInfo', []):
@@ -403,7 +403,7 @@ class StandardUserData(userdata_utils.AbstractUserData):
             if vdu_idx is None:
                 continue
             vdu_name = inst_vnfc['vduId']
-            res = add_idx_to_vdu_template(poped_vdu[vdu_name], vdu_idx)
+            res = add_idx_to_vdu_template(popped_vdu[vdu_name], vdu_idx)
             top_hot['resources'][add_idx(vdu_name, vdu_idx)] = res
 
         nfv_dict = common_script_utils.init_nfv_dict(top_hot)
@@ -424,9 +424,9 @@ class StandardUserData(userdata_utils.AbstractUserData):
         top_hot = hot_dict['template']
 
         # first modify VDU resources
-        poped_vdu = {}
+        popped_vdu = {}
         for vdu_name in vnfd.get_vdu_nodes(flavour_id).keys():
-            poped_vdu[vdu_name] = top_hot.get('resources', {}).pop(vdu_name)
+            popped_vdu[vdu_name] = top_hot.get('resources', {}).pop(vdu_name)
 
         for inst_vnfc in inst['instantiatedVnfInfo'].get(
                 'vnfcResourceInfo', []):
@@ -434,7 +434,7 @@ class StandardUserData(userdata_utils.AbstractUserData):
             if vdu_idx is None:
                 continue
             vdu_name = inst_vnfc['vduId']
-            res = add_idx_to_vdu_template(poped_vdu[vdu_name], vdu_idx)
+            res = add_idx_to_vdu_template(popped_vdu[vdu_name], vdu_idx)
             top_hot['resources'][add_idx(vdu_name, vdu_idx)] = res
 
         nfv_dict = common_script_utils.init_nfv_dict(top_hot)
@@ -455,9 +455,9 @@ class StandardUserData(userdata_utils.AbstractUserData):
         top_hot = hot_dict['template']
 
         # first modify VDU resources
-        poped_vdu = {}
+        popped_vdu = {}
         for vdu_name in vnfd.get_vdu_nodes(flavour_id).keys():
-            poped_vdu[vdu_name] = top_hot.get('resources', {}).pop(vdu_name)
+            popped_vdu[vdu_name] = top_hot.get('resources', {}).pop(vdu_name)
 
         for res in grant_req['removeResources']:
             if res['type'] != 'COMPUTE':
@@ -469,7 +469,7 @@ class StandardUserData(userdata_utils.AbstractUserData):
                     vdu_idx = inst_vnfc['metadata']['vdu_idx']
                     break
             vdu_name = res['resourceTemplateId']
-            res = add_idx_to_vdu_template(poped_vdu[vdu_name], vdu_idx)
+            res = add_idx_to_vdu_template(popped_vdu[vdu_name], vdu_idx)
             top_hot['resources'][add_idx(vdu_name, vdu_idx)] = res
 
         nfv_dict = common_script_utils.init_nfv_dict(top_hot)
@@ -499,28 +499,65 @@ class StandardUserData(userdata_utils.AbstractUserData):
         top_hot = hot_dict['template']
 
         # first modify VDU resources
-        poped_vdu = {}
+        popped_vdu = {}
         for vdu_name in vnfd.get_vdu_nodes(flavour_id).keys():
-            poped_vdu[vdu_name] = top_hot.get('resources', {}).pop(vdu_name)
+            popped_vdu[vdu_name] = top_hot.get('resources', {}).pop(vdu_name)
 
-        for res in grant_req['removeResources']:
-            if res['type'] != 'COMPUTE':
+        target_vnfc_res_ids = [
+            res['resource']['resourceId']
+            for res in grant_req['removeResources']
+            if res['type'] == 'COMPUTE'
+        ]
+
+        cur_hot_reses = {}
+        new_hot_reses = {}
+        images = {}
+        flavors = {}
+        zones = {}
+        for inst_vnfc in inst['instantiatedVnfInfo']['vnfcResourceInfo']:
+            vdu_idx = inst_vnfc['metadata'].get('vdu_idx')
+            if vdu_idx is None:
+                # should not be None. just check for consistency.
                 continue
-            for inst_vnfc in inst['instantiatedVnfInfo']['vnfcResourceInfo']:
-                if (inst_vnfc['computeResource']['resourceId'] ==
-                        res['resource']['resourceId']):
-                    # must be found
-                    vdu_idx = inst_vnfc['metadata']['vdu_idx']
-                    break
-            vdu_name = res['resourceTemplateId']
-            res = add_idx_to_vdu_template(poped_vdu[vdu_name], vdu_idx)
-            top_hot['resources'][add_idx(vdu_name, vdu_idx)] = res
+            vdu_name = inst_vnfc['vduId']
+            vdu_name_idx = add_idx(vdu_name, vdu_idx)
 
-        nfv_dict = common_script_utils.init_nfv_dict(top_hot)
+            res = add_idx_to_vdu_template(popped_vdu[vdu_name], vdu_idx)
+            top_hot['resources'][vdu_name_idx] = res
 
-        vdus = nfv_dict.get('VDU', {})
-        for vdu_name, vdu_value in vdus.items():
-            vdu_name = rm_idx(vdu_name)
+            if (inst_vnfc['computeResource']['resourceId'] in
+                    target_vnfc_res_ids):
+                new_hot_reses[vdu_name_idx] = res
+            else:
+                cur_hot_reses[vdu_name_idx] = res
+
+            # NOTE: only zone is necessary for new_hot_reses
+            for key, value in inst_vnfc['metadata'].items():
+                if key == 'flavor':
+                    flavors[vdu_name_idx] = value
+                elif key == 'zone':
+                    zones[vdu_name_idx] = value
+                elif key.startswith('image-'):
+                    image_vdu = key.replace('image-', '')
+                    images[image_vdu] = value
+
+        cur_nfv_dict = common_script_utils.init_nfv_dict(
+            {'resources': cur_hot_reses})
+        new_nfv_dict = common_script_utils.init_nfv_dict(
+            {'resources': new_hot_reses})
+        cur_vdus = cur_nfv_dict.get('VDU', {})
+        new_vdus = new_nfv_dict.get('VDU', {})
+
+        for vdu_name_idx, vdu_value in cur_vdus.items():
+            if 'computeFlavourId' in vdu_value:
+                vdu_value['computeFlavourId'] = flavors.get(vdu_name_idx)
+            if 'vcImageId' in vdu_value:
+                vdu_value['vcImageId'] = images.get(vdu_name_idx)
+            if 'locationConstraints' in vdu_value:
+                vdu_value['locationConstraints'] = zones.get(vdu_name_idx)
+
+        for vdu_name_idx, vdu_value in new_vdus.items():
+            vdu_name = rm_idx(vdu_name_idx)
             if 'computeFlavourId' in vdu_value:
                 vdu_value['computeFlavourId'] = (
                     common_script_utils.get_param_flavor(
@@ -529,14 +566,33 @@ class StandardUserData(userdata_utils.AbstractUserData):
                 vdu_value['vcImageId'] = common_script_utils.get_param_image(
                     vdu_name, flavour_id, vnfd, grant)
             if 'locationConstraints' in vdu_value:
-                vdu_value.pop('locationConstraints')
+                vdu_value['locationConstraints'] = zones.get(vdu_name_idx)
 
-        cps = nfv_dict.get('CP', {})
-        new_cps = _get_new_cps_from_req(cps, req, grant)
+        vdus = cur_vdus
+        vdus.update(new_vdus)
+
+        cps = cur_nfv_dict.get('CP', {})
+        cps.update(new_nfv_dict.get('CP', {}))
+        # NOTE: req includes only different part. some CPs in new_nfv_dict
+        # may be necessary to get from inst.
+        cur_cps = _get_new_cps_from_inst(cps, inst)
+        req_cps = _get_new_cps_from_req(cps, req, grant)
+        for cp_name in cps.keys():
+            if cp_name in req_cps:
+                cps[cp_name] = req_cps[cp_name]
+            else:
+                cps[cp_name] = cur_cps[cp_name]
+
+        common_script_utils.apply_ext_managed_vls(top_hot, req, grant)
 
         fields = {
-            'parameters': {'nfv': {'VDU': vdus, 'CP': new_cps}}
+            'template': yaml.safe_dump(top_hot),
+            'parameters': {'nfv': {'VDU': vdus, 'CP': cps}},
+            'files': {},
+            'existing': False
         }
+        for key, value in hot_dict.get('files', {}).items():
+            fields['files'][key] = yaml.safe_dump(value)
 
         return fields
 
@@ -549,56 +605,57 @@ class StandardUserData(userdata_utils.AbstractUserData):
         top_hot = hot_dict['template']
 
         # first modify VDU resources
-        poped_vdu = {}
+        popped_vdu = {}
         for vdu_name in vnfd.get_vdu_nodes(flavour_id).keys():
-            poped_vdu[vdu_name] = top_hot.get('resources', {}).pop(vdu_name)
-
-        for res in grant_req['removeResources']:
-            if res['type'] != 'COMPUTE':
-                continue
-            for inst_vnfc in inst['instantiatedVnfInfo']['vnfcResourceInfo']:
-                if (inst_vnfc['computeResource']['resourceId'] ==
-                        res['resource']['resourceId']):
-                    # must be found
-                    vdu_idx = inst_vnfc['metadata']['vdu_idx']
-                    break
-            vdu_name = res['resourceTemplateId']
-            res = add_idx_to_vdu_template(poped_vdu[vdu_name], vdu_idx)
-            top_hot['resources'][add_idx(vdu_name, vdu_idx)] = res
-
-        nfv_dict = common_script_utils.init_nfv_dict(top_hot)
+            popped_vdu[vdu_name] = top_hot.get('resources', {}).pop(vdu_name)
 
         images = {}
         flavors = {}
+        zones = {}
         for inst_vnfc in inst['instantiatedVnfInfo']['vnfcResourceInfo']:
             vdu_idx = inst_vnfc['metadata'].get('vdu_idx')
             if vdu_idx is None:
+                # should not be None. just check for consistency.
                 continue
             vdu_name = inst_vnfc['vduId']
-            if vdu_name in flavors:
-                continue
+            vdu_name_idx = add_idx(vdu_name, vdu_idx)
+
+            res = add_idx_to_vdu_template(popped_vdu[vdu_name], vdu_idx)
+            top_hot['resources'][vdu_name_idx] = res
+
             for key, value in inst_vnfc['metadata'].items():
                 if key == 'flavor':
-                    flavors[add_idx(vdu_name, vdu_idx)] = value
+                    flavors[vdu_name_idx] = value
+                elif key == 'zone':
+                    zones[vdu_name_idx] = value
                 elif key.startswith('image-'):
                     image_vdu = key.replace('image-', '')
                     images[image_vdu] = value
 
+        nfv_dict = common_script_utils.init_nfv_dict(top_hot)
+
         vdus = nfv_dict.get('VDU', {})
-        new_vdus = {}
-        for vdu_name, vdu_value in vdus.items():
+        for vdu_name_idx, vdu_value in vdus.items():
+            vdu_name = rm_idx(vdu_name)
             if 'computeFlavourId' in vdu_value:
-                new_vdus.setdefault(vdu_name, {})
-                new_vdus[vdu_name]['computeFlavourId'] = flavors.get(vdu_name)
+                vdu_value['computeFlavourId'] = flavors.get(vdu_name_idx)
             if 'vcImageId' in vdu_value:
-                new_vdus.setdefault(vdu_name, {})
-                new_vdus[vdu_name]['vcImageId'] = images.get(vdu_name)
+                vdu_value['vcImageId'] = images.get(vdu_name_idx)
+            if 'locationConstraints' in vdu_value:
+                vdu_value['locationConstraints'] = zones.get(vdu_name_idx)
 
         cps = nfv_dict.get('CP', {})
         new_cps = _get_new_cps_from_inst(cps, inst)
 
+        common_script_utils.apply_ext_managed_vls(top_hot, req, grant)
+
         fields = {
-            'parameters': {'nfv': {'VDU': new_vdus, 'CP': new_cps}}
+            'template': yaml.safe_dump(top_hot),
+            'parameters': {'nfv': {'VDU': vdus, 'CP': new_cps}},
+            'files': {},
+            'existing': False
         }
+        for key, value in hot_dict.get('files', {}).items():
+            fields['files'][key] = yaml.safe_dump(value)
 
         return fields

@@ -1,5 +1,5 @@
 heat_template_version: 2013-05-23
-description: 'For Test of Individual Vnfc Management: sample4'
+description: 'Simple Base HOT for Sample VNF'
 
 parameters:
   nfv:
@@ -11,10 +11,10 @@ resources:
     properties:
       flavor: { get_param: [ nfv, VDU, VDU1, computeFlavourId ] }
       image-VDU1: { get_param: [ nfv, VDU, VDU1, vcImageId ] }
-      zone: { get_param: [ nfv, VDU, VDU1, locationConstraints] }
       net1: { get_param: [ nfv, CP, VDU1_CP1, network ] }
       net2: { get_resource: internalVL1 }
       net3: { get_resource: internalVL2 }
+      zone: { get_param: [ nfv, VDU, VDU1, locationConstraints ] }
 
   VDU2:
     type: VDU2.yaml
