@@ -26,7 +26,7 @@ client --> serv: 1. Request \n Change Current VNF Package
 serv --> cond
 cond --> infra
 infra -right-> heat: 2. Call OpenStack\n Heat API
-heat --> ins1: 3. Change the image of VMs
+heat --> ins1: 3. Change the resource of VMs
 heat --> ins2
 ins1 -[hidden]right-> ins2
 
