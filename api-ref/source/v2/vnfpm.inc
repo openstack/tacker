@@ -89,7 +89,7 @@ Response Parameters
   - collectionPeriod: criteria_collection_period
   - reportingPeriod: criteria_reporting_period
   - reportingBoundary: criteria_reporting_boundary
-  - callbackUri: vnf_pm_job_create_callback_uri
+  - callbackUri: vnf_pm_job_response_callback_uri
   - reports: vnf_pm_job_reports
   - href: reports_href
   - readyTime: reports_ready_time
@@ -134,7 +134,6 @@ Response Codes
   - 400
   - 401
   - 406
-  - 409
 
 Response Parameters
 -------------------
@@ -151,7 +150,7 @@ Response Parameters
   - collectionPeriod: criteria_collection_period
   - reportingPeriod: criteria_reporting_period
   - reportingBoundary: criteria_reporting_boundary
-  - callbackUri: vnf_pm_job_create_callback_uri
+  - callbackUri: vnf_pm_job_response_callback_uri
   - reports: vnf_pm_job_reports
   - href: reports_href
   - readyTime: reports_ready_time
@@ -216,7 +215,7 @@ Response Parameters
   - collectionPeriod: criteria_collection_period
   - reportingPeriod: criteria_reporting_period
   - reportingBoundary: criteria_reporting_boundary
-  - callbackUri: vnf_pm_job_create_callback_uri
+  - callbackUri: vnf_pm_job_response_callback_uri
   - reports: vnf_pm_job_reports
   - href: reports_href
   - readyTime: reports_ready_time
@@ -245,6 +244,7 @@ a PATCH request to the "Individual PM job" resource, including a data
 structure of type "PmJobModifications" in the payload body.  The VNFM returns
 a "200 OK" response to the API consumer and includes in the payload body a data
 structure of type "PmJobModifications" to indicate the performed modifications.
+However the authentication parameter shall not be present in response body.
 
 Response Codes
 --------------
@@ -287,7 +287,7 @@ Response Parameters
 
 .. rest_parameters:: parameters_vnfpm.yaml
 
-  - callbackUri: vnf_pm_job_create_callback_uri
+  - callbackUri: vnf_pm_job_response_callback_uri
 
 Response Example
 ----------------

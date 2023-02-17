@@ -109,6 +109,26 @@ definition file before running command for changing the VNF package.
           "password": "ubuntu"
         }
       }]
+    },
+    "vimConnectionInfo": {
+      "vim1": {
+        "accessInfo": {
+          "password": "devstack",
+          "project": "nfv",
+          "projectDomain": "Default",
+          "region": "RegionOne",
+          "userDomain": "Default",
+          "username": "nfv_user"
+        },
+        "extra": {
+          "new-key": "new-val"
+        },
+        "interfaceInfo": {
+          "endpoint": "http://localhost/identity/v3"
+        },
+        "vimId": "defb2f96-5670-4bef-8036-27bf61267fc1",
+        "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3"
+      }
     }
   }
 
@@ -211,6 +231,13 @@ You can set following parameter in additionalParams:
      to simulate the coordination interface in `ETSI SOL002 v3.5.1`_. Mainly a
      script that can communicate with the VM after the VM is created, perform
      special customization of the VM or confirm the status of the VM.
+   * ``vimConnectionInfo`` is an optional parameter.
+     This operation can specify the ``vimConnectionInfo`` for
+     the VNF instance.
+     Even if this operation specify multiple ``vimConnectionInfo``
+     associated with one VNF instance, only one of them will be used
+     for life cycle management operations.
+     It is not possible to delete the key of registered ``vimConnectionInfo``.
 
 .. note:: Currently, this operation only supports some functions of
    ``Change Current VNF Package``.

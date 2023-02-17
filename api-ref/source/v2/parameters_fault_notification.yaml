@@ -47,4 +47,4 @@ notification:
     Fault notification event.
   in: body
   required: true
-  type: Structure (inlined)
+  type: Structure

@@ -129,8 +129,15 @@ Optional parameters:
 * vimConnectionInfo
 
 .. note::
-      You can skip `vimConnectionInfo` only when you have
+      You can skip ``vimConnectionInfo`` only when you have
       the default VIM described in :doc:`../cli/cli-legacy-vim`.
+
+.. note::
+      This operation can specify the ``vimConnectionInfo``
+      for the VNF instance.
+      Even if this operation specify multiple ``vimConnectionInfo``
+      associated with one VNF instance, only one of them will be used for
+      life cycle management operations.
 
 Param file with only required parameters:
 

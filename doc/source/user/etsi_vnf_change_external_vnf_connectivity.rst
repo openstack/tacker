@@ -94,6 +94,13 @@ definition file before running command for changing the connectivity.
 .. note:: sample_param_file.json contains all the data of port resource information.
           if no setting is contained, it is treated as a change in information.
 
+.. note::
+  The change external VNF Connectivity operation can change the
+  ``vimConnectionInfo`` associated with an existing VNF instance.
+  Even if change external VNF Connectivity operation specify multiple
+  ``vimConnectionInfo`` associated with one VNF instance, only one of
+  them will be used for life cycle management operations.
+  It is not possible to delete the key of registered ``vimConnectionInfo``.
 
 How to Change the Specific Port Setting
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

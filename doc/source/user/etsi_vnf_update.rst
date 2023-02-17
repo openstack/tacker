@@ -96,12 +96,12 @@ Result:
   Tacker does not refer the value of these parameters specified in VNFD.
 
 .. note::
-  The update operation can change the vimConnectionInfo associated with an
-  existing VNF instance.
-  Even if instantiate operation and update operation specify multiple
-  vimConnectionInfo associated with one VNF instance, only one of them will
-  be used for life cycle management operations.
-  It is not possible to delete the key of registered vimConnectionInfo.
+  The update operation can change the ``vimConnectionInfo``
+  associated with an existing VNF instance.
+  Even if update operation specify multiple ``vimConnectionInfo``
+  associated with one VNF instance, only one of them will be used for life
+  cycle management operations.
+  It is not possible to delete the key of registered ``vimConnectionInfo``.
 
 
 VNF instance name after operation:

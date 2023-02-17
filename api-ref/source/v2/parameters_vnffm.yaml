@@ -52,7 +52,7 @@ alarm_links:
     Links for this resource.
   in: body
   required: true
-  type: array
+  type: object
 alarm_raised_time:
   description: |
     Time stamp indicating when the alarm is raised by the managed object.
@@ -83,7 +83,7 @@ correlated_alarm_ids:
     List of identifiers of other alarms correlated to this fault.
   in: body
   required: false
-  type: string
+  type: array
 event_time:
   description: |
     Time stamp indicating when the fault was observed.
@@ -101,7 +101,7 @@ fault_details:
     Provides additional information about the fault.
   in: body
   required: false
-  type: string
+  type: array
 fault_type:
   description: |
     Additional information to clarify the type of the fault.
@@ -294,7 +294,7 @@ subscription_links:
     Links for this resource.
   in: body
   required: true
-  type: array
+  type: object
 subscription_self:
   description: |
     URI of this resource.

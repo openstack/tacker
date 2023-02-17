@@ -201,8 +201,10 @@ reports_ready_time:
 vnf_pm_job_create_callback_uri:
   description: |
     The URI of the endpoint to send the notification to.
+    At least one of the "callbackUri" and "authentication"
+    attributes shall be present in request body.
   in: body
-  required: true
+  required: false
   type: string
 vnf_pm_job_create_criteria:
   description: |
@@ -233,6 +235,8 @@ vnf_pm_job_create_request_authentication:
   description: |
     Authentication parameters to configure the use of Authorization when
     sending notifications corresponding to this subscription.
+    At least one of the "callbackUri" and "authentication"
+    attributes shall be present in request body.
   in: body
   required: false
   type: object
@@ -281,6 +285,12 @@ vnf_pm_job_reports:
   in: body
   required: false
   type: array
+vnf_pm_job_response_callback_uri:
+  description: |
+    The URI of the endpoint to send the notification to.
+  in: body
+  required: false
+  type: string
 vnf_pm_job_response_id:
   description: |
     Identifier of this PM job.

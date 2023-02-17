@@ -18,25 +18,19 @@ CLI Reference for VNF Lifecycle Management
 ------------------------------------------
 
 .. note::
-    Commands call version 1 vnflcm APIs by default.
-    You can call the specific version of vnflcm APIs
+    Commands call version 1 VNF LCM APIs by default.
+    You can call the specific version of VNF LCM APIs
     by using the option **\-\-os-tacker-api-version**.
-    Commands with **\-\-os-tacker-api-version 2** call version 2 vnflcm APIs.
+    Commands with **\-\-os-tacker-api-version 2** call version 2 VNF LCM APIs.
 
 .. note::
-    In Yoga release, version 2 vnflcm APIs of instantiate vnf,
-    terminate vnf, change current vnf package and fail both support VNF and
-    CNF. Version 2 vnflcm APIs of scale vnf, heal vnf and
-    change external vnf connectivity only support VNF, not CNF. Rollback and
-    retry with all lifecycle only support VNF, rollback change current vnf
-    package support CNF, and retry change current vnf package and retry
-    terminate support CNF. Other operation by version 2 vnflcm APIs
-    will support CNF in future releases.
+    In Antelope release, version 2 VNF LCM APIs of Update
+    and Change External VNF Connectivity only support VNF, not CNF.
 
 .. note::
-   Change current vnf package only support version 2 vnflcm APIs. In Yoga
-   release, it only support ``RollingUpdate`` upgrade type, ``BlueGreen``
-   will be supported in future releases.
+   Change Current VNF Package only support version 2 VNF LCM APIs.
+   In Antelope release, it only support ``RollingUpdate`` upgrade type,
+   ``BlueGreen`` will be supported in future releases.
 
 1. Create VNF Identifier
 ^^^^^^^^^^^^^^^^^^^^^^^^

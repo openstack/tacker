@@ -719,7 +719,7 @@ The following shows a sample json file.
       "vimConnectionInfo": {
           "vim1": {
               "vimId": "d0f0cef9-5890-4a68-8974-61ed71b9f5d9",
-              "vimType": "kubernetes"
+              "vimType": "ETSINFV.KUBERNETES.V_1"
           }
       },
       "additionalParams": {
@@ -744,7 +744,7 @@ In the case of specifying ``vimId`` in the ``vimConnectionInfo``,
 vim information is complemented by registered vim information.
 
 .. note::
-    When using Helm, ``vimType`` shall be set as ``kubernetes``.
+    When using Helm, ``vimType`` shall be set as ``ETSINFV.KUBERNETES.V_1``.
     It is treated as Helm VIM inside tacker on the basis of
     the value of ``extra.use_helm``.
 
@@ -770,6 +770,10 @@ The following shows the sample json.
       }
   }
 
+.. note::
+      Even if this operation specify multiple ``vimConnectionInfo``
+      associated with one VNF instance, only one of them will be used for
+      life cycle management operations.
 
 Also, a json file must include some parameters for Helm
 as additional parameters

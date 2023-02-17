@@ -39,19 +39,19 @@ Request Parameters
 .. rest_parameters:: parameters_prometheus_plugin.yaml
 
   - alert: alert
-  - \>status: status
-  - \>labels: labels
-  - \>\>receiver_type: receiver_type
-  - \>\>function_type: function_type_pm
-  - \>\>job_id: job_id
-  - \>\>object_instance_id: object_instance_id
-  - \>\>sub_object_instance_id: sub_object_instance_id
-  - \>\>metric: metric
-  - \>annotations: annotations
-  - \>\>value: value
-  - \>startsAt: startsAt
-  - \>endsAt: endsAt
-  - \>fingerprint: fingerprint
+  - status: status
+  - labels: labels
+  - receiver_type: receiver_type
+  - function_type: function_type_pm
+  - job_id: job_id
+  - object_instance_id: object_instance_id
+  - sub_object_instance_id: sub_object_instance_id
+  - metric: metric
+  - annotations: annotations
+  - value: value
+  - startsAt: startsAt
+  - endsAt: endsAt
+  - fingerprint: fingerprint
 
 Request Example
 ---------------
@@ -85,21 +85,21 @@ Request Parameters
 .. rest_parameters:: parameters_prometheus_plugin.yaml
 
   - alert: alert
-  - \>status: status
-  - \>labels: labels
-  - \>\>receiver_type: receiver_type
-  - \>\>function_type: function_type_fm
-  - \>\>vnf_instance_id: vnf_instance_id
-  - \>\>pod: pod
-  - \>\>perceived_severity: perceived_severity
-  - \>\>event_type: event_type
-  - \>annotations: annotations
-  - \>\>probable_cause: probable_cause
-  - \>\>fault_type: fault_type
-  - \>\>fault_details: fault_details
-  - \>startsAt: startsAt
-  - \>endsAt: endsAt
-  - \>fingerprint: fingerprint
+  - status: status
+  - labels: labels
+  - receiver_type: receiver_type
+  - function_type: function_type_fm
+  - vnf_instance_id: vnf_instance_id
+  - pod: pod
+  - perceived_severity: perceived_severity
+  - event_type: event_type
+  - annotations: annotations
+  - probable_cause: probable_cause
+  - fault_type: fault_type
+  - fault_details: fault_details
+  - startsAt: startsAt
+  - endsAt: endsAt
+  - fingerprint: fingerprint
 
 Request Example
 ---------------
@@ -132,17 +132,17 @@ Request Parameters
 .. rest_parameters:: parameters_prometheus_plugin.yaml
 
   - alert: alert
-  - \>status: status
-  - \>labels: labels
-  - \>\>receiver_type: receiver_type
-  - \>\>function_type: function_type_auto_scale
-  - \>\>vnf_instance_id: vnf_instance_id
-  - \>\>auto_scale_type: auto_scale_type
-  - \>\>aspect_id: aspect_id
-  - \>annotations: annotations
-  - \>startsAt: startsAt
-  - \>endsAt: endsAt
-  - \>fingerprint: fingerprint
+  - status: status
+  - labels: labels
+  - receiver_type: receiver_type
+  - function_type: function_type_auto_scale
+  - vnf_instance_id: vnf_instance_id
+  - auto_scale_type: auto_scale_type
+  - aspect_id: aspect_id
+  - annotations: annotations
+  - startsAt: startsAt
+  - endsAt: endsAt
+  - fingerprint: fingerprint
 
 Request Example
 ---------------
