@@ -64,6 +64,9 @@ _inst1 = {
             'ServerNotifierFaultID': '1234'
         }
     },
+    'vnfConfigurableProperties': {
+        'isAutohealEnabled': True
+    }
 }
 
 _body = {

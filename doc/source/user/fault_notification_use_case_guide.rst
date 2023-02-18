@@ -103,7 +103,8 @@ The ``additionalParams`` must be set when using FaultNotification.
 * | **Name**: Instantiate VNF task
   | **Description**: This task resource represents the ``Instantiate VNF``
     operation. The client can use this resource to instantiate a VNF instance.
-    ``Only the additionalParams for FaultNotification are described here``.
+    ``Only the additionalParams and the vnfConfigurableProperties for
+    FaultNotification are described here``.
   | **Method type**: POST
   | **URL for the resource**: /vnflcm/v2/vnf_instances/
                               {vnfInstanceId}/instantiate
@@ -117,6 +118,18 @@ The ``additionalParams`` must be set when using FaultNotification.
       - Data type
       - Cardinality
       - Description
+    * - vnfConfigurableProperties
+      - KeyValuePairs
+      - 0..1
+      - Additional VNF-specific attributes that
+        provide the current values of the configurable
+        properties of the VNF instance.
+    * - >isAutohealEnabled:
+      - boolean
+      - 0..1
+      - If present, the VNF supports auto-healing. If set to
+        true, auto-healing is currently enabled.
+        If set to false, autohealing is currently disabled.
     * - additionalParams
       - KeyValuePairs (inlined)
       - 0..1
@@ -149,7 +162,8 @@ with vnflcm show command. For example:
   |                             |         "ServerNotifierFaultID": "1234"                                                                                                                              |
   |                             |     }                                                                                                                                                                |
   |                             |  ....                                                                                                                                                                |
-  +-----------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+  | VNF Configurable Properties | isAutohealEnabled=True                                                                                                                                               |  +-----------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+  |                             |  ....                                                                                                                                                                |
 
 Auto Healing
 ------------

@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from oslo_log import log as logging
 from tacker.sol_refactored.api.schemas import server_notification_schemas
 from tacker.sol_refactored.api import server_notification_validator\
     as validator
@@ -21,6 +22,8 @@ from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import monitoring_plugin_base as mon_base
 from tacker.sol_refactored.common import vnf_instance_utils as inst_utils
 from tacker.sol_refactored.conductor import conductor_rpc_v2
+
+LOG = logging.getLogger(__name__)
 
 CONF = cfg.CONF
 
@@ -58,12 +61,7 @@ class ServerNotification(mon_base.MonitoringPlugin):
         self.rpc.server_notification_notify(context, vnf_instance_id, vnfcids)
 
     def get_vnfc_instance_id(
-            self, context, vnf_instance_id, alarm_id, fault_id):
-        vnf_instance = inst_utils.get_inst(context, vnf_instance_id)
-        if not vnf_instance:
-            raise sol_ex.ServerNotificationValidationError(
-                detail="target vnf instance not found.")
-
+            self, context, vnf_instance, alarm_id, fault_id):
         if (not vnf_instance.obj_attr_is_set('instantiatedVnfInfo') or
                 not vnf_instance.instantiatedVnfInfo.obj_attr_is_set(
                     'metadata') or
@@ -99,8 +97,18 @@ class ServerNotification(mon_base.MonitoringPlugin):
     @validator.schema(server_notification_schemas.ServerNotification)
     def notify(self, request, vnf_instance_id, body):
         context = request.context
+        vnf_instance = inst_utils.get_inst(context, vnf_instance_id)
+        if not vnf_instance:
+            raise sol_ex.ServerNotificationValidationError(
+                detail="target vnf instance not found.")
+        if (not vnf_instance.obj_attr_is_set(
+                'vnfConfigurableProperties') or
+                not vnf_instance.vnfConfigurableProperties.get(
+                    'isAutohealEnabled')):
+            LOG.info("ServerNotification: skipped, isAutohealEnabled=False.")
+            return
         vnfcids = self.get_vnfc_instance_id(
-            context, vnf_instance_id, body['notification']['alarm_id'],
+            context, vnf_instance, body['notification']['alarm_id'],
             body['notification']['fault_id'])
         if self._notification_callback:
             self._notification_callback(context, vnf_instance_id, vnfcids)
