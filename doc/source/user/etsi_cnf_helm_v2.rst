@@ -1109,6 +1109,13 @@ we can append ``-A`` to the command line.
     during instantiate, the deployed resources will be instantiated
     in the corresponding namespace.
 
+Supported versions
+------------------
+
+Tacker Antelope release
+
+- Helm: 3.10
+
 References
 ==========
 .. [#credential] https://docs.openstack.org/tacker/latest/install/kubernetes_vim_installation.html

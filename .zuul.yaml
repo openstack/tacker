@@ -498,9 +498,9 @@
           KURYR_K8S_CONTAINERIZED_DEPLOYMENT: false
           KURYR_NEUTRON_DEFAULT_SUBNETPOOL_ID: shared-default-subnetpool-v4
           # NOTES:
-          # - In Atelope cycle, Kubernetes version is updated to 1.25.
+          # - In Antelope cycle, Kubernetes version is updated to 1.25.
           #   https://blueprints.launchpad.net/tacker/+spec/update-k8s-helm-prometheus
-          KURYR_KUBERNETES_VERSION: 1.25.2
+          KURYR_KUBERNETES_VERSION: 1.25.6
           CONTAINER_ENGINE: crio
           CRIO_VERSION: 1.25
           MYSQL_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
@@ -563,9 +563,9 @@
       kuryr_k8s_api_url: "https://{{ hostvars['controller-k8s']['nodepool']['private_ipv4'] }}:6443"
       k8s_ssl_verify: true
       # NOTES:
-      # - In Atelope cycle, Helm version is updated to 3.10.
+      # - In Antelope cycle, Helm version is updated to 3.10.
       #   https://blueprints.launchpad.net/tacker/+spec/update-k8s-helm-prometheus
-      helm_version: "3.10.1"
+      helm_version: "3.10.3"
       test_matrix_configs: [neutron]
       zuul_work_dir: src/opendev.org/openstack/tacker
       zuul_copy_output:

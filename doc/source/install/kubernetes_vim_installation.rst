@@ -29,12 +29,18 @@ It deploys VMs and Kubernetes resources on the same network.
 
    .. code-block:: console
 
-     # Enable kuryr-kubernetes, docker, octavia
+     # Enable kuryr-kubernetes, crio, octavia
      KUBERNETES_VIM=True
+     # It is necessary to specify the patch version
+     # because it is the version used when executing "apt-get install" command.
+     KURYR_KUBERNETES_VERSION="1.25.6"
+     CONTAINER_ENGINE="crio"
+     # It is not necessary to specify the patch version
+     # because it is the version used when adding the apt repository.
+     CRIO_VERSION="1.25"
      enable_plugin kuryr-kubernetes https://opendev.org/openstack/kuryr-kubernetes master
      enable_plugin octavia https://opendev.org/openstack/octavia master
      enable_plugin devstack-plugin-container https://opendev.org/openstack/devstack-plugin-container master
-     KURYR_K8S_CLUSTER_IP_RANGE="10.0.0.0/24"
 
    Public network is used to launch LoadBalancer for Services in Kubernetes.
    Setting public subnet is described in [#first]_.
@@ -103,9 +109,45 @@ It deploys VMs and Kubernetes resources on the same network.
    On the other hand, you're required to get required parameters with
    ``kubectl`` command if you edit the configuration from scratch.
 
+   * Create Secret
+
+     First, you can check whether a Secret containing a bearer token already
+     exists. If it does not exist, you can create a Secret according to the
+     following file. If it already exists, skip this step and start with
+     |get_token|_.
+
+     .. code-block:: console
+
+         $ cat default-token.yaml
+         apiVersion: v1
+         kind: Secret
+         metadata:
+           name: default-token-cfx5m
+           namespace: default
+           annotations:
+             kubernetes.io/service-account.name: "default"
+         type: kubernetes.io/service-account-token
+
+     Use ``default-token.yaml`` to create a Secret.
+
+     **Command:**
+
+     .. code-block:: console
+
+         $ kubectl apply -f default-token.yaml
+
+     **Result:**
+
+     .. code-block:: console
+
+         secret/default-token-cfx5m created
+
+   .. |get_token| replace:: Get "Bearer Token"
+   .. _get_token:
+
    * Get "Bearer Token"
 
-     First, you have to confirm Kubernetes Secret name which contains
+     You have to confirm Kubernetes Secret name which contains
      bearer token.
 
      **Command:**
