@@ -898,6 +898,7 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
 
         expected_placement_constraints = [{
             'affinityOrAntiAffinity': 'ANTI_AFFINITY',
+            'fallbackBestEffort': False,
             'scope': 'NFVI_NODE',
             'resource': []}]
         vdu_def_ids = (check_reses['COMPUTE']['VDU1'] +
@@ -1081,6 +1082,7 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
 
         expected_placement_constraints = [{
             'affinityOrAntiAffinity': 'ANTI_AFFINITY',
+            'fallbackBestEffort': False,
             'scope': 'NFVI_NODE',
             'resource': []}]
         vdu_def_ids = check_reses['COMPUTE']['VDU1']

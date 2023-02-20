@@ -626,6 +626,30 @@
       keycloak_https_port: 8443
 
 - job:
+    name: tacker-functional-devstack-multinode-sol-v2-az-retry
+    parent: tacker-functional-devstack-multinode-sol-v2
+    description: |
+      Multinodes job for retry of AZ selection in SOL V2 devstack-based functional tests
+    host-vars:
+      controller-tacker:
+        devstack_local_conf:
+          post-config:
+            $TACKER_CONF:
+              v2_nfvo:
+                test_grant_zone_list: az-1
+              v2_vnfm:
+                placement_fallback_best_effort: true
+              server_notification:
+                server_notification: true
+        devstack_services:
+          n-cpu: true
+          placement-client: true
+        tox_envlist: dsvm-functional-sol-v2-az-retry
+    vars:
+      setup_multi_az: true
+      controller_tacker_hostname: "{{ hostvars['controller-tacker']['ansible_hostname'] }}"
+
+- job:
     name: tacker-compliance-devstack-multinode-sol
     parent: tacker-functional-devstack-multinode-legacy
     description: |
@@ -660,4 +684,5 @@
         - tacker-functional-devstack-multinode-sol-multi-tenant
         - tacker-functional-devstack-multinode-sol-kubernetes-multi-tenant
         - tacker-functional-devstack-kubernetes-oidc-auth
+        - tacker-functional-devstack-multinode-sol-v2-az-retry
         - tacker-compliance-devstack-multinode-sol

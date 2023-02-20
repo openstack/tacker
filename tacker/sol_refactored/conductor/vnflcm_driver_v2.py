@@ -695,7 +695,9 @@ class VnfLcmDriverV2(object):
                 plc_const = objects.PlacementConstraintV1(
                     affinityOrAntiAffinity=key,
                     scope=scope.upper(),
-                    resource=res_refs)
+                    resource=res_refs,
+                    fallbackBestEffort=(
+                        CONF.v2_vnfm.placement_fallback_best_effort))
                 plc_consts.append(plc_const)
 
         if plc_consts:

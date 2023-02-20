@@ -11,6 +11,8 @@
       when: prometheus_setup is defined and prometheus_setup | bool
     - role: setup-multi-tenant-vim
       when: setup_multi_tenant is defined and setup_multi_tenant | bool
+    - role: setup-multi-az
+      when: setup_multi_az is defined and setup_multi_az | bool
     - role: bindep
       bindep_profile: test
       bindep_dir: "{{ zuul_work_dir }}"

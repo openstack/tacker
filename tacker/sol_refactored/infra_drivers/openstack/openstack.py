@@ -17,6 +17,7 @@
 import json
 import os
 import pickle
+import re
 import subprocess
 import yaml
 
@@ -29,6 +30,7 @@ from tacker.sol_refactored.common import config
 from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import vnf_instance_utils as inst_utils
 from tacker.sol_refactored.infra_drivers.openstack import heat_utils
+from tacker.sol_refactored.infra_drivers.openstack import nova_utils
 from tacker.sol_refactored.infra_drivers.openstack import userdata_default
 from tacker.sol_refactored import objects
 from tacker.sol_refactored.objects.v2 import fields as v2fields
@@ -89,17 +91,28 @@ class Openstack(object):
     def instantiate(self, req, inst, grant_req, grant, vnfd):
         # make HOT
         fields = self._make_hot(req, inst, grant_req, grant, vnfd)
+        vdu_ids = self._get_vdu_id_from_fields(fields)
 
         # create or update stack
         vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
         heat_client = heat_utils.HeatClient(vim_info)
         stack_name = heat_utils.get_stack_name(inst)
         stack_id = heat_client.get_stack_id(stack_name)
+
         if stack_id is None:
             fields['stack_name'] = stack_name
-            stack_id = heat_client.create_stack(fields)
+            try:
+                stack_id = heat_client.create_stack(fields)
+            except sol_ex.StackOperationFailed as ex:
+                self._update_stack_retry(heat_client, fields, inst, None,
+                    ex, vim_info, vdu_ids)
+                stack_id = heat_client.get_stack_id(stack_name)
         else:
-            heat_client.update_stack(f'{stack_name}/{stack_id}', fields)
+            try:
+                heat_client.update_stack(f'{stack_name}/{stack_id}', fields)
+            except sol_ex.StackOperationFailed as ex:
+                self._update_stack_retry(heat_client, fields, inst, stack_id,
+                    ex, vim_info, vdu_ids)
 
         # make instantiated_vnf_info
         self._make_instantiated_vnf_info(req, inst, grant_req, grant, vnfd,
@@ -158,6 +171,7 @@ class Openstack(object):
     def scale(self, req, inst, grant_req, grant, vnfd):
         # make HOT
         fields = self._make_hot(req, inst, grant_req, grant, vnfd)
+        vdu_ids = self._get_vdu_id_from_fields(fields)
 
         vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
         heat_client = heat_utils.HeatClient(vim_info)
@@ -182,7 +196,14 @@ class Openstack(object):
         # update stack
         stack_name = heat_utils.get_stack_name(inst)
         fields = self._update_fields(heat_client, stack_name, fields)
-        heat_client.update_stack(stack_name, fields)
+        try:
+            heat_client.update_stack(stack_name, fields)
+        except sol_ex.StackOperationFailed as ex:
+            if req.type == 'SCALE_OUT':
+                self._update_stack_retry(heat_client, fields, inst, None, ex,
+                    vim_info, vdu_ids)
+            else:
+                raise ex
 
         # make instantiated_vnf_info
         self._make_instantiated_vnf_info(req, inst, grant_req, grant, vnfd,
@@ -285,7 +306,13 @@ class Openstack(object):
 
             # stack delete and create
             heat_client.delete_stack(stack_name)
-            stack_id = heat_client.create_stack(fields)
+            try:
+                stack_id = heat_client.create_stack(fields)
+            except sol_ex.StackOperationFailed as ex:
+                vdu_ids = self._get_vdu_id_from_grant_req(grant_req, inst)
+                self._update_stack_retry(heat_client, fields, inst, None,
+                    ex, vim_info, vdu_ids)
+                stack_id = heat_client.get_stack_id(stack_name)
         else:
             # mark unhealthy to target resources.
             # As the target resources has been already selected in
@@ -311,7 +338,13 @@ class Openstack(object):
                             storage_info.virtualStorageDescId)
 
             # update stack
-            heat_client.update_stack(stack_name, fields)
+            try:
+                heat_client.update_stack(stack_name, fields)
+            except sol_ex.StackOperationFailed as ex:
+                vdu_ids = self._get_vdu_id_from_grant_req(grant_req, inst)
+                self._update_stack_retry(heat_client, fields, inst, None,
+                    ex, vim_info, vdu_ids)
+
             stack_id = inst.instantiatedVnfInfo.metadata['stack_id']
 
         # make instantiated_vnf_info
@@ -607,6 +640,95 @@ class Openstack(object):
         # some resources may be changed.
         self._make_instantiated_vnf_info(req, inst, grant_req, grant, vnfd,
             heat_client, is_rollback=True)
+
+    def _update_stack_retry(self, heat_client, fields, inst, stack_id,
+            error_ex, vim_info, vdu_ids):
+        # NOTE: This method first selects a zone from unused zones
+        # and retries in case of failure due to zone resource constraints.
+        # If there are no unused zones, it selects from the used zones.
+        if not CONF.v2_vnfm.placement_fallback_best_effort:
+            # NOTE: If fallback_best_effort is False,
+            # AZ reselection is not executed.
+            raise error_ex
+
+        vdu_dict = fields['parameters']['nfv']['VDU']
+        failed_zone = self._check_and_get_failed_zone(
+            error_ex.detail, vdu_dict)
+        if failed_zone is None:
+            raise error_ex
+
+        stack_name = heat_utils.get_stack_name(inst, stack_id)
+        nova_client = nova_utils.NovaClient(vim_info)
+        zones = nova_client.get_zone()
+        used_zones = {parameters.get('locationConstraints')
+                      for parameters in vdu_dict.values()
+                      if parameters.get('locationConstraints') is not None}
+        if (inst.obj_attr_is_set('instantiatedVnfInfo') and
+                inst.instantiatedVnfInfo.obj_attr_is_set('vnfcResourceInfo')):
+            used_zones |= {vnfc.metadata.get('zone') for vnfc
+                           in inst.instantiatedVnfInfo.vnfcResourceInfo
+                           if vnfc.metadata.get('zone') is not None}
+
+        available_zones = zones - used_zones
+        used_zones.discard(failed_zone)
+        retry_count = (CONF.v2_vnfm.placement_az_select_retry
+                       if CONF.v2_vnfm.placement_az_select_retry
+                       else len(zones))
+        while retry_count > 0:
+            if available_zones:
+                new_zone = available_zones.pop()
+            elif used_zones:
+                new_zone = used_zones.pop()
+            else:
+                message = ("Availability Zone reselection failed. "
+                           "No Availability Zone available.")
+                LOG.error(message)
+                raise error_ex
+
+            for vdu_id, parameters in vdu_dict.items():
+                if vdu_id in vdu_ids:
+                    if parameters.get('locationConstraints') == failed_zone:
+                        parameters['locationConstraints'] = new_zone
+
+            LOG.debug("stack fields: %s", fields)
+            try:
+                heat_client.update_stack(stack_name, fields)
+                return
+            except sol_ex.StackOperationFailed as ex:
+                failed_zone = self._check_and_get_failed_zone(
+                    ex.detail, vdu_dict)
+                if failed_zone is None:
+                    raise ex
+                retry_count -= 1
+                error_ex = ex
+        else:
+            message = ("Availability Zone reselection failed. "
+                       "Reached the retry count limit.")
+            LOG.error(message)
+            raise error_ex
+
+    def _check_and_get_failed_zone(self, ex_detail, vdu_dict):
+        if re.match(CONF.v2_vnfm.placement_az_resource_error, ex_detail):
+            match_result = re.search(r'resources\.((.*)-([0-9]+))', ex_detail)
+            if match_result is None:
+                LOG.warning("CONF v2_vnfm.placement_az_resource_error is "
+                            "invalid. Please check.")
+                return None
+            vdu_id = match_result.group(1)
+            return vdu_dict.get(vdu_id, {}).get('locationConstraints')
+
+    def _get_vdu_id_from_fields(self, fields):
+        vdu_dict = fields['parameters']['nfv']['VDU']
+        return set(vdu_dict.keys())
+
+    def _get_vdu_id_from_grant_req(self, grant_req, inst):
+        vnfc_res_ids = [res_def.resource.resourceId
+                        for res_def in grant_req.removeResources
+                        if res_def.type == 'COMPUTE']
+        vdu_ids = {_rsc_with_idx(vnfc.vduId, vnfc.metadata.get('vdu_idx'))
+                   for vnfc in inst.instantiatedVnfInfo.vnfcResourceInfo
+                   if vnfc.computeResource.resourceId in vnfc_res_ids}
+        return vdu_ids
 
     def _make_hot(self, req, inst, grant_req, grant, vnfd, is_rollback=False):
         if grant_req.operation == v2fields.LcmOperationType.INSTANTIATE:
@@ -1100,6 +1222,7 @@ class Openstack(object):
                     nfv_dict['VDU'])
                 if zone is not None:
                     metadata['zone'] = zone
+                    vnfc_res_info.zoneId = zone
 
     def _make_instantiated_vnf_info(self, req, inst, grant_req, grant, vnfd,
             heat_client, is_rollback=False, stack_id=None):

@@ -126,6 +126,8 @@ def _make_affected_vnfc(vnfc, change_type, strgs):
         changeType=change_type,
         computeResource=vnfc.computeResource
     )
+    if vnfc.obj_attr_is_set('zoneId'):
+        affected_vnfc.zoneId = vnfc.zoneId
     if vnfc.obj_attr_is_set('metadata'):
         affected_vnfc.metadata = vnfc.metadata
     if vnfc.obj_attr_is_set('vnfcCpInfo'):

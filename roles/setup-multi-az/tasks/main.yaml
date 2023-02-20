@@ -1,0 +1,20 @@
+- block:
+  - name: Create OpenStack availability zone
+    shell: |
+       openstack --os-cloud devstack-admin aggregate create \
+       {{ aggregate_name }}
+       openstack --os-cloud devstack-admin aggregate set \
+       --zone {{ zone_name }} {{ aggregate_name }}
+       openstack --os-cloud devstack-admin aggregate add host \
+       {{ aggregate_name }} {{ controller_tacker_hostname }}
+
+  # NOTE: This flavor is used for testing to check that VNFc is created
+  # in other zones due to lack of zone resources.
+  # Therefore, it is necessary to create this flavor with large memory.
+  - name: Create OpenStack flavor
+    shell: |
+       openstack --os-cloud devstack-admin \
+       flavor create --ram 4096 --disk 4 --vcpus 2 {{ flavor_name }}
+
+  when:
+    - inventory_hostname == 'controller'

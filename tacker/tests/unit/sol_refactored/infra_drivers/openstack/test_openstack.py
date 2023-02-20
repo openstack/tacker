@@ -2816,6 +2816,7 @@ _expected_inst_info_S = {
                 "resourceId": "res_id_VDU1_1",
                 "vimLevelResourceType": "OS::Nova::Server"
             },
+            "zoneId": "zone1",
             "vnfcCpInfo": [
                 {
                     "id": "VDU1_CP1-res_id_VDU1_1",
@@ -2850,6 +2851,7 @@ _expected_inst_info_S = {
                 "resourceId": "res_id_VDU1_0",
                 "vimLevelResourceType": "OS::Nova::Server"
             },
+            "zoneId": "zone1",
             "vnfcCpInfo": [
                 {
                     "id": "VDU1_CP1-res_id_VDU1_0",
@@ -3472,6 +3474,67 @@ _grant_req_example = {
     }
 }
 
+# example for _update_stack_retry
+_fields_example_instantiate = {
+    'parameters': {
+        'nfv': {
+            'VDU': {
+                'VDU1-0': {
+                    'computeFlavourId': 'm1.tiny',
+                    'vcImageId': 'cirros-0.5.2-x86_64-disk',
+                    'locationConstraints': 'az-1'
+                },
+                'VDU2-0': {
+                    'computeFlavourId': 'm1.tiny'
+                },
+                'VDU2-VirtualStorage-0': {
+                    'vcImageId': '0fea3414-93c0-46f5-b042-857be40e9fc7'
+                }
+            }
+        }
+    }
+}
+
+_fields_example_scale = {
+    'parameters': {
+        'nfv': {
+            'VDU': {
+                'VDU1-0': {
+                    'computeFlavourId': 'm1.tiny',
+                    'vcImageId': 'cirros-0.5.2-x86_64-disk',
+                    'locationConstraints': 'az-2'
+                },
+                'VDU2-0': {
+                    'computeFlavourId': 'm1.tiny',
+                },
+                'VDU2-VirtualStorage-0': {
+                    'vcImageId': '0fea3414-93c0-46f5-b042-857be40e9fc7'
+                },
+                'VDU1-1': {
+                    'computeFlavourId': 'm1.tiny',
+                    'vcImageId': 'cirros-0.5.2-x86_64-disk',
+                    'locationConstraints': 'az-1'
+                },
+                'VDU1-2': {
+                    'computeFlavourId': 'm1.tiny',
+                    'vcImageId': 'cirros-0.5.2-x86_64-disk',
+                    'locationConstraints': 'az-1'
+                }
+            }
+        }
+    }
+}
+
+_update_retry_instantiated_vnfinfo = {
+    "vnfcResourceInfo": [
+        {
+            "metadata": {
+                "zone": "az-2"
+            }
+        }
+    ]
+}
+
 CONF = config.CONF
 
 
@@ -4036,3 +4099,270 @@ class TestOpenstack(base.BaseTestCase):
         # check
         result = inst.to_dict()["instantiatedVnfInfo"]
         self._check_inst_info(_expected_inst_info_vnfc_updated, result)
+
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'update_stack')
+    def test_update_stack_retry_fallback_best_effort_false(
+            self, mock_update_stack):
+        # prepare
+        # Default value for placement_fallback_best_effort is False.
+        # Set it in the unit test. In that case, do not retry.
+        CONF.v2_vnfm.placement_fallback_best_effort = False
+
+        sol_detail = ("Resource CREATE failed: ResourceInError: resources."
+                      "VDU1-0.resources.VDU1: Went to status ERROR due to "
+                      "\"Message: No valid host was found. , Code: 500\"")
+        error_ex = sol_ex.StackOperationFailed(sol_detail=sol_detail,
+                                               sol_title="stack failed")
+
+        ex = self.assertRaises(sol_ex.StackOperationFailed,
+             self.driver._update_stack_retry, mock.Mock(), mock.Mock(),
+             mock.Mock(), mock.Mock(), error_ex, mock.Mock(), mock.Mock())
+
+        self.assertEqual(error_ex.detail, ex.detail)
+        mock_update_stack.assert_not_called()
+
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'update_stack')
+    def test_update_stack_retry_other_detail(self, mock_update_stack):
+        # prepare
+        CONF.v2_vnfm.placement_fallback_best_effort = True
+
+        fields_example = copy.deepcopy(_fields_example_instantiate)
+        sol_detail = ("Resource CREATE failed: unit test")
+        error_ex = sol_ex.StackOperationFailed(sol_detail=sol_detail,
+                                               sol_title="stack failed")
+
+        ex = self.assertRaises(sol_ex.StackOperationFailed,
+             self.driver._update_stack_retry, mock.Mock(), fields_example,
+             mock.Mock(), mock.Mock(), error_ex, mock.Mock(), mock.Mock())
+
+        self.assertEqual(error_ex.detail, ex.detail)
+        mock_update_stack.assert_not_called()
+
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'update_stack')
+    def test_update_stack_retry_not_match_vdu_id(self, mock_update_stack):
+        # prepare
+        CONF.v2_vnfm.placement_fallback_best_effort = True
+        CONF.v2_vnfm.placement_az_resource_error = (
+            r'Resource CREATE failed: ResourceInError: '
+            r'error\.(.*)\.(.*): (.*)')
+
+        fields_example = copy.deepcopy(_fields_example_instantiate)
+        sol_detail = ("Resource CREATE failed: ResourceInError: error."
+                      "VDU1-0.res.VDU1: Went to status ERROR due to "
+                      "\"Message: No valid host was found. , Code: 500\"")
+        error_ex = sol_ex.StackOperationFailed(sol_detail=sol_detail,
+                                               sol_title="stack failed")
+        ex = self.assertRaises(sol_ex.StackOperationFailed,
+             self.driver._update_stack_retry, mock.Mock(), fields_example,
+             mock.Mock(), mock.Mock(), error_ex, mock.Mock(), mock.Mock())
+
+        self.assertEqual(error_ex.detail, ex.detail)
+        mock_update_stack.assert_not_called()
+
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'update_stack')
+    @mock.patch.object(openstack.nova_utils.NovaClient, 'get_zone')
+    def test_update_stack_retry_retry_out_no_zone(self, mock_get_zone,
+            mock_update_stack):
+        # prepare
+        CONF.v2_vnfm.placement_fallback_best_effort = True
+        CONF.v2_vnfm.placement_az_select_retry = 10
+
+        vim_info = objects.VimConnectionInfo.from_dict(
+            _vim_connection_info_example)
+
+        inst = objects.VnfInstanceV2(id=uuidutils.generate_uuid())
+
+        fields_example = copy.deepcopy(_fields_example_instantiate)
+        heat_client = openstack.heat_utils.HeatClient(vim_info)
+        vdu_ids = {"VDU1-0", "VDU2-0", "VDU2-VirtualStorage-0"}
+
+        sol_detail = ("Resource CREATE failed: ResourceInError: resources."
+                      "VDU1-0.resources.VDU1: Went to status ERROR due to "
+                      "\"Message: No valid host was found. , Code: 500\"")
+        error_ex = sol_ex.StackOperationFailed(sol_detail=sol_detail,
+                                               sol_title="stack failed")
+        mock_get_zone.return_value = {'az-1', 'az-2', 'az-3', 'az-4'}
+
+        def _retry(stack_name, fields):
+            sol_detail = ("Resource UPDATE failed: resources.VDU1-0: "
+                          "Resource CREATE failed: ResourceInError: "
+                          "resources.VDU1: Went to status ERROR due to "
+                          "\"Message: No valid host was found. , "
+                          "Code: 500\"")
+            raise sol_ex.StackOperationFailed(sol_detail=sol_detail,
+                                              sol_title="stack failed")
+
+        mock_update_stack.side_effect = _retry
+
+        # execute
+        self.assertRaises(sol_ex.StackOperationFailed,
+            self.driver._update_stack_retry, heat_client, fields_example,
+            inst, STACK_ID, error_ex, vim_info, vdu_ids)
+        self.assertEqual(len(mock_get_zone.return_value) - 1,
+                         mock_update_stack.call_count)
+
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'update_stack')
+    @mock.patch.object(openstack.nova_utils.NovaClient, 'get_zone')
+    def test_update_stack_retry_retry_out_retry_limit(self, mock_get_zone,
+            mock_update_stack):
+        # prepare
+        CONF.v2_vnfm.placement_fallback_best_effort = True
+        CONF.v2_vnfm.placement_az_select_retry = 3
+
+        vim_info = objects.VimConnectionInfo.from_dict(
+            _vim_connection_info_example)
+
+        inst = objects.VnfInstanceV2(id=uuidutils.generate_uuid())
+
+        fields_example = copy.deepcopy(_fields_example_instantiate)
+        heat_client = openstack.heat_utils.HeatClient(vim_info)
+        vdu_ids = {"VDU1-0", "VDU2-0", "VDU2-VirtualStorage-0"}
+
+        sol_detail = ("Resource CREATE failed: ResourceInError: resources."
+                      "VDU1-0.resources.VDU1: Went to status ERROR due to "
+                      "\"Message: No valid host was found. , Code: 500\"")
+        error_ex = sol_ex.StackOperationFailed(sol_detail=sol_detail,
+                                               sol_title="stack failed")
+        mock_get_zone.return_value = {'az-1', 'az-2', 'az-3', 'az-4', 'az-5'}
+
+        def _retry(stack_name, fields):
+            sol_detail = ("Resource UPDATE failed: resources.VDU1-0: "
+                          "Resource CREATE failed: ResourceInError: "
+                          "resources.VDU1: Went to status ERROR due to "
+                          "\"Message: No valid host was found. , "
+                          "Code: 500\"")
+            raise sol_ex.StackOperationFailed(sol_detail=sol_detail,
+                                              sol_title="stack failed")
+
+        mock_update_stack.side_effect = _retry
+
+        # execute
+        self.assertRaises(sol_ex.StackOperationFailed,
+            self.driver._update_stack_retry, heat_client, fields_example,
+            inst, STACK_ID, error_ex, vim_info, vdu_ids)
+        self.assertEqual(CONF.v2_vnfm.placement_az_select_retry,
+                         mock_update_stack.call_count)
+
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'update_stack')
+    @mock.patch.object(openstack.nova_utils.NovaClient, 'get_zone')
+    def test_update_stack_retry_check_zone_value(self, mock_get_zone,
+            mock_update_stack):
+        # prepare
+        CONF.v2_vnfm.placement_fallback_best_effort = True
+
+        vim_info = objects.VimConnectionInfo.from_dict(
+            _vim_connection_info_example)
+
+        inst = objects.VnfInstanceV2(
+            id=uuidutils.generate_uuid(),
+            instantiatedVnfInfo=(
+                objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
+                    _update_retry_instantiated_vnfinfo))
+        )
+
+        fields_example = copy.deepcopy(_fields_example_scale)
+        heat_client = openstack.heat_utils.HeatClient(vim_info)
+        vdu_ids = {"VDU1-1", "VDU1-2"}
+
+        sol_detail = ("Resource CREATE failed: ResourceInError: resources."
+                      "VDU1-1.resources.VDU1: Went to status ERROR due to "
+                      "\"Message: No valid host was found. , Code: 500\"")
+        error_ex = sol_ex.StackOperationFailed(sol_detail=sol_detail,
+                                               sol_title="stack failed")
+        mock_get_zone.return_value = {'az-1', 'az-2', 'az-3', 'az-4'}
+
+        use_zone_list = []
+
+        def _retry(stack_name, fields):
+            vdu_dict = fields['parameters']['nfv']['VDU']
+            use_zone = {vdu_id: parameters.get('locationConstraints')
+                        for vdu_id, parameters in vdu_dict.items()
+                        if parameters.get('locationConstraints') is not None}
+            use_zone_list.append(use_zone)
+            if mock_update_stack.call_count >= 2:
+                return
+            else:
+                sol_detail = ("Resource UPDATE failed: resources.VDU1-1: "
+                              "Resource CREATE failed: ResourceInError: "
+                              "resources.VDU1: Went to status ERROR due to "
+                              "\"Message: No valid host was found. , "
+                              "Code: 500\"")
+                raise sol_ex.StackOperationFailed(sol_detail=sol_detail,
+                                                  sol_title="stack failed")
+
+        mock_update_stack.side_effect = _retry
+        used_zone = 'az-2'
+
+        # execute
+        self.driver._update_stack_retry(heat_client, fields_example, inst,
+            STACK_ID, error_ex, vim_info, vdu_ids)
+        self.assertEqual(2, mock_update_stack.call_count)
+        self.assertEqual(use_zone_list[0]['VDU1-1'],
+                         use_zone_list[0]['VDU1-2'])
+        self.assertEqual(use_zone_list[1]['VDU1-1'],
+                         use_zone_list[1]['VDU1-2'])
+        self.assertNotEqual(use_zone_list[0]['VDU1-0'],
+                            use_zone_list[0]['VDU1-1'])
+        self.assertNotEqual(use_zone_list[1]['VDU1-0'],
+                            use_zone_list[1]['VDU1-1'])
+        self.assertNotEqual(used_zone, use_zone_list[0]['VDU1-1'])
+        self.assertNotEqual(used_zone, use_zone_list[1]['VDU1-1'])
+
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'update_stack')
+    @mock.patch.object(openstack.nova_utils.NovaClient, 'get_zone')
+    def test_update_stack_retry_use_used_zone(self, mock_get_zone,
+            mock_update_stack):
+        # prepare
+        CONF.v2_vnfm.placement_fallback_best_effort = True
+
+        vim_info = objects.VimConnectionInfo.from_dict(
+            _vim_connection_info_example)
+
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            instantiatedVnfInfo=(
+                objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
+                    _update_retry_instantiated_vnfinfo))
+        )
+
+        fields_example = copy.deepcopy(_fields_example_scale)
+        heat_client = openstack.heat_utils.HeatClient(vim_info)
+        vdu_ids = {"VDU1-1", "VDU1-2"}
+
+        sol_detail = ("Resource CREATE failed: ResourceInError: resources."
+                      "VDU1-1.resources.VDU1: Went to status ERROR due to "
+                      "\"Message: No valid host was found. , Code: 500\"")
+        error_ex = sol_ex.StackOperationFailed(sol_detail=sol_detail,
+                                               sol_title="stack failed")
+        mock_get_zone.return_value = {'az-1', 'az-2', 'az-3', 'az-4'}
+
+        use_zone_list = []
+
+        def _retry(stack_name, fields):
+            vdu_dict = fields['parameters']['nfv']['VDU']
+            use_zone = {vdu_id: parameters.get('locationConstraints')
+                        for vdu_id, parameters in vdu_dict.items()
+                        if parameters.get('locationConstraints') is not None}
+            use_zone_list.append(use_zone)
+            if mock_update_stack.call_count >= 3:
+                return
+            else:
+                sol_detail = ("Resource UPDATE failed: resources.VDU1-1: "
+                              "Resource CREATE failed: ResourceInError: "
+                              "resources.VDU1: Went to status ERROR due to "
+                              "\"Message: No valid host was found. , "
+                              "Code: 500\"")
+                raise sol_ex.StackOperationFailed(sol_detail=sol_detail,
+                                                  sol_title="stack failed")
+
+        mock_update_stack.side_effect = _retry
+        expected_zone = 'az-2'
+
+        # execute
+        self.driver._update_stack_retry(heat_client, fields_example, inst,
+            STACK_ID, error_ex, vim_info, vdu_ids)
+        self.assertEqual(3, mock_update_stack.call_count)
+        self.assertEqual(expected_zone, use_zone_list[2]['VDU1-1'])
+        self.assertEqual(use_zone_list[2]['VDU1-1'],
+                         use_zone_list[2]['VDU1-2'])
