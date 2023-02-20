@@ -64,6 +64,9 @@
   prometheus_plugin_auto_scale: |
     The Prometheus Plugin API is not enabled.
     (CONF.prometheus_plugin.auto_scaling)
+  prometheus_plugin_auto_heal: |
+    The Prometheus Plugin API is not enabled.
+    (CONF.prometheus_plugin.auto_healing)
 405:
   default: |
     Method is not valid for this endpoint.

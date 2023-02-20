@@ -8,11 +8,12 @@ This interface is used for notifying alert that is detected by
 the External Monitoring Tool. The External Monitoring Tool is
 Prometheus based Monitoring system.
 
-The Prometheus Plugin has 3 functions:
+The Prometheus Plugin has 4 functions:
 
 - Alerting interface for ETSI NFV-SOL 002/003 based Performance Management.
 - Alerting interface for ETSI NFV-SOL 002/003 based Fault Management.
 - Alerting interface for Prometheus Plugin AutoScaling.
+- Alerting interface for Prometheus Plugin AutoHealing.
 
 Alerting interface for ETSI NFV-SOL 002/003 based Performance Management
 ========================================================================
@@ -110,7 +111,7 @@ Request Example
 Alerting interface for Prometheus Plugin AutoScaling
 ====================================================
 
-.. rest_method::  POST /alert
+.. rest_method::  POST /alert/auto_scaling
 
 Alert Tacker when scaling should be performed.
 
@@ -148,4 +149,51 @@ Request Example
 ---------------
 
 .. literalinclude:: samples/prometheus_plugin/alert_auto_scale.json
+   :language: javascript
+
+Alerting interface for Prometheus Plugin AutoHealing
+====================================================
+
+.. rest_method::  POST /alert/auto_healing
+
+Alert Tacker when healing should be performed.
+
+This interface can be alerted by multiple times in a short period.
+To prevent invoking multiple heal operations to single VNF,
+the multiple requests by this interface are packed for
+a configured period of time (CONF.prometheus_plugin.timer_interval).
+
+Response Codes
+--------------
+
+.. rest_status_code:: success status.yaml
+
+  - 204
+
+.. rest_status_code:: error status.yaml
+
+  - 400
+  - 404: prometheus_plugin_auto_heal
+
+Request Parameters
+------------------
+
+.. rest_parameters:: parameters_prometheus_plugin.yaml
+
+  - alert: alert
+  - status: status
+  - labels: labels
+  - receiver_type: receiver_type
+  - function_type: function_type_auto_heal
+  - vnf_instance_id: vnf_instance_id
+  - vnfc_info_id: vnfc_info_id
+  - annotations: annotations
+  - startsAt: startsAt
+  - endsAt: endsAt
+  - fingerprint: fingerprint
+
+Request Example
+---------------
+
+.. literalinclude:: samples/prometheus_plugin/alert_auto_heal.json
    :language: javascript
