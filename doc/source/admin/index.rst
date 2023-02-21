@@ -24,6 +24,11 @@ The following list covers the commands for Tacker services available in
 These commands can be referenced by doing **openstack help** and the detail
 of individual command can be referred by **openstack help <command-name>**.
 
+.. warning::
+    Legacy commands excluding VIM feature are deprecated
+    and will be removed in the first major release after the Tacker server
+    version 9.0.0 (2023.1 Antelope release).
+
 .. code-block:: console
 
    openstack vnf create                            Create a VNF.

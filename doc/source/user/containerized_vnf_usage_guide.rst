@@ -2,6 +2,11 @@
 Experimenting containerized VNFs with Kubernetes VIM
 ====================================================
 
+.. warning::
+    Legacy Tacker features excluding VIM feature are deprecated
+    and will be removed in the first major release after the Tacker server
+    version 9.0.0 (2023.1 Antelope release).
+
 In the past, Tacker only supports creating virtual machine based VNF using
 Heat. This section covers how to deploy `containerized VNF` using Kubernetes
 VIM in Tacker.

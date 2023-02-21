@@ -3,6 +3,11 @@ VNF Forwarding Graph Descriptor (VNFFGD) Template Guide
 Overview
 --------
 
+.. warning::
+    Legacy Tacker features excluding VIM feature are deprecated
+    and will be removed in the first major release after the Tacker server
+    version 9.0.0 (2023.1 Antelope release).
+
 This document explains VNFFGD template structure and its various fields based
 on TOSCA standards V1.0 [#f1]_.
 

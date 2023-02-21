@@ -18,6 +18,11 @@
 VNF Manager User Guide
 ======================
 
+.. warning::
+    Legacy Tacker features excluding VIM feature are deprecated
+    and will be removed in the first major release after the Tacker server
+    version 9.0.0 (2023.1 Antelope release).
+
 Tacker VNF Manager (VNFM) component manages the life-cycle of a Virtual Network
 Function (VNF). VNFM takes care of deployment, monitoring, updating, scaling
 and removal of VNFs on a Virtual Infrastructure Manager (VIM).

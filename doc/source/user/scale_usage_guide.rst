@@ -17,6 +17,11 @@
 VNF scaling
 ===========
 
+.. warning::
+    Legacy Tacker features excluding VIM feature are deprecated
+    and will be removed in the first major release after the Tacker server
+    version 9.0.0 (2023.1 Antelope release).
+
 VNF resources in terms of CPU core and memory are hardcoded in the VNFD
 template through image flavor settings. This results in either provisioning
 VNF for typical usage or for maximum usage. The former leads to service

@@ -17,6 +17,11 @@
 VNF scaling with reserved resources
 ===================================
 
+.. warning::
+    Legacy Tacker features excluding VIM feature are deprecated
+    and will be removed in the first major release after the Tacker server
+    version 9.0.0 (2023.1 Antelope release).
+
 Tacker allows you to configure reserved compute resources in reservation
 policy. The compute resources should be first reserved in the OpenStack
 ``Blazar`` service by creating leases which can then be configured in the

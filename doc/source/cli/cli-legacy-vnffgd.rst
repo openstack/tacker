@@ -2,6 +2,11 @@
 VNF Forwarding Graph Descriptor (VNFFGD) Management
 ===================================================
 
+.. warning::
+    VNF Forwarding Graph Descriptor (VNFFGD) Management commands are deprecated
+    and will be removed in the first major release after the Tacker server
+    version 9.0.0 (2023.1 Antelope release).
+
 VNF Forwarding Graph (VNFFG) feature in Tacker is used to orchestrate and
 manage traffic through VNFs. In short, abstract VNFFG TOSCA definitions are
 rendered into Service Function Chains (SFCs) and Classifiers. The SFC makes up
