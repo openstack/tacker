@@ -480,8 +480,14 @@ class StandardUserData(userdata_utils.AbstractUserData):
             if 'computeFlavourId' in vdu_value:
                 vdu_value.pop('computeFlavourId')
             if 'vcImageId' in vdu_value:
-                vdu_value['vcImageId'] = common_script_utils.get_param_image(
-                    vdu_name, flavour_id, vnfd, grant)
+                image = common_script_utils.get_param_image(
+                    vdu_name, flavour_id, vnfd, grant, fallback_vnfd=False)
+                if image is not None:
+                    vdu_value['vcImageId'] = image
+                else:
+                    # the case is that this is a storage image and
+                    # 'all' is False.
+                    vdu_value.pop('vcImageId')
             if 'locationConstraints' in vdu_value:
                 vdu_value.pop('locationConstraints')
 
