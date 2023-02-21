@@ -223,28 +223,22 @@ Deployment`_.
 
 Prepare Kubernetes VIM
 ^^^^^^^^^^^^^^^^^^^^^^
-The following change is required from original section `Prepare Kubernetes
-VIM`_:
-
-* Skip the VIM registration procedure
+First, you need to prepare a server with Kubernetes and Helm installed.
+If the server is deployed by :ref:`Deploy Kubernetes Cluster by helm`,
+you can skip steps 1 and 2 below.
 
 1. Create a Config File
 ~~~~~~~~~~~~~~~~~~~~~~~
-This step is not required because it is performed in conjunction with the VIM
-registration during the Helm installation procedure.
-After completing the procedures in this chapter, execute the following
-:ref:`Register Kubernetes VIM by helm charts` instead of conventional procedure
-(`2. Register Kubernetes VIM`_).
-
-.. _Register Kubernetes VIM by helm charts:
+You can refer to the `Create a Config File`_ section to create a config file.
 
 2. Register Kubernetes VIM
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
-If Helm is used, no new registration is required because
-:ref:`Deploy Kubernetes Cluster by helm` registers VIM when Kubernetes Cluster
-is deployed.
-For the registered VIM information, confirm that the VIM registered in
-:ref:`Deploy Kubernetes Cluster by helm` exists and the Status is "REACHABLE".
+You can refer to the `Register Kubernetes VIM`_ section to register VIM.
+
+3. Confirm VIM status
+~~~~~~~~~~~~~~~~~~~~~
+For the registered VIM information, confirm that the VIM exists and
+the Status is "REACHABLE".
 
 .. code-block:: console
 
@@ -528,6 +522,8 @@ Reference
 .. _Instantiate VNF : https://docs.openstack.org/tacker/latest/user/etsi_containerized_vnf_usage_guide.html#set-the-value-to-the-request-parameter-file
 .. _1. Set the Value to the Request Parameter File : https://docs.openstack.org/tacker/latest/user/etsi_containerized_vnf_usage_guide.html#set-the-value-to-the-request-parameter-file
 .. _4. Check the Deployment in Kubernetes : https://docs.openstack.org/tacker/latest/user/etsi_containerized_vnf_usage_guide.html#check-the-deployment-in-kubernetes
+.. _Create a Config File : https://docs.openstack.org/tacker/latest/user/etsi_containerized_vnf_usage_guide.html#create-a-config-file
+.. _Register Kubernetes VIM : https://docs.openstack.org/tacker/latest/user/etsi_containerized_vnf_usage_guide.html#register-kubernetes-vim
 
 .. [#Helm-Create] : https://helm.sh/docs/helm/helm_create/
 .. [#Helm-Package] : https://helm.sh/docs/helm/helm_package/
