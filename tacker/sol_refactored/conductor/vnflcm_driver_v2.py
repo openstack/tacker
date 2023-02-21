@@ -387,7 +387,7 @@ class VnfLcmDriverV2(object):
         # to here, although it is better to check in controller.
         if lcmocc.operationState == v2fields.LcmOperationStateType.STARTING:
             vim_info = inst_utils.select_vim_info(vim_infos)
-            if vim_info.vimType == "kubernetes":
+            if vim_info.vimType == "ETSINFV.KUBERNETES.V_1":
                 if 'endpoint' not in vim_info.interfaceInfo:
                     detail = "Required attribute missing in vimConnectionInfo"
                     raise sol_ex.SolValidationError(detail=detail)
@@ -420,7 +420,7 @@ class VnfLcmDriverV2(object):
         if vim_info.vimType == 'ETSINFV.OPENSTACK_KEYSTONE.V_3':
             driver = openstack.Openstack()
             driver.instantiate(req, inst, grant_req, grant, vnfd)
-        elif vim_info.vimType == 'kubernetes':
+        elif vim_info.vimType == 'ETSINFV.KUBERNETES.V_1':
             driver = kubernetes.Kubernetes()
             driver.instantiate(req, inst, grant_req, grant, vnfd)
         elif vim_info.vimType == 'ETSINFV.HELM.V_3':
@@ -439,7 +439,7 @@ class VnfLcmDriverV2(object):
         if vim_info.vimType == 'ETSINFV.OPENSTACK_KEYSTONE.V_3':
             driver = openstack.Openstack()
             driver.instantiate_rollback(req, inst, grant_req, grant, vnfd)
-        elif vim_info.vimType == 'kubernetes':
+        elif vim_info.vimType == 'ETSINFV.KUBERNETES.V_1':
             driver = kubernetes.Kubernetes()
             driver.instantiate_rollback(req, inst, grant_req, grant, vnfd)
         elif vim_info.vimType == 'ETSINFV.HELM.V_3':
@@ -584,7 +584,7 @@ class VnfLcmDriverV2(object):
         if vim_info.vimType == 'ETSINFV.OPENSTACK_KEYSTONE.V_3':
             driver = openstack.Openstack()
             driver.terminate(req, inst, grant_req, grant, vnfd)
-        elif vim_info.vimType == 'kubernetes':
+        elif vim_info.vimType == 'ETSINFV.KUBERNETES.V_1':
             driver = kubernetes.Kubernetes()
             driver.terminate(req, inst, grant_req, grant, vnfd)
         elif vim_info.vimType == 'ETSINFV.HELM.V_3':
@@ -736,7 +736,7 @@ class VnfLcmDriverV2(object):
         if vim_info.vimType == 'ETSINFV.OPENSTACK_KEYSTONE.V_3':
             driver = openstack.Openstack()
             driver.scale(req, inst, grant_req, grant, vnfd)
-        elif vim_info.vimType == 'kubernetes':
+        elif vim_info.vimType == 'ETSINFV.KUBERNETES.V_1':
             driver = kubernetes.Kubernetes()
             driver.scale(req, inst, grant_req, grant, vnfd)
         elif vim_info.vimType == 'ETSINFV.HELM.V_3':
@@ -756,7 +756,7 @@ class VnfLcmDriverV2(object):
         if vim_info.vimType == 'ETSINFV.OPENSTACK_KEYSTONE.V_3':
             driver = openstack.Openstack()
             driver.scale_rollback(req, inst, grant_req, grant, vnfd)
-        elif vim_info.vimType == 'kubernetes':
+        elif vim_info.vimType == 'ETSINFV.KUBERNETES.V_1':
             driver = kubernetes.Kubernetes()
             driver.scale_rollback(req, inst, grant_req, grant, vnfd)
         elif vim_info.vimType == 'ETSINFV.HELM.V_3':
@@ -945,7 +945,7 @@ class VnfLcmDriverV2(object):
         if vim_info.vimType == 'ETSINFV.OPENSTACK_KEYSTONE.V_3':
             driver = openstack.Openstack()
             driver.heal(req, inst, grant_req, grant, vnfd)
-        elif vim_info.vimType == 'kubernetes':
+        elif vim_info.vimType == 'ETSINFV.KUBERNETES.V_1':
             driver = kubernetes.Kubernetes()
             driver.heal(req, inst, grant_req, grant, vnfd)
         elif vim_info.vimType == 'ETSINFV.HELM.V_3':
@@ -1116,7 +1116,7 @@ class VnfLcmDriverV2(object):
         if vim_info.vimType == 'ETSINFV.OPENSTACK_KEYSTONE.V_3':
             driver = openstack.Openstack()
             driver.change_vnfpkg(req, inst, grant_req, grant, vnfd)
-        elif vim_info.vimType == 'kubernetes':
+        elif vim_info.vimType == 'ETSINFV.KUBERNETES.V_1':
             driver = kubernetes.Kubernetes()
             driver.change_vnfpkg(req, inst, grant_req, grant, vnfd)
         elif vim_info.vimType == 'ETSINFV.HELM.V_3':
@@ -1136,7 +1136,7 @@ class VnfLcmDriverV2(object):
             driver = openstack.Openstack()
             driver.change_vnfpkg_rollback(
                 req, inst, grant_req, grant, vnfd, lcmocc)
-        elif vim_info.vimType == 'kubernetes':
+        elif vim_info.vimType == 'ETSINFV.KUBERNETES.V_1':
             driver = kubernetes.Kubernetes()
             driver.change_vnfpkg_rollback(
                 req, inst, grant_req, grant, vnfd)
@@ -1149,8 +1149,8 @@ class VnfLcmDriverV2(object):
 
     def sync_db(self, context, vnf_inst, vim_info):
         # Database synchronization works only when
-        # the vimType is kubernetes or ETSINFV.HELM.V_3
-        if vim_info.vimType == 'kubernetes':
+        # the vimType is ETSINFV.KUBERNETES.V_1 or ETSINFV.HELM.V_3
+        if vim_info.vimType == 'ETSINFV.KUBERNETES.V_1':
             driver = kubernetes.Kubernetes()
             driver.sync_db(context, vnf_inst, vim_info)
         elif vim_info.vimType == 'ETSINFV.HELM.V_3':
@@ -1162,7 +1162,7 @@ class VnfLcmDriverV2(object):
                 "There are no differences in Vnfc resources.")
 
     def diff_check_inst(self, vnf_inst, vim_info):
-        if vim_info.vimType == 'kubernetes':
+        if vim_info.vimType == 'ETSINFV.KUBERNETES.V_1':
             driver = kubernetes.Kubernetes()
             driver.diff_check_inst(vnf_inst, vim_info)
         elif vim_info.vimType == 'ETSINFV.HELM.V_3':

@@ -27,6 +27,22 @@ class TestVnfInstanceUtils(base.BaseTestCase):
         objects.register_all()
         self.context = context.get_admin_context()
 
+    def _get_inst_example(self, kubernetes_type):
+        return {
+            'id': 'inst-1',
+            "vimConnectionInfo": {
+                "vim1": {
+                    "vimType": kubernetes_type,
+                    "vimId": 'vim_id_1',
+                    "interfaceInfo": {"endpoint": "https://127.0.0.1:6443"},
+                    "accessInfo": {
+                        "bearer_token": "secret_token",
+                        "region": "RegionOne"
+                    }
+                }
+            }
+        }
+
     def test_json_merge_patch(self):
         # patch is not dict.
         target = {"key1": "value1"}
@@ -94,3 +110,28 @@ class TestVnfInstanceUtils(base.BaseTestCase):
 
         result = inst_utils.get_inst_all(context)
         self.assertEqual('inst-1', result[0].id)
+
+    def test_select_vim_info(self):
+        # vimType is kubernetes
+        inst = objects.VnfInstanceV2.from_dict(
+            self._get_inst_example('kubernetes'))
+        result = inst_utils.select_vim_info(inst.vimConnectionInfo)
+        self.assertEqual(
+            'ETSINFV.KUBERNETES.V_1', inst.vimConnectionInfo['vim1'].vimType)
+        self.assertEqual('ETSINFV.KUBERNETES.V_1', result.vimType)
+
+        # vimType is 'ETSINFV.KUBERNETES.V_1'
+        inst = objects.VnfInstanceV2.from_dict(
+            self._get_inst_example('ETSINFV.KUBERNETES.V_1'))
+        result = inst_utils.select_vim_info(inst.vimConnectionInfo)
+        self.assertEqual(
+            'ETSINFV.KUBERNETES.V_1', inst.vimConnectionInfo['vim1'].vimType)
+        self.assertEqual('ETSINFV.KUBERNETES.V_1', result.vimType)
+
+        # vimType is 'ETSINFV.HELM.V_3'
+        inst = objects.VnfInstanceV2.from_dict(
+            self._get_inst_example('ETSINFV.HELM.V_3'))
+        result = inst_utils.select_vim_info(inst.vimConnectionInfo)
+        self.assertEqual(
+            'ETSINFV.HELM.V_3', inst.vimConnectionInfo['vim1'].vimType)
+        self.assertEqual('ETSINFV.HELM.V_3', result.vimType)

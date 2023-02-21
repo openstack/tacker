@@ -145,7 +145,7 @@ _inst_cnf_req_example = {
     },
     "vimConnectionInfo": {
         "vim1": {
-            "vimType": "kubernetes",
+            "vimType": "ETSINFV.KUBERNETES.V_1",
             "vimId": uuidutils.generate_uuid(),
             "interfaceInfo": {"endpoint": "https://127.0.0.1:6443"},
             "accessInfo": {

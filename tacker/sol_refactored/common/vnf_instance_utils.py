@@ -76,4 +76,6 @@ def select_vim_info(vim_connection_info):
     # at the moment. If there are multiple items, it is uncertain
     # which item is selected.
     for vim_info in vim_connection_info.values():
+        if vim_info.vimType == 'kubernetes':
+            vim_info.vimType = 'ETSINFV.KUBERNETES.V_1'
         return vim_info

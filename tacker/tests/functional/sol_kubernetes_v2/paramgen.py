@@ -59,7 +59,7 @@ def max_sample_instantiate(auth_url, bearer_token, ssl_ca_cert=None):
     vim_id_2 = uuidutils.generate_uuid()
     vim_1 = {
         "vimId": vim_id_1,
-        "vimType": "kubernetes",
+        "vimType": "ETSINFV.KUBERNETES.V_1",
         "interfaceInfo": {"endpoint": auth_url},
         "accessInfo": {
             "bearer_token": bearer_token,
@@ -68,7 +68,7 @@ def max_sample_instantiate(auth_url, bearer_token, ssl_ca_cert=None):
     }
     vim_2 = {
         "vimId": vim_id_2,
-        "vimType": "kubernetes",
+        "vimType": "ETSINFV.KUBERNETES.V_1",
         "interfaceInfo": {"endpoint": auth_url},
         "accessInfo": {
             "username": "dummy_user",
@@ -161,7 +161,7 @@ def max_sample_heal(vnfc_ids):
 def min_sample_instantiate(vim_id_1):
     vim_1 = {
         "vimId": vim_id_1,
-        "vimType": "kubernetes",
+        "vimType": "ETSINFV.KUBERNETES.V_1",
     }
     return {
         "flavourId": "simple",
@@ -180,7 +180,7 @@ def min_sample_instantiate_with_vim_info(k8s_vim_info):
 
     vim_1 = {
         "vimId": uuidutils.generate_uuid(),
-        "vimType": "kubernetes",
+        "vimType": "ETSINFV.KUBERNETES.V_1",
         "accessInfo": k8s_vim_info.accessInfo,
         "interfaceInfo": k8s_vim_info.interfaceInfo
     }
@@ -211,7 +211,7 @@ def error_handling_instantiate(auth_url, bearer_token):
     vim_id_1 = uuidutils.generate_uuid()
     vim_1 = {
         "vimId": vim_id_1,
-        "vimType": "kubernetes",
+        "vimType": "ETSINFV.KUBERNETES.V_1",
         "interfaceInfo": {"endpoint": auth_url},
         "accessInfo": {
             "bearer_token": bearer_token,
@@ -250,7 +250,7 @@ def change_vnfpkg_instantiate(auth_url, bearer_token):
     vim_id_1 = uuidutils.generate_uuid()
     vim_1 = {
         "vimId": vim_id_1,
-        "vimType": "kubernetes",
+        "vimType": "ETSINFV.KUBERNETES.V_1",
         "interfaceInfo": {"endpoint": auth_url},
         "accessInfo": {
             "bearer_token": bearer_token,

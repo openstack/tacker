@@ -572,7 +572,7 @@ def get_fake_pod_info(kind, name='fake_name', pod_status='Running',
         status=client.V1PodStatus(phase=pod_status))
 
 
-def fake_vim_connection_info(vim_type="kubernetes"):
+def fake_vim_connection_info(vim_type="ETSINFV.KUBERNETES.V_1"):
     return objects.VimConnectionInfo.from_dict({
         'vimId': 'a56258df-9853-4437-9fdb-7d470bc0b162',
         'vimType': vim_type,

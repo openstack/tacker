@@ -453,7 +453,7 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
         self._check_vdu_params(inst, vdu_params, vim_info.vimType,
             additional_params.get('lcm-operation-coordinate-new-vnf'),
             additional_params.get('lcm-operation-coordinate-old-vnf'))
-        if (vim_info.vimType == "kubernetes" and
+        if (vim_info.vimType == 'ETSINFV.KUBERNETES.V_1' and
                 not additional_params.get('lcm-kubernetes-def-files')):
             raise sol_ex.SolValidationError(
                 detail="'lcm-kubernetes-def-files' must be specified")
