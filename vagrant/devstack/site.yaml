@@ -1,4 +1,16 @@
 ---
+- name: ubuntu-jammy controller node
+  hosts: ubuntu-jammy.controller
+  remote_user: stack
+  roles:
+      - ubuntu-jammy/controller
+
+- name: ubuntu-jammy compute nodes
+  hosts: ubuntu-jammy.compute
+  remote_user: stack
+  roles:
+      - ubuntu-jammy/compute
+
 - name: ubuntu-focal controller node
   hosts: ubuntu-focal.controller
   remote_user: stack

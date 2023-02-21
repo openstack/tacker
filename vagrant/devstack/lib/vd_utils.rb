@@ -6,7 +6,7 @@ module VdUtils
 
   # Get the contents of SSH public key to upload it to VMs.
   def ssh_pub_key(config)
-    default_key_path = "~/.ssh/id_rsa.pub"
+    default_key_path = "~/.ssh/id_ed25519.pub"
 
     if config["global"] != nil
       if config["global"]["ssh_pub_key"]
@@ -75,5 +75,27 @@ module VdUtils
     end
   end
 
-  module_function :ssh_pub_key, :setup_git_config, :setup_ssh_config
+  # Return vagrant experimental features as a list.
+  def vagrant_experimentals()
+    res = []
+    if ENV["VAGRANT_EXPERIMENTAL"]
+      res = ENV["VAGRANT_EXPERIMENTAL"].split(",")
+    end
+    res
+  end
+
+  # Experimental feature "disks" can be enabled only for virtualbox provider and
+  # included in VAGRANT_EXPERIMENTAL env variable.
+  def is_disks_enabled(provider)
+    if provider == "virtualbox"
+      if vagrant_experimentals().include? "disks"
+        return true
+      end
+    end
+    return false
+  end
+
+  module_function :ssh_pub_key, :setup_git_config, :setup_ssh_config,
+    :vagrant_experimentals, :is_disks_enabled
+
 end

@@ -10,32 +10,38 @@ require "yaml"
 load "lib/machine.rb"
 load "lib/vd_utils.rb"
 
+if not VdUtils.vagrant_experimentals.include?("disks")
+  ENV["VAGRANT_EXPERIMENTAL"] =
+    VdUtils.vagrant_experimentals.append("disks").join(",")
+end
+
 vd_config = YAML.load(open("machines.yml"))
 
 ssh_pub_key = VdUtils.ssh_pub_key(vd_config)
 machines = Machines.new(vd_config["machines"])
 
-# Check if you have already downloaded target box.
-box_list = []
-`vagrant box list`.each_line {|l|
-  box_list << l.split(" ")[0]
+# TODO(yasufum) Test libvirt's boxes can be deployed haven't been tested yet.
+supported_boxes = {
+  "virtualbox" => {
+    "ubuntu" => ["bento/ubuntu-20.04", "bento/ubuntu-22.04", "ubuntu/focal64", "ubuntu/jammy64"],
+    "centos" => ["bento/centos-stream-8", "centos/stream8"]
+  },
+  #"libvirt" => {
+  #  "ubuntu" => ["generic/ubuntu2204", "generic/ubuntu2004"],
+  #  "centos" => ["generic/centos9s", "generic/centos8s"]
+  #}
 }
 
-# If you don't have the box, download it.
-machines.each do |m|
-  if not (box_list.include? m.box)
-    puts "There is no box '#{m.box}' for '#{m.provider}'"
-    puts "Run 'vagrant box add #{m.box}' first"
-  end
-end
+lvm_boxes = ["bento/ubuntu-20.04", "bento/ubuntu-22.04"]
 
 Vagrant.configure("2") do |config|
+
   machines.each do |machine|
     config.vm.define machine.hostname do |server|
       server.vm.box = machine.box
       server.vm.hostname = machine.hostname
 
-      # server.vm.box_check_update = false
+      #server.vm.box_check_update = false
 
       machine.private_ips.each do |ipaddr|
         server.vm.network "private_network", ip: ipaddr
@@ -66,19 +72,20 @@ Vagrant.configure("2") do |config|
         end
       end
 
-      if Vagrant.has_plugin?("vagrant-disksize")
-        server.disksize.size = "#{machine.disk_size}GB"
-      end
-
-      # TODO(yasufum) This configuration reported in [1] is required to avoid
-      # timeout for ssh login to focal64 because of setting up public key in the
-      # VM. This issue is only happened on focal, and not for bionic and xenial.
-      # Remove this config after the problem is fixed in the focal image.
-      # [1] https://bugs.launchpad.net/cloud-images/+bug/1829625
-      if machine.box == "ubuntu/focal64"
-        server.vm.provider 'virtualbox' do |v|
-          v.customize ["modifyvm", :id, "--uart1", "0x3F8", "4"]
-          v.customize ["modifyvm", :id, "--uartmode1", "file", "./ttyS0.log"]
+      # Expand disk size for some images have not enough disk space.
+      # NOTE: Two scenarios are expected, having logical volumes or not.
+      #   For lvm case, add a virtual disk with an experimental feature first,
+      #   create a logical volume then while provisioning later.
+      # Add a virtual disk has arbitrary name.
+      # TODO(yasufum): Fix the total amount of disk size will be over
+      # `machine.disk_size` GB unexpectedly.
+      if (VdUtils.is_disks_enabled(machine.provider) and
+        lvm_boxes.include?(machine.box) and
+        supported_boxes["virtualbox"]["ubuntu"].include?(machine.box))
+        server.vm.disk :disk, size: "#{machine.disk_size}GB", name: "mydrive"
+      else  # Not a case using lvm for which just resizing.
+        if Vagrant.has_plugin?("vagrant-disksize")
+          server.disksize.size = "#{machine.disk_size}GB"
         end
       end
 
@@ -96,8 +103,7 @@ Vagrant.configure("2") do |config|
         vb.memory = "#{machine.mem_size * 1024}"
       end
 
-      # NOTE: remove `python3-launchpadlib` which causes many warinings, and
-      #       run autoremove to clean related packages.
+      # Add stack user and register ssh key for direct login with.
       server.vm.provision "shell", inline: <<-SHELL
         useradd -s /bin/bash -d /opt/stack -m stack
         echo "stack ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/stack
@@ -111,6 +117,45 @@ Vagrant.configure("2") do |config|
         echo "#{ssh_pub_key}" >> /opt/stack/.ssh/authorized_keys
         chown -R stack:stack /opt/stack/.ssh
       SHELL
+
+      # Expand disk space.
+      # NOTE: The name of devices and volumes are depend on the box images.
+      if (VdUtils.is_disks_enabled(machine.provider) and
+      lvm_boxes.include?(machine.box) and
+      supported_boxes["virtualbox"]["ubuntu"].include?(machine.box))
+        server.vm.provision "shell", inline: <<-SHELL
+          pvcreate /dev/sdb
+          vgextend ubuntu-vg /dev/sdb
+          lvextend -l +100%FREE /dev/ubuntu-vg/ubuntu-lv
+          resize2fs /dev/ubuntu-vg/ubuntu-lv
+        SHELL
+      elsif supported_boxes["virtualbox"]["centos"].include?(machine.box)
+        # Use `parted` and `xfs_growfs` to expand disk space after resizing
+        # volume.
+        # NOTE: Decide partition number which is different on each box first.
+        if machine.box == "bento/centos-stream-8"
+          part_num = 2
+        elsif machine.box == "centos/stream8"
+          part_num = 1
+        end
+
+        # NOTE: It doesn't use `parted` with --script option but here doc for
+        # interactive mode. It's because `resizepart` of `parted` doesn't work
+        # in non-interactive mode for some bug.
+        server.vm.provision "shell", inline: <<-SHELL
+          parted /dev/sda ---pretend-input-tty <<EOF
+          resizepart
+          #{part_num}
+          Yes
+          100%
+          quit
+          EOF
+        SHELL
+
+        server.vm.provision "shell", inline: <<-SHELL
+          xfs_growfs /dev/sda#{part_num}
+        SHELL
+      end
 
       VdUtils.setup_git_config
       VdUtils.setup_ssh_config(vd_config)

@@ -1,0 +1,65 @@
+---
+- name: git clone tacker
+  git:
+      repo=https://opendev.org/openstack/tacker.git
+      dest={{ ansible_env.HOME }}/tacker
+
+- name: copy local.conf
+  shell: cp {{ ansible_env.HOME }}/tacker/devstack/{{ item }} \
+         {{ ansible_env.HOME }}/devstack/{{ item }}
+  with_items:
+      - local.conf.example
+      - local.conf.kubernetes
+
+- name: update HOST_IP in devstack/local.conf.example
+  lineinfile:
+      path={{ ansible_env.HOME }}/devstack/{{ item }}
+      line='HOST_IP={{ ansible_host }}'
+      regexp='^HOST_IP=127\.0\.0\.1'
+  with_items:
+      - local.conf.example
+      - local.conf.kubernetes
+
+- name: update other params in devstack/local.conf.example
+  lineinfile:
+      path={{ ansible_env.HOME }}/devstack/local.conf.example
+      line={{ item.line }}
+      regexp={{ item.regexp }}
+  with_items:
+      - line: 'ADMIN_PASSWORD={{ admin_password }}'
+        regexp: '^ADMIN_PASSWORD=devstack'
+      - line: 'MYSQL_PASSWORD={{ database_password }}'
+        regexp: '^MYSQL_PASSWORD=devstack'
+      - line: 'RABBIT_PASSWORD={{ rabbit_password }}'
+        regexp: '^RABBIT_PASSWORD=devstack'
+      - line: 'SERVICE_PASSWORD={{ service_password }}'
+        regexp: '^SERVICE_PASSWORD=\$ADMIN_PASSWORD'
+      - line: 'SERVICE_TOKEN={{ service_token }}'
+        regexp: '^SERVICE_TOKEN=devstack'
+
+- name: update HOST_IP in devstack/local.conf.kubernetes
+  lineinfile:
+      path={{ ansible_env.HOME }}/devstack/local.conf.kubernetes
+      line='HOST_IP={{ service_host }}'
+      regexp='^HOST_IP=127\.0\.0\.1'
+
+- name: update other params in devstack/local.conf.kubernetes
+  lineinfile:
+      path={{ ansible_env.HOME }}/devstack/local.conf.kubernetes
+      line={{ item.line }}
+      regexp={{ item.regexp }}
+  with_items:
+      - line: 'ADMIN_PASSWORD={{ admin_password }}'
+        regexp: '^ADMIN_PASSWORD=devstack'
+      - line: 'MYSQL_PASSWORD={{ database_password }}'
+        regexp: '^MYSQL_PASSWORD=devstack'
+      - line: 'RABBIT_PASSWORD={{ rabbit_password }}'
+        regexp: '^RABBIT_PASSWORD=devstack'
+      - line: 'SERVICE_PASSWORD={{ service_password }}'
+        regexp: '^SERVICE_PASSWORD=\$ADMIN_PASSWORD'
+      - line: 'SERVICE_TOKEN={{ service_token }}'
+        regexp: '^SERVICE_TOKEN=devstack'
+
+- name: use local.conf.example as local.conf
+  shell: cp {{ ansible_env.HOME }}/devstack/local.conf.example \
+         {{ ansible_env.HOME }}/devstack/local.conf

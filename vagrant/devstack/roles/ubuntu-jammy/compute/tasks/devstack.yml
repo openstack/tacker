@@ -1,0 +1,15 @@
+---
+- name: update git config
+  git_config:
+      scope: global
+      name: 'url.https://.insteadOf'
+      value: 'git://'
+
+- name: git clone devstack
+  git:
+      repo=https://opendev.org/openstack/devstack.git
+      dest={{ ansible_env.HOME }}/devstack
+
+- name: put local.conf
+  template: src=templates/local.conf.j2 dest={{ ansible_env.HOME }}/devstack/local.conf
+            mode=665

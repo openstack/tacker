@@ -1,0 +1,8 @@
+---
+- name: add apt repo ppa:jonathonf/vim
+  become: yes
+  apt_repository: repo='ppa:jonathonf/vim'
+
+- name: install vim
+  become: yes
+  apt: name=vim
