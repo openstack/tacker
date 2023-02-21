@@ -2111,10 +2111,6 @@ _expected_resource_changes_change_vnfpkg = {
 }
 
 # lcmocc_info_example
-_error = {
-    'status': 1,
-    'detail': 'error'
-}
 _lcmocc_modify_value = {
     'id': 'test-1',
     'vnfInstanceId': 'instance-1',
@@ -2132,7 +2128,18 @@ _lcmocc_inst_value = {
     'startTime': '2021-01-23 13:41:03+00:00',
     'resourceChanges': _expected_resource_changes_instantiate,
     'changedInfo': _expected_changedInfo
-
+}
+_lcmocc_inst_error_value = {
+    'id': 'test-3',
+    'vnfInstanceId': 'instance-3',
+    'operation': 'INSTANTIATE',
+    'operationState': 'FAILED_TEMP',
+    'isAutomaticInvocation': False,
+    'startTime': '2021-01-23 13:41:03+00:00',
+    'error': {
+        'status': 1,
+        'detail': 'error_detail'
+    }
 }
 
 
@@ -2393,26 +2400,30 @@ class TestLcmOpOccUtils(base.BaseTestCase):
         self.assertEqual(expected_result.fail.href, result.fail.href)
 
     def test_make_lcmocc_notif_data(self):
-        subsc_modify = objects.LccnSubscriptionV2(
+        subsc_short = objects.LccnSubscriptionV2(
             id='sub-1', verbosity='SHORT')
-        subsc_inst = objects.LccnSubscriptionV2(
+        subsc_full = objects.LccnSubscriptionV2(
             id='sub-1', verbosity='FULL')
         lcmocc_modify = objects.VnfLcmOpOccV2.from_dict(_lcmocc_modify_value)
-        lcmocc_modify.error = objects.ProblemDetails.from_dict(_error)
         lcmocc_inst = objects.VnfLcmOpOccV2.from_dict(_lcmocc_inst_value)
+        lcmocc_inst_error = objects.VnfLcmOpOccV2.from_dict(
+            _lcmocc_inst_error_value)
         endpoint = 'http://127.0.0.1:9890'
 
         # execute modify lcmocc
         modify_result = lcmocc_utils.make_lcmocc_notif_data(
-            subsc_modify, lcmocc_modify, endpoint)
+            subsc_short, lcmocc_modify, endpoint)
         # execute inst lcmocc
         inst_result = lcmocc_utils.make_lcmocc_notif_data(
-            subsc_inst, lcmocc_inst, endpoint)
+            subsc_full, lcmocc_inst, endpoint)
+        inst_result_error = lcmocc_utils.make_lcmocc_notif_data(
+            subsc_short, lcmocc_inst_error, endpoint)
 
         self.assertEqual('START', modify_result.notificationStatus)
-        self.assertEqual('error', modify_result.error.detail)
         self.assertIsNotNone(inst_result.affectedVnfcs)
         self.assertIsNotNone(inst_result.changedInfo)
+        self.assertNotIn('error', inst_result)
+        self.assertEqual('error_detail', inst_result_error.error.detail)
 
     @mock.patch.object(objects.base.TackerPersistentObject, 'get_by_filter')
     def test_get_inst_lcmocc(self, mock_value):
