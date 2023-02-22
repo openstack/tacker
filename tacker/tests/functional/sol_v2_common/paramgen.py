@@ -966,7 +966,13 @@ def sample3_create(vnfd_id):
     return {
         "vnfdId": vnfd_id,
         "vnfInstanceName": "sample3",
-        "vnfInstanceDescription": "test for StandardUserData"
+        "vnfInstanceDescription": "test for StandardUserData",
+        "metadata": {
+            "VDU_VNFc_mapping": {
+                "VDU1": ["a-001", "a-010", "a-011"],
+                "VDU2": ["b-000"]
+            }
+        }
     }
 
 

@@ -1224,6 +1224,20 @@ class Openstack(object):
                     metadata['zone'] = zone
                     vnfc_res_info.zoneId = zone
 
+    def _make_vnfc_info_id(self, inst, vnfc_res_info):
+        vdu_idx = vnfc_res_info.metadata.get('vdu_idx')
+        if (vdu_idx is not None and inst.obj_attr_is_set('metadata') and
+                'VDU_VNFc_mapping' in inst.metadata and
+                isinstance(inst.metadata['VDU_VNFc_mapping'], dict)):
+            vnfc_info_ids = inst.metadata['VDU_VNFc_mapping'].get(
+                vnfc_res_info.vduId)
+            if (isinstance(vnfc_info_ids, list) and
+                    len(vnfc_info_ids) > vdu_idx):
+                return vnfc_info_ids[vdu_idx]
+
+        # default vnfc_id
+        return _make_combination_id(vnfc_res_info.vduId, vnfc_res_info.id)
+
     def _make_instantiated_vnf_info(self, req, inst, grant_req, grant, vnfd,
             heat_client, is_rollback=False, stack_id=None):
         # get heat resources
@@ -1436,17 +1450,16 @@ class Openstack(object):
 
             for vnfc_res_info in sorted_vnfc_res_infos:
                 vnfc_info = None
-                vnfc_id = _make_combination_id(vnfc_res_info.vduId,
-                                               vnfc_res_info.id)
                 for old_vnfc_info in old_vnfc_infos:
-                    if old_vnfc_info.id == vnfc_id:
+                    if old_vnfc_info.vnfcResourceInfoId == vnfc_res_info.id:
                         # re-use current object since
                         # vnfcConfigurableProperties may be set.
                         vnfc_info = old_vnfc_info
                         break
                 if vnfc_info is None:
+                    vnfc_info_id = self._make_vnfc_info_id(inst, vnfc_res_info)
                     vnfc_info = objects.VnfcInfoV2(
-                        id=vnfc_id,
+                        id=vnfc_info_id,
                         vduId=vnfc_res_info.vduId,
                         vnfcResourceInfoId=vnfc_res_info.id,
                         vnfcState='STARTED'
