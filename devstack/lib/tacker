@@ -361,9 +361,9 @@ function tacker_horizon_uninstall {
 
 function openstack_image_create {
     image=$1
-    disk_format=raw
     container_format=bare
     image_name=$2
+    disk_format=$3
     openstack --os-cloud=devstack-admin image create $image_name --public --container-format=$container_format --disk-format $disk_format --file ${image}
     openstack image show $image_name -f value -c id
 }
@@ -379,6 +379,8 @@ function tacker_check_and_download_images {
     local gz_pattern="\.gz$"
     local length=${#image_url[@]}
     local index=0
+
+    install_package jq
     while [ $index -lt $length ]
     do
         image_fname=`basename "${image_url[$index]}"`
@@ -407,7 +409,8 @@ function tacker_check_and_download_images {
                 fi
             fi
             {
-                openstack_image_create $FILES/$image_fname $glance_name
+                disk_format=`qemu-img info --output=json $FILES/$image_fname | jq -r '.format'`
+                openstack_image_create $FILES/$image_fname $glance_name $disk_format
             }||{
                 echo "ERROR: tacker image create for $image_fname failed"
                 image_fname=$image_fname"*"
