@@ -39,7 +39,8 @@ class TestToscaUtils(testtools.TestCase):
     def setUp(self):
         super(TestToscaUtils, self).setUp()
         self.tosca = tosca_template.ToscaTemplate(
-            parsed_params={}, a_file=False, yaml_dict_tpl=self.vnfd_dict)
+            parsed_params={}, a_file=False, yaml_dict_tpl=self.vnfd_dict,
+            local_defs=toscautils.tosca_tmpl_local_defs())
         self.tosca_flavor = _get_template('test_tosca_flavor.yaml')
 
     def test_updateimport(self):
@@ -76,8 +77,9 @@ class TestToscaUtils(testtools.TestCase):
             'test_tosca_post_process_template.yaml')
         vnfd_dict = yaml.safe_load(tosca_post_process_tpl)
         toscautils.updateimports(vnfd_dict)
-        tosca = tosca_template.ToscaTemplate(parsed_params={}, a_file=False,
-                                             yaml_dict_tpl=vnfd_dict)
+        tosca = tosca_template.ToscaTemplate(
+            parsed_params={}, a_file=False, yaml_dict_tpl=vnfd_dict,
+            local_defs=toscautils.tosca_tmpl_local_defs())
         toscautils.post_process_template(tosca)
 
         invalidNodes = 0
@@ -123,7 +125,8 @@ class TestToscaUtils(testtools.TestCase):
 
     def test_post_process_heat_template(self):
         tosca1 = tosca_template.ToscaTemplate(parsed_params={}, a_file=False,
-                          yaml_dict_tpl=self.vnfd_dict)
+                          yaml_dict_tpl=self.vnfd_dict,
+                          local_defs=toscautils.tosca_tmpl_local_defs())
         toscautils.post_process_template(tosca1)
         translator = tosca_translator.TOSCATranslator(tosca1, {})
         heat_template_yaml = translator.translate()
@@ -148,8 +151,9 @@ class TestToscaUtils(testtools.TestCase):
     def test_get_flavor_dict(self):
         vnfd_dict = yaml.safe_load(self.tosca_flavor)
         toscautils.updateimports(vnfd_dict)
-        tosca = tosca_template.ToscaTemplate(a_file=False,
-                                             yaml_dict_tpl=vnfd_dict)
+        tosca = tosca_template.ToscaTemplate(
+            a_file=False, yaml_dict_tpl=vnfd_dict,
+            local_defs=toscautils.tosca_tmpl_local_defs())
         expected_flavor_dict = {
             "VDU1": {
                 "vcpus": 2,
@@ -181,8 +185,9 @@ class TestToscaUtils(testtools.TestCase):
             'tosca_flavor_all_numa_count.yaml')
         vnfd_dict = yaml.safe_load(tosca_fes_all_numa_count)
         toscautils.updateimports(vnfd_dict)
-        tosca = tosca_template.ToscaTemplate(a_file=False,
-                                             yaml_dict_tpl=vnfd_dict)
+        tosca = tosca_template.ToscaTemplate(
+            a_file=False, yaml_dict_tpl=vnfd_dict,
+            local_defs=toscautils.tosca_tmpl_local_defs())
         expected_flavor_dict = {
             "VDU1": {
                 "vcpus": 8,
@@ -204,8 +209,9 @@ class TestToscaUtils(testtools.TestCase):
             'tosca_flavor_with_wrong_cpu.yaml')
         vnfd_dict = yaml.safe_load(tosca_fes)
         toscautils.updateimports(vnfd_dict)
-        tosca = tosca_template.ToscaTemplate(a_file=False,
-                                             yaml_dict_tpl=vnfd_dict)
+        tosca = tosca_template.ToscaTemplate(
+            a_file=False, yaml_dict_tpl=vnfd_dict,
+            local_defs=toscautils.tosca_tmpl_local_defs())
 
         self.assertRaises(vnfm.CpuAllocationInvalidValues,
                           toscautils.get_flavor_dict,
@@ -216,8 +222,9 @@ class TestToscaUtils(testtools.TestCase):
             'tosca_flavor_all_numa_count.yaml')
         vnfd_dict = yaml.safe_load(tosca_fes_all_numa_count)
         toscautils.updateimports(vnfd_dict)
-        tosca = tosca_template.ToscaTemplate(a_file=False,
-                                             yaml_dict_tpl=vnfd_dict)
+        tosca = tosca_template.ToscaTemplate(
+            a_file=False, yaml_dict_tpl=vnfd_dict,
+            local_defs=toscautils.tosca_tmpl_local_defs())
         expected_flavor_dict = {
             "VDU1": {
                 "vcpus": 8,

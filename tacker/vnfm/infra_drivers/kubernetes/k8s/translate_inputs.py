@@ -72,7 +72,8 @@ class Parser(object):
             tosca = tosca_template.\
                 ToscaTemplate(parsed_params=parserd_params,
                               a_file=False,
-                              yaml_dict_tpl=self.vnfd_dict)
+                              yaml_dict_tpl=self.vnfd_dict,
+                              local_defs=toscautils.tosca_tmpl_local_defs())
         except Exception as e:
             LOG.error("tosca-parser error: %s", str(e))
             raise vnfm.ToscaParserFailed(error_msg_details=str(e))

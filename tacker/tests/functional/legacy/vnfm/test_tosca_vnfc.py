@@ -81,7 +81,8 @@ class VnfTestToscaVNFC(base.BaseTackerTest):
         toscautils.updateimports(input_dict)
 
         tosca = tosca_template.ToscaTemplate(parsed_params={}, a_file=False,
-                          yaml_dict_tpl=input_dict)
+                          yaml_dict_tpl=input_dict,
+                          local_defs=toscautils.tosca_tmpl_local_defs())
 
         vdus = toscautils.findvdus(tosca)
 

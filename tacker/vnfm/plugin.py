@@ -215,8 +215,10 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
         toscautils.updateimports(inner_vnfd_dict)
 
         try:
-            tosca = ToscaTemplate(a_file=False,
-                                  yaml_dict_tpl=inner_vnfd_dict)
+            tosca = ToscaTemplate(
+                a_file=False,
+                yaml_dict_tpl=inner_vnfd_dict,
+                local_defs=toscautils.tosca_tmpl_local_defs())
         except Exception as e:
             LOG.exception("tosca-parser error: %s", str(e))
             raise vnfm.ToscaParserFailed(error_msg_details=str(e))
@@ -263,8 +265,10 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
             return
         try:
             toscautils.updateimports(vnfd_dict)
-            tosca_vnfd = ToscaTemplate(a_file=False,
-                                  yaml_dict_tpl=vnfd_dict)
+            tosca_vnfd = ToscaTemplate(
+                a_file=False,
+                yaml_dict_tpl=vnfd_dict,
+                local_defs=toscautils.tosca_tmpl_local_defs())
         except Exception as e:
             LOG.exception("tosca-parser error: %s", str(e))
             raise vnfm.ToscaParserFailed(error_msg_details=str(e))

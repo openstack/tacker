@@ -19,11 +19,16 @@ import re
 import shutil
 import threading
 
-from oslo_utils import uuidutils
 import socketserver
 import tempfile
 import yaml
 import zipfile
+
+from oslo_log import log as logging
+from oslo_utils import uuidutils
+
+
+LOG = logging.getLogger(__name__)
 
 
 def read_file(input_file):

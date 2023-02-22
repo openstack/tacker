@@ -33,6 +33,7 @@ from toscaparser.tosca_template import ToscaTemplate
 from tacker.common import exceptions
 import tacker.conf
 from tacker.extensions import vnfm
+from tacker.tosca import utils as toscautils
 
 
 HASH_DICT = {
@@ -542,7 +543,9 @@ def load_csar_data(context, package_uuid, zip_path):
     extract_csar_zip_file(zip_path, extract_zip_path)
 
     try:
-        tosca = ToscaTemplate(zip_path, None, True)
+        tosca = ToscaTemplate(
+            zip_path, None, True,
+            local_defs=toscautils.tosca_tmpl_local_defs())
         return _get_data_from_csar(tosca, context, package_uuid)
     except exceptions.InvalidCSAR as exp:
         with excutils.save_and_reraise_exception():

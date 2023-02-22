@@ -1264,8 +1264,9 @@ class VnfLcmController(wsgi.Controller):
         vnfd_dict = vnflcm_utils._get_vnfd_dict(context,
             vnf_instance.vnfd_id,
             vnf_instance.instantiated_vnf_info.flavour_id)
-        tosca = tosca_template.ToscaTemplate(parsed_params={}, a_file=False,
-                                             yaml_dict_tpl=vnfd_dict)
+        tosca = tosca_template.ToscaTemplate(
+            parsed_params={}, a_file=False, yaml_dict_tpl=vnfd_dict,
+            local_defs=toscautils.tosca_tmpl_local_defs())
         tosca_policies = tosca.topology_template.policies
 
         aspect_max_level_dict = {}
