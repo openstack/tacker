@@ -31,6 +31,18 @@ class VnfLcmKubernetesOidcTest(base.BaseVnfLcmKubernetesTest):
     def tearDownClass(cls):
         super(VnfLcmKubernetesOidcTest, cls).tearDownClass()
 
+    def setUp(self):
+        vim_list = self.client.list_vims()
+        if not vim_list:
+            self.skipTest("Vims are not configured")
+
+        vim_name = 'vim-kubernetes-oidc-auth'
+        vim = self.get_vim(vim_list, vim_name)
+        if not vim:
+            self.skipTest(f"Kubernetes VIM '{vim_name}' is missing")
+        self.vim_id = vim['id']
+        self.extra = vim['extra']
+
     def test_basic_lcmsV1_with_oidc_auth(self):
         """Test CNF LCM with OIDC auth
 
