@@ -1,0 +1,19 @@
+{
+    "alerts": [{
+        "status": "firing",
+        "labels": {
+            "receiver_type": "tacker",
+            "function_type": "vnfpm_threshold",
+            "threshold_id": "bb474274-c5eb-442b-e2a2-0c1c02437bac",
+            "metric": "VCpuUsageMeanVnf.4fcf78d6-52d9-4b6a-b3a6-49b2bef65843",
+            "object_instance_id": "4fcf78d6-52d9-4b6a-b3a6-49b2bef65843",
+            "sub_object_instance_id": "938f673e-1eae-44d1-8847-cce5f64ac00e"
+        },
+        "annotations": {
+            "value": 99
+        },
+        "startsAt": "2023-01-03T23:47:36.453Z",
+        "endsAt": "0001-01-01T00:00:00Z",
+        "fingerprint": "5ef77f1f8a3ecb8d"
+    }]
+}

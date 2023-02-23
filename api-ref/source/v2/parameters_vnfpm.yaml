@@ -13,6 +13,13 @@ vnf_pm_job_report_id:
   required: true
   type: string
 
+vnf_pm_threshold_id:
+  description: |
+    Identifier of this PM threshold.
+  in: path
+  required: true
+  type: string
+
 # variables in body
 authentication_auth_type:
   description: |
@@ -232,6 +239,12 @@ pm_job_links:
   in: body
   required: true
   type: array
+pm_threshold_links:
+  description: |
+    Links for this resource.
+  in: body
+  required: true
+  type: array
 reports_expiry_time:
   description: |
     The time when the report will expire.
@@ -355,6 +368,137 @@ vnf_pm_job_response_id:
   in: body
   required: true
   type: string
-
-
-
+vnf_pm_threshold_create_callback_uri:
+  description: |
+    The URI of the endpoint to send the notification to.
+  in: body
+  required: true
+  type: string
+vnf_pm_threshold_create_metadata:
+  description: |
+    This attribute provides the access information of Prometheus Server.
+  in: body
+  required: true
+  type: key value pairs
+vnf_pm_threshold_create_request_authentication:
+  description: |
+    Authentication parameters to configure the use of Authorization when
+    sending notifications corresponding to this subscription.
+  in: body
+  required: false
+  type: object
+vnf_pm_threshold_criteria:
+  description: |
+    Criteria of the collection of performance information.
+  in: body
+  required: true
+  type: object
+vnf_pm_threshold_criteria_performance_metric:
+  description: |
+    This defines the types of performance metrics associated with the
+    threshold.
+  in: body
+  required: true
+  type: string
+vnf_pm_threshold_hysteresis:
+  description: |
+    The hysteresis of the threshold.
+    Shall be represented as a non-negative floating point number.
+  in: body
+  required: true
+  type: number
+vnf_pm_threshold_id_body:
+  description: |
+    Identifier of this PM threshold.
+  in: body
+  required: true
+  type: string
+vnf_pm_threshold_links_object:
+  description: |
+    Links to resources representing the measured object instances for which
+    performance information is collected. Shall be present if the measured
+    object instance information is accessible as a resource.
+  in: body
+  required: false
+  type: object
+vnf_pm_threshold_object_instance_id:
+  description: |
+    Identifier of the measured object instance for which the performance metric
+    is reported.
+  in: body
+  required: true
+  type: string
+vnf_pm_threshold_object_type:
+  description: |
+    Type of the measured object.
+  in: body
+  required: true
+  type: string
+vnf_pm_threshold_report_entries_performance_metric:
+  description: |
+    Name of the metric collected.
+  in: body
+  required: true
+  type: string
+vnf_pm_threshold_response_callback_uri:
+  description: |
+    The URI of the endpoint to send the notification to.
+  in: body
+  required: true
+  type: string
+vnf_pm_threshold_response_id:
+  description: |
+    Identifier of this PM threshold.
+  in: body
+  required: true
+  type: string
+vnf_pm_threshold_simple_threshold_details:
+  description: |
+    Details of a simple threshold. Shall be present if thresholdType="SIMPLE".
+  in: body
+  required: false
+  type: object
+vnf_pm_threshold_sub_object_instance_ids:
+  description: |
+    Identifiers of the measured object instances in case of a structured
+    measured object.
+  in: body
+  required: false
+  type: array
+vnf_pm_threshold_type:
+  description: |
+    Type of threshold. This attribute determines which other attributes
+    are present in the data structure.
+    "SIMPLE: Single-valued static threshold" is permitted.
+  in: body
+  required: true
+  type: string
+vnf_pm_threshold_update_callback_uri:
+  description: |
+    The URI of the endpoint to send the notification to.
+    At least one of the "callbackUri" and "authentication"
+    attributes shall be present in request body.
+  in: body
+  required: false
+  type: string
+vnf_pm_threshold_update_request_authentication:
+  description: |
+    Authentication parameters to configure the use of Authorization when
+    sending notifications corresponding to this subscription.
+    At least one of the "callbackUri" and "authentication"
+    attributes shall be present in request body.
+  in: body
+  required: false
+  type: object
+vnf_pm_threshold_update_resp_callback_uri:
+  description: |
+    The URI of the endpoint to send the notification to.
+  in: body
+  required: false
+  type: string
+vnf_pm_threshold_value:
+  description: |
+    The threshold value. Shall be represented as a floating point number.
+  in: body
+  required: true
+  type: number

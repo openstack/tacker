@@ -1,9 +1,9 @@
-===============================================================
-ETSI NFV-SOL CNF Auto Scaling With Prometheus via PM Interfaces
-===============================================================
+===================================================================
+ETSI NFV-SOL CNF Auto Scaling With Prometheus via PM Job Interfaces
+===================================================================
 
 This document describes how to auto scale CNF in Tacker with Prometheus
-via Performance Management Interfaces.
+via Performance Management Job Interfaces.
 
 Overview
 --------
@@ -163,14 +163,14 @@ The following are the parameters required by this interface.
     - PmJobCriteria
     - 1
     - Criteria of the collection of performance information.
-  * - >performanceMetric
+  * - performanceMetric
     - String
     - 0..N
     - This defines the types of performance metrics for the specified object
       instances. Valid values are specified as "Measurement Name" values in
       clause 7.2 of `ETSI GS NFV-IFA 027`_. At least one of the two
       attributes (performance metric or group) shall be present.
-  * - >performanceMetricGroup
+  * - performanceMetricGroup
     - String
     - 0..N
     - Group of performance metrics. A metric group is a pre-defined list of
@@ -178,19 +178,19 @@ The following are the parameters required by this interface.
       metrics. Valid values are specified as "Measurement Group" values in
       clause 7.2 of `ETSI GS NFV-IFA 027`_. At least one of the two
       attributes (performance metric or group) shall be present.
-  * - >collectionPeriod
+  * - collectionPeriod
     - UnsignedInt
     - 1
     - Specifies the periodicity at which the API producer will collect
       performance information. The unit shall be seconds.
-  * - >reportingPeriod
+  * - reportingPeriod
     - UnsignedInt
     - 1
     - Specifies the periodicity at which the API producer will report to
       the API consumer. about performance information. The unit shall be
       seconds. The reportingPeriod should be equal to or a multiple of
       the collectionPeriod.
-  * - >reportingBoundary
+  * - reportingBoundary
     - DateTime
     - 0..1
     - Identifies a time boundary after which the reporting will stop. The
@@ -210,48 +210,48 @@ The following are the parameters required by this interface.
     - Structure
     - 1
     - Additional parameters to create PM job.
-  * - >monitoring
+  * - monitoring
     - Structure
     - 1
     - Treats to specify such as monitoring system and driver information.
-  * - >>monitorName
+  * - monitorName
     - String
     - 1
     - In case specifying “prometheus”, backend of monitoring feature is
       to be Prometheus.
-  * - >>driverType
+  * - driverType
     - String
     - 1
     - “external”: SCP/SFTP for config file transfer.
-  * - >>targetsInfo
+  * - targetsInfo
     - Structure
     - 1..N
     - Information about the target monitoring system.
-  * - >>>prometheusHost
+  * - prometheusHost
     - String
     - 1
     - FQDN or ip address of target PrometheusServer.
-  * - >>>prometheusHostPort
+  * - prometheusHostPort
     - Int
     - 1
     - Port of the ssh target PrometheusServer.
-  * - >>>alertRuleConfigPath
+  * - alertRuleConfigPath
     - String
     - 1
     - Path of alertRuleConfig path for target Prometheus.
-  * - >>>prometheusReloadApiEndpoint
+  * - prometheusReloadApiEndpoint
     - String
     - 1
     - Endpoint url of reload API of target Prometheus.
-  * - >>>authInfo
+  * - authInfo
     - Structure
     - 1
     - Define authentication information to access host.
-  * - >>>>ssh_username
+  * - ssh_username
     - String
     - 1
     - The username of the target host for ssh.
-  * - >>>>ssh_password
+  * - ssh_password
     - String
     - 1
     - The password of the target host for ssh.

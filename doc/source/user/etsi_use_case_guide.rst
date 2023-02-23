@@ -175,6 +175,7 @@ Auto Scaling
    :maxdepth: 1
 
    etsi_cnf_auto_scaling_pm
+   etsi_cnf_auto_scaling_pm_threshold
 
 Auto Healing
 ~~~~~~~~~~~~

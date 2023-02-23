@@ -499,3 +499,364 @@ Help:
     --fit-width           Fit the table to the display width. Implied if --max-width greater than
                           0. Set the environment variable CLIFF_FIT_WIDTH=1 to always enable
     --print-empty         Print empty table if there is no data to show.
+
+
+7. Create PM threshold
+^^^^^^^^^^^^^^^^^^^^^^
+
+'param-file': Specify create VNF PM threshold request parameters in a json
+file.
+
+.. code-block:: console
+
+  $ openstack vnfpm threshold create <param-file> --os-tacker-api-version 2
+
+
+Result:
+
+.. code-block:: console
+
+  +-------------------------+------------------------------------------------------------------------------------------------------+
+  | Field                   | Value                                                                                                |
+  +-------------------------+------------------------------------------------------------------------------------------------------+
+  | Callback Uri            | http://127.0.0.1:9990/notification/callbackuri/511a2d68-c975-4913-b7b8-d75468e3102b                  |
+  | Criteria                | {                                                                                                    |
+  |                         |     "performanceMetric": "VMemoryUsageMeanVnf.511a2d68-c975-4913-b7b8-d75468e3102b",                 |
+  |                         |     "thresholdType": "SIMPLE",                                                                       |
+  |                         |     "simpleThresholdDetails": {                                                                      |
+  |                         |         "thresholdValue": 55.0,                                                                      |
+  |                         |         "hysteresis": 30.0                                                                           |
+  |                         |     }                                                                                                |
+  |                         | }                                                                                                    |
+  | ID                      | 4787c544-c3d0-4aeb-bf60-1598125c3d4f                                                                 |
+  | Links                   | {                                                                                                    |
+  |                         |     "self": {                                                                                        |
+  |                         |         "href": "http://127.0.0.1:9890/vnfpm/v2/thresholds/4787c544-c3d0-4aeb-bf60-1598125c3d4f"     |
+  |                         |     },                                                                                               |
+  |                         |     "object": {                                                                                      |
+  |                         |         "href": "http://127.0.0.1:9890/vnflcm/v2/vnf_instances/511a2d68-c975-4913-b7b8-d75468e3102b" |
+  |                         |     }                                                                                                |
+  |                         | }                                                                                                    |
+  | Object Instance Id      | 511a2d68-c975-4913-b7b8-d75468e3102b                                                                 |
+  | Object Type             | Vnf                                                                                                  |
+  | Sub Object Instance Ids |                                                                                                      |
+  +-------------------------+------------------------------------------------------------------------------------------------------+
+
+
+Help:
+
+.. code-block:: console
+
+  $ openstack vnfpm threshold create --os-tacker-api-version 2 --help
+  usage: openstack vnfpm threshold create [-h] [-f {json,shell,table,value,yaml}]
+                                          [-c COLUMN] [--noindent] [--prefix PREFIX]
+                                          [--max-width <integer>] [--fit-width]
+                                          [--print-empty]
+                                          <param-file>
+
+  Create a new VNF PM threshold
+
+  positional arguments:
+    <param-file>          Specify create VNF PM threshold request parameters in a json file.
+
+  optional arguments:
+    -h, --help            show this help message and exit
+
+  output formatters:
+    output formatter options
+
+    -f {json,shell,table,value,yaml}, --format {json,shell,table,value,yaml}
+                          the output format, defaults to table
+    -c COLUMN, --column COLUMN
+                          specify the column(s) to include, can be repeated to
+                          show multiple columns
+
+  json formatter:
+    --noindent            whether to disable indenting the JSON
+
+  shell formatter:
+    a format a UNIX shell can parse (variable="value")
+
+    --prefix PREFIX       add a prefix to all variable names
+
+  table formatter:
+    --max-width <integer>
+                          Maximum display width, <1 to disable. You can also use
+                          the CLIFF_MAX_TERM_WIDTH environment variable, but the
+                          parameter takes precedence.
+    --fit-width           Fit the table to the display width. Implied if --max-width
+                          greater than 0. Set the environment variable
+                          CLIFF_FIT_WIDTH=1 to always enable
+    --print-empty         Print empty table if there is no data to show.
+
+
+8. Update PM threshold
+^^^^^^^^^^^^^^^^^^^^^^
+
+The `<vnf-pm-threshold-id>` should be replaced with the 'ID' in result of
+'7. Create PM threshold'. In the following sample,
+`4787c544-c3d0-4aeb-bf60-1598125c3d4f` is used.
+
+.. code-block:: console
+
+  $ openstack vnfpm threshold update <vnf-pm-threshold-id> <param-file> --os-tacker-api-version 2
+
+
+Result:
+
+.. code-block:: console
+
+  +----------------+------------------------------------------------------------+
+  | Field          | Value                                                      |
+  +----------------+------------------------------------------------------------+
+  | Callback Uri   | http://127.0.0.1:9990/notification/callbackuri/callbackUri |
+  +----------------+------------------------------------------------------------+
+
+
+Help:
+
+.. code-block:: console
+
+  $ openstack vnfpm threshold update --os-tacker-api-version 2 --help
+  usage: openstack vnfpm threshold update [-h] [-f {json,shell,table,value,yaml}]
+                                          [-c COLUMN] [--noindent] [--prefix PREFIX]
+                                          [--max-width <integer>] [--fit-width]
+                                          [--print-empty]
+                                          <vnf-pm-threshold-id> <param-file>
+
+  Update information about an individual VNF PM threshold
+
+  positional arguments:
+    <vnf-pm-threshold-id> VNF PM threshold ID to update.
+    <param-file>          Specify update PM threshold request parameters in a json file.
+
+  optional arguments:
+    -h, --help            show this help message and exit
+
+  output formatters:
+    output formatter options
+
+    -f {json,shell,table,value,yaml}, --format {json,shell,table,value,yaml}
+                          the output format, defaults to table
+    -c COLUMN, --column COLUMN
+                          specify the column(s) to include, can be repeated to
+                          show multiple columns
+
+  json formatter:
+    --noindent            whether to disable indenting the JSON
+
+  shell formatter:
+    a format a UNIX shell can parse (variable="value")
+
+    --prefix PREFIX       add a prefix to all variable names
+
+  table formatter:
+    --max-width <integer>
+                          Maximum display width, <1 to disable. You can also use
+                          the CLIFF_MAX_TERM_WIDTH environment variable, but the
+                          parameter takes precedence.
+    --fit-width           Fit the table to the display width. Implied if
+                          --max-width greater than 0. Set the environment variable
+                          CLIFF_FIT_WIDTH=1 to always enable
+    --print-empty         Print empty table if there is no data to show.
+
+
+9. List PM thresholds
+^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: console
+
+  $ openstack vnfpm threshold list --os-tacker-api-version 2
+
+
+Result:
+
+.. code-block:: console
+
+  +--------------------------------------+-------------+------------------------------------------------------------------------------------------------------+
+  | ID                                   | Object Type | Links                                                                                                |
+  +--------------------------------------+-------------+------------------------------------------------------------------------------------------------------+
+  | 4787c544-c3d0-4aeb-bf60-1598125c3d4f | Vnf         | {                                                                                                    |
+  |                                      |             |     "self": {                                                                                        |
+  |                                      |             |         "href": "http://127.0.0.1:9890/vnfpm/v2/thresholds/4787c544-c3d0-4aeb-bf60-1598125c3d4f"     |
+  |                                      |             |     },                                                                                               |
+  |                                      |             |     "object": {                                                                                      |
+  |                                      |             |         "href": "http://127.0.0.1:9890/vnflcm/v2/vnf_instances/511a2d68-c975-4913-b7b8-d75468e3102b" |
+  |                                      |             |     }                                                                                                |
+  |                                      |             | }                                                                                                    |
+  +--------------------------------------+-------------+------------------------------------------------------------------------------------------------------+
+
+
+Help:
+
+.. code-block:: console
+
+  $ openstack vnfpm threshold list --os-tacker-api-version 2 --help
+  usage: openstack vnfpm threshold list [-h] [-f {csv,json,table,value,yaml}] [-c COLUMN]
+                                      [--quote {all,minimal,none,nonnumeric}] [--noindent]
+                                      [--max-width <integer>]
+                                      [--fit-width] [--print-empty] [--sort-column SORT_COLUMN]
+                                      [--sort-ascending | --sort-descending] [--filter <filter>]
+
+  List VNF PM thresholds
+
+  optional arguments:
+    -h, --help            show this help message and exit
+    --filter <filter>     Attribute-based-filtering parameters
+
+  output formatters:
+    output formatter options
+
+    -f {csv,json,table,value,yaml}, --format {csv,json,table,value,yaml}
+                          the output format, defaults to table
+    -c COLUMN, --column COLUMN
+                          specify the column(s) to include, can be repeated to
+                          show multiple columns
+    --sort-column SORT_COLUMN
+                          specify the column(s) to sort the data (
+                          columns specified first have a priority,
+                          non-existing columns are ignored), can be repeated
+    --sort-ascending      sort the column(s) in ascending order
+    --sort-descending     sort the column(s) in descending order
+
+  CSV Formatter:
+    --quote {all,minimal,none,nonnumeric}
+                          when to include quotes, defaults to nonnumeric
+
+  json formatter:
+    --noindent            whether to disable indenting the JSON
+
+  table formatter:
+    --max-width <integer>
+                          Maximum display width, <1 to disable. You can also
+                          use the CLIFF_MAX_TERM_WIDTH environment variable,
+                          but the parameter takes precedence.
+    --fit-width           Fit the table to the display width. Implied if
+                          --max-width greater than 0. Set the environment variable
+                          CLIFF_FIT_WIDTH=1 to always enable
+    --print-empty         Print empty table if there is no data to show.
+
+
+10. Show PM threshold
+^^^^^^^^^^^^^^^^^^^^^
+
+The `<vnf-pm-threshold-id>` should be replaced with the 'ID' in result of
+'7. Create PM threshold' or '9. List PM thresholds'. In the following sample,
+`4787c544-c3d0-4aeb-bf60-1598125c3d4f` is used.
+
+.. code-block:: console
+
+  $openstack vnfpm threshold show <vnf-pm-threshold-id> --os-tacker-api-version 2
+
+
+Result:
+
+.. code-block:: console
+
+  +-------------------------+------------------------------------------------------------------------------------------------------+
+  | Field                   | Value                                                                                                |
+  +-------------------------+------------------------------------------------------------------------------------------------------+
+  | Callback Uri            | http://127.0.0.1:9990/notification/callbackuri/callbackUri                                           |
+  | Criteria                | {                                                                                                    |
+  |                         |     "performanceMetric": "VMemoryUsageMeanVnf.511a2d68-c975-4913-b7b8-d75468e3102b",                 |
+  |                         |     "thresholdType": "SIMPLE",                                                                       |
+  |                         |     "simpleThresholdDetails": {                                                                      |
+  |                         |         "thresholdValue": 55.0,                                                                      |
+  |                         |         "hysteresis": 30.0                                                                           |
+  |                         |     }                                                                                                |
+  |                         | }                                                                                                    |
+  | ID                      | 4787c544-c3d0-4aeb-bf60-1598125c3d4f                                                                 |
+  | Links                   | {                                                                                                    |
+  |                         |     "self": {                                                                                        |
+  |                         |         "href": "http://127.0.0.1:9890/vnfpm/v2/thresholds/4787c544-c3d0-4aeb-bf60-1598125c3d4f"     |
+  |                         |     },                                                                                               |
+  |                         |     "object": {                                                                                      |
+  |                         |         "href": "http://127.0.0.1:9890/vnflcm/v2/vnf_instances/511a2d68-c975-4913-b7b8-d75468e3102b" |
+  |                         |     }                                                                                                |
+  |                         | }                                                                                                    |
+  | Object Instance Id      | 511a2d68-c975-4913-b7b8-d75468e3102b                                                                 |
+  | Object Type             | Vnf                                                                                                  |
+  | Sub Object Instance Ids |                                                                                                      |
+  +-------------------------+------------------------------------------------------------------------------------------------------+
+
+
+Help:
+
+.. code-block:: console
+
+  $ openstack vnfpm threshold show --os-tacker-api-version 2 --help
+  usage: openstack vnfpm threshold show [-h] [-f {json,shell,table,value,yaml}]
+                                      [-c COLUMN] [--noindent]
+                                      [--prefix PREFIX] [--max-width <integer>]
+                                      [--fit-width] [--print-empty]
+                                      <vnf-pm-threshold-id>
+
+  Display VNF PM threshold details
+
+  positional arguments:
+    <vnf-pm-threshold-id> VNF PM threshold ID to display
+
+  optional arguments:
+    -h, --help            show this help message and exit
+
+  output formatters:
+    output formatter options
+
+    -f {json,shell,table,value,yaml}, --format {json,shell,table,value,yaml}
+                          the output format, defaults to table
+    -c COLUMN, --column COLUMN
+                          specify the column(s) to include, can be repeated to
+                          show multiple columns
+
+  json formatter:
+    --noindent            whether to disable indenting the JSON
+
+  shell formatter:
+    a format a UNIX shell can parse (variable="value")
+
+    --prefix PREFIX       add a prefix to all variable names
+
+  table formatter:
+    --max-width <integer>
+                          Maximum display width, <1 to disable. You can also use
+                          the CLIFF_MAX_TERM_WIDTH environment variable, but the
+                          parameter takes precedence.
+    --fit-width           Fit the table to the display width. Implied if
+                          --max-width greater than 0. Set the environment variable
+                          CLIFF_FIT_WIDTH=1 to always enable
+    --print-empty         Print empty table if there is no data to show.
+
+
+11. Delete PM threshold
+^^^^^^^^^^^^^^^^^^^^^^^
+
+The `<vnf-pm-threshold-id>` should be replaced with the 'ID' in result of
+'7. Create PM threshold' or '9. List PM thresholds'. In the following sample,
+`4787c544-c3d0-4aeb-bf60-1598125c3d4f` is used.
+
+.. code-block:: console
+
+  $ openstack vnfpm threshold delete <vnf-pm-threshold-id> --os-tacker-api-version 2
+
+
+Result:
+
+.. code-block:: console
+
+  VNF PM threshold '4787c544-c3d0-4aeb-bf60-1598125c3d4f' deleted successfully
+
+
+Help:
+
+.. code-block:: console
+
+  $ openstack vnfpm threshold delete --os-tacker-api-version 2 --help
+  usage: openstack vnfpm threshold delete [-h] <vnf-pm-threshold-id> [<vnf-pm-threshold-id> ...]
+
+  Delete VNF PM threshold
+
+  positional arguments:
+    <vnf-pm-threshold-id> VNF PM threshold ID(s) to delete
+
+  optional arguments:
+    -h, --help            show this help message and exit

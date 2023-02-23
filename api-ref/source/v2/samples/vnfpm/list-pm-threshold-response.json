@@ -1,0 +1,20 @@
+[
+  {
+    "id": "bb474274-c5eb-442b-e2a2-0c1c02437bac",
+    "objectType": "Vnf",
+    "objectInstanceId": "4fcf78d6-52d9-4b6a-b3a6-49b2bef65843",
+    "criteria": {
+        "performanceMetric": "VCpuUsageMeanVnf.4fcf78d6-52d9-4b6a-b3a6-49b2bef65843",
+        "thresholdType": "SIMPLE",
+        "simpleThresholdDetails": {
+            "thresholdValue": 55,
+            "hysteresis": 30
+        }
+    },
+    "callbackUri": "http://localhost:9990/notification/callbackuri/4fcf78d6-52d9-4b6a-b3a6-49b2bef65843",
+    "_link": {
+        "self": "http://127.0.0.1:9890/vnfpm/v2/thresholds/bb474274-c5eb-442b-e2a2-0c1c02437bac",
+        "object": "http://127.0.0.1:9890/vnflcm/v2/vnf_instances/4fcf78d6-52d9-4b6a-b3a6-49b2bef65843"
+    }
+  }
+]

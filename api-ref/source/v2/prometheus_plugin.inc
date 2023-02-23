@@ -8,15 +8,17 @@ This interface is used for notifying alert that is detected by
 the External Monitoring Tool. The External Monitoring Tool is
 Prometheus based Monitoring system.
 
-The Prometheus Plugin has 4 functions:
+The Prometheus Plugin has 5 functions:
 
-- Alerting interface for ETSI NFV-SOL 002/003 based Performance Management.
+- Alerting interface for ETSI NFV-SOL 002/003 based Performance Management Job.
+- Alerting interface for ETSI NFV-SOL 002/003 based Performance Management
+  Threshold.
 - Alerting interface for ETSI NFV-SOL 002/003 based Fault Management.
 - Alerting interface for Prometheus Plugin AutoScaling.
 - Alerting interface for Prometheus Plugin AutoHealing.
 
-Alerting interface for ETSI NFV-SOL 002/003 based Performance Management
-========================================================================
+Alerting interface for ETSI NFV-SOL 002/003 based Performance Management Job
+============================================================================
 
 .. rest_method::  POST /pm_event
 
@@ -39,7 +41,7 @@ Request Parameters
 
 .. rest_parameters:: parameters_prometheus_plugin.yaml
 
-  - alert: alert
+  - alerts: alerts
   - status: status
   - labels: labels
   - receiver_type: receiver_type
@@ -58,6 +60,52 @@ Request Example
 ---------------
 
 .. literalinclude:: samples/prometheus_plugin/alert_pm.json
+   :language: javascript
+
+
+Alerting interface for ETSI NFV-SOL 002/003 based Performance Management Threshold
+==================================================================================
+
+.. rest_method::  POST /pm_threshold
+
+Alert Tacker when one or more Performance values are obtained.
+
+Response Codes
+--------------
+
+.. rest_status_code:: success status.yaml
+
+  - 204
+
+.. rest_status_code:: error status.yaml
+
+  - 400
+  - 404: prometheus_plugin_pm
+
+Request Parameters
+------------------
+
+.. rest_parameters:: parameters_prometheus_plugin.yaml
+
+  - alerts: alerts
+  - status: status
+  - labels: labels
+  - receiver_type: receiver_type
+  - function_type: function_type_threshold
+  - threshold_id: threshold_id
+  - object_instance_id: object_instance_id
+  - sub_object_instance_id: sub_object_instance_id
+  - metric: metric
+  - annotations: annotations
+  - value: value
+  - startsAt: startsAt
+  - endsAt: endsAt
+  - fingerprint: fingerprint
+
+Request Example
+---------------
+
+.. literalinclude:: samples/prometheus_plugin/alert_pm_threshold.json
    :language: javascript
 
 
@@ -85,7 +133,7 @@ Request Parameters
 
 .. rest_parameters:: parameters_prometheus_plugin.yaml
 
-  - alert: alert
+  - alerts: alerts
   - status: status
   - labels: labels
   - receiver_type: receiver_type
@@ -132,7 +180,7 @@ Request Parameters
 
 .. rest_parameters:: parameters_prometheus_plugin.yaml
 
-  - alert: alert
+  - alerts: alerts
   - status: status
   - labels: labels
   - receiver_type: receiver_type
@@ -180,7 +228,7 @@ Request Parameters
 
 .. rest_parameters:: parameters_prometheus_plugin.yaml
 
-  - alert: alert
+  - alerts: alerts
   - status: status
   - labels: labels
   - receiver_type: receiver_type
