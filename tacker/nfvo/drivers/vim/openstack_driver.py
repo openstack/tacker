@@ -15,7 +15,6 @@
 #    under the License.
 
 import os
-import yaml
 
 from keystoneauth1 import exceptions
 from keystoneauth1 import identity
@@ -32,10 +31,8 @@ from tacker.common import utils
 from tacker import context as t_context
 from tacker.extensions import nfvo
 from tacker.keymgr import API as KEYMGR_API
-from tacker.mistral import mistral_client
 from tacker.nfvo.drivers.vim import abstract_vim_driver
 from tacker.nfvo.drivers.vnffg import abstract_vnffg_driver
-from tacker.nfvo.drivers.workflow import workflow_generator
 from tacker.nfvo.nfvo_plugin import NfvoPlugin
 from tacker.plugins.common import constants
 from tacker.vnfm import keystone
@@ -706,46 +703,6 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
 
         neutronclient_ = NeutronClient(auth_attr)
         neutronclient_.flow_classifier_delete(fc_id)
-
-    def get_mistral_client(self, auth_dict):
-        if not auth_dict:
-            LOG.warning("auth dict required to instantiate mistral client")
-            raise EnvironmentError('auth dict required for'
-                                   ' mistral workflow driver')
-        return mistral_client.MistralClient(
-            keystone.Keystone().initialize_client(**auth_dict),
-            auth_dict['token']).get_client()
-
-    def prepare_and_create_workflow(self, resource, action,
-                                    kwargs, auth_dict=None):
-        mistral_client = self.get_mistral_client(auth_dict)
-        wg = workflow_generator.WorkflowGenerator(resource, action)
-        wg.task(**kwargs)
-        if not wg.get_tasks():
-            raise nfvo.NoTasksException(resource=resource, action=action)
-        yaml.SafeDumper.ignore_aliases = lambda self, data: True
-        definition_yaml = yaml.safe_dump(wg.definition)
-        workflow = mistral_client.workflows.create(definition_yaml)
-        return {'id': workflow[0].id, 'input': wg.get_input_dict()}
-
-    def execute_workflow(self, workflow, auth_dict=None):
-        return self.get_mistral_client(auth_dict) \
-            .executions.create(
-            workflow_identifier=workflow['id'],
-            workflow_input=workflow['input'],
-            wf_params={})
-
-    def get_execution(self, execution_id, auth_dict=None):
-        return self.get_mistral_client(auth_dict) \
-            .executions.get(execution_id)
-
-    def delete_execution(self, execution_id, auth_dict=None):
-        return self.get_mistral_client(auth_dict).executions \
-            .delete(execution_id, force=True)
-
-    def delete_workflow(self, workflow_id, auth_dict=None):
-        return self.get_mistral_client(auth_dict) \
-            .workflows.delete(workflow_id)
 
     def _delete_ppgs_and_pps(self, neutronclient, new_ppgs,
                              past_ppgs_dict, pcs_list, fc_ids):
