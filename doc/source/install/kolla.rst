@@ -114,7 +114,6 @@ Install Tacker
       enable_neutron: "no"
       enable_nova: "no"
       enable_barbican: "yes"
-      enable_mistral: "yes"
       enable_tacker: "yes"
       enable_heat: "no"
       enable_openvswitch: "no"
@@ -181,10 +180,6 @@ Install Tacker
       11b5ccf91d86        kolla/centos-source-barbican-worker:ussuri              barbican_worker
       4a5224d14f36        kolla/centos-source-barbican-keystone-listener:ussuri   barbican_keystone_listener
       a169e7aed0b6        kolla/centos-source-barbican-api:ussuri                 barbican_api
-      2b3b0341b562        kolla/centos-source-mistral-executor:ussuri             mistral_executor
-      6c69bbdf6aea        kolla/centos-source-mistral-event-engine:ussuri         mistral_event_engine
-      d035295fe9f0        kolla/centos-source-mistral-engine:ussuri               mistral_engine
-      72f52de2fb77        kolla/centos-source-mistral-api:ussuri                  mistral_api
       07ecaad80542        kolla/centos-source-horizon:ussuri                      horizon
       7e6ac94ea505        kolla/centos-source-keystone:ussuri                     keystone
       2b16b169ed18        kolla/centos-source-keystone-fernet:ussuri              keystone_fernet

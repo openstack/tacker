@@ -16,7 +16,6 @@
 
 import copy
 import os
-import time
 import yaml
 
 from cryptography import fernet
@@ -51,8 +50,6 @@ from toscaparser import tosca_template
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
-MISTRAL_RETRIES = 30
-MISTRAL_RETRY_WAIT = 6
 
 
 def config_opts():
@@ -719,17 +716,12 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                 vnffgd_templates[vnffg_name] = vnffgd_template
         return vnffgd_templates
 
+    # TODO(hiromu): Remove create NS API after the deprecation is accepted.
     @log.log
     def create_ns(self, context, ns):
         """Create NS, corresponding VNFs, VNFFGs.
 
         :param ns: ns dict which contains nsd_id and attributes
-        This method has 3 steps:
-        step-1: substitute all get_input params to its corresponding values
-        step-2: Build params dict for substitution mappings case through which
-        VNFs will actually substitute their requirements.
-        step-3: Create mistral workflow to create VNFs, VNFFG and execute the
-        workflow
         """
         ns_info = ns['ns']
         name = ns_info['name']
@@ -753,7 +745,6 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
 
         vim_res = self.vim_client.get_vim(context, ns['ns']['vim_id'],
                                           region_name)
-        driver_type = vim_res['vim_type']
         if not ns['ns']['vim_id']:
             ns['ns']['vim_id'] = vim_res['vim_id']
 
@@ -810,75 +801,10 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
         LOG.debug('vnffgd_templates: %s', vnffgd_templates)
         ns['vnffgd_templates'] = vnffgd_templates
 
-        # Step-3
-        kwargs = {'ns': ns, 'params': param_values}
-
-        # NOTE NoTasksException is raised if no tasks.
-        workflow = self._vim_drivers.invoke(
-            driver_type,
-            'prepare_and_create_workflow',
-            resource='ns',
-            action='create',
-            auth_dict=self.get_auth_dict(context),
-            kwargs=kwargs)
-        try:
-            mistral_execution = self._vim_drivers.invoke(
-                driver_type,
-                'execute_workflow',
-                workflow=workflow,
-                auth_dict=self.get_auth_dict(context))
-        except Exception as ex:
-            LOG.error('Error while executing workflow: %s', ex)
-            self._vim_drivers.invoke(driver_type,
-                                     'delete_workflow',
-                                     workflow_id=workflow['id'],
-                                     auth_dict=self.get_auth_dict(context))
-            raise ex
         ns_dict = super(NfvoPlugin, self).create_ns(context, ns)
 
-        def _create_ns_wait(self_obj, ns_id, execution_id):
-            exec_state = "RUNNING"
-            mistral_retries = MISTRAL_RETRIES
-            while exec_state == "RUNNING" and mistral_retries > 0:
-                time.sleep(MISTRAL_RETRY_WAIT)
-                exec_state = self._vim_drivers.invoke(
-                    driver_type,
-                    'get_execution',
-                    execution_id=execution_id,
-                    auth_dict=self.get_auth_dict(context)).state
-                LOG.debug('status: %s', exec_state)
-                if exec_state == 'SUCCESS' or exec_state == 'ERROR':
-                    break
-                mistral_retries = mistral_retries - 1
-            # TODO(phuoc): add more information about error reason in case
-            # of exec_state is 'ERROR'
-            error_reason = None
-            if mistral_retries == 0 and exec_state == 'RUNNING':
-                error_reason = _(
-                    "NS creation is not completed within"
-                    " {wait} seconds as creation of mistral"
-                    " execution {mistral} is not completed").format(
-                    wait=MISTRAL_RETRIES * MISTRAL_RETRY_WAIT,
-                    mistral=execution_id)
-            exec_obj = self._vim_drivers.invoke(
-                driver_type,
-                'get_execution',
-                execution_id=execution_id,
-                auth_dict=self.get_auth_dict(context))
-            self._vim_drivers.invoke(driver_type,
-                                     'delete_execution',
-                                     execution_id=execution_id,
-                                     auth_dict=self.get_auth_dict(context))
-            self._vim_drivers.invoke(driver_type,
-                                     'delete_workflow',
-                                     workflow_id=workflow['id'],
-                                     auth_dict=self.get_auth_dict(context))
-            super(NfvoPlugin, self).create_ns_post(
-                context, ns_id, exec_obj, vnfd_dict,
-                vnffgd_templates, error_reason)
-
-        self.spawn_n(_create_ns_wait, self, ns_dict['id'],
-                     mistral_execution.id)
+        super(NfvoPlugin, self).create_ns_post(
+            context, ns_dict['id'], vnfd_dict, vnffgd_templates)
         return ns_dict
 
     @log.log
@@ -907,6 +833,7 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
         else:
             raise cs.ParamYAMLInputMissing()
 
+    # TODO(hiromu): Remove delete NS API after the deprecation is accepted.
     @log.log
     def delete_ns(self, context, ns_id, ns=None):
         # Extract "force_delete" from request's body
@@ -918,83 +845,7 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
             raise exceptions.AdminRequired(reason="Admin only operation")
         ns = super(NfvoPlugin, self).get_ns(context, ns_id)
         LOG.debug("Deleting ns: %s", ns)
-        vim_res = self.vim_client.get_vim(context, ns['vim_id'])
         super(NfvoPlugin, self).delete_ns_pre(context, ns_id, force_delete)
-        driver_type = vim_res['vim_type']
-        workflow = None
-        try:
-            if ns['vnf_ids']:
-                ns['force_delete'] = force_delete
-                workflow = self._vim_drivers.invoke(
-                    driver_type,
-                    'prepare_and_create_workflow',
-                    resource='ns',
-                    action='delete',
-                    auth_dict=self.get_auth_dict(context),
-                    kwargs={'ns': ns})
-        except nfvo.NoTasksException:
-            LOG.warning("No VNF deletion task(s).")
-        if workflow:
-            try:
-                mistral_execution = self._vim_drivers.invoke(
-                    driver_type,
-                    'execute_workflow',
-                    workflow=workflow,
-                    auth_dict=self.get_auth_dict(context))
-
-            except Exception as ex:
-                LOG.error('Error while executing workflow: %s', ex)
-                self._vim_drivers.invoke(driver_type,
-                                         'delete_workflow',
-                                         workflow_id=workflow['id'],
-                                         auth_dict=self.get_auth_dict(context))
-
-                raise ex
-
-        def _delete_ns_wait(ns_id, execution_id):
-            exec_state = "RUNNING"
-            mistral_retries = MISTRAL_RETRIES
-            while exec_state == "RUNNING" and mistral_retries > 0:
-                time.sleep(MISTRAL_RETRY_WAIT)
-                exec_state = self._vim_drivers.invoke(
-                    driver_type,
-                    'get_execution',
-                    execution_id=execution_id,
-                    auth_dict=self.get_auth_dict(context)).state
-                LOG.debug('status: %s', exec_state)
-                if exec_state == 'SUCCESS' or exec_state == 'ERROR':
-                    break
-                mistral_retries -= 1
-            # TODO(phuoc): add more information about error reason in case
-            # of exec_state is 'ERROR'
-            error_reason = None
-            if mistral_retries == 0 and exec_state == 'RUNNING':
-                error_reason = _(
-                    "NS deletion is not completed within"
-                    " {wait} seconds as deletion of mistral"
-                    " execution {mistral} is not completed").format(
-                    wait=MISTRAL_RETRIES * MISTRAL_RETRY_WAIT,
-                    mistral=execution_id)
-            exec_obj = self._vim_drivers.invoke(
-                driver_type,
-                'get_execution',
-                execution_id=execution_id,
-                auth_dict=self.get_auth_dict(context))
-            self._vim_drivers.invoke(driver_type,
-                                     'delete_execution',
-                                     execution_id=execution_id,
-                                     auth_dict=self.get_auth_dict(context))
-            self._vim_drivers.invoke(driver_type,
-                                     'delete_workflow',
-                                     workflow_id=workflow['id'],
-                                     auth_dict=self.get_auth_dict(context))
-            super(NfvoPlugin, self).delete_ns_post(context, ns_id, exec_obj,
-                                                   error_reason,
-                                                   force_delete=force_delete)
-
-        if workflow:
-            self.spawn_n(_delete_ns_wait, ns['id'], mistral_execution.id)
-        else:
-            super(NfvoPlugin, self).delete_ns_post(
-                context, ns_id, None, None, force_delete=force_delete)
+        super(NfvoPlugin, self).delete_ns_post(
+            context, ns_id, force_delete=force_delete)
         return ns['id']

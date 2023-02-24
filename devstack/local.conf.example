@@ -34,11 +34,10 @@ Q_AGENT=ovn
 # Disable security groups
 LIBVIRT_FIREWALL_DRIVER=nova.virt.firewall.NoopFirewallDriver
 
-# Enable heat, networking-sfc, barbican and mistral
+# Enable heat, networking-sfc and barbican
 enable_plugin heat https://opendev.org/openstack/heat master
 enable_plugin networking-sfc https://opendev.org/openstack/networking-sfc master
 enable_plugin barbican https://opendev.org/openstack/barbican master
-enable_plugin mistral https://opendev.org/openstack/mistral master
 
 # Ceilometer
 #CEILOMETER_PIPELINE_INTERVAL=300

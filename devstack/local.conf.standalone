@@ -24,5 +24,4 @@ TACKER_MODE=standalone
 USE_BARBICAN=True
 enable_plugin networking-sfc ${GIT_BASE}/openstack/networking-sfc
 enable_plugin barbican ${GIT_BASE}/openstack/barbican
-enable_plugin mistral ${GIT_BASE}/openstack/mistral
 enable_plugin tacker ${GIT_BASE}/openstack/tacker

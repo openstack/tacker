@@ -10,7 +10,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import ast
 from datetime import datetime
 
 from oslo_db.exception import DBDuplicateEntry
@@ -292,27 +291,11 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
             details=evt_details)
         return self._make_ns_dict(ns_db)
 
-    def create_ns_post(self, context, ns_id, mistral_obj,
-            vnfd_dict, vnffgd_templates, error_reason):
+    def create_ns_post(self, context, ns_id, vnfd_dict, vnffgd_templates):
         LOG.debug('ns ID %s', ns_id)
-        output = ast.literal_eval(mistral_obj.output)
         mgmt_ip_addresses = dict()
         vnf_ids = dict()
         vnffg_ids = dict()
-        if len(output) > 0:
-            for vnfd_name, vnfd_val in vnfd_dict.items():
-                for instance in vnfd_val['instances']:
-                    if 'mgmt_ip_address_' + instance in output:
-                        mgmt_ip_addresses[instance] = ast.literal_eval(
-                            output['mgmt_ip_address_' + instance].strip())
-                        vnf_ids[instance] = output['vnf_id_' + instance]
-            vnf_ids = str(vnf_ids)
-            mgmt_ip_addresses = str(mgmt_ip_addresses)
-            if vnffgd_templates:
-                for vnffg_name in vnffgd_templates:
-                    vnffg_output = 'vnffg_id_%s' % vnffg_name
-                    vnffg_ids[vnffg_name] = output[vnffg_output]
-            vnffg_ids = str(vnffg_ids)
 
         if not vnf_ids:
             vnf_ids = None
@@ -320,8 +303,7 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
             mgmt_ip_addresses = None
         if not vnffg_ids:
             vnffg_ids = None
-        status = constants.ACTIVE if mistral_obj.state == 'SUCCESS' \
-            else constants.ERROR
+        status = constants.ACTIVE
 
         with context.session.begin(subtransactions=True):
             ns_db = self._get_resource(context, NS, ns_id)
@@ -329,7 +311,6 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
             ns_db.update({'vnffg_ids': vnffg_ids})
             ns_db.update({'mgmt_ip_addresses': mgmt_ip_addresses})
             ns_db.update({'status': status})
-            ns_db.update({'error_reason': error_reason})
             ns_db.update({'updated_at': timeutils.utcnow()})
             ns_dict = self._make_ns_dict(ns_db)
 
@@ -362,8 +343,8 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
             tstamp=timeutils.utcnow(), details="NS delete initiated")
         return deleted_ns_db
 
-    def delete_ns_post(self, context, ns_id, mistral_obj,
-                       error_reason, soft_delete=True, force_delete=False):
+    def delete_ns_post(self, context, ns_id, soft_delete=True,
+                       force_delete=False):
         ns = self.get_ns(context, ns_id)
         nsd_id = ns.get('nsd_id')
         with context.session.begin(subtransactions=True):
@@ -376,29 +357,18 @@ class NSPluginDb(network_service.NSPluginBase, db_base.CommonDbMixin):
                     self._model_query(context, NS).
                     filter(NS.id == ns_id).
                     filter(NS.status == constants.PENDING_DELETE))
-            if not force_delete and (mistral_obj
-                                     and mistral_obj.state == 'ERROR'):
-                query.update({'status': constants.ERROR})
+            if soft_delete:
+                deleted_time_stamp = timeutils.utcnow()
+                query.update({'deleted_at': deleted_time_stamp})
                 self._cos_db_plg.create_event(
                     context, res_id=ns_id,
                     res_type=constants.RES_TYPE_NS,
-                    res_state=constants.ERROR,
+                    res_state=constants.PENDING_DELETE,
                     evt_type=constants.RES_EVT_DELETE,
-                    tstamp=timeutils.utcnow(),
-                    details="NS Delete ERROR")
+                    tstamp=deleted_time_stamp,
+                    details="ns Delete Complete")
             else:
-                if soft_delete:
-                    deleted_time_stamp = timeutils.utcnow()
-                    query.update({'deleted_at': deleted_time_stamp})
-                    self._cos_db_plg.create_event(
-                        context, res_id=ns_id,
-                        res_type=constants.RES_TYPE_NS,
-                        res_state=constants.PENDING_DELETE,
-                        evt_type=constants.RES_EVT_DELETE,
-                        tstamp=deleted_time_stamp,
-                        details="ns Delete Complete")
-                else:
-                    query.delete()
+                query.delete()
             try:
                 template_db = self._get_resource(context, NSD, nsd_id)
                 if template_db.get('template_source') == 'inline':

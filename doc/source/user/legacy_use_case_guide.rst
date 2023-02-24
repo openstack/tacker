@@ -10,14 +10,6 @@ Legacy Tacker Use Cases
 VIM
 ---
 
-Register
-^^^^^^^^
-
-.. toctree::
-   :maxdepth: 1
-
-   ../contributor/tacker_vim_monitoring
-
 Enable Multi Site
 ^^^^^^^^^^^^^^^^^
 
@@ -144,6 +136,5 @@ Collaboration with Other Projects
 
    ../contributor/encrypt_vim_auth_with_barbican
    ../reference/block_storage_usage_guide
-   ../reference/mistral_workflows_usage_guide
    alarm_monitoring_usage_guide
    ../reference/reservation_policy_usage_guide

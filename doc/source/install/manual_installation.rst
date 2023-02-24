@@ -33,12 +33,11 @@ Pre-requisites
 
 #. Install required components.
 
-   Ensure that all required OpenStack components i.e. Keystone, Mistral,
-   Barbican and Horizon are installed. Refer the list below for installation
-   of these OpenStack components on different Operating Systems.
+   Ensure that all required OpenStack components i.e. Keystone, Barbican and
+   Horizon are installed. Refer the list below for installation of these
+   OpenStack components on different Operating Systems.
 
    * https://docs.openstack.org/keystone/latest/install/index.html
-   * https://docs.openstack.org/mistral/latest/admin/install/index.html
    * https://docs.openstack.org/barbican/latest/install/install.html
    * https://docs.openstack.org/horizon/latest/install/index.html
 
