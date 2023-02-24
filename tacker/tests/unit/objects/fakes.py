@@ -31,7 +31,8 @@ vnf_package_data = {'algorithm': None, 'hash': None,
                     'created_at': datetime.datetime(
                         2019, 8, 8, 0, 0, 0, tzinfo=iso8601.UTC),
                     'deleted': False,
-                    'size': 0
+                    'size': 0,
+                    "downloading": 0
                     }
 
 software_image = {

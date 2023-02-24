@@ -46,6 +46,7 @@ from tacker.common import csar_utils
 from tacker.common import driver_manager
 from tacker.common import exceptions
 from tacker.common import log
+from tacker.common import rpc
 from tacker.common import safe_utils
 from tacker.common import topics
 from tacker.common import utils
@@ -59,6 +60,7 @@ from tacker import objects
 from tacker.objects import fields
 from tacker.objects.fields import ErrorPoint as EP
 from tacker.objects.vnf_lcm_subscriptions import LccnSubscriptionRequest
+from tacker.objects import vnf_package as vnf_package_obj
 from tacker.objects.vnf_package import VnfPackagesList
 from tacker.objects import vnfd as vnfd_db
 from tacker.objects import vnfd_attribute as vnfd_attribute_db
@@ -115,14 +117,6 @@ def config_opts():
     return [('keystone_authtoken', OPTS)]
 
 
-def _delete_csar(context, vnf_package):
-    # Delete from glance store
-    glance_store.delete_csar(context, vnf_package.id,
-                             vnf_package.location_glance_store)
-
-    csar_utils.delete_csar_data(vnf_package.id)
-
-
 @utils.expects_func_args('vnf_package')
 def revert_upload_vnf_package(function):
     """Decorator to revert upload_vnf_package on failure."""
@@ -144,7 +138,17 @@ def revert_upload_vnf_package(function):
                     glance_store.delete_csar(context, vnf_package.id,
                             vnf_package.location_glance_store)
 
-                    csar_utils.delete_csar_data(vnf_package.id)
+                    target = oslo_messaging.Target(
+                        exchange='tacker',
+                        topic=topics.TOPIC_CONDUCTOR,
+                        fanout=True,
+                        version='1.0')
+                    serializer = objects.base.TackerObjectSerializer()
+                    client = rpc.get_client(target, version_cap=None,
+                                            serializer=serializer)
+                    cctxt = client.prepare()
+                    rpc_method = cctxt.cast
+                    rpc_method(context, 'delete_csar', vnf_package=vnf_package)
 
                 # Delete the vnf_deployment_flavour if created.
                 if vnf_package.vnf_deployment_flavours:
@@ -333,6 +337,28 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
     def init_host(self):
         glance_store.initialize_glance_store()
         self._basic_config_check()
+        self.init_csar_files()
+
+    def init_csar_files(self):
+        context = t_context.get_admin_context()
+        filters = {'field': 'onboarding_state', 'model': 'VnfPackage',
+                   'value': fields.PackageOnboardingStateType.ONBOARDED,
+                   'op': '=='}
+        vnf_packages = vnf_package_obj.VnfPackagesList.get_by_filters(
+            context, read_deleted='no', filters=filters)
+        for vnf_package in vnf_packages:
+            try:
+                location = vnf_package.location_glance_store
+                zip_path = os.path.join(CONF.vnf_package.vnf_package_csar_path,
+                                        vnf_package.id)
+                if not os.path.exists(zip_path):
+                    zip_path = glance_store.load_csar(
+                        vnf_package.id, location)
+                    vnf_data, flavours, vnf_artifacts = (
+                        csar_utils.load_csar_data(context.elevated(),
+                        vnf_package.id, zip_path))
+            except Exception as error_msg:
+                raise exceptions.TackerException(message=error_msg)
 
     def _get_vnf_instance_href(self, vnf_instance_id):
         return '{endpoint}/vnflcm/v1/vnf_instances/{id}'.format(
@@ -457,16 +483,27 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
             vnfd_attribute.create()
 
     @revert_upload_vnf_package
-    def upload_vnf_package_content(self, context, vnf_package):
-        vnf_package.onboarding_state = (
-            fields.PackageOnboardingStateType.PROCESSING)
-        try:
-            vnf_package.save()
+    def load_csar_data(self, context, vnf_package):
+        with context.session.begin(subtransactions=True):
+            vnf_package = vnf_package_obj.VnfPackage.get_by_id_with_lock(
+                context, vnf_package.id)
+            vnf_package.downloading += 1
+            context.session.commit()
 
-            location = vnf_package.location_glance_store
-            zip_path = glance_store.load_csar(vnf_package.id, location)
-            vnf_data, flavours, vnf_artifacts = csar_utils.load_csar_data(
-                context.elevated(), vnf_package.id, zip_path)
+        location = vnf_package.location_glance_store
+        zip_path = glance_store.load_csar(vnf_package.id, location)
+        vnf_data, flavours, vnf_artifacts = csar_utils.load_csar_data(
+            context.elevated(), vnf_package.id, zip_path)
+        with context.session.begin(subtransactions=True):
+            vnf_package = vnf_package_obj.VnfPackage.get_by_id_with_lock(
+                context, vnf_package.id)
+            vnf_package.downloading -= 1
+            context.session.commit()
+
+        vnf_package = vnf_package_obj.VnfPackage.get_by_id(
+            context, vnf_package.id)
+        if (vnf_package.downloading == 0) and (vnf_package.onboarding_state
+                == fields.PackageOnboardingStateType.PROCESSING):
             self._onboard_vnf_package(
                 context,
                 vnf_package,
@@ -479,6 +516,27 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
                 fields.PackageOperationalStateType.ENABLED)
             vnf_package.save()
 
+    @revert_upload_vnf_package
+    def upload_vnf_package_content(self, context, vnf_package):
+        vnf_package.onboarding_state = (
+            fields.PackageOnboardingStateType.PROCESSING)
+        vnf_package.downloading = 0
+
+        target = oslo_messaging.Target(
+            exchange='tacker',
+            topic=topics.TOPIC_CONDUCTOR,
+            fanout=True,
+            version='1.0')
+
+        serializer = objects.base.TackerObjectSerializer()
+        client = rpc.get_client(target, version_cap=None,
+                                serializer=serializer)
+        cctxt = client.prepare()
+        rpc_method = cctxt.cast
+
+        try:
+            vnf_package.save()
+            rpc_method(context, 'load_csar_data', vnf_package=vnf_package)
         except Exception as msg:
             raise Exception(msg)
 
@@ -495,6 +553,7 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
 
         vnf_package.onboarding_state = (
             fields.PackageOnboardingStateType.PROCESSING)
+        vnf_package.downloading = 0
 
         vnf_package.algorithm = CONF.vnf_package.hashing_algorithm
         vnf_package.hash = multihash
@@ -502,36 +561,43 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
         vnf_package.size = size
         vnf_package.save()
 
-        zip_path = glance_store.load_csar(vnf_package.id, location)
-        vnf_data, flavours, vnf_artifacts = csar_utils.load_csar_data(
-            context.elevated(), vnf_package.id, zip_path)
+        target = oslo_messaging.Target(
+            exchange='tacker',
+            topic=topics.TOPIC_CONDUCTOR,
+            fanout=True,
+            version='1.0')
 
-        self._onboard_vnf_package(
-            context,
-            vnf_package,
-            vnf_data,
-            flavours,
-            vnf_artifacts)
+        serializer = objects.base.TackerObjectSerializer()
+        client = rpc.get_client(target, version_cap=None,
+                                serializer=serializer)
+        cctxt = client.prepare()
+        rpc_method = cctxt.cast
 
-        vnf_package.onboarding_state = (
-            fields.PackageOnboardingStateType.ONBOARDED)
-        vnf_package.operational_state = (
-            fields.PackageOperationalStateType.ENABLED)
+        try:
+            vnf_package.save()
+            rpc_method(context, 'load_csar_data', vnf_package=vnf_package)
+        except Exception as msg:
+            raise Exception(msg)
 
-        vnf_package.save()
+    def delete_csar(self, context, vnf_package):
+        csar_utils.delete_csar_data(vnf_package.id)
 
     def delete_vnf_package(self, context, vnf_package):
-        if (vnf_package.onboarding_state ==
-                fields.PackageOnboardingStateType.ONBOARDED):
+        # Delete from glance store
+        glance_store.delete_csar(context, vnf_package.id,
+                                 vnf_package.location_glance_store)
 
-            _delete_csar(context, vnf_package)
-
-        # TODO(h-asahina): stop using these Legacy DB
-        if vnf_package.vnfd is not None:
-            objects.VnfdAttribute(context).delete(vnf_package.vnfd.vnfd_id)
-            objects.Vnfd(context).delete(vnf_package.vnfd.vnfd_id)
-
-        vnf_package.destroy(context)
+        target = oslo_messaging.Target(
+            exchange='tacker',
+            topic=topics.TOPIC_CONDUCTOR,
+            fanout=True,
+            version='1.0')
+        serializer = objects.base.TackerObjectSerializer()
+        client = rpc.get_client(target, version_cap=None,
+                                serializer=serializer)
+        cctxt = client.prepare()
+        rpc_method = cctxt.cast
+        rpc_method(context, 'delete_csar', vnf_package=vnf_package)
 
     def get_vnf_package_vnfd(self, context, vnf_package):
         csar_path = os.path.join(CONF.vnf_package.vnf_package_csar_path,

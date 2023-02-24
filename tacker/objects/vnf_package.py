@@ -380,7 +380,8 @@ class VnfPackage(base.TackerObject, base.TackerPersistentObject,
         'vnfd': fields.ObjectField('VnfPackageVnfd', nullable=True),
         'size': fields.IntegerField(nullable=False, default=0),
         'vnf_artifacts': fields.ObjectField('VnfPackageArtifactInfoList',
-                                            nullable=True)
+                                            nullable=True),
+        'downloading': fields.IntegerField(nullable=False, default=0)
     }
 
     def __init__(self, context=None, **kwargs):
@@ -568,6 +569,12 @@ class VnfPackage(base.TackerObject, base.TackerPersistentObject,
             context, id, columns_to_join=expected_attrs)
         return cls._from_db_object(context, cls(), db_vnf_package,
                                    expected_attrs=expected_attrs)
+
+    @base.remotable_classmethod
+    def get_by_id_with_lock(cls, context, id):
+        vnf_package = context.session.query(models.VnfPackage).filter(
+            models.VnfPackage.id == id).with_for_update().one()
+        return vnf_package
 
     @base.remotable
     def destroy(self, context):
