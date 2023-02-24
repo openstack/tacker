@@ -162,6 +162,7 @@ VM
    :maxdepth: 1
 
    practical_sample_package_usage_guide
+   coordinate_api_client_in_coordinatevnf_script
 
 Prometheus Plugin
 ^^^^^^^^^^^^^^^^^
