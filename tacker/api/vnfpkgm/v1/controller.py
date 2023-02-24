@@ -223,8 +223,20 @@ class VnfPkgmController(wsgi.Controller):
                     "operational_state": vnf_package.operational_state,
                     "usage_state": vnf_package.usage_state})
 
-        # Delete vnf_package
-        self.rpc_api.delete_vnf_package(context, vnf_package)
+        # Controller deletes vnf_package just from DB here.
+        # Related objects in Legacy DB are also deleted.
+        # Actual vnf_packages that is in backend storage
+        # or each conductors' local filesystems are deleted after.
+        if vnf_package.vnfd is not None:
+            objects.VnfdAttribute(context).delete(vnf_package.vnfd.vnfd_id)
+            objects.Vnfd(context).delete(vnf_package.vnfd.vnfd_id)
+        vnf_package.destroy(context)
+
+        if vnf_package.onboarding_state == (
+                fields.PackageOnboardingStateType.ONBOARDED):
+            # send rpc message for deleting actual vnf_package
+            # to conductors
+            self.rpc_api.delete_vnf_package(context, vnf_package)
 
     @wsgi.response(http_client.ACCEPTED)
     @wsgi.expected_errors((http_client.FORBIDDEN, http_client.NOT_FOUND,

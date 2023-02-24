@@ -647,9 +647,11 @@ class TestController(base.TestCase):
         if expected_result_link is not None:
             self.assertEqual(expected_result_link, res_dict.headers['Link'])
 
+    @mock.patch.object(vnf_package.VnfPackage, "destroy")
     @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
     @mock.patch.object(VNFPackageRPCAPI, "delete_vnf_package")
-    def test_delete_with_204_status(self, mock_delete_rpc, mock_vnf_by_id):
+    def test_delete_with_204_status(self, mock_delete_rpc,
+                                    mock_vnf_by_id, mock_vnf_pack_destroy):
         vnfpkg_updates = {'operational_state': 'DISABLED'}
         mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj(
             vnf_package_updates=vnfpkg_updates)

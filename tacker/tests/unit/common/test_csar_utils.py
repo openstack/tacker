@@ -384,9 +384,14 @@ class TestCSARUtils(testtools.TestCase):
         self.assertEqual("No VNF flavours are available",
                          exc.format_message())
 
+    @mock.patch.object(os.path, 'isfile')
+    @mock.patch.object(os.path, 'exists')
     @mock.patch.object(os, 'remove')
     @mock.patch.object(shutil, 'rmtree')
-    def test_delete_csar_data(self, mock_rmtree, mock_remove):
+    def test_delete_csar_data(self, mock_rmtree,
+                              mock_remove, mock_exists, mock_isfile):
+        mock_exists.return_value = True
+        mock_isfile.return_value = True
         csar_utils.delete_csar_data(constants.UUID)
         mock_rmtree.assert_called()
         mock_remove.assert_called()

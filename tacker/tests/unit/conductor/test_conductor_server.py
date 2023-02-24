@@ -37,13 +37,12 @@ from tacker.common import coordination
 from tacker.common import csar_utils
 from tacker.common import driver_manager
 from tacker.common import exceptions
+from tacker.common.rpc import BackingOffClient
 from tacker.conductor import conductor_server
 import tacker.conf
 from tacker import context
 from tacker import context as t_context
-from tacker.db.db_sqlalchemy import api
 from tacker.db.db_sqlalchemy import models
-from tacker.db.vnfm import vnfm_db
 from tacker.glance_store import store as glance_store
 from tacker import objects
 from tacker.objects import fields
@@ -106,6 +105,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         self.vnfd_pkg_data = self._create_vnfd_pkg_data()
         cfg.CONF.set_override('retry_wait', 0, group='vnf_lcm')
         self.addCleanup(cfg.CONF.clear_override, 'retry_wait', group='vnf_lcm')
+        self.cctxt_mock = mock.MagicMock()
 
     def _mock_vnfm_plugin(self):
         self.vnfm_plugin = mock.Mock(wraps=FakeVNFMPlugin())
@@ -204,35 +204,15 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             "Authorization")
         self.assertEqual("Bearer " + expected_token, actual_auth)
 
-    @mock.patch.object(conductor_server.Conductor, '_onboard_vnf_package')
-    @mock.patch.object(conductor_server, 'revert_upload_vnf_package')
-    @mock.patch.object(csar_utils, 'load_csar_data')
-    @mock.patch.object(glance_store, 'load_csar')
-    def test_upload_vnf_package_content(self, mock_load_csar,
-                                        mock_load_csar_data,
-                                        mock_revert, mock_onboard):
-        mock_load_csar_data.return_value = (mock.ANY, mock.ANY, mock.ANY)
-        mock_load_csar.return_value = '/var/lib/tacker/5f5d99c6-844a-4c3' \
-                                      '1-9e6d-ab21b87dcfff.zip'
-        self.conductor.upload_vnf_package_content(
-            self.context, self.vnf_package)
-        mock_load_csar.assert_called()
-        mock_load_csar_data.assert_called()
-        mock_onboard.assert_called()
-
-    @mock.patch.object(conductor_server.Conductor, '_onboard_vnf_package')
+    @mock.patch.object(BackingOffClient, 'prepare')
     @mock.patch.object(glance_store, 'store_csar')
     @mock.patch.object(conductor_server, 'revert_upload_vnf_package')
-    @mock.patch.object(csar_utils, 'load_csar_data')
-    @mock.patch.object(glance_store, 'load_csar')
-    def test_upload_vnf_package_from_uri(self, mock_load_csar,
-                                         mock_load_csar_data,
-                                         mock_revert, mock_store,
-                                         mock_onboard):
+    def test_upload_vnf_package_from_uri(self,
+                                         mock_revert,
+                                         mock_store,
+                                         mock_prepare):
+        mock_prepare.return_value = self.cctxt_mock
         address_information = "http://test.zip"
-        mock_load_csar_data.return_value = (mock.ANY, mock.ANY, mock.ANY)
-        mock_load_csar.return_value = '/var/lib/tacker/5f5d99c6-844a' \
-                                      '-4c31-9e6d-ab21b87dcfff.zip'
         mock_store.return_value = 'location', 0, 'checksum',\
                                   'multihash', 'loc_meta'
         self.conductor.upload_vnf_package_from_uri(self.context,
@@ -240,58 +220,54 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
                                                    address_information,
                                                    user_name=None,
                                                    password=None)
-        mock_load_csar.assert_called()
-        mock_load_csar_data.assert_called()
         mock_store.assert_called()
-        mock_onboard.assert_called()
+        mock_prepare.assert_called()
+        self.cctxt_mock.cast.assert_called_once_with(
+            self.context, 'load_csar_data', vnf_package=self.vnf_package)
         self.assertEqual('multihash', self.vnf_package.hash)
         self.assertEqual('location', self.vnf_package.location_glance_store)
 
+    @mock.patch.object(csar_utils, 'load_csar_data')
+    @mock.patch.object(glance_store, 'load_csar')
+    @mock.patch.object(objects.vnf_package.VnfPackagesList, 'get_by_filters')
+    def test_init_csar_files(self, mock_pkg_list,
+                             mock_load_csar, mock_load_csar_data):
+        fake_csar = os.path.join(self.temp_dir, self.vnf_package.id)
+        self.vnf_package.location = fake_csar
+        mock_pkg_list.return_value = [self.vnf_package]
+        mock_load_csar.return_value = True
+        mock_load_csar_data.return_value = (mock.ANY, mock.ANY, mock.ANY)
+
+        self.conductor.init_csar_files()
+
+        mock_load_csar.assert_called()
+        mock_load_csar_data.assert_called()
+
+    @mock.patch.object(csar_utils, 'load_csar_data')
+    @mock.patch.object(glance_store, 'load_csar')
+    @mock.patch.object(objects.vnf_package.VnfPackagesList, 'get_by_filters')
+    def test_init_csar_files_exception(self, mock_pkg_list,
+                                       mock_load_csar, mock_load_csar_data):
+        fake_csar = os.path.join(self.temp_dir, self.vnf_package.id)
+        self.vnf_package.location = fake_csar
+        mock_pkg_list.return_value = [self.vnf_package]
+        mock_load_csar.return_value = True
+        mock_load_csar_data.side_effect = exceptions.InvalidCSAR
+
+        self.assertRaises(exceptions.TackerException,
+                          self.conductor.init_csar_files)
+
+    @mock.patch.object(BackingOffClient, 'prepare')
     @mock.patch.object(glance_store, 'delete_csar')
-    def test_delete_vnf_package(self, mock_delete_csar):
+    def test_delete_vnf_package(self, mock_delete_csar, mock_prepare):
         self.vnf_package.onboarding_state = 'ONBOARDED'
-        vnfd_id = uuidsentinel.vnfd_id
-
-        # create VnfPackageVnfd
-        vnf_pack_vnfd_data = fake_obj.get_vnf_package_vnfd_data(
-            self.vnf_package.id, vnfd_id)
-        vnf_pack_vnfd = objects.VnfPackageVnfd(
-            self.context, **vnf_pack_vnfd_data)
-        vnf_pack_vnfd.create()
-        self.vnf_package.vnfd = vnf_pack_vnfd
-
-        # create Legacy Vnfd
-        vnfd = objects.Vnfd(self.context)
-        vnfd.id = vnfd_id
-        vnfd.tenant_id = uuidsentinel.tenant_id
-        vnfd.name = 'dummy_name'
-        vnfd.create()
-
-        # create Legacy VnfdAttribute
-        vnfd_attr = objects.VnfdAttribute(self.context)
-        vnfd_attr.id = uuidsentinel.vnfd_attr_id
-        vnfd_attr.vnfd_id = vnfd_id
-        vnfd_attr.key = 'dummy_key'
-        vnfd_attr.create()
-
-        # check Vnfd and VnfdAttribute were created
-        self.assertIsNotNone(
-            api.model_query(self.context, vnfm_db.VNFDAttribute)
-            .filter_by(vnfd_id=vnfd_id).first())
-        self.assertIsNotNone(
-            api.model_query(self.context, vnfm_db.VNFD)
-            .filter_by(id=vnfd_id).first())
-
+        mock_prepare.return_value = self.cctxt_mock
         self.conductor.delete_vnf_package(self.context, self.vnf_package)
 
-        # check Vnfd and VnfdAttribute were deleted
         mock_delete_csar.assert_called()
-        self.assertIsNone(
-            api.model_query(self.context, vnfm_db.VNFDAttribute)
-            .filter_by(vnfd_id=vnfd_id).first())
-        self.assertIsNone(
-            api.model_query(self.context, vnfm_db.VNFD)
-            .filter_by(id=vnfd_id).first())
+        mock_prepare.assert_called()
+        self.cctxt_mock.cast.assert_called_once_with(
+            self.context, 'delete_csar', vnf_package=self.vnf_package)
 
     def test_get_vnf_package_vnfd_with_tosca_meta_file_in_csar(self):
         fake_csar = fakes.create_fake_csar_dir(self.vnf_package.id,
@@ -3497,37 +3473,112 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             self.vnfd_pkg_data,
             vnfd_id)
 
+    @mock.patch.object(BackingOffClient, 'prepare')
+    @mock.patch.object(objects.vnf_package.VnfPackage, 'save')
+    @mock.patch.object(glance_store, 'delete_csar')
     @mock.patch.object(csar_utils, 'load_csar_data')
     @mock.patch.object(glance_store, 'load_csar')
-    @mock.patch.object(glance_store, 'delete_csar')
-    def test_revert_upload_vnf_package_in_upload_vnf_package_content(self,
-                                        mock_load_csar,
-                                        mock_load_csar_data,
-                                        mock_delete_csar):
-        mock_load_csar_data.return_value = (mock.ANY, mock.ANY, mock.ANY)
+    def test_revert_upload_vnf_package_in_load_csar_data(self,
+            mock_load_csar,
+            mock_load_csar_data,
+            mock_delete_csar,
+            mock_save,
+            mock_prepare):
+        self.vnf_package.onboarding_state = "PROCESSING"
+        self.vnf_package.save()
         mock_load_csar.return_value = '/var/lib/tacker/5f5d99c6-844a-4c3' \
                                       '1-9e6d-ab21b87dcfff.zip'
-        mock_delete_csar.return_value = ""
-        self.assertRaisesRegex(Exception,
-            "not enough values to unpack",
-            self.conductor.upload_vnf_package_content,
-            self.context, self.vnf_package)
+        mock_load_csar_data.side_effect = exceptions.InvalidCSAR
+        mock_prepare.return_value = self.cctxt_mock
 
-    @mock.patch.object(conductor_server, 'revert_upload_vnf_package')
+        self.assertRaises(exceptions.InvalidCSAR,
+            self.conductor.load_csar_data,
+            self.context, self.vnf_package)
+        mock_delete_csar.assert_called()
+        mock_prepare.assert_called()
+        self.cctxt_mock.cast.assert_called_once_with(
+            self.context, 'delete_csar', vnf_package=self.vnf_package)
+        self.assertEqual(self.vnf_package.onboarding_state, "CREATED")
+
+    @mock.patch.object(conductor_server.Conductor, '_onboard_vnf_package')
     @mock.patch.object(csar_utils, 'load_csar_data')
     @mock.patch.object(glance_store, 'load_csar')
-    def test_onboard_vnf_package_through_upload_vnf_package_content(self,
-                                        mock_load_csar,
-                                        mock_load_csar_data,
-                                        mock_revert):
+    def test_load_csar_data(self, mock_load_csar,
+            mock_load_csar_data, mock_onboard):
+        self.vnf_package.onboarding_state = "PROCESSING"
+        self.vnf_package.save()
         vnf_data = fakes.get_vnf_package_vnfd()
         vnf_data = self._rename_vnfdata_keys(vnf_data)
         mock_load_csar_data.return_value = (vnf_data, [], [])
         mock_load_csar.return_value = '/var/lib/tacker/5f5d99c6-844a-4c3' \
                                       '1-9e6d-ab21b87dcfff.zip'
-        fake_context = context.Context(tenant_id=uuidsentinel.tenant_id)
+        self.conductor.load_csar_data(self.context, self.vnf_package)
+        mock_load_csar.assert_called()
+        mock_load_csar_data.assert_called()
+        mock_onboard.assert_called()
+
+    @mock.patch.object(conductor_server.Conductor, '_onboard_vnf_package')
+    @mock.patch.object(csar_utils, 'load_csar_data')
+    @mock.patch.object(glance_store, 'load_csar')
+    def test_load_csar_data_with_onboarding_state_created(self, mock_load_csar,
+            mock_load_csar_data, mock_onboard):
+        self.vnf_package.onboarding_state = "PROCESSING"
+        self.vnf_package.save()
+        vnf_data = fakes.get_vnf_package_vnfd()
+        vnf_data = self._rename_vnfdata_keys(vnf_data)
+        mock_load_csar_data.return_value = (vnf_data, [], [])
+
+        def f():
+            vnf_pkg = objects.VnfPackage.get_by_id(
+                self.context, self.vnf_package.id)
+            vnf_pkg.onboarding_state = "CREATED"
+            vnf_pkg.save()
+            return (mock.ANY, mock.ANY, mock.ANY)
+
+        mock_load_csar_data.return_value = f()
+        mock_load_csar.return_value = '/var/lib/tacker/5f5d99c6-844a-4c3' \
+                                      '1-9e6d-ab21b87dcfff.zip'
+        self.conductor.load_csar_data(self.context, self.vnf_package)
+
+        mock_load_csar.assert_called()
+        mock_load_csar_data.assert_called()
+        vnf_pkg = objects.VnfPackage.get_by_id(
+            self.context, self.vnf_package.id)
+        self.assertEqual(vnf_pkg.onboarding_state, "CREATED")
+        mock_onboard.assert_not_called()
+
+    @mock.patch.object(conductor_server.Conductor, '_onboard_vnf_package')
+    @mock.patch.object(csar_utils, 'load_csar_data')
+    @mock.patch.object(glance_store, 'load_csar')
+    def test_load_csar_data_downloading_not_completed(self, mock_load_csar,
+            mock_load_csar_data, mock_onboard):
+        self.vnf_package.onboarding_state = "PROCESSING"
+        self.vnf_package.downloading = 1
+        self.vnf_package.save()
+        vnf_data = fakes.get_vnf_package_vnfd()
+        vnf_data = self._rename_vnfdata_keys(vnf_data)
+        mock_load_csar_data.return_value = (vnf_data, [], [])
+        mock_load_csar.return_value = '/var/lib/tacker/5f5d99c6-844a-4c3' \
+                                      '1-9e6d-ab21b87dcfff.zip'
+        self.conductor.load_csar_data(self.context, self.vnf_package)
+        mock_load_csar.assert_called()
+        mock_load_csar_data.assert_called()
+        mock_onboard.assert_not_called()
+        vnf_pkg = objects.VnfPackage.get_by_id(
+            self.context, self.vnf_package.id)
+        self.assertEqual(vnf_pkg.onboarding_state, "PROCESSING")
+        self.assertEqual(vnf_pkg.downloading, 1)
+
+    @mock.patch.object(BackingOffClient, 'prepare')
+    def test_onboard_vnf_package_through_upload_vnf_package_content(
+            self, mock_prepare):
+        mock_prepare.return_value = self.cctxt_mock
         self.conductor.upload_vnf_package_content(
-            fake_context, self.vnf_package)
+            self.context, self.vnf_package)
+        mock_prepare.assert_called()
+        self.cctxt_mock.cast.assert_called_once_with(
+            self.context, 'load_csar_data',
+            vnf_package=self.vnf_package)
 
     def _rename_vnfdata_keys(self, vnf_data):
         vnf_data["descriptor_id"] = vnf_data.pop("id")

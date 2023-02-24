@@ -567,14 +567,9 @@ def delete_csar_data(package_uuid):
     csar_path = os.path.join(CONF.vnf_package.vnf_package_csar_path,
                  package_uuid + ".zip")
 
-    try:
-        shutil.rmtree(csar_zip_temp_path)
+    shutil.rmtree(csar_zip_temp_path, ignore_errors=True)
+    if os.path.isfile(csar_path):
         os.remove(csar_path)
-    except OSError as exc:
-        exc_message = encodeutils.exception_to_unicode(exc)
-        msg = _('Failed to delete csar folder: '
-                '%(csar_path)s, Error: %(exc)s')
-        LOG.error(msg, {'csar_path': csar_path, 'exc': exc_message})
 
 
 class PreserveZipFilePermissions(zipfile.ZipFile):

@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    VNF package management APIs in multiple conductors environment
+    are supported that includes Upload VNF Package from content,
+    Upload VNF Package from uri and Delete VNF Package.
