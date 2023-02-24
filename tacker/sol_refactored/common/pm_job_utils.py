@@ -103,6 +103,12 @@ def _get_notification_auth_handle(pm_job):
         param = pm_job.authentication.paramsOauth2ClientCredentials
         return http_client.OAuth2AuthHandle(
             None, param.tokenEndpoint, param.clientId, param.clientPassword)
+    if pm_job.authentication.obj_attr_is_set('paramsOauth2ClientCert'):
+        param = pm_job.authentication.paramsOauth2ClientCert
+        verify_cert = CONF.v2_vnfm.notification_mtls_ca_cert_file
+        client_cert = CONF.v2_vnfm.notification_mtls_client_cert_file
+        return http_client.OAuth2MtlsAuthHandle(None,
+            param.tokenEndpoint, param.clientId, verify_cert, client_cert)
     return None
 
 

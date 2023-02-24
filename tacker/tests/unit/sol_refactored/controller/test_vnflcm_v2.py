@@ -539,8 +539,8 @@ class TestVnflcmV2(db_base.SqlTestCase):
             body=body)
         self.assertEqual(202, result.status)
 
-    def test_invalid_subscripion(self):
-        body = {
+    def test_invalid_subscription(self):
+        body_1 = {
             "callbackUri": "http://127.0.0.1:6789/notification",
             "authentication": {
                 "authType": ["BASIC"]
@@ -548,10 +548,10 @@ class TestVnflcmV2(db_base.SqlTestCase):
         }
         ex = self.assertRaises(sol_ex.InvalidSubscription,
             self.controller.subscription_create, request=self.request,
-            body=body)
+            body=body_1)
         self.assertEqual("ParamsBasic must be specified.", ex.detail)
 
-        body = {
+        body_2 = {
             "callbackUri": "http://127.0.0.1:6789/notification",
             "authentication": {
                 "authType": ["OAUTH2_CLIENT_CREDENTIALS"]
@@ -559,32 +559,77 @@ class TestVnflcmV2(db_base.SqlTestCase):
         }
         ex = self.assertRaises(sol_ex.InvalidSubscription,
             self.controller.subscription_create, request=self.request,
-            body=body)
+            body=body_2)
         self.assertEqual("paramsOauth2ClientCredentials must be specified.",
                          ex.detail)
 
-        body = {
+        body_3 = {
             "callbackUri": "http://127.0.0.1:6789/notification",
             "authentication": {
-                "authType": ["TLS_CERT"]
+                "authType": ["OAUTH2_CLIENT_CERT"]
             }
         }
         ex = self.assertRaises(sol_ex.InvalidSubscription,
             self.controller.subscription_create, request=self.request,
-            body=body)
-        self.assertEqual("'TLS_CERT' is not supported at the moment.",
+            body=body_3)
+        self.assertEqual("paramsOauth2ClientCert must be specified.",
                          ex.detail)
 
     @mock.patch.object(subsc_utils, 'test_notification')
     def test_subscription_create_201(self, mock_test):
-        body = {
+        body_1 = {
             "callbackUri": "http://127.0.0.1:6789/notification",
             "authentication": {
-                "authType": ["BASIC", "OAUTH2_CLIENT_CREDENTIALS"],
+                "authType": ["BASIC", "OAUTH2_CLIENT_CREDENTIALS",
+                             "OAUTH2_CLIENT_CERT"],
                 "paramsBasic": {
                     "userName": "test",
                     "password": "test"
                 },
+                "paramsOauth2ClientCredentials": {
+                    "clientId": "test",
+                    "clientPassword": "test",
+                    "tokenEndpoint": "https://127.0.0.1/token"
+                },
+                "paramsOauth2ClientCert": {
+                    "clientId": "test",
+                    "certificateRef": {
+                        "type": "x5t#256",
+                        "value": "03c6e188d1fe5d3da8c9bc9a8dc531a2"
+                                 "b3ecf812b03aede9bec7ba1b410b6b64"
+                    },
+                    "tokenEndpoint": "https://127.0.0.1/token"
+                }
+            },
+            "filter": {
+                "operationTypes": [fields.LcmOperationType.INSTANTIATE]
+            }
+        }
+        result = self.controller.subscription_create(
+            request=self.request, body=body_1)
+        self.assertEqual(201, result.status)
+
+        body_2 = {
+            "callbackUri": "http://127.0.0.1:6789/notification",
+            "authentication": {
+                "authType": ["BASIC"],
+                "paramsBasic": {
+                    "userName": "test",
+                    "password": "test"
+                }
+            },
+            "filter": {
+                "operationTypes": [fields.LcmOperationType.INSTANTIATE]
+            }
+        }
+        result = self.controller.subscription_create(
+            request=self.request, body=body_2)
+        self.assertEqual(201, result.status)
+
+        body_3 = {
+            "callbackUri": "http://127.0.0.1:6789/notification",
+            "authentication": {
+                "authType": ["OAUTH2_CLIENT_CREDENTIALS"],
                 "paramsOauth2ClientCredentials": {
                     "clientId": "test",
                     "clientPassword": "test",
@@ -596,7 +641,29 @@ class TestVnflcmV2(db_base.SqlTestCase):
             }
         }
         result = self.controller.subscription_create(
-            request=self.request, body=body)
+            request=self.request, body=body_3)
+        self.assertEqual(201, result.status)
+
+        body_4 = {
+            "callbackUri": "http://127.0.0.1:6789/notification",
+            "authentication": {
+                "authType": ["OAUTH2_CLIENT_CERT"],
+                "paramsOauth2ClientCert": {
+                    "clientId": "test",
+                    "certificateRef": {
+                        "type": "x5t#256",
+                        "value": "03c6e188d1fe5d3da8c9bc9a8dc531a2"
+                                 "b3ecf812b03aede9bec7ba1b410b6b64"
+                    },
+                    "tokenEndpoint": "https://127.0.0.1/token"
+                }
+            },
+            "filter": {
+                "operationTypes": [fields.LcmOperationType.INSTANTIATE]
+            }
+        }
+        result = self.controller.subscription_create(
+            request=self.request, body=body_4)
         self.assertEqual(201, result.status)
 
     @mock.patch.object(subsc_utils, 'get_subsc_all')

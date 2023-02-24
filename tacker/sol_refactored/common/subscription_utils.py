@@ -51,16 +51,28 @@ def subsc_href(subsc_id, endpoint):
 
 
 def _get_notification_auth_handle(subsc):
-    if not subsc.obj_attr_is_set('authentication'):
+    auth_req = subsc.get('authentication', None)
+    if auth_req:
+        auth = objects.SubscriptionAuthentication(
+            authType=auth_req['authType']
+        )
+        if 'OAUTH2_CLIENT_CERT' in auth.authType:
+            param = subsc.authentication.paramsOauth2ClientCert
+            verify_cert = CONF.v2_vnfm.notification_mtls_ca_cert_file
+            client_cert = CONF.v2_vnfm.notification_mtls_client_cert_file
+            return http_client.OAuth2MtlsAuthHandle(None,
+                param.tokenEndpoint, param.clientId, verify_cert, client_cert)
+        elif 'OAUTH2_CLIENT_CREDENTIALS' in auth.authType:
+            param = subsc.authentication.paramsOauth2ClientCredentials
+            return http_client.OAuth2AuthHandle(None,
+                param.tokenEndpoint, param.clientId, param.clientPassword)
+        elif 'BASIC' in auth.authType:
+            param = subsc.authentication.paramsBasic
+            return http_client.BasicAuthHandle(param.userName, param.password)
+        else:
+            raise sol_ex.AuthTypeNotFound(auth.authType)
+    else:
         return http_client.NoAuthHandle()
-    elif subsc.authentication.obj_attr_is_set('paramsBasic'):
-        param = subsc.authentication.paramsBasic
-        return http_client.BasicAuthHandle(param.userName, param.password)
-    elif subsc.authentication.obj_attr_is_set(
-            'paramsOauth2ClientCredentials'):
-        param = subsc.authentication.paramsOauth2ClientCredentials
-        return http_client.OAuth2AuthHandle(None,
-            param.tokenEndpoint, param.clientId, param.clientPassword)
 
     # not reach here
 
@@ -273,3 +285,47 @@ def make_delete_inst_notif_data(subsc, inst, endpoint):
         # vnfLcmOpOcc: is not necessary
     )
     return notif_data
+
+
+def check_http_client_auth(auth_req):
+    auth = objects.SubscriptionAuthentication(
+        authType=auth_req['authType']
+    )
+    if 'OAUTH2_CLIENT_CERT' in auth.authType:
+        oauth2_mtls_req = auth_req.get('paramsOauth2ClientCert')
+        if oauth2_mtls_req is None:
+            msg = "paramsOauth2ClientCert must be specified."
+            raise sol_ex.InvalidSubscription(sol_detail=msg)
+        auth.paramsOauth2ClientCert = (
+            objects.SubscriptionAuthentication_ParamsOauth2ClientCert(
+                clientId=oauth2_mtls_req.get('clientId'),
+                certificateRef=oauth2_mtls_req.get('certificateRef'),
+                tokenEndpoint=oauth2_mtls_req.get('tokenEndpoint')
+            )
+        )
+    elif 'OAUTH2_CLIENT_CREDENTIALS' in auth.authType:
+        oauth2_req = auth_req.get('paramsOauth2ClientCredentials')
+        if oauth2_req is None:
+            msg = "paramsOauth2ClientCredentials must be specified."
+            raise sol_ex.InvalidSubscription(sol_detail=msg)
+        auth.paramsOauth2ClientCredentials = (
+            objects.SubscriptionAuthentication_ParamsOauth2(
+                clientId=oauth2_req.get('clientId'),
+                clientPassword=oauth2_req.get('clientPassword'),
+                tokenEndpoint=oauth2_req.get('tokenEndpoint')
+            )
+        )
+    elif 'BASIC' in auth.authType:
+        basic_req = auth_req.get('paramsBasic')
+        if basic_req is None:
+            msg = "ParamsBasic must be specified."
+            raise sol_ex.InvalidSubscription(sol_detail=msg)
+        auth.paramsBasic = (
+            objects.SubscriptionAuthentication_ParamsBasic(
+                userName=basic_req.get('userName'),
+                password=basic_req.get('password')
+            )
+        )
+    else:
+        raise sol_ex.AuthTypeNotFound(auth.authType)
+    return auth

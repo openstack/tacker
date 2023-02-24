@@ -17,7 +17,6 @@ from urllib import parse
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
-from oslo_utils import strutils
 
 from tacker._i18n import _
 from tacker.vnfm.monitor_drivers.token import Token
@@ -49,7 +48,6 @@ def config_opts():
 
 class AlarmReceiver(wsgi.Middleware):
     def process_request(self, req):
-        LOG.debug('Process request: %s', strutils.mask_password(req))
         if req.method != 'POST':
             return
         url = req.url

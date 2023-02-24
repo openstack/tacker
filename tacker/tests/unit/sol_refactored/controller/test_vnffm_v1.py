@@ -111,14 +111,61 @@ class TestVnffmV1(base.BaseTestCase):
     @mock.patch.object(objects.base.TackerPersistentObject, 'create')
     @mock.patch.object(subsc_utils, 'test_notification')
     def test_subscription_create(self, mock_test, mock_create):
-        body = {
+        body_1 = {
             "callbackUri": "http://127.0.0.1:6789/notification",
             "authentication": {
-                "authType": ["BASIC", "OAUTH2_CLIENT_CREDENTIALS"],
+                "authType": ["BASIC", "OAUTH2_CLIENT_CREDENTIALS",
+                             "OAUTH2_CLIENT_CERT"],
                 "paramsBasic": {
                     "userName": "test",
                     "password": "test"
                 },
+                "paramsOauth2ClientCredentials": {
+                    "clientId": "test",
+                    "clientPassword": "test",
+                    "tokenEndpoint": "https://127.0.0.1/token"
+                },
+                "paramsOauth2ClientCert": {
+                    "clientId": "test",
+                    "certificateRef": {
+                        "type": "x5t#256",
+                        "value": "03c6e188d1fe5d3da8c9bc9a8dc531a2"
+                                 "b3ecf812b03aede9bec7ba1b410b6b64"
+                    },
+                    "tokenEndpoint": "https://127.0.0.1/token"
+                }
+            },
+            "filter": fakes_for_fm.fm_subsc_example['filter']
+        }
+        result = self.controller.subscription_create(
+            request=self.request, body=body_1)
+        self.assertEqual(201, result.status)
+        self.assertEqual(body_1['callbackUri'], result.body['callbackUri'])
+        self.assertEqual(body_1['filter'], result.body['filter'])
+        self.assertIsNone(result.body.get('authentication'))
+
+        body_2 = {
+            "callbackUri": "http://127.0.0.1:6789/notification",
+            "authentication": {
+                "authType": ["BASIC"],
+                "paramsBasic": {
+                    "userName": "test",
+                    "password": "test"
+                }
+            },
+            "filter": fakes_for_fm.fm_subsc_example['filter']
+        }
+        result = self.controller.subscription_create(
+            request=self.request, body=body_2)
+        self.assertEqual(201, result.status)
+        self.assertEqual(body_2['callbackUri'], result.body['callbackUri'])
+        self.assertEqual(body_2['filter'], result.body['filter'])
+        self.assertIsNone(result.body.get('authentication'))
+
+        body_3 = {
+            "callbackUri": "http://127.0.0.1:6789/notification",
+            "authentication": {
+                "authType": ["OAUTH2_CLIENT_CREDENTIALS"],
                 "paramsOauth2ClientCredentials": {
                     "clientId": "test",
                     "clientPassword": "test",
@@ -128,10 +175,33 @@ class TestVnffmV1(base.BaseTestCase):
             "filter": fakes_for_fm.fm_subsc_example['filter']
         }
         result = self.controller.subscription_create(
-            request=self.request, body=body)
+            request=self.request, body=body_3)
         self.assertEqual(201, result.status)
-        self.assertEqual(body['callbackUri'], result.body['callbackUri'])
-        self.assertEqual(body['filter'], result.body['filter'])
+        self.assertEqual(body_3['callbackUri'], result.body['callbackUri'])
+        self.assertEqual(body_3['filter'], result.body['filter'])
+        self.assertIsNone(result.body.get('authentication'))
+
+        body_4 = {
+            "callbackUri": "http://127.0.0.1:6789/notification",
+            "authentication": {
+                "authType": ["OAUTH2_CLIENT_CERT"],
+                "paramsOauth2ClientCert": {
+                    "clientId": "test",
+                    "certificateRef": {
+                        "type": "x5t#256",
+                        "value": "03c6e188d1fe5d3da8c9bc9a8dc531a2"
+                                 "b3ecf812b03aede9bec7ba1b410b6b64"
+                    },
+                    "tokenEndpoint": "https://127.0.0.1/token"
+                }
+            },
+            "filter": fakes_for_fm.fm_subsc_example['filter']
+        }
+        result = self.controller.subscription_create(
+            request=self.request, body=body_4)
+        self.assertEqual(201, result.status)
+        self.assertEqual(body_4['callbackUri'], result.body['callbackUri'])
+        self.assertEqual(body_4['filter'], result.body['filter'])
         self.assertIsNone(result.body.get('authentication'))
 
     def test_invalid_subscripion(self):
@@ -161,13 +231,13 @@ class TestVnffmV1(base.BaseTestCase):
         body = {
             "callbackUri": "http://127.0.0.1:6789/notification",
             "authentication": {
-                "authType": ["TLS_CERT"]
+                "authType": ["OAUTH2_CLIENT_CERT"]
             }
         }
         ex = self.assertRaises(sol_ex.InvalidSubscription,
             self.controller.subscription_create, request=self.request,
             body=body)
-        self.assertEqual("'TLS_CERT' is not supported at the moment.",
+        self.assertEqual("paramsOauth2ClientCert must be specified.",
                          ex.detail)
 
     @mock.patch.object(subsc_utils, 'get_subsc_all')

@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    [`blueprint support-oauth2-mtls <https://blueprints.launchpad.net/keystone/+spec/support-oauth2-mtls>`_]
+    Provide the option to use mutual TLS client authentication when accessing
+    external servers from Tacker. OAuth2MtlsAuthHandle has been added to
+    support Mutual-TLS client authentication for access from Tacker to external
+    NFVO servers and notification endpoints using user-provided Mutual-TLS
+    client certificates.
+

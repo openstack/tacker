@@ -17,6 +17,7 @@ import requests
 from unittest import mock
 import zipfile
 
+from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import uuidutils
 
@@ -314,11 +315,24 @@ class TestNfvoClient(base.BaseTestCase):
         self.nfvo_client.grant_api_version = '1.4.0'
         self.nfvo_client.vnfpkgm_api_version = '2.1.0'
 
+        cfg.CONF.set_override("use_external_nfvo", True, group="v2_nfvo")
+        cfg.CONF.set_override("mtls_ca_cert_file", "/path/to/cacert",
+            group="v2_nfvo")
+        cfg.CONF.set_override("mtls_client_cert_file", "/path/to/clientcert",
+            group="v2_nfvo")
+        cfg.CONF.set_override("token_endpoint", "http://127.0.0.1:9990/token",
+            group="v2_nfvo")
+        cfg.CONF.set_override("client_id", "test", group="v2_nfvo")
+        self.addCleanup(mock.patch.stopall)
+        mock.patch('os.makedirs').start()
+        self.nfvo_client_mtls = nfvo_client.NfvoClient()
+
     @mock.patch.object(local_nfvo.LocalNfvo, 'onboarded_show')
     @mock.patch.object(http_client.HttpClient, 'do_request')
     def test_get_vnf_package_info_vnfd(
             self, mock_request, mock_onboarded_show):
         # local nfvo
+        cfg.CONF.clear_override("use_external_nfvo", group="v2_nfvo")
         self.nfvo_client.is_local = True
         mock_onboarded_show.return_value = vnfd_utils.Vnfd(
             vnfd_id=SAMPLE_VNFD_ID)
@@ -326,40 +340,69 @@ class TestNfvoClient(base.BaseTestCase):
             self.context, SAMPLE_VNFD_ID)
         self.assertEqual(SAMPLE_VNFD_ID, result.vnfd_id)
 
-        # external nfvo
+        # external nfvo oauth2
+        cfg.CONF.clear_override("mtls_client_cert_file", group="v2_nfvo")
+        cfg.CONF.set_override("use_external_nfvo", True, group="v2_nfvo")
         self.nfvo_client.is_local = False
         mock_request.return_value = (requests.Response(), _vnfpkg_body_example)
         result = self.nfvo_client.get_vnf_package_info_vnfd(
             self.context, SAMPLE_VNFD_ID)
         self.assertEqual(SAMPLE_VNFD_ID, result.vnfdId)
 
+        # external nfvo oauth2 mtls
+        cfg.CONF.set_override("mtls_client_cert_file", "/path/to/clientcert",
+            group="v2_nfvo")
+        result = self.nfvo_client_mtls.get_vnf_package_info_vnfd(
+            self.context, SAMPLE_VNFD_ID)
+        self.assertEqual(SAMPLE_VNFD_ID, result.vnfdId)
+
     @mock.patch.object(http_client.HttpClient, 'do_request')
     def test_onboarded_show_vnfd(self, mock_request):
         # local nfvo
+        cfg.CONF.clear_override("use_external_nfvo", group="v2_nfvo")
         self.nfvo_client.is_local = True
         result = self.nfvo_client.onboarded_show_vnfd(
             self.context, SAMPLE_VNFD_ID)
         self.assertIsNone(result)
 
-        # external nfvo
+        # external nfvo oauth2
+        cfg.CONF.clear_override("mtls_client_cert_file", group="v2_nfvo")
+        cfg.CONF.set_override("use_external_nfvo", True, group="v2_nfvo")
         self.nfvo_client.is_local = False
         mock_request.return_value = (requests.Response(), 'test')
         result = self.nfvo_client.onboarded_show_vnfd(
             self.context, SAMPLE_VNFD_ID)
         self.assertEqual('test', result)
 
+        # external nfvo oauth2 mtls
+        cfg.CONF.set_override("mtls_client_cert_file", "/path/to/clientcert",
+            group="v2_nfvo")
+        result = self.nfvo_client_mtls.onboarded_show_vnfd(
+            self.context, SAMPLE_VNFD_ID)
+        self.assertEqual('test', result)
+
     @mock.patch.object(http_client.HttpClient, 'do_request')
     def test_onboarded_package_content(self, mock_request):
         # local nfvo
+        cfg.CONF.clear_override("use_external_nfvo", group="v2_nfvo")
         self.nfvo_client.is_local = True
         result = self.nfvo_client.onboarded_package_content(
             self.context, SAMPLE_VNFD_ID)
         self.assertIsNone(result)
 
-        # external nfvo
+        # external nfvo oauth2
+        cfg.CONF.clear_override("mtls_client_cert_file", group="v2_nfvo")
+        cfg.CONF.set_override("use_external_nfvo", True, group="v2_nfvo")
         self.nfvo_client.is_local = False
         mock_request.return_value = (requests.Response(), 'test')
         result = self.nfvo_client.onboarded_package_content(
+            self.context, SAMPLE_VNFD_ID)
+        self.assertEqual('test', result)
+
+        # external nfvo oauth2 mtls
+        cfg.CONF.set_override("mtls_client_cert_file", "/path/to/clientcert",
+            group="v2_nfvo")
+        result = self.nfvo_client_mtls.onboarded_package_content(
             self.context, SAMPLE_VNFD_ID)
         self.assertEqual('test', result)
 
@@ -367,6 +410,7 @@ class TestNfvoClient(base.BaseTestCase):
     @mock.patch.object(http_client.HttpClient, 'do_request')
     def test_grant(self, mock_request, mock_grant):
         # local nfvo
+        cfg.CONF.clear_override("use_external_nfvo", group="v2_nfvo")
         self.nfvo_client.is_local = True
         mock_grant.return_value = objects.GrantV1.from_dict(_grant_res)
         grant_req = objects.GrantRequestV1.from_dict(_inst_grant_req_example)
@@ -377,9 +421,20 @@ class TestNfvoClient(base.BaseTestCase):
             'vimAssets']['softwareImages'][0]['vimSoftwareImageId'])
 
         # external nfvo
+        cfg.CONF.clear_override("mtls_client_cert_file", group="v2_nfvo")
+        cfg.CONF.set_override("use_external_nfvo", True, group="v2_nfvo")
         self.nfvo_client.is_local = False
         mock_request.return_value = (requests.Response(), _grant_res)
         grant_res = self.nfvo_client.grant(self.context, grant_req)
+        result = grant_res.to_dict()
+        self.assertIsNotNone(result['addResources'])
+        self.assertEqual('44fd5841-ce98-4d54-a828-6ef51f941c8a', result[
+            'vimAssets']['softwareImages'][0]['vimSoftwareImageId'])
+
+        # external nfvo oauth2 mtls
+        cfg.CONF.set_override("mtls_client_cert_file", "/path/to/clientcert",
+            group="v2_nfvo")
+        grant_res = self.nfvo_client_mtls.grant(self.context, grant_req)
         result = grant_res.to_dict()
         self.assertIsNotNone(result['addResources'])
         self.assertEqual('44fd5841-ce98-4d54-a828-6ef51f941c8a', result[
@@ -390,6 +445,7 @@ class TestNfvoClient(base.BaseTestCase):
     @mock.patch.object(local_nfvo.LocalNfvo, 'recv_inst_create_notification')
     def test_send_inst_create_notification(
             self, mock_recv, mock_send, mock_subscs):
+        cfg.CONF.clear_override("use_external_nfvo", group="v2_nfvo")
         self.nfvo_client.is_local = True
         inst = objects.VnfInstanceV2(id='test-instance')
         mock_subscs.return_value = [objects.LccnSubscriptionV2(id='subsc-1')]
@@ -403,6 +459,7 @@ class TestNfvoClient(base.BaseTestCase):
     @mock.patch.object(local_nfvo.LocalNfvo, 'recv_inst_delete_notification')
     def test_send_inst_delete_notification(
             self, mock_recv, mock_send, mock_subscs):
+        cfg.CONF.clear_override("use_external_nfvo", group="v2_nfvo")
         self.nfvo_client.is_local = True
         inst = objects.VnfInstanceV2(id='test-instance')
         mock_subscs.return_value = [objects.LccnSubscriptionV2(id='subsc-1')]

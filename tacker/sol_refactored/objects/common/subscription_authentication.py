@@ -31,6 +31,7 @@ class SubscriptionAuthentication(base.TackerObject,
             valid_values=[
                 'BASIC',
                 'OAUTH2_CLIENT_CREDENTIALS',
+                'OAUTH2_CLIENT_CERT',
                 'TLS_CERT',
             ],
             nullable=False),
@@ -38,6 +39,9 @@ class SubscriptionAuthentication(base.TackerObject,
             'SubscriptionAuthentication_ParamsBasic', nullable=True),
         'paramsOauth2ClientCredentials': fields.ObjectField(
             'SubscriptionAuthentication_ParamsOauth2', nullable=True),
+        'paramsOauth2ClientCert': fields.ObjectField(
+            'SubscriptionAuthentication_ParamsOauth2ClientCert',
+            nullable=True),
     }
 
 
@@ -69,4 +73,32 @@ class SubscriptionAuthentication_ParamsOauth2(
         'clientId': fields.StringField(nullable=True),
         'clientPassword': fields.StringField(nullable=True),
         'tokenEndpoint': fields.UriField(nullable=True),
+    }
+
+
+@base.TackerObjectRegistry.register
+class SubscriptionAuthentication_ParamsOauth2ClientCert(
+        base.TackerObject, base.TackerObjectDictCompat):
+
+    # Version 1.0: Initial version
+    VERSION = '1.0'
+
+    fields = {
+        'clientId': fields.StringField(nullable=False),
+        'cerficateRef': fields.ObjectField(
+            'ParamsOauth2ClientCert_CertificateRef', nullable=False),
+        'tokenEndpoint': fields.UriField(nullable=False),
+    }
+
+
+@base.TackerObjectRegistry.register
+class ParamsOauth2ClientCert_CertificateRef(
+        base.TackerObject, base.TackerObjectDictCompat):
+
+    # Version 1.0: Initial version
+    VERSION = '1.0'
+
+    fields = {
+        'type': fields.StringField(nullable=False),
+        'value': fields.StringField(nullable=False),
     }

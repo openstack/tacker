@@ -74,6 +74,7 @@ class TestSubscriptionUtils(base.BaseTestCase):
             id='sub-2', verbosity='SHORT',
             callbackUri='http://127.0.0.1/callback',
             authentication=objects.SubscriptionAuthentication(
+                authType=['BASIC'],
                 paramsBasic=objects.SubscriptionAuthentication_ParamsBasic(
                     userName='test', password='test')))
 
@@ -84,6 +85,7 @@ class TestSubscriptionUtils(base.BaseTestCase):
             id='sub-3', verbosity='SHORT',
             callbackUri='http://127.0.0.1/callback',
             authentication=objects.SubscriptionAuthentication(
+                authType=['OAUTH2_CLIENT_CREDENTIALS'],
                 paramsOauth2ClientCredentials=(
                     objects.SubscriptionAuthentication_ParamsOauth2(
                         clientId='test', clientPassword='test',
@@ -91,6 +93,25 @@ class TestSubscriptionUtils(base.BaseTestCase):
 
         # execute oauth2
         subsc_utils.send_notification(subsc_oauth2, notif_data_no_auth)
+
+        subsc_oauth2_mtls = objects.LccnSubscriptionV2(
+            id='sub-4', verbosity='SHORT',
+            callbackUri='http://127.0.0.1/callback',
+            authentication=objects.SubscriptionAuthentication(
+                authType=["OAUTH2_CLIENT_CERT"],
+                paramsOauth2ClientCert=(
+                    objects.SubscriptionAuthentication_ParamsOauth2ClientCert(
+                        clientId='test',
+                        certificateRef=objects.
+                        ParamsOauth2ClientCert_CertificateRef(
+                            type='x5t#256',
+                            value='03c6e188d1fe5d3da8c9bc9a8dc531a2'
+                                  'b3ecf812b03aede9bec7ba1b410b6b64'
+                        ),
+                        tokenEndpoint='http://127.0.0.1/token'))))
+
+        # execute oauth2 mtls
+        subsc_utils.send_notification(subsc_oauth2_mtls, notif_data_no_auth)
 
     @mock.patch.object(http_client.HttpClient, 'do_request')
     def test_send_notification_error_code(self, mock_resp):
@@ -389,3 +410,64 @@ class TestSubscriptionUtils(base.BaseTestCase):
 
         self.assertEqual('subsc-1', result.subscriptionId)
         self.assertEqual('test-instance', result.vnfInstanceId)
+
+    def test_check_http_client_auth(self):
+        auth_req_1 = {
+            'authType': ['BASIC'],
+            'paramsBasic': {
+                'userName': 'test',
+                'password': 'test'
+            },
+        }
+        result = subsc_utils.check_http_client_auth(auth_req_1)
+        self.assertEqual(['BASIC'], result.authType)
+
+        auth_req_2 = {
+            'authType': ['OAUTH2_CLIENT_CREDENTIALS'],
+            'paramsOauth2ClientCredentials': {
+                'clientId': 'test',
+                'clientPassword': 'test',
+                'tokenEndpoint':
+                    'http://127.0.0.1/token'
+            }
+        }
+        result = subsc_utils.check_http_client_auth(auth_req_2)
+        self.assertEqual(['OAUTH2_CLIENT_CREDENTIALS'], result.authType)
+
+        auth_req_3 = {
+            'authType': ['OAUTH2_CLIENT_CERT'],
+            'paramsOauth2ClientCert': {
+                'clientId': 'test',
+                'certificateRef': {
+                    'type': 'x5t#256',
+                    'value': '03c6e188d1fe5d3da8c9bc9a8dc531a2'
+                             'b3ecf812b03aede9bec7ba1b410b6b64'
+                },
+                'tokenEndpoint': 'http://127.0.0.1/token'
+            }
+        }
+        result = subsc_utils.check_http_client_auth(auth_req_3)
+        self.assertEqual(['OAUTH2_CLIENT_CERT'], result.authType)
+
+    def test_check_http_client_auth_error(self):
+        auth_req_1 = {
+            'authType': ['BASIC'],
+            'paramsBasic': None
+        }
+        self.assertRaises(sol_ex.InvalidSubscription,
+                          subsc_utils.check_http_client_auth,
+                          auth_req=auth_req_1)
+
+        auth_req_2 = {
+            'authType': ['OAUTH2_CLIENT_CREDENTIALS'],
+        }
+        self.assertRaises(sol_ex.InvalidSubscription,
+                          subsc_utils.check_http_client_auth,
+                          auth_req=auth_req_2)
+
+        auth_req_3 = {
+            'authType': ['OAUTH2_CLIENT_CERT']
+        }
+        self.assertRaises(sol_ex.InvalidSubscription,
+                          subsc_utils.check_http_client_auth,
+                          auth_req=auth_req_3)
