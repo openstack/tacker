@@ -32,9 +32,16 @@ import sqlalchemy as sa
 
 
 def upgrade(active_plugins=None, options=None):
+    bind = op.get_bind()
+    engine = bind.engine
+    if engine.name == 'postgresql':
+        text_type_maxlen = sa.VARCHAR(length=65535)
+    else:
+        text_type_maxlen = sa.TEXT(length=65535)
+
     op.alter_column('ns',
         'mgmt_urls', new_column_name='mgmt_ip_addresses',
-        existing_type=sa.TEXT(65535), nullable=True)
+        existing_type=text_type_maxlen, nullable=True)
     op.alter_column('vnf',
         'mgmt_url', new_column_name='mgmt_ip_address',
         existing_type=sa.String(255), nullable=True)

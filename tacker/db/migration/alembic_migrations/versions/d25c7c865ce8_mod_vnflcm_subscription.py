@@ -35,11 +35,21 @@ from tacker.db import migration
 
 def upgrade(active_plugins=None, options=None):
 
+    bind = op.get_bind()
+    engine = bind.engine
+    if engine.name == 'postgresql':
+        deleted_type = sa.SmallInteger
+        sta_str = "decode(filter->>'$.operationTypes','escape')"
+        sta_len = "coalesce(json_array_length(filter->'$.operationTypes'),0)"
+    else:
+        deleted_type = sa.Boolean
+        sta_str = "json_unquote(json_extract('filter','$.operationTypes'))"
+        sta_len = "ifnull(json_length('operation_types'),0)"
+
     op.alter_column('vnf_lcm_filters', 'subscription_uuid',
         type_=types.Uuid(length=36), existing_type=sa.String(length=255),
         nullable=False)
 
-    sta_str = "json_unquote(json_extract('filter','$.operationTypes'))"
     op.add_column(
         'vnf_lcm_filters',
         sa.Column('operation_types',
@@ -50,7 +60,7 @@ def upgrade(active_plugins=None, options=None):
         'vnf_lcm_filters',
         sa.Column('operation_types_len',
                   sa.Integer,
-                  sa.Computed("ifnull(json_length('operation_types'),0)")))
+                  sa.Computed(sta_len)))
 
     op.drop_column('vnf_lcm_filters', 'operation_states')
     op.drop_column('vnf_lcm_filters', 'operation_states_len')
@@ -62,7 +72,7 @@ def upgrade(active_plugins=None, options=None):
         type_=sa.String(length=16),existing_type=sa.String(length=255))
 
     op.add_column('vnf_lcm_op_occs',
-        sa.Column('is_cancel_pending', sa.Boolean, nullable=False)),
+        sa.Column('is_cancel_pending', deleted_type, nullable=False)),
 
     op.add_column('vnf_lcm_op_occs',
         sa.Column('resource_changes', sa.JSON(), nullable=True))

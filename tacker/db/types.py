@@ -47,9 +47,14 @@ class Json(TypeDecorator):
     cache_ok = False
 
     def process_bind_param(self, value, dialect):
-        return jsonutils.dump_as_bytes(value)
+        if dialect.name == 'postgresql':
+            return jsonutils.dumps(value)
+        else:
+            return jsonutils.dump_as_bytes(value)
 
     def process_result_value(self, value, dialect):
         if value is None:
             return None
+        if isinstance(value, dict):
+            return value
         return jsonutils.loads(value)

@@ -32,5 +32,12 @@ import sqlalchemy as sa
 
 
 def upgrade(active_plugins=None, options=None):
+    bind = op.get_bind()
+    engine = bind.engine
+    if engine.name == 'postgresql':
+        text_type_maxlen = sa.VARCHAR(length=65535)
+    else:
+        text_type_maxlen = sa.TEXT(length=65535)
+
     op.alter_column('deviceattributes',
-        'value', type_=sa.TEXT(65535), nullable=True)
+        'value', type_=text_type_maxlen, nullable=True)

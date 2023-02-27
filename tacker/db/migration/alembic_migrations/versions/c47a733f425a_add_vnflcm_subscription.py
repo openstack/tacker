@@ -35,6 +35,26 @@ from tacker.db import types
 
 
 def upgrade(active_plugins=None, options=None):
+
+    bind = op.get_bind()
+    engine = bind.engine
+    if engine.name == 'postgresql':
+        deleted_type = sa.SmallInteger
+        notif_type = "decode(filter->>'$.notificationTypes','escape')"
+        notif_type_len = "coalesce \
+                (json_array_length(filter->'$.notificationTypes'),0)"
+        op_state = "decode(filter->>'$.operationStates','escape')"
+        op_state_len = "coalesce \
+                (json_array_length(filter->'$.operationStates'),0)"
+
+    else:
+        deleted_type = Boolean
+        notif_type = "json_unquote \
+                (json_extract('filter','$.notificationTypes'))"
+        notif_type_len = "ifnull(json_length('notification_types'),0)"
+        op_state = "json_unquote(json_extract('filter','$.operationStates'))"
+        op_state_len = "ifnull(json_length('operation_states'),0)"
+
     op.create_table(
         'vnf_lcm_subscriptions',
         sa.Column('id', types.Uuid(length=36), nullable=False),
@@ -43,13 +63,11 @@ def upgrade(active_plugins=None, options=None):
         sa.Column('created_at', sa.DateTime(), nullable=False),
         sa.Column('updated_at', sa.DateTime(), nullable=True),
         sa.Column('deleted_at', sa.DateTime(), nullable=True),
-        sa.Column('deleted', Boolean, default=False),
+        sa.Column('deleted', deleted_type, default=False),
         sa.PrimaryKeyConstraint('id'),
         mysql_engine='InnoDB'
     )
 
-    noti_str = "json_unquote(json_extract('filter','$.notificationTypes'))"
-    sta_str = "json_unquote(json_extract('filter','$.operationStates'))"
     op.create_table(
         'vnf_lcm_filters',
         sa.Column('id', sa.Integer, autoincrement=True, nullable=False),
@@ -57,16 +75,16 @@ def upgrade(active_plugins=None, options=None):
         sa.Column('filter', sa.JSON(), nullable=False),
         sa.Column('notification_types',
                   sa.LargeBinary(length=65536),
-                  sa.Computed(noti_str)),
+                  sa.Computed(notif_type)),
         sa.Column('notification_types_len',
                   sa.Integer,
-                  sa.Computed("ifnull(json_length('notification_types'),0)")),
+                  sa.Computed(notif_type_len)),
         sa.Column('operation_states',
                   sa.LargeBinary(length=65536),
-                  sa.Computed(sta_str)),
+                  sa.Computed(op_state)),
         sa.Column('operation_states_len',
                   sa.Integer,
-                  sa.Computed("ifnull(json_length('operation_states'),0)")),
+                  sa.Computed(op_state_len)),
         sa.PrimaryKeyConstraint('id'),
         sa.ForeignKeyConstraint(['subscription_uuid'],
                                 ['vnf_lcm_subscriptions.id'], ),
@@ -81,10 +99,10 @@ def upgrade(active_plugins=None, options=None):
         sa.Column('start_time',  sa.DateTime(), nullable=False),
         sa.Column('vnf_instance_id', types.Uuid(length=36), nullable=False),
         sa.Column('operation', sa.String(length=255), nullable=False),
-        sa.Column('is_automatic_invocation', sa.Boolean, nullable=False),
+        sa.Column('is_automatic_invocation', deleted_type, nullable=False),
         sa.Column('operation_params', sa.JSON(), nullable=True),
         sa.Column('error', sa.JSON(), nullable=True),
-        sa.Column('deleted', Boolean, default=False),
+        sa.Column('deleted', deleted_type, default=False),
         sa.PrimaryKeyConstraint('id'),
         sa.ForeignKeyConstraint(['vnf_instance_id'],
                                 ['vnf_instances.id'], ),

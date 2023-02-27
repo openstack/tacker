@@ -34,8 +34,15 @@ from tacker.db import types
 
 
 def upgrade(active_plugins=None, options=None):
+    bind = op.get_bind()
+    engine = bind.engine
+    if engine.name == 'postgresql':
+        text_type_maxlen = sa.VARCHAR(length=65535)
+    else:
+        text_type_maxlen = sa.TEXT(length=65535)
+
     op.add_column('ns', sa.Column(
-        'vnffg_ids', sa.TEXT(length=65535), nullable=True))
+        'vnffg_ids', text_type_maxlen, nullable=True))
     op.add_column('vnffgs', sa.Column(
         'ns_id', types.Uuid(length=36), nullable=True))
     op.create_foreign_key('vnffg_foreign_key',

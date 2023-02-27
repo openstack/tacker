@@ -38,4 +38,9 @@ def upgrade(active_plugins=None, options=None):
 
     # unique constraint is taken care by the nfvo_db plugin to support
     # soft deletion of vim
-    op.drop_index('auth_url', table_name='vimauths')
+    bind = op.get_bind()
+    engine = bind.engine
+    if engine.name == 'postgresql':
+        op.drop_constraint('vimauths_auth_url_key', table_name='vimauths')
+    else:
+        op.drop_index('auth_url', table_name='vimauths')
