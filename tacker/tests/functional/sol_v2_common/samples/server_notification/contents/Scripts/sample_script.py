@@ -78,11 +78,11 @@ class ServerNotificationMgmtDriver(object):
         res_ids = vnfc_res_ids if vnfc_res_ids else []
         for rsc in self.inst['instantiatedVnfInfo']['vnfcResourceInfo']:
             if ('metadata' in rsc and
-                    'alarmId' in rsc['metadata'] and (isall or
+                    'server_notification' in rsc['metadata'] and (isall or
                     rsc['computeResource']['resourceId'] in res_ids)):
                 found = True
-                alarm_id = rsc['metadata']['alarmId']
-                del rsc['metadata']['alarmId']
+                alarm_id = rsc['metadata']['server_notification']['alarmId']
+                del rsc['metadata']['server_notification']
                 server_id = rsc['computeResource']['resourceId']
                 self._request_unregister(
                     server_notifier_uri, tenant, server_id, alarm_id)
@@ -91,11 +91,13 @@ class ServerNotificationMgmtDriver(object):
     def request_register_cancel(self, rsc_list):
         server_notifier_uri, _, tenant = self.get_params()
         for rsc in rsc_list:
-            alarm_id = rsc['metadata']['alarmId']
-            del rsc['metadata']['alarmId']
-            server_id = rsc['computeResource']['resourceId']
-            self._request_unregister(
-                server_notifier_uri, tenant, server_id, alarm_id)
+            if ('metadata' in rsc and
+                    'server_notification' in rsc['metadata']):
+                alarm_id = rsc['metadata']['server_notification']['alarmId']
+                del rsc['metadata']['server_notification']
+                server_id = rsc['computeResource']['resourceId']
+                self._request_unregister(
+                    server_notifier_uri, tenant, server_id, alarm_id)
 
     def _request_register(self, vnfc_resource):
         server_id = vnfc_resource['computeResource']['resourceId']
@@ -118,7 +120,8 @@ class ServerNotificationMgmtDriver(object):
             raise common_ex.MgmtDriverOtherError(error_message=msg)
         if 'metadata' not in vnfc_resource:
             vnfc_resource['metadata'] = {}
-        vnfc_resource['metadata']['alarmId'] = res_body['alarm_id']
+        vnfc_resource['metadata']['server_notification'] = {
+            'alarmId': res_body['alarm_id']}
         LOG.debug(
             "server_notification registration is processed: %d. "
             "alarm_id: %s", resp.status_code, res_body['alarm_id'])
@@ -128,7 +131,7 @@ class ServerNotificationMgmtDriver(object):
         rsc_list = []
         for rsc in self.inst['instantiatedVnfInfo']['vnfcResourceInfo']:
             if ('metadata' not in rsc or
-                    'alarmId' not in rsc['metadata']):
+                    'server_notification' not in rsc['metadata']):
                 try:
                     self._request_register(rsc)
                     rsc_list.append(rsc)

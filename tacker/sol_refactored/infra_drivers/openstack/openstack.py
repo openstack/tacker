@@ -1196,7 +1196,7 @@ class Openstack(object):
         return metadata
 
     def _update_vnfc_metadata(self, vnfc_res_infos, storage_infos,
-            heat_client, nfv_dict):
+            heat_client, nfv_dict, inst):
         for vnfc_res_info in vnfc_res_infos:
             metadata = vnfc_res_info.metadata
             if 'parent_stack_id' in metadata:
@@ -1224,6 +1224,9 @@ class Openstack(object):
                     metadata['zone'] = zone
                     vnfc_res_info.zoneId = zone
 
+            self._add_extra_metadata_from_inst(metadata, vnfc_res_info.id,
+                                               inst)
+
     def _make_vnfc_info_id(self, inst, vnfc_res_info):
         vdu_idx = vnfc_res_info.metadata.get('vdu_idx')
         if (vdu_idx is not None and inst.obj_attr_is_set('metadata') and
@@ -1237,6 +1240,20 @@ class Openstack(object):
 
         # default vnfc_id
         return _make_combination_id(vnfc_res_info.vduId, vnfc_res_info.id)
+
+    def _add_extra_metadata_from_inst(self, metadata, vnfc_res_id, inst):
+        if (not inst.obj_attr_is_set('instantiatedVnfInfo') or
+                not inst.instantiatedVnfInfo.obj_attr_is_set(
+                    'vnfcResourceInfo')):
+            return
+
+        extra_keys = ['server_notification']
+        for vnfc_res_info in inst.instantiatedVnfInfo.vnfcResourceInfo:
+            if vnfc_res_info.id == vnfc_res_id and vnfc_res_info.metadata:
+                for key in extra_keys:
+                    if key in vnfc_res_info.metadata:
+                        metadata[key] = vnfc_res_info.metadata[key]
+                return
 
     def _make_instantiated_vnf_info(self, req, inst, grant_req, grant, vnfd,
             heat_client, is_rollback=False, stack_id=None):
@@ -1320,7 +1337,7 @@ class Openstack(object):
                 vnfc_res_info.vnfcCpInfo = cp_infos
 
         self._update_vnfc_metadata(vnfc_res_infos, storage_infos,
-                                   heat_client, nfv_dict)
+                                   heat_client, nfv_dict, inst)
 
         vnf_vl_res_infos = [
             objects.VnfVirtualLinkResourceInfoV2(
