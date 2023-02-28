@@ -169,6 +169,11 @@ includes path of Kubernetes resource definition file and that
     $ openstack vnflcm instantiate 92cf0ccb-e575-46e2-9c0d-30c67e75aaf6 instance_kubernetes.json
     Instantiate request for VNF Instance 92cf0ccb-e575-46e2-9c0d-30c67e75aaf6 has been accepted.
 
+.. note::
+
+    In the case of version 2 API, you can also set
+    ``vimType`` as ``ETSINFV.KUBERNETES.V_1`` in ``vimConnectionInfo``.
+
 CNF Healing Procedure
 ---------------------
 
@@ -315,7 +320,7 @@ Pod information after heal:
   vdu1-heal-simple-75b5566444-ks785   1/1     Running   0          60s
   vdu1-heal-simple-75b5566444-p5mjv   1/1     Running   0          60s
 
-All ``vnfcResourcecInfo`` in ``Instnatiated Vnf Info`` will be updated from
+All ``vnfcResourceInfo`` in ``Instantiated Vnf Info`` will be updated from
 the VNF Instance displayed in :ref:`labelCapHealingtargetVNFinstance`.
 
 .. code-block:: console
@@ -415,7 +420,7 @@ Heal specified with VNFC instances can be executed by running
 
 In the example of this procedure, specify the ID
 ``686b356f-8096-4e24-99e5-3c81d36341be`` of the first ``vnfcResourceInfo`` as
-``VNFC_INATANCE_ID``.
+``VNFC_INSTANCE_ID``.
 
 .. note:: In the case of version 1 API,
           ``VNFC_INSTANCE_ID`` is ``instantiatedVnfInfo.vnfcResourceInfo.id``.
@@ -441,8 +446,8 @@ Pod information after heal:
   vdu1-heal-simple-75b5566444-ks785   1/1     Running   0          24s
   vdu1-heal-simple-75b5566444-wwzcm   1/1     Running   0          20m
 
-Only the ``resourceId`` of target ``vnfcResourcecInfo`` in
-``Instnatiated Vnf Info`` will be updated from the VNF Instance displayed in
+Only the ``resourceId`` of target ``vnfcResourceInfo`` in
+``Instantiated Vnf Info`` will be updated from the VNF Instance displayed in
 :ref:`labelCapHealingtargetVNFinstance`.
 
 .. code-block:: console

@@ -168,6 +168,11 @@ includes path of Kubernetes resource definition file and that
     $ openstack vnflcm instantiate 92cf0ccb-e575-46e2-9c0d-30c67e75aaf6 instance_kubernetes.json
     Instantiate request for VNF Instance 92cf0ccb-e575-46e2-9c0d-30c67e75aaf6 has been accepted.
 
+.. note::
+
+    In the case of version 2 API, you can also set
+    ``vimType`` as ``ETSINFV.KUBERNETES.V_1`` in ``vimConnectionInfo``.
+
 CNF Scaling Procedure
 ---------------------
 

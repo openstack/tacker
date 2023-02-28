@@ -78,6 +78,21 @@ definition file before running command for changing the VNF package.
       "vdu_params": [{
         "vdu_id": "VDU1"
       }]
+    },
+    "vimConnectionInfo": {
+      "vim1": {
+        "vimId": "8bc6f536-e5fb-4e4f-96f7-f55b16d35850",
+        "vimType": "ETSINFV.KUBERNETES.V_1",
+        "interfaceInfo": {
+          "endpoint": "https://192.168.56.10:6443"
+        },
+        "accessInfo": {
+          "bearer_token": "bearer_token"
+        },
+        "extra": {
+          "dummy-key": "dummy-val"
+        }
+      }
     }
   }
 
@@ -125,6 +140,13 @@ You can set following parameter in additionalParams:
      OpenStack VIM. And you only need to set this parameter when you need to
      update the path of the manifest file of the deployment resource.
    * ``vdu_params`` is VDU information of target VDU to update.
+   * ``vimConnectionInfo`` is an optional parameter.
+     This operation can specify the ``vimConnectionInfo`` for
+     the VNF instance.
+     Even if this operation specify multiple ``vimConnectionInfo``
+     associated with one VNF instance, only one of them will be used
+     for life cycle management operations.
+     It is not possible to delete the key of registered ``vimConnectionInfo``.
 
 .. note:: Currently, this operation only supports some functions of
    ``Change Current VNF Package``.

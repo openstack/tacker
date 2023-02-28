@@ -40,11 +40,11 @@ Request Parameters
   - vnfInstanceId: vnf_instance_id
   - server_id: server_id
   - notification: notification
-  - \>host_id: host_id
-  - \>alarm_id: alarm_id
-  - \>fault_id: fault_id
-  - \>fault_type: fault_type
-  - \>fault_option: fault_option
+  - host_id: host_id
+  - alarm_id: alarm_id
+  - fault_id: fault_id
+  - fault_type: fault_type
+  - fault_option: fault_option
 
 Request Example
 ---------------

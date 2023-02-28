@@ -6,7 +6,7 @@ Virtualized Network Function Fault Management Interface (VNF FM)
 
 This interface manages the VNF fault management operations of VNF instances.
 
-This interface allows the NFVO to invoke VNF fault management  operations of
+This interface allows the NFVO to invoke VNF fault management operations of
 VNF instances towards the VNFM. The detail of this interface is described in
 SOL002 v3.3.1 clause 7. The parameters of some specific standards need
 reference SOL013 v3.4.1 clause 5.
@@ -20,7 +20,7 @@ The GET method gets all alarms, Allow users to filter out alarms based on query
 parameter in the request.
 
 If the API consumer intends to query all alarms, it sends a GET request to the
-"Alarms" resource.The VNFM returns a "200 OK" response to the API consumer, and
+"Alarms" resource. The VNFM returns a "200 OK" response to the API consumer, and
 includes zero or more data structures of type "Alarm" in the payload body.
 
 An attribute selector allows the API consumer to choose which attributes it
@@ -92,7 +92,10 @@ The GET method gets the alarm specified in the Tacker.
 
 If the API consumer intends to read a particular alarm, it sends a GET request
 to the "Individual alarm" resource, addressed by the appropriate alarm
-identifier in its resource URI. In case of failure, appropriate error
+identifier in its resource URI.
+The VNFM returns a "200 OK" response to the API consumer,
+and includes the data structure of type "Alarm" in the payload body.
+In case of failure, appropriate error
 information is provided in the response.
 
 Response Codes
@@ -163,7 +166,7 @@ Modify the confirmation status (v1)
 The PATCH method modifies the confirmation status of the alarm specified in the
 Tacker.
 
-The API consumer sends a PATCH request to the individual alarm.  The VNFM
+The API consumer sends a PATCH request to the individual alarm. The VNFM
 returns a "200 OK" response to the API consumer, and includes a data structure
 of type "AlarmModifications" in the payload body. In case of failure,
 appropriate error information is provided in the response.
@@ -310,9 +313,10 @@ in the request.
 
 If desired, e.g. to recover from an error situation, the API consumer can query
 information about its subscriptions by sending a GET request to the
-"Subscriptions" resource.  In that case, the VNFM returns a "200 OK" response
-that contains the list of representations of all existing  subscriptions that
-were created by the API consumer.
+"Subscriptions" resource. In that case, the VNFM returns a "200 OK" response
+that contains the list of representations of all existing subscriptions that
+were created by the API consumer, and includes zero or more data structures
+of type "FmSubscription" in the payload body.
 
 An attribute selector allows the API consumer to choose which attributes it
 wants to be contained in the response. *all_fields*, *fields*, *exclude_fields*
@@ -337,7 +341,6 @@ Response Codes
   - 401
   - 404
   - 406
-  - 409
 
 Response Parameters
 -------------------
@@ -377,7 +380,7 @@ Get a subscription (v1)
 
 .. rest_method::  GET /vnffm/v1/subscriptions/{subscriptionId}
 
-The POST method  gets the subscription in the Tacker.
+The GET method gets the subscription in the Tacker.
 
 If desired, e.g. to recover from an error situation, the API consumer can read
 information about a particular subscription by sending a GET request to the

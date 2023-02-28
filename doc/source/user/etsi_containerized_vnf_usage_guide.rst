@@ -799,6 +799,12 @@ vimId and vimType.
       ]
     }
 
+.. note::
+      This operation can specify the ``vimConnectionInfo``
+      for the VNF instance.
+      Even if this operation specify multiple ``vimConnectionInfo``
+      associated with one VNF instance, only one of them will be used for
+      life cycle management operations.
 
 .. note::
 
@@ -821,6 +827,10 @@ In this case, specify the type and name of the resource corresponding to the
     Although specifying it does not cause an error,
     it is meaningless.
 
+.. note::
+
+    In the case of version 2 API, you can also set
+    ``vimType`` as ``ETSINFV.KUBERNETES.V_1`` in ``vimConnectionInfo``.
 
 .. code-block:: console
 

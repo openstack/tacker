@@ -495,7 +495,7 @@ Response Parameters
 
 .. rest_parameters:: parameters_vnflcm.yaml
 
-  - id: vnf_instance_id
+  - id: vnf_instance_id_response
   - vnfInstanceName: vnf_instance_name
   - vnfInstanceDescription: vnf_instance_description
   - vnfdId: vnf_instance_vnfd_id

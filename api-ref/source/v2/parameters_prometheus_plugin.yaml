@@ -2,13 +2,13 @@ alert:
   description: alert message
   in: body
   required: true
-  type: array(inlined)
+  type: array
 annotations:
   description: |
     dynamic properties.
   in: body
   required: true
-  type: object (inlined)
+  type: object
 aspect_id:
   description: |
     aspectId of the scaling target.
@@ -80,7 +80,7 @@ labels:
     static properties.
   in: body
   required: true
-  type: object (inlined)
+  type: object
 metric:
   description: |
     PerformanceMetric defined in ETSI PM interface.
