@@ -2358,11 +2358,15 @@ class TestLcmOpOccUtils(base.BaseTestCase):
         self.assertEqual(expected_result.operation, result.operation)
 
     @mock.patch.object(objects.base.TackerPersistentObject, 'get_by_id')
-    def test_get_lcmocc_error(self, mock_lcmocc):
+    def test_get_lcmocc_not_exist_lcmocc_id(self, mock_lcmocc):
         mock_lcmocc.return_value = None
-        self.assertRaises(
+        lcmocc_id = 'f5aa2eb2-6805-439d-b93d-bb0db8d96e3b'
+        ex = self.assertRaises(
             sol_ex.VnfLcmOpOccNotFound,
-            lcmocc_utils.get_lcmocc, context, 'lcmocc_id')
+            lcmocc_utils.get_lcmocc, context, lcmocc_id)
+
+        expected_detail = f'VnfLcmOpOcc {lcmocc_id} not found.'
+        self.assertEqual(expected_detail, ex.detail)
 
     @mock.patch.object(objects.base.TackerPersistentObject, 'get_all')
     def test_get_lcmocc_all(self, mock_lcmocc):

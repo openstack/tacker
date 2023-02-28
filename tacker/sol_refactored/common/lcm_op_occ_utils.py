@@ -32,7 +32,7 @@ LOG = logging.getLogger(__name__)  # not used at the moment
 def get_lcmocc(context, lcmocc_id):
     lcmocc = objects.VnfLcmOpOccV2.get_by_id(context, lcmocc_id)
     if lcmocc is None:
-        raise sol_ex.VnfLcmOpOccNotFound(lcmocc_id=id)
+        raise sol_ex.VnfLcmOpOccNotFound(lcmocc_id=lcmocc_id)
     return lcmocc
 
 
