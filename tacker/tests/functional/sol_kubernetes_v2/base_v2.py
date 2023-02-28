@@ -122,14 +122,16 @@ class BaseVnfLcmKubernetesV2Test(base.BaseTestCase):
         return vim_info
 
     @classmethod
-    def get_k8s_vim_id(cls):
+    def get_k8s_vim_id(cls, use_helm=False):
         vim_list = cls.list_vims(cls)
         if len(vim_list.values()) == 0:
             assert False, "vim_list is Empty: Default VIM is missing"
 
         for vim_list in vim_list.values():
             for vim in vim_list:
-                if vim['name'] == 'vim-kubernetes':
+                if vim['name'] == 'vim-kubernetes' and not use_helm:
+                    return vim['id']
+                if vim['name'] == 'vim-kubernetes-helm' and use_helm:
                     return vim['id']
         return None
 

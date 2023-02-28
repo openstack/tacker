@@ -18,6 +18,7 @@ from unittest import mock
 from oslo_config import cfg
 
 from tacker import context as t_context
+from tacker.extensions import nfvo
 from tacker.nfvo.drivers.vim import kubernetes_driver
 from tacker.tests.unit import base
 
@@ -134,7 +135,8 @@ class TestKubernetes_Driver(base.TestCase):
             get_core_api_client.assert_called_once_with(auth_obj)
 
     def _test_register_vim(self, vim_obj, mock_k8s_client,
-                           mock_k8s_coreV1Client):
+                           mock_k8s_coreV1Client,
+                           fernet_obj_encrypt_called_count=1):
         self.kubernetes_api. \
             get_core_api_client.return_value = mock_k8s_client
         self.kubernetes_api. \
@@ -147,7 +149,8 @@ class TestKubernetes_Driver(base.TestCase):
         self.kubernetes_api.create_ca_cert_tmp_file.\
             return_value = ('file_descriptor', 'file_path')
         self.kubernetes_driver.register_vim(vim_obj)
-        mock_fernet_obj.encrypt.assert_called_once_with(mock.ANY)
+        self.assertEqual(mock_fernet_obj.encrypt.call_count,
+                         fernet_obj_encrypt_called_count)
 
     def test_deregister_vim_barbican(self):
         self.keymgr.delete.return_value = None
@@ -177,3 +180,36 @@ class TestKubernetes_Driver(base.TestCase):
                          'barbican_key')
         self.assertEqual(vim_obj['auth_cred']['secret_uuid'],
                          'fake-secret-uuid')
+
+    def test_register_vim_with_use_helm_parameter(self):
+        name_value = {'name': 'default'}
+        name = namedtuple("name", name_value.keys())(*name_value.values())
+        metadata_value = {'metadata': name}
+        metadata = namedtuple(
+            "metadata", metadata_value.keys())(*metadata_value.values())
+        items_value = {'items': [metadata]}
+        namespaces = namedtuple(
+            "namespace", items_value.keys())(*items_value.values())
+        attrs = {'list_namespace.return_value': namespaces}
+        mock_k8s_client = mock.Mock()
+        mock_k8s_coreV1Client = mock.Mock(**attrs)
+        auth_obj = {'username': 'test_user',
+                    'password': 'test_password',
+                    'ssl_ca_cert': 'ABC',
+                    'ca_cert_file': 'file_path',
+                    'auth_url': 'https://localhost:6443'}
+        self.vim_obj['extra'] = {'use_helm': True}
+        self.vim_obj['auth_cred']['ssl_ca_cert'] = 'ABC'
+        self._test_register_vim(self.vim_obj, mock_k8s_client,
+                                mock_k8s_coreV1Client,
+                                fernet_obj_encrypt_called_count=2)
+        mock_k8s_coreV1Client.list_namespace.assert_called_once_with()
+        self.kubernetes_api. \
+            get_core_api_client.assert_called_once_with(auth_obj)
+
+    def test_register_vim_with_use_helm_parameter_and_not_set_ssl_ca_cert(
+            self):
+        self.vim_obj['extra'] = {'use_helm': True}
+        del self.vim_obj['auth_cred']['ssl_ca_cert']
+        self.assertRaises(nfvo.VimUnauthorizedException,
+                          self.kubernetes_driver.register_vim, self.vim_obj)

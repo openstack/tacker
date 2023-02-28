@@ -318,19 +318,25 @@ def test_helm_instantiate_create(vnfd_id):
     }
 
 
-def helm_instantiate(auth_url, bearer_token, ssl_ca_cert):
-    vim_id_1 = uuidutils.generate_uuid()
-    vim_1 = {
-        "vimId": vim_id_1,
-        "vimType": "ETSINFV.HELM.V_3",
-        "interfaceInfo": {
-            "endpoint": auth_url,
-            "ssl_ca_cert": ssl_ca_cert
-        },
-        "accessInfo": {
-            "bearer_token": bearer_token
+def helm_instantiate(auth_url=None, bearer_token=None, ssl_ca_cert=None,
+                     vim_id=None):
+    if not vim_id:
+        vim_1 = {
+            "vimId": uuidutils.generate_uuid(),
+            "vimType": "ETSINFV.HELM.V_3",
+            "interfaceInfo": {
+                "endpoint": auth_url,
+                "ssl_ca_cert": ssl_ca_cert
+            },
+            "accessInfo": {
+                "bearer_token": bearer_token
+            }
         }
-    }
+    else:
+        vim_1 = {
+            "vimId": vim_id,
+            "vimType": "ETSINFV.HELM.V_3",
+        }
     return {
         "flavourId": "simple",
         "vimConnectionInfo": {

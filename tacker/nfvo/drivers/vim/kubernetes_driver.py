@@ -66,6 +66,14 @@ class Kubernetes_Driver(abstract_vim_driver.VimAbstractDriver):
         self._validate_vim(auth_cred, file_descriptor)
         self.clean_authenticate_vim(auth_cred, file_descriptor)
 
+    def _check_extra_field(self, vim_obj):
+        if vim_obj.get('extra') and vim_obj['extra'].get('use_helm'):
+            if not vim_obj['auth_cred'].get('ssl_ca_cert'):
+                error_message = ('If you want to register kubernetes vim with'
+                                 ' helm, please set ssl_ca_cert.')
+                LOG.error(error_message)
+                raise nfvo.VimUnauthorizedException(message=error_message)
+
     def _get_auth_creds(self, vim_obj):
         auth_cred = vim_obj['auth_cred']
         file_descriptor = self._create_ssl_ca_file(auth_cred)
@@ -135,6 +143,7 @@ class Kubernetes_Driver(abstract_vim_driver.VimAbstractDriver):
             vim_obj['auth_cred'].pop('key_type')
         if 'secret_uuid' in vim_obj['auth_cred']:
             vim_obj['auth_cred'].pop('secret_uuid')
+        self._check_extra_field(vim_obj)
         self.authenticate_vim(vim_obj)
         self.discover_placement_attr(vim_obj)
         self.encode_vim_auth(vim_obj['id'],

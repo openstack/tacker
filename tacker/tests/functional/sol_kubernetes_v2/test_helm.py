@@ -37,6 +37,7 @@ class VnfLcmHelmTest(base_v2.BaseVnfLcmKubernetesV2Test):
             cur_dir, "samples/test_helm_change_vnf_pkg")
         cls.vnf_pkg_2, cls.vnfd_id_2 = cls.create_vnf_package(
             test_helm_change_vnf_pkg_path)
+        cls.helm_vim_id = cls.get_k8s_vim_id(use_helm=True)
 
     @classmethod
     def tearDownClass(cls):
@@ -49,6 +50,12 @@ class VnfLcmHelmTest(base_v2.BaseVnfLcmKubernetesV2Test):
         super(VnfLcmHelmTest, self).setUp()
 
     def test_basic_lcms(self):
+        self._get_basic_lcms_procedure()
+
+    def test_basic_lcms_with_register_helm_vim(self):
+        self._get_basic_lcms_procedure(use_register_vim=True)
+
+    def _get_basic_lcms_procedure(self, use_register_vim=False):
         """Test basic LCM operations
 
         * About LCM operations:
@@ -101,8 +108,12 @@ class VnfLcmHelmTest(base_v2.BaseVnfLcmKubernetesV2Test):
         self.assertEqual('IN_USE', usage_state)
 
         # 2. Instantiate a VNF instance
-        instantiate_req = paramgen.helm_instantiate(
-            self.auth_url, self.bearer_token, self.ssl_ca_cert)
+        if not use_register_vim:
+            instantiate_req = paramgen.helm_instantiate(
+                self.auth_url, self.bearer_token, self.ssl_ca_cert)
+        else:
+            instantiate_req = paramgen.helm_instantiate(
+                vim_id=self.helm_vim_id)
         resp, body = self.instantiate_vnf_instance(inst_id, instantiate_req)
         self.assertEqual(202, resp.status_code)
         self.check_resp_headers_in_operation_task(resp)
