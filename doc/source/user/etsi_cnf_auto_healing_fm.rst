@@ -334,7 +334,8 @@ as follows:
         "authentication": {
             "authType": [
                 "BASIC",
-                "OAUTH2_CLIENT_CREDENTIALS"
+                "OAUTH2_CLIENT_CREDENTIALS",
+                "OAUTH2_CLIENT_CERT"
             ],
             "paramsBasic": {
                 "userName": "nfvo",
@@ -343,6 +344,14 @@ as follows:
             "paramsOauth2ClientCredentials": {
                 "clientId": "auth_user_name",
                 "clientPassword": "auth_password",
+                "tokenEndpoint": "token_endpoint"
+            },
+            "paramsOauth2ClientCert": {
+                "clientId": "auth_user_name",
+                "certificateRef": {
+                    "type": "x5t#S256",
+                    "value": "certificate_fingerprint"
+                },
                 "tokenEndpoint": "token_endpoint"
             }
         }
