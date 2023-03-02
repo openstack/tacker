@@ -8,16 +8,23 @@ Overview
 This document describes about Prometheus Plugin that provides
 monitoring functions in combination with External Monitoring Tool
 
-The Prometheus Plugin has 3 functions:
+The Prometheus Plugin has 4 functions:
 
 - Alerting function for ETSI NFV-SOL 002/003 based Performance Management.
 - Alerting function for ETSI NFV-SOL 002/003 based Fault Management.
 - Alerting function for Prometheus Plugin AutoScaling.
+- Alerting function for Prometheus Plugin AutoHealing.
 
 The Prometheus Plugin works in conjunction with the External Monitoring
 Tool. External Monitoring Tool is a monitoring service based on Prometheus.
-When External Monitoring Tool detects an alerting event on CNF,
+When External Monitoring Tool detects an alerting event on CNF/VNF,
 External Monitoring Tool sends an alert to Prometheus Plugin.
+
+.. note::
+
+    PM/FM only support CNF.
+
+    AutoScale/Heal support both CNF and VNF.
 
 The External Monitoring Tool is implemented by each operators,
 thus it is not included in Tacker.
@@ -28,7 +35,7 @@ Configuration
 Prometheus Plugin is disabled by default.
 It can be enabled by configuration file (e.g. /etc/tacker/tacker.conf).
 To enable Prometheus Plugin, be sure to set true for
-performance_management, fault_management or auto_scaling below.
+performance_management, fault_management, auto_scaling or auto_healing below.
 
 .. list-table::
   :header-rows: 1
@@ -52,9 +59,42 @@ performance_management, fault_management or auto_scaling below.
   * - ``CONF.prometheus_plugin.auto_scaling``
     - false
     - Enable prometheus plugin autoscaling.
+  * - ``CONF.prometheus_plugin.auto_healing``
+    - false
+    - Enable prometheus plugin autohealing.
+  * - ``CONF.prometheus_plugin.timer_interval``
+    - 20
+    - When multiple auto heal alerts for a VNF instance are
+      notified in the ``timer_interval`` seconds,
+      Tacker packs these notifications into single event.
+      By doing this, Tacker can avoid making too many healing requests.
   * - ``CONF.prometheus_plugin.test_rule_with_promtool``
     - false
     - Enable rule file validation using promtool.
+
+Prerequisite
+------------
+
+There is another prerequisite for using the AutoScale/Heal function.
+When instantiate VNF, you need to add the parameter
+``isAutoscaleEnabled/isAutohealEnabled`` to ``True`` in the request body.
+
+The example reference is as follows:
+
+.. code-block:: console
+
+  {
+    "flavourId": "dummy",
+    "vimConnectionInfo": {
+      ...
+    },
+    "additionalParams": {
+      ...
+    },
+    "vnfConfigurableProperties": {
+      "isAutoscaleEnabled": True
+    }
+  }
 
 System
 ~~~~~~
@@ -63,7 +103,8 @@ Prometheus Plugin needs external service called External
 Monitoring Tool.
 
 Prometheus Plugin operates the External Monitoring Tool
-along the Performance Management, Fault Management or Auto scaling.
+along the Performance Management, Fault Management, Auto scaling or
+Auto healing.
 The flow of each process is as follows.
 
 - ``ETSI NFV-SOL 002/003 based Performance Management``
@@ -131,7 +172,7 @@ The flow of each process is as follows.
     |  Monitoring +------------------> | 4. Perform scaling                             | |
     |  Tool       |                  | +------------------------------------------------+ |
     +--+----------+                  +-----------------------+----------------------------+
-       | 2. Scaling event                                    |  5. Delete or Create pods
+       | 2. Scaling event                                    |  5. Delete or Create pods/VMs
        |    monitoring               +-----------------------|----------------------------+
        |                             |           +-----------+--------------+    CISM/VIM |
        |                             | +---------v--+   +----v-------+   +--v---------+   |
@@ -139,6 +180,28 @@ The flow of each process is as follows.
                                      | +------------+   +------------+   +------------+   |
                                      +----------------------------------------------------+
 
+- ``Prometheus Plugin AutoHealing``
+
+  .. code-block:: console
+
+                                     +--------------------------+
+        +----------------------------+   Client (NFVO/EM)       |
+        | 1. Set alert rule          +--------------------------+
+        |
+        |                            +----------------------------------------------------+
+        |                            |                                             Tacker |
+    +---v---------+                  | +------------------------------------------------+ |
+    |  External   | 3. Send alert    | | Prometheus Plugin                              | |
+    |  Monitoring +------------------> | 4. Perform healing                             | |
+    |  Tool       |                  | +------------------------------------------------+ |
+    +--+----------+                  +-----------------------+----------------------------+
+       | 2. Healing event                                    |  5. Delete and Create pods/VMs
+       |    monitoring               +-----------------------|----------------------------+
+       |                             |           +-----------+--------------+    CISM/VIM |
+       |                             | +---------v--+   +----v-------+   +--v---------+   |
+       +-----------------------------> | CNF/VNF    |   | CNF/VNF    |   | CNF/VNF    |   |
+                                     | +------------+   +------------+   +------------+   |
+                                     +----------------------------------------------------+
 
 External Monitoring Tool
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -221,6 +284,9 @@ For example:
         - matchers:
           - function_type = auto-scale
           receiver: auto-scale
+        - matchers:
+          - function_type = auto-heal
+          receiver: auto-heal
 
     receivers:
     - name: default-receiver
@@ -232,7 +298,10 @@ For example:
       - url: "http://<tacker_host>/alert"
     - name: auto-scale
       webhook_configs:
-      - url: "http://<tacker_host>/alert/vnf_instances"
+      - url: "http://<tacker_host>/alert/auto_scaling"
+    - name: auto-heal
+      webhook_configs:
+      - url: "http://<tacker_host>/alert/auto_healing"
 
 SSH server
 ----------
@@ -329,7 +398,7 @@ rule file directly. Below is example of alert rule.
           function_type: vnffm
           vnf_instance_id: 3721ab69-3f33-44bc-85f1-f416ad1b765e
           pod: test\\-test1\\-[0-9a-f]{1,10}-[0-9a-z]{5}$
-          perceived_severity: CRITICAL,
+          perceived_severity: CRITICAL
           event_type: PROCESSING_ERROR_ALARM
         annotations:
           probable_cause: Server is down.
@@ -354,8 +423,29 @@ rule file directly. Below is example of alert rule.
           receiver_type: tacker
           function_type: auto_scale
           vnf_instance_id: 3721ab69-3f33-44bc-85f1-f416ad1b765e
-          auto_scale_type: SCALE_OUT,
+          auto_scale_type: SCALE_OUT
           aspect_id: VDU1_aspect
+        annotations:
+
+Prometheus Plugin AutoHealing
+-----------------------------
+
+Registration of alerting rule is performed by updating
+rule file directly. Below is example of alert rule.
+
+.. code-block:: yaml
+
+  groups:
+    - name: example
+      rules:
+      - alert: Test
+        expr: sum(pod_memory_working_set_bytes{namespace="default"}) > 10000000000
+        for: 30s
+        labels:
+          receiver_type: tacker
+          function_type: auto_heal
+          vnf_instance_id: 3721ab69-3f33-44bc-85f1-f416ad1b765e
+          vnfc_info_id: VDU1-85adebfa-d71c-49ab-9d39-d8dd7e393541
         annotations:
 
 Using Vendor Specific Plugin
@@ -391,3 +481,9 @@ tacker.sol_refactored.common.monitoring_plugin_base.MonitoringPlugin.
   * - ``CONF.prometheus_plugin.auto_scaling_class``
     - PrometheusPluginAutoScaling
     - Class name for auto scaling.
+  * - ``CONF.prometheus_plugin.auto_healing_package``
+    - tacker.sol_refactored.common.prometheus_plugin
+    - Package name for auto healing.
+  * - ``CONF.prometheus_plugin.auto_healing_class``
+    - PrometheusPluginAutoHealing
+    - Class name for auto healing.

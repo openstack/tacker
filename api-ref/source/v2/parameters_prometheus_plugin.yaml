@@ -51,6 +51,12 @@ fingerprint:
   in: body
   required: true
   type: string
+function_type_auto_heal:
+  description: |
+    must be "auto_heal".
+  in: body
+  required: true
+  type: string
 function_type_auto_scale:
   description: |
     must be "auto_scale".
@@ -145,6 +151,12 @@ value:
 vnf_instance_id:
   description: |
     Vnf Instance id.
+  in: body
+  required: true
+  type: string
+vnfc_info_id:
+  description: |
+    Vnfc Info id.
   in: body
   required: true
   type: string
