@@ -4074,6 +4074,40 @@ class TestController(base.TestCase):
         self.assertEqual(http_client.ACCEPTED, resp.status_code)
         mock_rpc.assert_called_once()
 
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+            'VnfLcmController._notification_process')
+    @mock.patch.object(TackerManager, 'get_service_plugins',
+                       return_value={'VNFM':
+                       test_nfvo_plugin.FakeVNFMPlugin()})
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._notification_process')
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._get_vnf')
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch.object(vnf_lcm_rpc.VNFLcmRPCAPI, "change_ext_conn")
+    def test_change_ext_conn_location(self, mock_rpc, mock_save,
+            mock_vnf_by_id, mock_get_vnf,
+            mock_notification_process,
+            mock_get_service_plugins, mock_insta_notfi_process):
+        vnf_instance_obj = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+        mock_vnf_by_id.return_value = vnf_instance_obj
+        mock_get_vnf.return_value = \
+            self._get_dummy_vnf(vnf_id=vnf_instance_obj.id, status='ACTIVE')
+        body = fakes.get_change_ext_conn_request_body()
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/change_ext_conn' % uuidsentinel.vnf_instance_id)
+        req.body = jsonutils.dump_as_bytes(body)
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'POST'
+        resp = req.get_response(self.app)
+        self.assertTrue('Location' in resp.headers.keys())
+        expected_location = (self.expected_location_prefix +
+                str(mock_insta_notfi_process.return_value))
+        self.assertEqual(expected_location, resp.headers['location'])
+        self.assertEqual(http_client.ACCEPTED, resp.status_code)
+
     @mock.patch.object(TackerManager, 'get_service_plugins',
                        return_value={'VNFM':
                        test_nfvo_plugin.FakeVNFMPlugin()})

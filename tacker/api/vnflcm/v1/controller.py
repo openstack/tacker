@@ -1842,7 +1842,7 @@ class VnfLcmController(wsgi.Controller):
                 409,
                 title='VNF IS NOT INSTANTIATED')
         vnf['before_error_point'] = EP.INITIAL
-        self._change_ext_conn(context, vnf_instance, vnf, body)
+        return self._change_ext_conn(context, vnf_instance, vnf, body)
 
     def _change_ext_conn(self, context, vnf_instance, vnf, request_body):
         req_body = utils.convert_camelcase_to_snakecase(request_body)
@@ -1867,6 +1867,14 @@ class VnfLcmController(wsgi.Controller):
             vnf,
             change_ext_conn_req,
             vnf_lcm_op_occs_id)
+
+        # set response header
+        res = webob.Response()
+        res.status_int = 202
+        location = ('Location',
+            self._get_vnf_lcm_op_occs_href(vnf_lcm_op_occs_id))
+        res.headerlist.append(location)
+        return res
 
 
 def create_resource():
