@@ -97,6 +97,7 @@ VM
    :maxdepth: 1
 
    etsi_vnf_change_current_vnf_package
+   etsi_vnf_change_current_vnf_package_with_standard_user_data
 
 Container
 ~~~~~~~~~
