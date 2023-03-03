@@ -34,11 +34,12 @@ Alert = {
                 },
                 'function_type': {
                     'type': 'string',
-                    'enum': ['vnffm', 'vnfpm', 'auto_scale']
+                    'enum': ['vnffm', 'vnfpm', 'auto_scale', 'auto_heal']
                 },
                 'job_id': {'type': 'string'},
                 'object_instance_id': {'type': 'string'},
                 'vnf_instance_id': {'type': 'string'},
+                'vnfc_info_id': {'type': 'string'},
                 'node': {'type': 'string'},
                 'perceived_severity': {
                     'type': 'string',

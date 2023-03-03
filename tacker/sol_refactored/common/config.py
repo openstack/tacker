@@ -198,6 +198,9 @@ PROMETHEUS_PLUGIN_OPTS = [
     cfg.BoolOpt('fault_management',
                 default=False,
                 help=_('Enable prometheus plugin fault management')),
+    cfg.BoolOpt('auto_healing',
+                default=False,
+                help=_('Enable prometheus plugin autohealing')),
     cfg.BoolOpt('auto_scaling',
                 default=False,
                 help=_('Enable prometheus plugin autoscaling')),
@@ -225,6 +228,22 @@ PROMETHEUS_PLUGIN_OPTS = [
                       'This configuration is changed in case of replacing '
                       'the original function with a vendor specific '
                       'function.')),
+    cfg.StrOpt('auto_healing_package',
+               default='tacker.sol_refactored.common.prometheus_plugin',
+               help=_('Package name for auto healing. '
+                      'This configuration is changed in case of replacing '
+                      'the original function with a vendor specific '
+                      'function.')),
+    cfg.StrOpt('auto_healing_class',
+               default='PrometheusPluginAutoHealing',
+               help=_('Class name for auto healing. '
+                      'This configuration is changed in case of replacing '
+                      'the original function with a vendor specific '
+                      'function.')),
+    cfg.IntOpt('timer_interval',
+               default=20,
+               help=_('Timeout (second) of packing for multiple '
+                      'auto healing.')),
     cfg.StrOpt('auto_scaling_package',
                default='tacker.sol_refactored.common.prometheus_plugin',
                help=_('Package name for auto scaling. '

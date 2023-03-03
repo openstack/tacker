@@ -1230,6 +1230,77 @@ def sample4_terminate():
     }
 
 
+def prometheus_auto_healing_alert(inst_id, vnfc_info_id):
+    return {
+        "receiver": "receiver",
+        "status": "firing",
+        "alerts": [{
+            "status": "firing",
+            "labels": {
+                "receiver_type": "tacker",
+                "function_type": "auto_heal",
+                "vnf_instance_id": inst_id,
+                "vnfc_info_id": vnfc_info_id
+            },
+            "annotations": {
+            },
+            "startsAt": "2022-06-21T23:47:36.453Z",
+            "endsAt": "0001-01-01T00:00:00Z",
+            "generatorURL": "http://controller147:9090/graph?g0.expr="
+                            "up%7Bjob%3D%22node%22%7D+%3D%3D+0&g0.tab=1",
+            "fingerprint": "5ef77f1f8a3ecb8d"
+        }],
+        "groupLabels": {},
+        "commonLabels": {
+            "alertname": "NodeInstanceDown",
+            "job": "node"
+        },
+        "commonAnnotations": {
+            "description": "sample"
+        },
+        "externalURL": "http://controller147:9093",
+        "version": "4",
+        "groupKey": "{}:{}",
+        "truncatedAlerts": 0
+    }
+
+
+def prometheus_auto_scaling_alert(inst_id):
+    return {
+        "receiver": "receiver",
+        "status": "firing",
+        "alerts": [{
+            "status": "firing",
+            "labels": {
+                "receiver_type": "tacker",
+                "function_type": "auto_scale",
+                "vnf_instance_id": inst_id,
+                "auto_scale_type": "SCALE_OUT",
+                "aspect_id": "VDU1_scale"
+            },
+            "annotations": {
+            },
+            "startsAt": "2022-06-21T23:47:36.453Z",
+            "endsAt": "0001-01-01T00:00:00Z",
+            "generatorURL": "http://controller147:9090/graph?g0.expr="
+                            "up%7Bjob%3D%22node%22%7D+%3D%3D+0&g0.tab=1",
+            "fingerprint": "5ef77f1f8a3ecb8d"
+        }],
+        "groupLabels": {},
+        "commonLabels": {
+            "alertname": "NodeInstanceDown",
+            "job": "node"
+        },
+        "commonAnnotations": {
+            "description": "sample"
+        },
+        "externalURL": "http://controller147:9093",
+        "version": "4",
+        "groupKey": "{}:{}",
+        "truncatedAlerts": 0
+    }
+
+
 def server_notification(alarm_id):
     return {
         'notification': {

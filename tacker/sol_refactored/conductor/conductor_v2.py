@@ -394,8 +394,17 @@ class ConductorV2(object):
         self.vnfpm_driver.store_job_info(context, report)
 
     @log.log
-    def request_scale(self, context, id, scale_req):
-        self.prom_driver.request_scale(context, id, scale_req)
+    def trigger_scale(self, context, id, scale_req):
+        self.prom_driver.trigger_scale(context, id, scale_req)
+
+    @log.log
+    def enqueue_auto_heal_instance(
+            self, context, vnf_instance_id, vnfc_info_id):
+        self.prom_driver.enqueue_heal(context, vnf_instance_id, vnfc_info_id)
+
+    @log.log
+    def dequeue_auto_heal_instance(self, context, vnf_instance_id):
+        self.prom_driver.dequeue_heal(vnf_instance_id)
 
     @log.log
     def server_notification_notify(

@@ -370,7 +370,7 @@ class PrometheusPluginPm(PrometheusPluginPmBase, mon_base.MonitoringPlugin):
             self._alert(kwargs['request'], body=kwargs['body'])
         except Exception as e:
             # All exceptions is ignored here and 204 response will always
-            # be returned. Because when tacker responds error to alertmanager,
+            # be returned because when tacker responds error to alertmanager,
             # alertmanager may repeat the same reports.
             LOG.error("%s: %s", e.__class__.__name__, e.args[0])
 
@@ -451,16 +451,16 @@ class PrometheusPluginPm(PrometheusPluginPmBase, mon_base.MonitoringPlugin):
         result = []
         context = request.context
         datetime_now = datetime.datetime.now(datetime.timezone.utc)
-        for alt in body['alerts']:
-            if alt['labels']['function_type'] != 'vnfpm':
+        for alert in body['alerts']:
+            if alert['labels']['function_type'] != 'vnfpm':
                 continue
             try:
-                pm_job_id = alt['labels']['job_id']
-                object_instance_id = alt['labels']['object_instance_id']
-                metric = alt['labels']['metric']
-                sub_object_instance_id = alt['labels'].get(
+                pm_job_id = alert['labels']['job_id']
+                object_instance_id = alert['labels']['object_instance_id']
+                metric = alert['labels']['metric']
+                sub_object_instance_id = alert['labels'].get(
                     'sub_object_instance_id')
-                value = alt['annotations']['value']
+                value = alert['annotations']['value']
 
                 pm_job = pm_job_utils.get_pm_job(context, pm_job_id)
                 self.filter_alert_by_time(context, pm_job, datetime_now,
@@ -692,7 +692,7 @@ class PrometheusPluginFm(PrometheusPlugin, mon_base.MonitoringPlugin):
             self._alert(kwargs['request'], body=kwargs['body'])
         except Exception as e:
             # All exceptions is ignored here and 204 response will always
-            # be returned. Because when tacker responds error to alertmanager,
+            # be returned because when tacker responds error to alertmanager,
             # alertmanager may repeat the same reports.
             LOG.error("%s: %s", e.__class__.__name__, e.args[0])
 
@@ -823,16 +823,89 @@ class PrometheusPluginFm(PrometheusPlugin, mon_base.MonitoringPlugin):
     def _alert(self, request, body):
         now = datetime.datetime.now(datetime.timezone.utc)
         result = []
-        for alt in body['alerts']:
-            if alt['labels']['function_type'] != 'vnffm':
+        for alert in body['alerts']:
+            if alert['labels']['function_type'] != 'vnffm':
                 continue
             try:
                 alarms = self.create_or_update_alarm(
-                    request.context, alt, now)
+                    request.context, alert, now)
                 result.extend(alarms)
             except sol_ex.PrometheusPluginSkipped:
                 pass
         return result
+
+
+class PrometheusPluginAutoHealing(PrometheusPlugin, mon_base.MonitoringPlugin):
+    _instance = None
+
+    @staticmethod
+    def instance():
+        if PrometheusPluginAutoHealing._instance is None:
+            if not CONF.prometheus_plugin.auto_healing:
+                stub = mon_base.MonitoringPluginStub.instance()
+                PrometheusPluginAutoHealing._instance = stub
+            else:
+                PrometheusPluginAutoHealing()
+        return PrometheusPluginAutoHealing._instance
+
+    def __init__(self):
+        if PrometheusPluginAutoHealing._instance:
+            raise SystemError(
+                "Not constructor but instance() should be used.")
+        super(PrometheusPluginAutoHealing, self).__init__()
+        self.set_callback(self.default_callback)
+        PrometheusPluginAutoHealing._instance = self
+
+    def set_callback(self, notification_callback):
+        self.notification_callback = notification_callback
+
+    def alert(self, **kwargs):
+        try:
+            self._alert(kwargs['request'], body=kwargs['body'])
+        except Exception as e:
+            # All exceptions is ignored here and 204 response will always
+            # be returned because when tacker responds error to alertmanager,
+            # alertmanager may repeat the same reports.
+            LOG.error("%s: %s", e.__class__.__name__, e.args[0])
+
+    def default_callback(self, context, vnf_instance_id, vnfc_info_id):
+        self.rpc.enqueue_auto_heal_instance(
+            context, vnf_instance_id, vnfc_info_id)
+
+    @validator.schema(prometheus_plugin_schemas.AlertMessage)
+    def _alert(self, request, body):
+        context = request.context
+        alerts = (alert for alert in body['alerts'] if
+                  alert['status'] == 'firing' and
+                  alert['labels']['receiver_type'] == 'tacker' and
+                  alert['labels']['function_type'] == 'auto_heal')
+
+        for alert in alerts:
+            vnf_instance_id = alert['labels']['vnf_instance_id']
+            try:
+                inst = inst_utils.get_inst(context, vnf_instance_id)
+            except sol_ex.VnfInstanceNotFound:
+                continue
+            if inst.instantiationState != 'INSTANTIATED':
+                self.rpc.dequeue_auto_heal_instance(
+                    None, vnf_instance_id)
+
+            if (not inst.obj_attr_is_set('vnfConfigurableProperties')
+                    or not inst.vnfConfigurableProperties.get(
+                        'isAutohealEnabled')):
+                continue
+
+            vnfc_info_id = alert['labels']['vnfc_info_id']
+            result = {
+                vnfcInfo for vnfcInfo in inst.instantiatedVnfInfo.vnfcInfo
+                if vnfcInfo.id == vnfc_info_id
+            }
+            if not result:
+                continue
+
+            if self.notification_callback:
+                self.notification_callback(
+                    context, vnf_instance_id, vnfc_info_id)
 
 
 class PrometheusPluginAutoScaling(PrometheusPlugin, mon_base.MonitoringPlugin):
@@ -853,7 +926,7 @@ class PrometheusPluginAutoScaling(PrometheusPlugin, mon_base.MonitoringPlugin):
             raise SystemError(
                 "Not constructor but instance() should be used.")
         super(PrometheusPluginAutoScaling, self).__init__()
-        self.notification_callback = self.default_callback
+        self.set_callback(self.default_callback)
         PrometheusPluginAutoScaling._instance = self
 
     def set_callback(self, notification_callback):
@@ -864,46 +937,46 @@ class PrometheusPluginAutoScaling(PrometheusPlugin, mon_base.MonitoringPlugin):
             self._alert(kwargs['request'], body=kwargs['body'])
         except Exception as e:
             # All exceptions is ignored here and 204 response will always
-            # be returned. Because when tacker responds error to alertmanager,
+            # be returned because when tacker responds error to alertmanager,
             # alertmanager may repeat the same reports.
             LOG.error("%s: %s", e.__class__.__name__, e.args[0])
 
     def default_callback(self, context, vnf_instance_id, scaling_param):
-        self.rpc.request_scale(context, vnf_instance_id, scaling_param)
-
-    def skip_if_auto_scale_not_enabled(self, vnf_instance):
-        if (not vnf_instance.obj_attr_is_set('vnfConfigurableProperties') or
-                not vnf_instance.vnfConfigurableProperties.get(
-                    'isAutoscaleEnabled')):
-            raise sol_ex.PrometheusPluginSkipped()
-
-    def process_auto_scale(self, request, vnf_instance_id, auto_scale_type,
-                           aspect_id):
-        scaling_param = {
-            'type': auto_scale_type,
-            'aspectId': aspect_id,
-        }
-        context = request.context
-        if self.notification_callback:
-            self.notification_callback(context, vnf_instance_id, scaling_param)
+        self.rpc.trigger_scale(context, vnf_instance_id, scaling_param)
 
     @validator.schema(prometheus_plugin_schemas.AlertMessage)
     def _alert(self, request, body):
-        result = []
-        for alt in body['alerts']:
-            if alt['labels']['function_type'] != 'auto_scale':
-                continue
-            try:
-                vnf_instance_id = alt['labels']['vnf_instance_id']
-                auto_scale_type = alt['labels']['auto_scale_type']
-                aspect_id = alt['labels']['aspect_id']
-                context = request.context
+        context = request.context
+        alerts = (alert for alert in body['alerts'] if
+                  alert['status'] == 'firing' and
+                  alert['labels']['receiver_type'] == 'tacker' and
+                  alert['labels']['function_type'] == 'auto_scale')
 
+        for alert in alerts:
+            vnf_instance_id = alert['labels']['vnf_instance_id']
+            try:
                 inst = inst_utils.get_inst(context, vnf_instance_id)
-                self.skip_if_auto_scale_not_enabled(inst)
-                self.process_auto_scale(
-                    request, vnf_instance_id, auto_scale_type, aspect_id)
-                result.append((vnf_instance_id, auto_scale_type, aspect_id))
-            except sol_ex.PrometheusPluginSkipped:
-                pass
-        return result
+            except sol_ex.VnfInstanceNotFound:
+                continue
+            if (inst.instantiationState != 'INSTANTIATED' or
+                    not inst.obj_attr_is_set('vnfConfigurableProperties') or
+                    not inst.vnfConfigurableProperties.get(
+                        'isAutoscaleEnabled')):
+                continue
+
+            aspect_id = alert['labels']['aspect_id']
+            result = {
+                scaleStatus for scaleStatus in
+                inst.instantiatedVnfInfo.scaleStatus
+                if scaleStatus.aspectId == aspect_id
+            }
+            if not result:
+                continue
+
+            scaling_param = {
+                'type': alert['labels']['auto_scale_type'],
+                'aspectId': aspect_id,
+            }
+            if self.notification_callback:
+                self.notification_callback(
+                    context, vnf_instance_id, scaling_param)

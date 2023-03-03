@@ -33,11 +33,15 @@ class FmAlertRouter(prom_wsgi.PrometheusPluginAPIRouter):
     route_list = [("", {"POST": "alert"})]
 
 
+class AutoHealingRouter(prom_wsgi.PrometheusPluginAPIRouter):
+    controller = prom_wsgi.PrometheusPluginResource(
+        prometheus_plugin_controller.AutoHealingController(),
+        policy_name=vnfpm_policy_v2.POLICY_NAME_PROM_PLUGIN)
+    route_list = [("", {"POST": "auto_healing"})]
+
+
 class AutoScalingRouter(prom_wsgi.PrometheusPluginAPIRouter):
     controller = prom_wsgi.PrometheusPluginResource(
         prometheus_plugin_controller.AutoScalingController(),
         policy_name=vnfpm_policy_v2.POLICY_NAME_PROM_PLUGIN)
-    route_list = [
-        ("", {"POST": "auto_scaling"}),
-        ("/{id}", {"POST": "auto_scaling"})
-    ]
+    route_list = [("", {"POST": "auto_scaling"})]

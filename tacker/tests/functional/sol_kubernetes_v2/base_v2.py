@@ -288,6 +288,13 @@ class BaseVnfLcmKubernetesV2Test(base.BaseTestCase):
         return self.tacker_client.do_request(
             path, "GET", version="2.0.0")
 
+    def list_lcmocc(self, filter_expr=None):
+        path = "/vnflcm/v2/vnf_lcm_op_occs"
+        if filter_expr:
+            path = "{}?{}".format(path, urllib.parse.urlencode(filter_expr))
+        return self.tacker_client.do_request(
+            path, "GET", version="2.0.0")
+
     def create_subscription(self, req_body):
         path = "/vnffm/v1/subscriptions"
         return self.tacker_client.do_request(
@@ -370,7 +377,12 @@ class BaseVnfLcmKubernetesV2Test(base.BaseTestCase):
             path, "DELETE", version="2.1.0")
 
     def prometheus_auto_scaling_alert(self, req_body):
-        path = "/alert/vnf_instances"
+        path = "/alert/auto_scaling"
+        return self.tacker_client.do_request(
+            path, "POST", body=req_body)
+
+    def prometheus_auto_healing_alert(self, req_body):
+        path = "/alert/auto_healing"
         return self.tacker_client.do_request(
             path, "POST", body=req_body)
 

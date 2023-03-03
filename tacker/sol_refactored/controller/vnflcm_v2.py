@@ -14,8 +14,6 @@
 #    under the License.
 
 
-from datetime import datetime
-
 from oslo_log import log as logging
 from oslo_utils import uuidutils
 
@@ -30,6 +28,7 @@ from tacker.sol_refactored.common import lcm_op_occ_utils as lcmocc_utils
 from tacker.sol_refactored.common import subscription_utils as subsc_utils
 from tacker.sol_refactored.common import vim_utils
 from tacker.sol_refactored.common import vnf_instance_utils as inst_utils
+from tacker.sol_refactored.common import vnflcm_utils
 from tacker.sol_refactored.conductor import conductor_rpc_v2
 from tacker.sol_refactored.controller import vnflcm_view
 from tacker.sol_refactored.nfvo import nfvo_client
@@ -153,22 +152,6 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
                                                        self.endpoint)
         return sol_wsgi.SolResponse(204, None)
 
-    def _new_lcmocc(self, inst_id, operation, req_body,
-            op_state=v2fields.LcmOperationStateType.STARTING):
-        now = datetime.utcnow()
-        lcmocc = objects.VnfLcmOpOccV2(
-            id=uuidutils.generate_uuid(),
-            operationState=op_state,
-            stateEnteredTime=now,
-            startTime=now,
-            vnfInstanceId=inst_id,
-            operation=operation,
-            isAutomaticInvocation=False,
-            isCancelPending=False,
-            operationParams=req_body)
-
-        return lcmocc
-
     @validator.schema(schema.VnfInfoModificationRequest_V200, '2.0.0')
     @coordinate.lock_vnf_instance('{id}')
     def update(self, request, id, body):
@@ -205,7 +188,8 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
                         detail="vnfcInstanceId(%s) does not exist."
                         % vnfc_mod['id'])
 
-        lcmocc = self._new_lcmocc(id, v2fields.LcmOperationType.MODIFY_INFO,
+        lcmocc = vnflcm_utils.new_lcmocc(
+            id, v2fields.LcmOperationType.MODIFY_INFO,
             body, v2fields.LcmOperationStateType.PROCESSING)
         lcmocc.create(context)
 
@@ -226,8 +210,8 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
 
         lcmocc_utils.check_lcmocc_in_progress(context, id)
 
-        lcmocc = self._new_lcmocc(id, v2fields.LcmOperationType.INSTANTIATE,
-                                  body)
+        lcmocc = vnflcm_utils.new_lcmocc(
+            id, v2fields.LcmOperationType.INSTANTIATE, body)
 
         req_param = lcmocc.operationParams
         # if there is partial vimConnectionInfo check and fulfill here.
@@ -260,8 +244,8 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
 
         lcmocc_utils.check_lcmocc_in_progress(context, id)
 
-        lcmocc = self._new_lcmocc(id, v2fields.LcmOperationType.TERMINATE,
-                                  body)
+        lcmocc = vnflcm_utils.new_lcmocc(
+            id, v2fields.LcmOperationType.TERMINATE, body)
         lcmocc.create(context)
 
         self.conductor_rpc.start_lcm_op(context, lcmocc.id)
@@ -270,93 +254,19 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
 
         return sol_wsgi.SolResponse(202, None, location=location)
 
-    def _get_current_scale_level(self, inst, aspect_id):
-        if (inst.obj_attr_is_set('instantiatedVnfInfo') and
-                inst.instantiatedVnfInfo.obj_attr_is_set('scaleStatus')):
-            for scale_info in inst.instantiatedVnfInfo.scaleStatus:
-                if scale_info.aspectId == aspect_id:
-                    return scale_info.scaleLevel
-
-    def _get_max_scale_level(self, inst, aspect_id):
-        if (inst.obj_attr_is_set('instantiatedVnfInfo') and
-                inst.instantiatedVnfInfo.obj_attr_is_set('maxScaleLevels')):
-            for scale_info in inst.instantiatedVnfInfo.maxScaleLevels:
-                if scale_info.aspectId == aspect_id:
-                    return scale_info.scaleLevel
-
     @validator.schema(schema.ScaleVnfRequest_V200, '2.0.0')
-    @coordinate.lock_vnf_instance('{id}')
     def scale(self, request, id, body):
         context = request.context
-        inst = inst_utils.get_inst(context, id)
-
-        if inst.instantiationState != 'INSTANTIATED':
-            raise sol_ex.VnfInstanceIsNotInstantiated(inst_id=id)
-
-        lcmocc_utils.check_lcmocc_in_progress(context, id)
-
-        # check parameters
-        aspect_id = body['aspectId']
-        if 'numberOfSteps' not in body:
-            # set default value (1) defined by SOL specification for
-            # the convenience of the following methods.
-            body['numberOfSteps'] = 1
-
-        scale_level = self._get_current_scale_level(inst, aspect_id)
-        max_scale_level = self._get_max_scale_level(inst, aspect_id)
-        if scale_level is None or max_scale_level is None:
-            raise sol_ex.InvalidScaleAspectId(aspect_id=aspect_id)
-
-        num_steps = body['numberOfSteps']
-        if body['type'] == 'SCALE_IN':
-            num_steps *= -1
-        scale_level += num_steps
-        if scale_level < 0 or scale_level > max_scale_level:
-            raise sol_ex.InvalidScaleNumberOfSteps(
-                num_steps=body['numberOfSteps'])
-
-        lcmocc = self._new_lcmocc(id, v2fields.LcmOperationType.SCALE,
-                                  body)
-        lcmocc.create(context)
-
-        self.conductor_rpc.start_lcm_op(context, lcmocc.id)
+        lcmocc = vnflcm_utils.scale(context, id, body)
 
         location = lcmocc_utils.lcmocc_href(lcmocc.id, self.endpoint)
 
         return sol_wsgi.SolResponse(202, None, location=location)
 
     @validator.schema(schema.HealVnfRequest_V200, '2.0.0')
-    @coordinate.lock_vnf_instance('{id}')
     def heal(self, request, id, body):
         context = request.context
-        inst = inst_utils.get_inst(context, id)
-
-        if inst.instantiationState != 'INSTANTIATED':
-            raise sol_ex.VnfInstanceIsNotInstantiated(inst_id=id)
-
-        lcmocc_utils.check_lcmocc_in_progress(context, id)
-
-        # check parameter for later use
-        is_all = body.get('additionalParams', {}).get('all', False)
-        if not isinstance(is_all, bool):
-            raise sol_ex.SolValidationError(
-                detail="additionalParams['all'] must be bool.")
-
-        if 'vnfcInstanceId' in body:
-            inst_info = inst.instantiatedVnfInfo
-            vnfc_id = []
-            if inst_info.obj_attr_is_set('vnfcInfo'):
-                vnfc_id = [vnfc.id for vnfc in inst_info.vnfcInfo]
-            for req_vnfc_id in body['vnfcInstanceId']:
-                if req_vnfc_id not in vnfc_id:
-                    raise sol_ex.SolValidationError(
-                        detail="vnfcInstanceId(%s) does not exist."
-                        % req_vnfc_id)
-
-        lcmocc = self._new_lcmocc(id, v2fields.LcmOperationType.HEAL, body)
-        lcmocc.create(context)
-
-        self.conductor_rpc.start_lcm_op(context, lcmocc.id)
+        lcmocc = vnflcm_utils.heal(context, id, body)
 
         location = lcmocc_utils.lcmocc_href(lcmocc.id, self.endpoint)
 
@@ -373,7 +283,7 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
 
         lcmocc_utils.check_lcmocc_in_progress(context, id)
 
-        lcmocc = self._new_lcmocc(
+        lcmocc = vnflcm_utils.new_lcmocc(
             id, v2fields.LcmOperationType.CHANGE_EXT_CONN, body)
         lcmocc.create(context)
 
@@ -458,8 +368,8 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
             raise sol_ex.SolValidationError(
                 detail="'lcm-kubernetes-def-files' must be specified")
 
-        lcmocc = self._new_lcmocc(id, v2fields.LcmOperationType.CHANGE_VNFPKG,
-                                  body)
+        lcmocc = vnflcm_utils.new_lcmocc(
+            id, v2fields.LcmOperationType.CHANGE_VNFPKG, body)
 
         lcmocc.create(context)
 

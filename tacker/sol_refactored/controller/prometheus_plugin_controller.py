@@ -47,6 +47,19 @@ class FmAlertController(prom_wsgi.PrometheusPluginAPIController):
         return prom_wsgi.PrometheusPluginResponse(204, None)
 
 
+class AutoHealingController(prom_wsgi.PrometheusPluginAPIController):
+    def auto_healing(self, request, body):
+        if not CONF.prometheus_plugin.auto_healing:
+            raise sol_ex.PrometheusPluginNotEnabled(
+                name='Auto healing')
+        cls = mon_base.get_class(
+            CONF.prometheus_plugin.auto_healing_package,
+            CONF.prometheus_plugin.auto_healing_class)
+        mon_base.MonitoringPlugin.get_instance(cls).alert(
+            request=request, body=body)
+        return prom_wsgi.PrometheusPluginResponse(204, None)
+
+
 class AutoScalingController(prom_wsgi.PrometheusPluginAPIController):
     def auto_scaling(self, request, body):
         if not CONF.prometheus_plugin.auto_scaling:
@@ -58,6 +71,3 @@ class AutoScalingController(prom_wsgi.PrometheusPluginAPIController):
         mon_base.MonitoringPlugin.get_instance(cls).alert(
             request=request, body=body)
         return prom_wsgi.PrometheusPluginResponse(204, None)
-
-    def auto_scaling_id(self, request, _, body):
-        return self.auto_scaling(request, body)
