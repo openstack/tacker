@@ -1,5 +1,5 @@
-alert:
-  description: alert message
+alerts:
+  description: alerts messages.
   in: body
   required: true
   type: array
@@ -25,7 +25,7 @@ endsAt:
   description: |
     alert expiration time.
   in: body
-  required: true
+  required: false
   type: string
 event_type:
   description: |
@@ -72,6 +72,12 @@ function_type_fm:
 function_type_pm:
   description: |
     must be "vnfpm".
+  in: body
+  required: true
+  type: string
+function_type_threshold:
+  description: |
+    must be "vnfpm_threshold".
   in: body
   required: true
   type: string
@@ -140,13 +146,19 @@ sub_object_instance_id:
   description: |
     subObjectInstanceId defined in ETSI PM interface.
   in: body
+  required: false
+  type: string
+threshold_id:
+  description: |
+    PM Threshold id defined in ETSI PM interface.
+  in: body
   required: true
   type: string
 value:
   description: |
-    aspectId of the scaling target.
+    The result value returned by the PromQL statement.
   in: body
-  required: true
+  required: false
   type: number
 vnf_instance_id:
   description: |

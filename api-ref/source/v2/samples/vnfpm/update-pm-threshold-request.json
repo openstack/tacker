@@ -1,0 +1,3 @@
+{
+    "callbackUri": "http://localhost:9990/notification/callback/callbackUri"
+}

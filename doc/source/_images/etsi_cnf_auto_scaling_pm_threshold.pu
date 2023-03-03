@@ -1,0 +1,46 @@
+@startuml
+
+frame "Prometheus" {
+    component "Prometheus" as prom
+}
+
+frame "NFVO" {
+    component "NFVO" as nfvo
+}
+
+frame "tacker" {
+    component "tacker-server" {
+        component "VnfpmControllerV2" as pm_ctl
+        component "PrometheusPlugin" as plugin
+        component "VnflcmControllerV2" as lcm_ctl
+    }
+    component "tacker-conductor" {
+        component "Vnfpm\ndriver" as pm_driver
+        component "Kubernetes\ninfra-driver" as infra
+    }
+}
+
+node "Kubernetes Cluster\n(Master)" as k8s_m
+cloud "Hardware Resources" as hw {
+    node "Kubernetes Cluster\n(Worker)" as k8s_w {
+        node "Pod" as ins1
+        node "Pod" as ins2
+        node "Pod" as ins3
+    }
+}
+
+'# Relationships
+nfvo --> pm_ctl: 1. Create PM threshold
+pm_ctl --> plugin
+plugin --> prom: 2. Set PM threshold
+ins1 --> prom: 3. Trigger threshold event
+ins2 --> prom
+prom --> plugin: 4. POST threshold event
+plugin --> pm_driver: 5. Convert threshold event to threshold state
+plugin --> nfvo: 6. Send threshold state notification
+nfvo --> lcm_ctl: 7. Scale
+lcm_ctl --> infra
+infra --> k8s_m: 8. Call Kubernetes API
+k8s_m --> ins3: 9. Change the number of Pods
+
+@enduml

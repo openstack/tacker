@@ -8,9 +8,11 @@ Overview
 This document describes about Prometheus Plugin that provides
 monitoring functions in combination with External Monitoring Tool
 
-The Prometheus Plugin has 4 functions:
+The Prometheus Plugin has 5 functions:
 
-- Alerting function for ETSI NFV-SOL 002/003 based Performance Management.
+- Alerting function for ETSI NFV-SOL 002/003 based Performance Management Job.
+- Alerting function for ETSI NFV-SOL 002/003 based Performance Management
+  Threshold.
 - Alerting function for ETSI NFV-SOL 002/003 based Fault Management.
 - Alerting function for Prometheus Plugin AutoScaling.
 - Alerting function for Prometheus Plugin AutoHealing.
@@ -71,6 +73,12 @@ performance_management, fault_management, auto_scaling or auto_healing below.
   * - ``CONF.prometheus_plugin.test_rule_with_promtool``
     - false
     - Enable rule file validation using promtool.
+  * - ``CONF.prometheus_plugin.reporting_period_threshold``
+    - 90
+    - The time of reportingPeriod for the pm threshold.
+  * - ``CONF.prometheus_plugin.collection_period_threshold``
+    - 30
+    - The time of collectionPeriod for the pm threshold.
 
 Prerequisite
 ------------
@@ -107,7 +115,7 @@ along the Performance Management, Fault Management, Auto scaling or
 Auto healing.
 The flow of each process is as follows.
 
-- ``ETSI NFV-SOL 002/003 based Performance Management``
+- ``ETSI NFV-SOL 002/003 based Performance Management Job``
 
   .. code-block:: console
 
@@ -132,6 +140,32 @@ The flow of each process is as follows.
        +------------------------------> | CNF        |   | CNF        |   | CNF        |   |
                                       | +------------+   +------------+   +------------+   |
                                       +----------------------------------------------------+
+
+- ``ETSI NFV-SOL 002/003 based Performance Management Threshold``
+
+  .. code-block:: console
+
+                                      +---------------------------------+
+                                      | Client (NFVO/EM)                |
+                                      | 8. Perform scaling if necessary <--+
+                                      +----+----------------------------+  |
+                                           | 1.Create PM threshold         | 7. Notify threshold state
+                                      +----v-------------------------------+---------------------+
+                                      |                                                   Tacker |
+    +-------------+                   | +------------------------------------------------------+ |
+    |  External   | 3. Set alert rule | | Prometheus Plugin                                    | |
+    |  Monitoring <-------------------+ | 2. Convert PM threshold to Prometheus Alert Rule     | |
+    |  Tool       | 5. Send alert     | |                                                      | |
+    |             +-------------------> | 6. Convert Prometheus Alert event to threshold state | |
+    |             |                   | +------------------------------------------------------+ |
+    +--+----------+                   +----------------------------------------------------------+
+       | 4. Performance
+       |    monitoring                +----------------------------------------------------------+
+       |                              |                                                 CISM/CIS |
+       |                              | +------------+     +------------+     +------------+     |
+       +------------------------------> | CNF        |     | CNF        |     | CNF        |     |
+                                      | +------------+     +------------+     +------------+     |
+                                      +----------------------------------------------------------+
 
 - ``ETSI NFV-SOL 002/003 based Fault Management``
 
@@ -279,6 +313,9 @@ For example:
           - function_type = vnfpm
           receiver: vnfpm
         - matchers:
+          - function_type = vnfpm_threshold
+          receiver: vnfpm-threshold
+        - matchers:
           - function_type = vnffm
           receiver: vnffm
         - matchers:
@@ -293,6 +330,9 @@ For example:
     - name: vnfpm
       webhook_configs:
       - url: "http://<tacker_host>/pm_event"
+    - name: vnfpm-threshold
+      webhook_configs:
+      - url: "http://<tacker_host>/vnfpm_threshold"
     - name: vnffm
       webhook_configs:
       - url: "http://<tacker_host>/alert"
@@ -329,11 +369,11 @@ Tacker Antelope release
 Alert rule registration
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-ETSI NFV-SOL 002/003 based Performance Management
---------------------------------------------------
+ETSI NFV-SOL 002/003 based Performance Management Job
+-----------------------------------------------------
 
 Registration of alerting rule is performed through
-PM job creation. Below is example of request body
+PM job creation. Below is an example of request body
 of PM job creation.
 
 Access information of External Monitoring Tool must be set
@@ -346,7 +386,7 @@ at "metadata" field.
         "objectInstanceIds": ["507280d8-bfc5-4b88-904b-9280ba6bc3ea"],
         "criteria": {
             "performanceMetric": [
-                "VCpuUsageMeanVnf.507280d8-bfc5-4b88-904b-9280ba6bc3ea"],
+                "VMemoryUsageMeanVnf.507280d8-bfc5-4b88-904b-9280ba6bc3ea"],
             "collectionPeriod": 30,
             "reportingPeriod": 90,
             "reportingBoundary": "2099-08-05T02:24:46Z"
@@ -384,11 +424,68 @@ at "metadata" field.
     ``avg(max(container_fs_usage_bytes{pod=~"pod name"} /
     container_fs_limit_bytes{pod=~"pod name"}))``
 
+ETSI NFV-SOL 002/003 based Performance Management Threshold
+-----------------------------------------------------------
+
+Registration of alerting rule is performed through
+PM threshold creation. Below is an example of request body
+of PM threshold creation.
+
+Access information of External Monitoring Tool must be set
+at "metadata" field.
+
+.. code-block:: json
+
+    {
+        "objectType": "Vnf",
+        "objectInstanceId": "511a2d68-c975-4913-b7b8-d75468e3102b",
+        "criteria": {
+            "performanceMetric": "VMemoryUsageMeanVnf.511a2d68-c975-4913-b7b8-d75468e3102b",
+            "thresholdType": "SIMPLE",
+            "simpleThresholdDetails": {
+                "thresholdValue": 55,
+                "hysteresis": 30
+            }
+        },
+        "callbackUri": "<client_callback_uri>",
+        "metadata": {
+            "monitoring": {
+                "monitorName": "prometheus",
+                "driverType": "external",
+                "targetsInfo": [
+                    {
+                        "prometheusHost": "<prometheus_server_hostname>",
+                        "prometheusHostPort": 22,
+                        "authInfo": {
+                            "ssh_username": "ubuntu",
+                            "ssh_password": "ubuntu"
+                        },
+                        "alertRuleConfigPath":
+                            "/etc/prometheus/rules",
+                        "prometheusReloadApiEndpoint":
+                            "http://<prometheus_server_hostname>/-/reload"
+                    }
+                ]
+            }
+        }
+    }
+
+.. note::
+
+    With the parameter, pod name can be specified but container name can not.
+    And some prometheus metrics need container name. Therefore, ``max``
+    statement of PromQL is alternatively used in some measurements to
+    measure without container name. That means it provides only most
+    impacted value among the containers. For example:
+
+    ``avg(max(container_fs_usage_bytes{pod=~"pod name"} /
+    container_fs_limit_bytes{pod=~"pod name"}))``
+
 ETSI NFV-SOL 002/003 based Fault Management
 -------------------------------------------
 
 Registration of alerting rule is performed by updating
-rule file directly. Below is example of alert rule.
+rule file directly. Below is an example of alert rule.
 
 .. code-block:: yaml
 
@@ -414,7 +511,7 @@ Prometheus Plugin AutoScaling
 -----------------------------
 
 Registration of alerting rule is performed by updating
-rule file directly. Below is example of alert rule.
+rule file directly. Below is an example of alert rule.
 
 .. code-block:: yaml
 
@@ -571,10 +668,16 @@ tacker.sol_refactored.common.monitoring_plugin_base.MonitoringPlugin.
     - Description
   * - ``CONF.prometheus_plugin.performance_management_package``
     - tacker.sol_refactored.common.prometheus_plugin
-    - Package name for performance management.
+    - Package name for performance management job.
+  * - ``CONF.prometheus_plugin.performance_management_threshold_package``
+    - tacker.sol_refactored.common.prometheus_plugin
+    - Package name for performance management threshold.
   * - ``CONF.prometheus_plugin.performance_management_class``
     - PrometheusPluginPm
-    - Class name for performance management.
+    - Class name for performance management job.
+  * - ``CONF.prometheus_plugin.performance_management_threshold_class``
+    - PrometheusPluginThreshold
+    - Class name for performance management threshold.
   * - ``CONF.prometheus_plugin.fault_management_package``
     - tacker.sol_refactored.common.prometheus_plugin
     - Package name for fault management.

@@ -1,0 +1,42 @@
+{
+    "objectType": "Vnf",
+    "objectInstanceId": "4fcf78d6-52d9-4b6a-b3a6-49b2bef65843",
+    "criteria": {
+        "performanceMetric": "VCpuUsageMeanVnf.4fcf78d6-52d9-4b6a-b3a6-49b2bef65843",
+        "thresholdType": "SIMPLE",
+        "simpleThresholdDetails": {
+            "thresholdValue": 55,
+            "hysteresis": 30
+        }
+    },
+    "callbackUri": "http://localhost:9990/notification/callbackuri/4fcf78d6-52d9-4b6a-b3a6-49b2bef65843",
+    "authentication": {
+        "authType": [
+            "BASIC"
+        ],
+        "paramsBasic": {
+            "password": "ubuntu",
+            "userName": "ubuntu"
+        }
+    },
+    "metadata": {
+        "monitoring": {
+            "monitorName": "prometheus",
+            "driverType": "external",
+            "targetsInfo": [
+                {
+                    "prometheusHost": "prometheus.example",
+                    "prometheusHostPort": 50022,
+                    "authInfo": {
+                        "ssh_username": "ubuntu",
+                        "ssh_password": "ubuntu"
+                    },
+                    "alertRuleConfigPath":
+                        "/etc/prometheus/rule",
+                    "prometheusReloadApiEndpoint":
+                        "http://prometheus.example:9990/-/reload",
+                }
+            ]
+        }
+    }
+}
