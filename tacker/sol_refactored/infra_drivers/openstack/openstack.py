@@ -28,6 +28,7 @@ from oslo_utils import uuidutils
 
 from tacker.sol_refactored.common import config
 from tacker.sol_refactored.common import exceptions as sol_ex
+from tacker.sol_refactored.common import lcm_op_occ_utils as lcmocc_utils
 from tacker.sol_refactored.common import vnf_instance_utils as inst_utils
 from tacker.sol_refactored.infra_drivers.openstack import heat_utils
 from tacker.sol_refactored.infra_drivers.openstack import nova_utils
@@ -491,8 +492,8 @@ class Openstack(object):
                 heat_client.update_stack(stack_name, update_fields)
 
             # execute coordinate_vnf_script
-            self._execute_coordinate_vnf_script(req, vnfd, vnfc, heat_client,
-                                                is_rollback)
+            self._execute_coordinate_vnf_script(
+                req, vnfd, vnfc, inst, grant_req, heat_client, is_rollback)
 
     def _change_vnfpkg_rolling_update_user_data_standard(self, req, inst,
             grant_req, grant, vnfd, fields, heat_client, vnfcs, is_rollback):
@@ -565,8 +566,8 @@ class Openstack(object):
             heat_client.update_stack(stack_name, update_fields)
 
             # execute coordinate_vnf_script
-            self._execute_coordinate_vnf_script(req, vnfd, vnfc, heat_client,
-                                                is_rollback)
+            self._execute_coordinate_vnf_script(
+                req, vnfd, vnfc, inst, grant_req, heat_client, is_rollback)
 
     def _get_ssh_ip(self, stack_id, cp_name, heat_client):
         # NOTE: It is assumed that if the user want to use floating_ip,
@@ -578,8 +579,8 @@ class Openstack(object):
         elif cp_info.get('attributes', {}).get('fixed_ips'):
             return cp_info['attributes']['fixed_ips'][0].get('ip_address')
 
-    def _execute_coordinate_vnf_script(self, req, vnfd, vnfc, heat_client,
-            is_rollback):
+    def _execute_coordinate_vnf_script(self, req, vnfd, vnfc, inst, grant_req,
+            heat_client, is_rollback):
         if is_rollback:
             script = req.additionalParams.get(
                 'lcm-operation-coordinate-old-vnf')
@@ -605,6 +606,30 @@ class Openstack(object):
         vnfc_param['ssh_ip'] = ssh_ip
         vnfc_param['is_rollback'] = is_rollback
 
+        coord_req = objects.LcmCoordRequest(
+            vnfInstanceId=inst.id,
+            vnfLcmOpOccId=grant_req.vnfLcmOpOccId,
+            lcmOperationType=grant_req.operation,
+            # NOTE: coordinationActionName is set to the dummy value.
+            # The value of coordinationActionName must be set in the
+            # coordinateVNF script.
+            coordinationActionName="should_be_set_by_script",
+            _links=objects.LcmCoordRequest_Links(
+                vnfLcmOpOcc=objects.Link(
+                    href=lcmocc_utils.lcmocc_href(grant_req.vnfLcmOpOccId,
+                                                  CONF.v2_vnfm.endpoint)),
+                vnfInstance=objects.Link(
+                    href=inst_utils.inst_href(inst.id,
+                                              CONF.v2_vnfm.endpoint))
+            )
+        )
+        vnfc_param['LcmCoordRequest'] = coord_req.to_dict()
+        vnfc_param['inst'] = inst.to_dict()
+        for vnfc_info in inst.instantiatedVnfInfo.vnfcInfo:
+            if vnfc_info.vnfcResourceInfoId == vnfc.id:
+                vnfc_param['vnfc_info_id'] = vnfc_info.id
+                break
+
         tmp_csar_dir = vnfd.make_tmp_csar_dir()
         script_path = os.path.join(tmp_csar_dir, script)
         out = subprocess.run(["python3", script_path],
@@ -612,8 +637,9 @@ class Openstack(object):
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         vnfd.remove_tmp_csar_dir(tmp_csar_dir)
         if out.returncode != 0:
-            LOG.error(out)
-            raise sol_ex.CoordinateVNFExecutionFailed()
+            LOG.error(str(out.stderr))
+            raise sol_ex.CoordinateVNFExecutionFailed(
+                sol_detail=str(out.stderr))
 
     def change_vnfpkg_rollback(self, req, inst, grant_req, grant, vnfd,
             lcmocc):

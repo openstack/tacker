@@ -86,6 +86,7 @@ def register_all():
     __import__(objects_root + '.v2.lccn_links')
     __import__(objects_root + '.v2.lccn_subscription')
     __import__(objects_root + '.v2.lccn_subscription_request')
+    __import__(objects_root + '.v2.lcm_coord_request')
     __import__(objects_root + '.v2.lifecycle_change_notifications_filter')
     __import__(objects_root + '.v2.modifications_triggered_by_vnf_pkg_change')
     __import__(objects_root + '.v2.monitoring_parameter')

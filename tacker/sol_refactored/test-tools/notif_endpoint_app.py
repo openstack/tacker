@@ -24,8 +24,8 @@ def handle_notification(environ, start_response):
     method = environ['REQUEST_METHOD']
     print("notification %s" % method)
     if method not in ['GET', 'POST']:
-        print("  not support method")
-        start_response('405 not suportted method',
+        print("  not supported method")
+        start_response('405 not supported method',
                        [('Content-Type', 'application/problem+json')])
         problem_detail = {'status': 405,
                           'detail': "not supported method"}
@@ -34,7 +34,7 @@ def handle_notification(environ, start_response):
 
     authorization = environ.get("HTTP_AUTHORIZATION", "")
     version = environ.get("HTTP_VERSION", "")
-    print("  authorizarion: %s" % authorization)
+    print("  authorization: %s" % authorization)
     print("  version: %s" % version)
 
     if method == 'POST':
@@ -52,8 +52,8 @@ def handle_token(environ, start_response):
     method = environ['REQUEST_METHOD']
     print("token %s" % method)
     if method not in ['POST']:
-        print("  not support method")
-        start_response('405 not suportted method',
+        print("  not supported method")
+        start_response('405 not supported method',
                        [('Content-Type', 'application/problem+json')])
         problem_detail = {'status': 405,
                           'detail': "not supported method"}
@@ -63,7 +63,7 @@ def handle_token(environ, start_response):
     authorization = environ.get("HTTP_AUTHORIZATION", "")
     version = environ.get("HTTP_VERSION", "")
     content_type = environ.get("CONTENT_TYPE")
-    print("  authorizarion: %s" % authorization)
+    print("  authorization: %s" % authorization)
     print("  version: %s" % version)
     print("  content_type: %s" % content_type)
 
@@ -91,6 +91,44 @@ def handle_token(environ, start_response):
     return [body.encode('utf-8')]
 
 
+def handle_coordinations(environ, start_response):
+    method = environ['REQUEST_METHOD']
+    print("coordinations %s" % method)
+    if method not in ['POST']:
+        print("  not supported method")
+        start_response('405 not supported method',
+                       [('Content-Type', 'application/problem+json')])
+        problem_detail = {'status': 405,
+                          'detail': "not supported method"}
+        body = json.dumps(problem_detail)
+        return [body.encode('utf-8')]
+
+    authorization = environ.get("HTTP_AUTHORIZATION", "")
+    version = environ.get("HTTP_VERSION", "")
+    print("  authorization: %s" % authorization)
+    print("  version: %s" % version)
+
+    length = environ.get('CONTENT_LENGTH')
+    print("  content_length: %s" % length)
+    body = environ.get('wsgi.input').read(int(length))
+    body = json.loads(body.decode('utf-8'))
+    print("  request body: %s" % body)
+
+    start_response('201 Created', [('Content-Type', 'application/json')])
+    data = {
+        "id": "2e11d0cb-8cb1-4418-926c-5e31f0a2538b",
+        "coordinationResult": "CONTINUE",
+        "vnfInstanceId": body.get('vnfInstanceId'),
+        "vnfLcmOpOccId": body.get('vnfLcmOpOccId'),
+        "lcmOperationType": body.get('lcmOperationType'),
+        "coordinationActionName": body.get('coordinationActionName'),
+        "_links": body.get('_links')
+    }
+    body = json.dumps(data)
+    print("  response body: %s" % body)
+    return [body.encode('utf-8')]
+
+
 def notif_endpoint_app(environ, start_response):
     path = environ['PATH_INFO']
 
@@ -99,6 +137,9 @@ def notif_endpoint_app(environ, start_response):
 
     if path == "/token":
         return handle_token(environ, start_response)
+
+    if path == "/lcmcoord/v1/coordinations":
+        return handle_coordinations(environ, start_response)
 
 
 if __name__ == '__main__':

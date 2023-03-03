@@ -1,0 +1,7 @@
+features:
+  - |
+    Support the client function of the VNF LCM Coordination API in the
+    Coordinate VNF script when performing the RollingUpdate with
+    external management systems in the ChangeCurrentVNFPackage API.
+    The sample script implements only the client function,
+    not formal support for the VNF LCM Coordination API itself.

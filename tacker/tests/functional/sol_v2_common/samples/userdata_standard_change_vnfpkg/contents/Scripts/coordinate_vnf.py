@@ -17,6 +17,8 @@ import os
 import pickle
 import sys
 
+from tacker.sol_refactored.common import coord_client
+
 
 class FailScript(object):
     def __init__(self, vnfc_param):
@@ -30,9 +32,41 @@ class FailScript(object):
             raise Exception(f'test {operation} error')
 
 
+class CoordScript(object):
+    def __init__(self, vnfc_param):
+        self.vnfc_param = vnfc_param
+
+    def run(self):
+        if not os.path.exists('/tmp/change_vnfpkg_coordination'):
+            return
+
+        coord_req = self.vnfc_param['LcmCoordRequest']
+        coord_req['coordinationActionName'] = (
+            "prv.tacker_organization.coordination_test")
+        endpoint = self.vnfc_param.get('endpoint')
+        authentication = self.vnfc_param.get('authentication')
+
+        input_params = self.vnfc_param.get('inputParams')
+        if input_params is not None:
+            coord_req['inputParams'] = input_params
+
+        if endpoint is None:
+            raise Exception('endpoint must be specified.')
+        if authentication is None:
+            raise Exception('authentication must be specified.')
+
+        coord = coord_client.create_coordination(endpoint, authentication,
+                                                 coord_req)
+        if coord['coordinationResult'] != "CONTINUE":
+            raise Exception(
+                f"coordinationResult is {coord['coordinationResult']}")
+
+
 def main():
     vnfc_param = pickle.load(sys.stdin.buffer)
     script = FailScript(vnfc_param)
+    script.run()
+    script = CoordScript(vnfc_param)
     script.run()
 
 

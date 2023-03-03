@@ -268,7 +268,8 @@ class SshIpNotFoundException(SolHttpError404):
 
 
 class CoordinateVNFExecutionFailed(SolHttpError422):
-    message = _('CoordinateVNF execution failed.')
+    title = 'Coordinate VNF execution failed'
+    # detail set in the code
 
 
 class VmRunningFailed(SolHttpError422):
