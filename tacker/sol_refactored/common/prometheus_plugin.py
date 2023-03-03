@@ -20,10 +20,12 @@ import os
 import paramiko
 import re
 import tempfile
+import yaml
 
 from keystoneauth1 import exceptions as ks_exc
 from oslo_log import log as logging
 from oslo_utils import uuidutils
+from tacker.common import utils
 from tacker.sol_refactored.api import prometheus_plugin_validator as validator
 from tacker.sol_refactored.api.schemas import prometheus_plugin_schemas
 from tacker.sol_refactored.common import config as cfg
@@ -54,7 +56,283 @@ class PrometheusPlugin():
         return t if t.tzinfo else t.astimezone()
 
 
-class PrometheusPluginPm(PrometheusPlugin, mon_base.MonitoringPlugin):
+class PrometheusPluginPmBase(PrometheusPlugin):
+    def __init__(self):
+        super(PrometheusPluginPmBase, self).__init__()
+        auth_handle = http_client.NoAuthHandle()
+        self.client = http_client.HttpClient(auth_handle)
+
+    def convert_measurement_unit(self, metric, value):
+        if re.match(r'^V(Cpu|Memory|Disk)Usage(Mean|Peak)Vnf\..+', metric):
+            value = float(value)
+        elif re.match(r'^(Byte|Packet)(Incoming|Outgoing)Vnf(IntCp|ExtCp)',
+                      metric):
+            value = int(value)
+        else:
+            raise sol_ex.PrometheusPluginError(
+                  "Failed to convert annotations.value to measurement unit.")
+        return value
+
+    def load_prom_config(self):
+        config_file = utils.find_config_file({}, 'prometheus-plugin.yaml')
+        if not config_file:
+            raise sol_ex.PrometheusPluginError(
+                "prometheus-plugin.yaml not found."
+            )
+        LOG.info(f"prom_config file: {config_file}")
+        with open(config_file) as file:
+            prom_config = yaml.safe_load(file.read())
+        return prom_config
+
+    def make_prom_ql(self, target, pod, collection_period=30,
+                     reporting_period=90, sub_object_instance_id='*',
+                     pm_type='PMJob', namespace='default'):
+        REPORTING_PERIOD_MIN = 30
+        reporting_period = max(reporting_period, REPORTING_PERIOD_MIN)
+        prom_config = self.load_prom_config()
+        expr = prom_config[pm_type]['PromQL'][target].format(
+            pod=pod,
+            collection_period=collection_period,
+            reporting_period=reporting_period,
+            sub_object_instance_id=sub_object_instance_id,
+            namespace=namespace
+        )
+        LOG.info(f"promQL expr: {expr}")
+        return expr
+
+    def make_rule(self, type, id, object_instance_id, sub_object_instance_id,
+                  metric, expression, collection_period=30):
+        if type == 'PMJob':
+            labels = {
+                'alertname': '',
+                'receiver_type': 'tacker',
+                'function_type': 'vnfpm',
+                'job_id': id,
+                'object_instance_id': object_instance_id,
+                'sub_object_instance_id': sub_object_instance_id,
+                'metric': metric
+            }
+        elif type == 'Threshold':
+            labels = {
+                'alertname': '',
+                'receiver_type': 'tacker',
+                'function_type': 'vnfpm-threshold',
+                'threshold_id': id,
+                'object_instance_id': object_instance_id,
+                'sub_object_instance_id': sub_object_instance_id,
+                'metric': metric
+            }
+        else:
+            raise sol_ex.PrometheusPluginError(
+                "Invalid type in make_rule()."
+            )
+
+        labels = {k: v for k, v in labels.items() if v is not None}
+        annotations = {
+            'value': r'{{$value}}'
+        }
+        rule = {
+            'alert': uuidutils.generate_uuid(),
+            'expr': expression,
+            'for': f'{collection_period}s',
+            'labels': labels,
+            'annotations': annotations
+        }
+        return rule
+
+    def get_namespace(self, inst):
+        return inst.instantiatedVnfInfo.metadata.get(
+            'namespace', 'default') if (
+            inst.obj_attr_is_set('instantiatedVnfInfo') and
+            inst.instantiatedVnfInfo.obj_attr_is_set(
+                'metadata')) else 'default'
+
+    def get_vnfc_resource_info(self, inst):
+        return inst.instantiatedVnfInfo.vnfcResourceInfo if (
+            inst.obj_attr_is_set('instantiatedVnfInfo') and
+            inst.instantiatedVnfInfo.obj_attr_is_set(
+                'vnfcResourceInfo')) else None
+
+    def get_pod_regexp(self, inst):
+        # resource ids are like:
+        #   ['test-test1-756757f8f-xcwmt',
+        #    'test-test2-756757f8f-kmghr', ...]
+        # convert them to a regex string such as:
+        #   '(test-test1-[0-9a-f]{1,10}-[0-9a-z]{5}$|
+        #    test-test2-[0-9a-f]{1,10}-[0-9a-z]{5}$|...)'
+        resource_info = self.get_vnfc_resource_info(inst)
+        if not resource_info:
+            return None
+        deployments = list(filter(
+            lambda r:
+                r.computeResource.obj_attr_is_set(
+                    'vimLevelResourceType')
+                and r.computeResource.obj_attr_is_set(
+                    'resourceId'
+                )
+                and r.computeResource.vimLevelResourceType ==
+                'Deployment', resource_info
+        ))
+        deployments = list(set(list(map(
+            lambda d: re.sub(
+                r'\-[0-9a-f]{1,10}\-[0-9a-z]{5}$', '',
+                d.computeResource.resourceId) +
+            r'-[0-9a-f]{1,10}-[0-9a-z]{5}$',
+            deployments
+        ))))
+        return ('(' + '|'.join(deployments) + ')'
+            if len(deployments) else None)
+
+    def get_compute_resource_by_sub_obj(self, inst, sub_obj):
+        if (not inst.obj_attr_is_set('instantiatedVnfInfo') or
+                not inst.instantiatedVnfInfo.obj_attr_is_set(
+                    'vnfcResourceInfo') or
+                not inst.instantiatedVnfInfo.obj_attr_is_set('vnfcInfo')):
+            return None
+        vnfc_info = list(filter(
+            lambda x: (x.obj_attr_is_set('vnfcResourceInfoId') and
+                x.id == sub_obj),
+            inst.instantiatedVnfInfo.vnfcInfo))
+        if len(vnfc_info) == 0:
+            return None
+        resources = list(filter(
+            lambda x: (vnfc_info[0].obj_attr_is_set('vnfcResourceInfoId') and
+                x.id == vnfc_info[0].vnfcResourceInfoId and
+                x.computeResource.obj_attr_is_set('vimLevelResourceType') and
+                x.computeResource.vimLevelResourceType == 'Deployment' and
+                x.computeResource.obj_attr_is_set('resourceId')),
+            inst.instantiatedVnfInfo.vnfcResourceInfo))
+        if len(resources) == 0:
+            return None
+        return resources[0].computeResource
+
+    def _delete_rule(self, host, port, user, password, path, id):
+        with paramiko.Transport(sock=(host, port)) as client:
+            client.connect(username=user, password=password)
+            sftp = paramiko.SFTPClient.from_transport(client)
+            sftp.remove(f'{path}/{id}.json')
+
+    def reload_prom_server(self, context, reload_uri):
+        resp, _ = self.client.do_request(
+            reload_uri, "PUT", context=context)
+        if resp.status_code >= 400 and resp.status_code < 600:
+            raise sol_ex.PrometheusPluginError(
+                f"Reloading request to prometheus is failed: "
+                f"{resp.status_code}.")
+
+    def _upload_rule(self, rule_group, host, port, user, password, path, id):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with open(os.path.join(tmpdir, 'rule.json'),
+                      'w+', encoding="utf-8") as fp:
+                json.dump(rule_group, fp, indent=4, ensure_ascii=False)
+                filename = fp.name
+            with paramiko.Transport(sock=(host, port)) as client:
+                LOG.info("Upload rule files to prometheus server: %s.", host)
+                client.connect(username=user, password=password)
+                sftp = paramiko.SFTPClient.from_transport(client)
+                sftp.put(filename, f'{path}/{id}.json')
+        self.verify_rule(host, port, user, password, path, id)
+
+    def verify_rule(self, host, port, user, password, path, id):
+        if not CONF.prometheus_plugin.test_rule_with_promtool:
+            return
+        with paramiko.SSHClient() as client:
+            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            client.connect(host, port=port, username=user, password=password)
+            command = f"promtool check rules {path}/{id}.json"
+            LOG.info("Rule file validation command: %s", command)
+            _, stdout, stderr = client.exec_command(command)
+            if stdout.channel.recv_exit_status() != 0:
+                error_byte = stderr.read()
+                error_str = error_byte.decode('utf-8')
+                LOG.error(
+                    "Rule file validation with promtool failed: %s",
+                    error_str)
+                raise sol_ex.PrometheusPluginError(
+                    "Rule file validation with promtool failed.")
+
+    def delete_rules(self, context, pm_job_or_threshold):
+        target_list, reload_list = self.get_access_info(pm_job_or_threshold)
+        for target in target_list:
+            try:
+                self._delete_rule(
+                    target['host'], target['port'], target['user'],
+                    target['password'], target['path'], pm_job_or_threshold.id)
+            except (sol_ex.PrometheusPluginError, ks_exc.ClientException,
+                    paramiko.SSHException):
+                # NOTE(shimizu-koji): This exception is ignored.
+                # DELETE /pm_jobs/{id} will be success even if _delete_rule()
+                # is failed. Because the rule file was already deleted.
+                pass
+        for uri in reload_list:
+            try:
+                self.reload_prom_server(context, uri)
+            except (sol_ex.PrometheusPluginError, ks_exc.ClientException,
+                    paramiko.SSHException):
+                pass
+
+    def get_access_info(self, pm_job_or_threshold):
+        target_list = []
+        reload_list = []
+        if (not pm_job_or_threshold.obj_attr_is_set('metadata')
+                or 'monitoring' not in pm_job_or_threshold.metadata):
+            raise sol_ex.PrometheusPluginError(
+                  "monitoring info is missing at metadata field.")
+        access_info = pm_job_or_threshold.metadata['monitoring']
+        if (access_info.get('monitorName') != 'prometheus' or
+                access_info.get('driverType') != 'external'):
+            raise sol_ex.PrometheusPluginError(
+                  "prometheus info is missing at metadata field.")
+        for info in access_info.get('targetsInfo', []):
+            host = info.get('prometheusHost', '')
+            port = info.get('prometheusHostPort', 22)
+            auth = info.get('authInfo', {})
+            user = auth.get('ssh_username', '')
+            password = auth.get('ssh_password', '')
+            path = info.get('alertRuleConfigPath', '')
+            uri = info.get('prometheusReloadApiEndpoint', '')
+            if not (host and user and path and uri):
+                continue
+            target_list.append({
+                'host': host,
+                'port': port,
+                'user': user,
+                'password': password,
+                'path': path
+            })
+            reload_list.append(uri)
+        return target_list, list(set(reload_list))
+
+    def upload_rules(self, context, target_list, reload_list, rule_group, id):
+        def _cleanup_error(target_list):
+            for target in target_list:
+                try:
+                    self._delete_rule(target['host'], target['port'],
+                        target['user'], target['password'], target['path'],
+                        id)
+                except (sol_ex.PrometheusPluginError, ks_exc.ClientException,
+                        paramiko.SSHException):
+                    pass
+
+        try:
+            for target in target_list:
+                self._upload_rule(
+                    rule_group, target['host'], target['port'],
+                    target['user'], target['password'], target['path'],
+                    id)
+            for uri in reload_list:
+                self.reload_prom_server(context, uri)
+        except (sol_ex.PrometheusPluginError, ks_exc.ClientException,
+                paramiko.SSHException) as e:
+            LOG.error("failed to upload rule files: %s", e.args[0])
+            _cleanup_error(target_list)
+            raise e
+        except Exception as e:
+            _cleanup_error(target_list)
+            raise e
+
+
+class PrometheusPluginPm(PrometheusPluginPmBase, mon_base.MonitoringPlugin):
     _instance = None
 
     @staticmethod
@@ -73,62 +351,9 @@ class PrometheusPluginPm(PrometheusPlugin, mon_base.MonitoringPlugin):
                 "Not constructor but instance() should be used.")
         super(PrometheusPluginPm, self).__init__()
         self.notification_callback = None
-        auth_handle = http_client.NoAuthHandle()
-        self.client = http_client.HttpClient(auth_handle)
         self.reporting_period_margin = (
             CONF.prometheus_plugin.reporting_period_margin)
         self.notification_callback = self.default_callback
-        # Pod name can be specified but container name can not.
-        # And some prometheus metrics need container name. Therefore, max
-        # statement of PromQL is alternatively used in some measurements to
-        # measure without container name. That means it provids only most
-        # impacted value among the containers.
-        self.sol_exprs = {
-            'VCpuUsageMeanVnf':
-                'avg(sum(rate(pod_cpu_usage_seconds_total'
-                '{{pod=~"{pod}"}}[{reporting_period}s])))',
-            'VCpuUsagePeakVnf':
-                'max(sum(rate(pod_cpu_usage_seconds_total'
-                '{{pod=~"{pod}"}}[{reporting_period}s])))',
-            'VMemoryUsageMeanVnf':
-                'avg(pod_memory_working_set_bytes{{pod=~"{pod}"}} / '
-                'on(pod) (kube_node_status_capacity{{resource="memory"}} * '
-                'on(node) group_right kube_pod_info))',
-            'VMemoryUsagePeakVnf':
-                'max(pod_memory_working_set_bytes{{pod=~"{pod}"}} / '
-                'on(pod) (kube_node_status_capacity{{resource="memory"}} * '
-                'on(node) group_right kube_pod_info))',
-            'VDiskUsageMeanVnf':
-                'avg(max(container_fs_usage_bytes{{pod=~"{pod}"}}/'
-                'container_fs_limit_bytes{{pod=~"{pod}"}}))',
-            'VDiskUsagePeakVnf':
-                'max(max(container_fs_usage_bytes{{pod=~"{pod}"}}/'
-                'container_fs_limit_bytes{{pod=~"{pod}"}}))',
-            'ByteIncomingVnfIntCp':
-                'sum(container_network_receive_bytes_total'
-                '{{interface="{sub_object_instance_id}",pod=~"{pod}"}})',
-            'PacketIncomingVnfIntCp':
-                'sum(container_network_receive_packets_total'
-                '{{interface="{sub_object_instance_id}",pod=~"{pod}"}})',
-            'ByteOutgoingVnfIntCp':
-                'sum(container_network_transmit_bytes_total'
-                '{{interface="{sub_object_instance_id}",pod=~"{pod}"}})',
-            'PacketOutgoingVnfIntCp':
-                'sum(container_network_transmit_packets_total'
-                '{{interface="{sub_object_instance_id}",pod=~"{pod}"}})',
-            'ByteIncomingVnfExtCp':
-                'sum(container_network_receive_bytes_total'
-                '{{interface="{sub_object_instance_id}",pod=~"{pod}"}})',
-            'PacketIncomingVnfExtCp':
-                'sum(container_network_receive_packets_total'
-                '{{interface="{sub_object_instance_id}",pod=~"{pod}"}})',
-            'ByteOutgoingVnfExtCp':
-                'sum(container_network_transmit_bytes_total'
-                '{{interface="{sub_object_instance_id}",pod=~"{pod}"}})',
-            'PacketOutgoingVnfExtCp':
-                'sum(container_network_transmit_packets_total'
-                '{{interface="{sub_object_instance_id}",pod=~"{pod}"}})',
-        }
         PrometheusPluginPm._instance = self
 
     def set_callback(self, notification_callback):
@@ -151,17 +376,6 @@ class PrometheusPluginPm(PrometheusPlugin, mon_base.MonitoringPlugin):
 
     def default_callback(self, context, entries):
         self.rpc.store_job_info(context, entries)
-
-    def convert_measurement_unit(self, metric, value):
-        if re.match(r'^V(Cpu|Memory|Disk)Usage(Mean|Peak)Vnf\..+', metric):
-            value = float(value)
-        elif re.match(r'^(Byte|Packet)(Incoming|Outgoing)Vnf(IntCp|ExtCp)',
-                      metric):
-            value = int(value)
-        else:
-            raise sol_ex.PrometheusPluginError(
-                  "Failed to convert annotations.value to measurement unit.")
-        return value
 
     def get_datetime_of_latest_report(
             self, context, pm_job, object_instance_id,
@@ -305,77 +519,7 @@ class PrometheusPluginPm(PrometheusPlugin, mon_base.MonitoringPlugin):
             )
         return metrics
 
-    def make_prom_ql(self, target, pod, collection_period=30,
-                     reporting_period=90, sub_object_instance_id='*'):
-        reporting_period = max(reporting_period, 30)
-        expr = self.sol_exprs[target].format(
-            pod=pod,
-            collection_period=collection_period,
-            reporting_period=reporting_period,
-            sub_object_instance_id=sub_object_instance_id
-        )
-        return expr
-
-    def make_rule(self, pm_job, object_instance_id, sub_object_instance_id,
-                  metric, expression, collection_period):
-        labels = {
-            'alertname': '',
-            'receiver_type': 'tacker',
-            'function_type': 'vnfpm',
-            'job_id': pm_job.id,
-            'object_instance_id': object_instance_id,
-            'sub_object_instance_id': sub_object_instance_id,
-            'metric': metric
-        }
-        labels = {k: v for k, v in labels.items() if v is not None}
-        annotations = {
-            'value': r'{{$value}}'
-        }
-        rule = {
-            'alert': uuidutils.generate_uuid(),
-            'expr': expression,
-            'for': f'{collection_period}s',
-            'labels': labels,
-            'annotations': annotations
-        }
-        return rule
-
-    def get_vnfc_resource_info(self, _, vnf_instance_id, inst_map):
-        inst = inst_map[vnf_instance_id]
-        if not inst.obj_attr_is_set('instantiatedVnfInfo') or\
-                not inst.instantiatedVnfInfo.obj_attr_is_set(
-                    'vnfcResourceInfo'):
-            return None
-        return inst.instantiatedVnfInfo.vnfcResourceInfo
-
-    def get_pod_regexp(self, resource_info):
-        # resource ids are like:
-        #   ['test-test1-756757f8f-xcwmt',
-        #    'test-test2-756757f8f-kmghr', ...]
-        # convert them to a regex string such as:
-        #   '(test-test1-[0-9a-f]{1,10}-[0-9a-z]{5}$|
-        #    test-test2-[0-9a-f]{1,10}-[0-9a-z]{5}$|...)'
-        deployments = list(filter(
-            lambda r:
-                r.computeResource.obj_attr_is_set(
-                    'vimLevelResourceType')
-                and r.computeResource.obj_attr_is_set(
-                    'resourceId'
-                )
-                and r.computeResource.vimLevelResourceType ==
-                'Deployment', resource_info
-        ))
-        deployments = list(set(list(map(
-            lambda d: re.sub(
-                r'\-[0-9a-f]{1,10}\-[0-9a-z]{5}$', '',
-                d.computeResource.resourceId) +
-            r'-[0-9a-f]{1,10}-[0-9a-z]{5}$',
-            deployments
-        ))))
-        pods_regexp = '(' + '|'.join(deployments) + ')'
-        return deployments, pods_regexp
-
-    def _make_rules_for_each_obj(self, context, pm_job, inst_map, metric):
+    def _make_rules_for_each_obj(self, pm_job, inst_map, metric):
         target = re.sub(r'\..+$', '', metric)
         objs = pm_job.objectInstanceIds
         collection_period = pm_job.criteria.collectionPeriod
@@ -388,45 +532,19 @@ class PrometheusPluginPm(PrometheusPlugin, mon_base.MonitoringPlugin):
             # convert them to a regex string such as:
             #   '(test-test1-[0-9a-f]{1,10}-[0-9a-z]{5}$|
             #    test-test2-[0-9a-f]{1,10}-[0-9a-z]{5}$|...)'
-            resource_info = self.get_vnfc_resource_info(context, obj, inst_map)
-            if not resource_info:
+            pods_regexp = self.get_pod_regexp(inst_map[obj])
+            if pods_regexp is None:
                 continue
-            deployments, pods_regexp = self.get_pod_regexp(resource_info)
-            if len(deployments) == 0:
-                continue
+            namespace = self.get_namespace(inst_map[obj])
             expr = self.make_prom_ql(
                 target, pods_regexp, collection_period=collection_period,
-                reporting_period=reporting_period)
+                reporting_period=reporting_period, namespace=namespace)
             rules.append(self.make_rule(
-                pm_job, obj, None, metric, expr,
-                collection_period))
+                'PMJob', pm_job.id, obj, None, metric, expr,
+                collection_period=collection_period))
         return rules
 
-    def get_compute_resource_by_sub_obj(self, vnf_instance, sub_obj):
-        inst = vnf_instance
-        if (not inst.obj_attr_is_set('instantiatedVnfInfo') or
-                not inst.instantiatedVnfInfo.obj_attr_is_set(
-                    'vnfcResourceInfo') or
-                not inst.instantiatedVnfInfo.obj_attr_is_set('vnfcInfo')):
-            return None
-        vnfc_info = list(filter(
-            lambda x: (x.obj_attr_is_set('vnfcResourceInfoId') and
-                x.id == sub_obj),
-            inst.instantiatedVnfInfo.vnfcInfo))
-        if len(vnfc_info) == 0:
-            return None
-        resources = list(filter(
-            lambda x: (vnfc_info[0].obj_attr_is_set('vnfcResourceInfoId') and
-                x.id == vnfc_info[0].vnfcResourceInfoId and
-                x.computeResource.obj_attr_is_set('vimLevelResourceType') and
-                x.computeResource.vimLevelResourceType == 'Deployment' and
-                x.computeResource.obj_attr_is_set('resourceId')),
-            inst.instantiatedVnfInfo.vnfcResourceInfo))
-        if len(resources) == 0:
-            return None
-        return resources[0].computeResource
-
-    def _make_rules_for_each_sub_obj(self, context, pm_job, inst_map, metric):
+    def _make_rules_for_each_sub_obj(self, pm_job, inst_map, metric):
         target = re.sub(r'\..+$', '', metric)
         objs = pm_job.objectInstanceIds
         sub_objs = pm_job.subObjectInstanceIds\
@@ -435,7 +553,7 @@ class PrometheusPluginPm(PrometheusPlugin, mon_base.MonitoringPlugin):
         collection_period = pm_job.criteria.collectionPeriod
         reporting_period = pm_job.criteria.reportingPeriod
         rules = []
-        resource_info = self.get_vnfc_resource_info(context, objs[0], inst_map)
+        resource_info = self.get_vnfc_resource_info(inst_map[objs[0]])
         if not resource_info:
             return []
         if pm_job.objectType in {'Vnf', 'Vnfc'}:
@@ -446,38 +564,39 @@ class PrometheusPluginPm(PrometheusPlugin, mon_base.MonitoringPlugin):
                 if not compute_resource:
                     continue
                 resource_id = compute_resource.resourceId
+                namespace = self.get_namespace(inst)
                 expr = self.make_prom_ql(
                     target, resource_id,
                     collection_period=collection_period,
-                    reporting_period=reporting_period)
+                    reporting_period=reporting_period,
+                    namespace=namespace)
                 rules.append(self.make_rule(
-                    pm_job, objs[0], sub_obj, metric, expr,
-                    collection_period))
+                    'PMJob', pm_job.id, objs[0], sub_obj, metric, expr,
+                    collection_period=collection_period))
         else:
-            deployments, pods_regexp = self.get_pod_regexp(resource_info)
-            if len(deployments) == 0:
+            pods_regexp = self.get_pod_regexp(inst_map[objs[0]])
+            if pods_regexp is None:
                 return []
             for sub_obj in sub_objs:
+                namespace = self.get_namespace(inst_map[objs[0]])
                 expr = self.make_prom_ql(
                     target, pods_regexp, collection_period=collection_period,
                     reporting_period=reporting_period,
-                    sub_object_instance_id=sub_obj)
+                    sub_object_instance_id=sub_obj, namespace=namespace)
                 rules.append(self.make_rule(
-                    pm_job, objs[0], sub_obj, metric, expr,
-                    collection_period))
+                    'PMJob', pm_job.id, objs[0], sub_obj, metric, expr,
+                    collection_period=collection_period))
         return rules
 
-    def _make_rules(self, context, pm_job, metric, inst_map):
+    def _make_rules(self, pm_job, metric, inst_map):
         sub_objs = pm_job.subObjectInstanceIds\
             if (pm_job.obj_attr_is_set('subObjectInstanceIds') and
                 pm_job.subObjectInstanceIds) else []
         # Cardinality of objectInstanceIds and subObjectInstanceIds
         # is N:0 or 1:N.
         if len(sub_objs) > 0:
-            return self._make_rules_for_each_sub_obj(
-                context, pm_job, inst_map, metric)
-        return self._make_rules_for_each_obj(
-            context, pm_job, inst_map, metric)
+            return self._make_rules_for_each_sub_obj(pm_job, inst_map, metric)
+        return self._make_rules_for_each_obj(pm_job, inst_map, metric)
 
     def decompose_metrics_vnfintextcp(self, pm_job):
         group_name = 'VnfInternalCp'\
@@ -504,32 +623,6 @@ class PrometheusPluginPm(PrometheusPlugin, mon_base.MonitoringPlugin):
             )
         return metrics
 
-    def _delete_rule(self, host, port, user, password, path, pm_job_id):
-        with paramiko.Transport(sock=(host, port)) as client:
-            client.connect(username=user, password=password)
-            sftp = paramiko.SFTPClient.from_transport(client)
-            sftp.remove(f'{path}/{pm_job_id}.json')
-
-    def delete_rules(self, context, pm_job):
-        target_list, reload_list = self.get_access_info(pm_job)
-        for target in target_list:
-            try:
-                self._delete_rule(
-                    target['host'], target['port'], target['user'],
-                    target['password'], target['path'], pm_job.id)
-            except (sol_ex.PrometheusPluginError, ks_exc.ClientException,
-                    paramiko.SSHException):
-                # This exception is ignored. DELETE /pm_jobs/{id}
-                # will be success even if _delete_rule() is failed.
-                # Because the rule file was already deleted.
-                pass
-        for uri in reload_list:
-            try:
-                self.reload_prom_server(context, uri)
-            except (sol_ex.PrometheusPluginError, ks_exc.ClientException,
-                    paramiko.SSHException):
-                pass
-
     def decompose_metrics(self, pm_job):
         if pm_job.objectType in {'Vnf', 'Vnfc'}:
             return self.decompose_metrics_vnfc(pm_job)
@@ -537,107 +630,6 @@ class PrometheusPluginPm(PrometheusPlugin, mon_base.MonitoringPlugin):
             return self.decompose_metrics_vnfintextcp(pm_job)
         raise sol_ex.PrometheusPluginError(
             f"Invalid objectType: {pm_job.objectType}.")
-
-    def reload_prom_server(self, context, reload_uri):
-        resp, _ = self.client.do_request(
-            reload_uri, "PUT", context=context)
-        if resp.status_code >= 400 and resp.status_code < 600:
-            raise sol_ex.PrometheusPluginError(
-                f"Reloading request to prometheus is failed: "
-                f"{resp.status_code}.")
-
-    def _upload_rule(self, rule_group, host, port, user, password, path,
-                     pm_job_id):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            with open(os.path.join(tmpdir, 'rule.json'),
-                      'w+', encoding="utf-8") as fp:
-                json.dump(rule_group, fp, indent=4, ensure_ascii=False)
-                filename = fp.name
-            with paramiko.Transport(sock=(host, port)) as client:
-                LOG.info("Upload rule files to prometheus server: %s.", host)
-                client.connect(username=user, password=password)
-                sftp = paramiko.SFTPClient.from_transport(client)
-                sftp.put(filename, f'{path}/{pm_job_id}.json')
-        self.verify_rule(host, port, user, password, path, pm_job_id)
-
-    def verify_rule(self, host, port, user, password, path, pm_job_id):
-        if not CONF.prometheus_plugin.test_rule_with_promtool:
-            return
-        with paramiko.SSHClient() as client:
-            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            client.connect(host, port=port, username=user, password=password)
-            command = f"promtool check rules {path}/{pm_job_id}.json"
-            LOG.info("Rule file validation command: %s", command)
-            _, stdout, stderr = client.exec_command(command)
-            if stdout.channel.recv_exit_status() != 0:
-                error_byte = stderr.read()
-                error_str = error_byte.decode('utf-8')
-                LOG.error(
-                    "Rule file validation with promtool failed: %s",
-                    error_str)
-                raise sol_ex.PrometheusPluginError(
-                    "Rule file validation with promtool failed.")
-
-    def get_access_info(self, pm_job):
-        target_list = []
-        reload_list = []
-        if (not pm_job.obj_attr_is_set('metadata')
-                or 'monitoring' not in pm_job.metadata):
-            raise sol_ex.PrometheusPluginError(
-                  "monitoring info is missing at metadata field.")
-        access_info = pm_job.metadata['monitoring']
-        if (access_info.get('monitorName') != 'prometheus' or
-                access_info.get('driverType') != 'external'):
-            raise sol_ex.PrometheusPluginError(
-                  "prometheus info is missing at metadata field.")
-        for info in access_info.get('targetsInfo', []):
-            host = info.get('prometheusHost', '')
-            port = info.get('prometheusHostPort', 22)
-            auth = info.get('authInfo', {})
-            user = auth.get('ssh_username', '')
-            password = auth.get('ssh_password', '')
-            path = info.get('alertRuleConfigPath', '')
-            uri = info.get('prometheusReloadApiEndpoint', '')
-            if not (host and user and path and uri):
-                continue
-            target_list.append({
-                'host': host,
-                'port': port,
-                'user': user,
-                'password': password,
-                'path': path
-            })
-            reload_list.append(uri)
-        return target_list, list(set(reload_list))
-
-    def upload_rules(
-            self, context, target_list, reload_list, rule_group, pm_job):
-        def _cleanup_error(target_list):
-            for target in target_list:
-                try:
-                    self._delete_rule(target['host'], target['port'],
-                        target['user'], target['password'], target['path'],
-                        pm_job.id)
-                except (sol_ex.PrometheusPluginError, ks_exc.ClientException,
-                        paramiko.SSHException):
-                    pass
-
-        try:
-            for target in target_list:
-                self._upload_rule(
-                    rule_group, target['host'], target['port'],
-                    target['user'], target['password'], target['path'],
-                    pm_job.id)
-            for uri in reload_list:
-                self.reload_prom_server(context, uri)
-        except (sol_ex.PrometheusPluginError, ks_exc.ClientException,
-                paramiko.SSHException) as e:
-            LOG.error("failed to upload rule files: %s", e.args[0])
-            _cleanup_error(target_list)
-            raise e
-        except Exception as e:
-            _cleanup_error(target_list)
-            raise e
 
     def get_vnf_instances(self, context, pm_job):
         object_instance_ids = list(set(pm_job.objectInstanceIds))
@@ -651,7 +643,7 @@ class PrometheusPluginPm(PrometheusPlugin, mon_base.MonitoringPlugin):
         target_list, reload_list = self.get_access_info(pm_job)
         metrics = self.decompose_metrics(pm_job)
         inst_map = self.get_vnf_instances(context, pm_job)
-        rules = sum([self._make_rules(context, pm_job, metric, inst_map)
+        rules = sum([self._make_rules(pm_job, metric, inst_map)
                      for metric in metrics], [])
         if len(rules) == 0:
             raise sol_ex.PrometheusPluginError(
@@ -666,7 +658,7 @@ class PrometheusPluginPm(PrometheusPlugin, mon_base.MonitoringPlugin):
             ]
         }
         self.upload_rules(
-            context, target_list, reload_list, rule_group, pm_job)
+            context, target_list, reload_list, rule_group, pm_job.id)
         return rule_group
 
 

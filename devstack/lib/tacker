@@ -238,6 +238,7 @@ function configure_tacker {
     cd -
 
     cp $TACKER_DIR/etc/tacker/tacker.conf.sample $TACKER_CONF
+    cp $TACKER_DIR/etc/tacker/prometheus-plugin.yaml $TACKER_CONF_DIR/prometheus-plugin.yaml
 
     iniset_rpc_backend tacker $TACKER_CONF
 

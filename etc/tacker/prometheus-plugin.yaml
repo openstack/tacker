@@ -1,0 +1,121 @@
+# Prometheus plugin configuration file
+#
+# This describes the Prometheus plugin configuration. This is used when
+# Prometheus Plugin creates an alert rule. You can use your own promQL
+# statements. Put this file in the configuration directory (e.g:/etc/tacker).
+#
+# The settings are key-value pairs of a performanceMetric and a PromQL
+# statement. The performanceMetric is defined in ETSI GS NFV-SOL 003. For
+# PromQL statement, f-string of python is used. In the f-string, below
+# replacement field can be used. They are replaced with a SOL-API's attribute
+# or Tacker internal value.
+#
+#  {collection_period}:
+#    Replaced with collectionPeriod attribute of SOL-API.
+#  {pod}:
+#    Replaced with a resourceId when subObjectInstanceIds are specified.
+#      e.g: test-test1-8d6db447f-stzhb
+#    Replaced with regexp that matches each resourceId in vnfInstance when
+#    subObjectInstanceIds are not specified.
+#      e.g: (test-test1-[0-9a-f]{1,10}-[0-9a-z]{5}$|
+#           test-test2-[0-9a-f]{1,10}-[0-9a-z]{5}$)
+#  {reporting_period}:
+#    Replaced with reportingPeriod attribute of SOL-API.
+#  {sub_object_instance_id}:
+#    Replaced with an element of subObjectInstanceIds of SOL-API.
+#  {namespace}:
+#    Replaced with the kubernetes namespace that the vnfInstance belongs to.
+#
+
+PMJob:
+  PromQL:
+    VCpuUsageMeanVnf: >-
+      avg(sum(rate(pod_cpu_usage_seconds_total
+      {{namespace="{namespace}",pod=~"{pod}"}}[{reporting_period}s])))
+    VCpuUsagePeakVnf: >-
+      max(sum(rate(pod_cpu_usage_seconds_total
+      {{namespace="{namespace}",pod=~"{pod}"}}[{reporting_period}s])))
+    VMemoryUsageMeanVnf: >-
+      avg(pod_memory_working_set_bytes{{namespace="{namespace}",pod=~"{pod}"}} /
+      on(pod) (kube_node_status_capacity{{resource="memory"}} *
+      on(node) group_right kube_pod_info{{pod=~"{pod}"}}))
+    VMemoryUsagePeakVnf: >-
+      max(pod_memory_working_set_bytes{{namespace="{namespace}",pod=~"{pod}"}} /
+      on(pod) (kube_node_status_capacity{{resource="memory"}} *
+      on(node) group_right kube_pod_info{{pod=~"{pod}"}}))
+    VDiskUsageMeanVnf: >-
+      avg(max(container_fs_usage_bytes{{namespace="{namespace}",pod=~"{pod}"}}/
+      container_fs_limit_bytes{{namespace="{namespace}",pod=~"{pod}"}}))
+    VDiskUsagePeakVnf: >-
+      max(max(container_fs_usage_bytes{{namespace="{namespace}",pod=~"{pod}"}}/
+      container_fs_limit_bytes{{namespace="{namespace}",pod=~"{pod}"}}))
+    ByteIncomingVnfIntCp: >-
+      sum(container_network_receive_bytes_total
+      {{namespace="{namespace}",interface="{sub_object_instance_id}",pod=~"{pod}"}})
+    PacketIncomingVnfIntCp: >-
+      sum(container_network_receive_packets_total
+      {{namespace="{namespace}",interface="{sub_object_instance_id}",pod=~"{pod}"}})
+    ByteOutgoingVnfIntCp: >-
+      sum(container_network_transmit_bytes_total
+      {{namespace="{namespace}",interface="{sub_object_instance_id}",pod=~"{pod}"}})
+    PacketOutgoingVnfIntCp: >-
+      sum(container_network_transmit_packets_total
+      {{namespace="{namespace}",interface="{sub_object_instance_id}",pod=~"{pod}"}})
+    ByteIncomingVnfExtCp: >-
+      sum(container_network_receive_bytes_total
+      {{namespace="{namespace}",interface="{sub_object_instance_id}",pod=~"{pod}"}})
+    PacketIncomingVnfExtCp: >-
+      sum(container_network_receive_packets_total
+      {{namespace="{namespace}",interface="{sub_object_instance_id}",pod=~"{pod}"}})
+    ByteOutgoingVnfExtCp: >-
+      sum(container_network_transmit_bytes_total
+      {{namespace="{namespace}",interface="{sub_object_instance_id}",pod=~"{pod}"}})
+    PacketOutgoingVnfExtCp: >-
+      sum(container_network_transmit_packets_total
+      {{namespace="{namespace}",interface="{sub_object_instance_id}",pod=~"{pod}"}})
+Threshold:
+  PromQL:
+    VCpuUsageMeanVnf: >-
+      avg(sum(rate(pod_cpu_usage_seconds_total
+      {{namespace="{namespace}",pod=~"{pod}"}}[{reporting_period}s])))
+    VCpuUsagePeakVnf: >-
+      max(sum(rate(pod_cpu_usage_seconds_total
+      {{namespace="{namespace}",pod=~"{pod}"}}[{reporting_period}s])))
+    VMemoryUsageMeanVnf: >-
+      avg(pod_memory_working_set_bytes{{namespace="{namespace}",pod=~"{pod}"}} /
+      on(pod) (kube_node_status_capacity{{resource="memory"}} *
+      on(node) group_right kube_pod_info{{pod=~"{pod}"}}))
+    VMemoryUsagePeakVnf: >-
+      max(pod_memory_working_set_bytes{{namespace="{namespace}",pod=~"{pod}"}} /
+      on(pod) (kube_node_status_capacity{{resource="memory"}} *
+      on(node) group_right kube_pod_info{{pod=~"{pod}"}}))
+    VDiskUsageMeanVnf: >-
+      avg(max(container_fs_usage_bytes{{namespace="{namespace}",pod=~"{pod}"}}/
+      container_fs_limit_bytes{{namespace="{namespace}",pod=~"{pod}"}}))
+    VDiskUsagePeakVnf: >-
+      max(max(container_fs_usage_bytes{{namespace="{namespace}",pod=~"{pod}"}}/
+      container_fs_limit_bytes{{namespace="{namespace}",pod=~"{pod}"}}))
+    ByteIncomingVnfIntCp: >-
+      sum(container_network_receive_bytes_total
+      {{namespace="{namespace}",interface="{sub_object_instance_id}",pod=~"{pod}"}})
+    PacketIncomingVnfIntCp: >-
+      sum(container_network_receive_packets_total
+      {{namespace="{namespace}",interface="{sub_object_instance_id}",pod=~"{pod}"}})
+    ByteOutgoingVnfIntCp: >-
+      sum(container_network_transmit_bytes_total
+      {{namespace="{namespace}",interface="{sub_object_instance_id}",pod=~"{pod}"}})
+    PacketOutgoingVnfIntCp: >-
+      sum(container_network_transmit_packets_total
+      {{namespace="{namespace}",interface="{sub_object_instance_id}",pod=~"{pod}"}})
+    ByteIncomingVnfExtCp: >-
+      sum(container_network_receive_bytes_total
+      {{namespace="{namespace}",interface="{sub_object_instance_id}",pod=~"{pod}"}})
+    PacketIncomingVnfExtCp: >-
+      sum(container_network_receive_packets_total
+      {{namespace="{namespace}",interface="{sub_object_instance_id}",pod=~"{pod}"}})
+    ByteOutgoingVnfExtCp: >-
+      sum(container_network_transmit_bytes_total
+      {{namespace="{namespace}",interface="{sub_object_instance_id}",pod=~"{pod}"}})
+    PacketOutgoingVnfExtCp: >-
+      sum(container_network_transmit_packets_total
+      {{namespace="{namespace}",interface="{sub_object_instance_id}",pod=~"{pod}"}})

@@ -343,3 +343,94 @@ class VnfPmTest(base_v2.BaseVnfLcmKubernetesV2Test):
         # check deletion of VNF instance
         resp, body = self.show_vnf_instance(inst_id)
         self.assertEqual(404, resp.status_code)
+
+    def test_prometheus_plugin_external_data(self):
+        """Test PM operations with all performanceMetric
+
+        * About PM operations:
+          This test includes the following operations.
+          - 1. Create a new VNF instance resource
+          - 2. Instantiate a VNF instance
+          (loop for each performanceMetric)
+            - 3. PMJob-Create
+            - 4. PMJob-Delete
+          - 5. Terminate a VNF instance
+          - 6. Delete a VNF instance
+        """
+        # 1. LCM-Create: Create a new VNF instance resource
+        create_req = paramgen.pm_instantiate_cnf_resources_create(
+            self.vnfd_id_1)
+        resp, body = self.create_vnf_instance(create_req)
+        self.assertEqual(201, resp.status_code)
+        inst_id = body['id']
+
+        # 2. LCM-Instantiate: Instantiate a VNF instance
+        vim_id = self.get_k8s_vim_id()
+        instantiate_req = paramgen.min_sample_instantiate(vim_id)
+        instantiate_req['additionalParams'][
+            'lcm-kubernetes-def-files'] = ['Files/kubernetes/deployment.yaml']
+        resp, body = self.instantiate_vnf_instance(inst_id, instantiate_req)
+        self.assertEqual(202, resp.status_code)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        rsc = body['instantiatedVnfInfo']['vnfcInfo'][0]['id']
+
+        pm_expected_attrs = [
+            'id',
+            'objectType',
+            'objectInstanceIds',
+            'criteria',
+            'callbackUri',
+            '_links'
+        ]
+        callback_url = os.path.join(base_v2.MOCK_NOTIFY_CALLBACK_URL,
+                                    self._testMethodName)
+        callback_uri = ('http://localhost:'
+                        f'{base_v2.FAKE_SERVER_MANAGER.SERVER_PORT}'
+                        f'{callback_url}')
+        pm_job_list = paramgen.pm_job_external(
+            callback_uri, inst_id, self.fake_prometheus_ip, rsc)
+
+        for job in pm_job_list:
+            print(f"{job['criteria']['performanceMetric'][0]}")
+            # 3. PMJob-Create
+            resp, body = self.create_pm_job(job)
+            self.assertEqual(201, resp.status_code)
+            self.check_resp_headers_in_create(resp)
+            self.check_resp_body(body, pm_expected_attrs)
+            pm_job_id = body.get('id')
+
+            # 4. PMJob-Delete
+            resp, body = self.delete_pm_job(pm_job_id)
+            self.assertEqual(204, resp.status_code)
+            self.check_resp_headers_in_delete(resp)
+
+        # 5. LCM-Terminate: Terminate VNF
+        terminate_req = paramgen.terminate_vnf_min()
+        resp, body = self.terminate_vnf_instance(inst_id, terminate_req)
+        self.assertEqual(202, resp.status_code)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # wait a bit because there is a bit time lag between lcmocc DB
+        # update and terminate completion.
+        time.sleep(10)
+
+        # check instantiationState of VNF
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual(fields.VnfInstanceState.NOT_INSTANTIATED,
+                         body['instantiationState'])
+
+        # 6. LCM-Delete: Delete a VNF instance
+        resp, body = self.delete_vnf_instance(inst_id)
+        self.assertEqual(204, resp.status_code)
+
+        # check deletion of VNF instance
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(404, resp.status_code)

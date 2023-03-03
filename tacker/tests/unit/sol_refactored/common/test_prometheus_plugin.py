@@ -20,6 +20,7 @@ import paramiko
 import sys
 import webob
 
+from tacker.common import utils
 from tacker import context
 from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import http_client
@@ -89,13 +90,13 @@ _body_pm_alert5['labels']['metric'] = 'ByteIncomingVnfIntCp'
 _body_pm_alert6 = copy.deepcopy(_body_pm_alert1)
 _body_pm_alert6['labels']['metric'] = 'InvalidMetric'
 
-_body_pm1 = copy.copy(_body_base)
+_body_pm1 = copy.deepcopy(_body_base)
 _body_pm1.update({
     'alerts': [
         _body_pm_alert1, _body_pm_alert2, _body_pm_alert3, _body_pm_alert4]
 })
 
-_body_pm2 = copy.copy(_body_base)
+_body_pm2 = copy.deepcopy(_body_base)
 _body_pm2.update({
     'alerts': [_body_pm_alert5, _body_pm_alert6]
 })
@@ -236,7 +237,7 @@ _inst_base = {
     'instantiationState': 'NOT_INSTANTIATED',
 }
 
-_inst1 = copy.copy(_inst_base)
+_inst1 = copy.deepcopy(_inst_base)
 _inst1.update({
     'instantiatedVnfInfo': {
         'id': 'id',
@@ -261,6 +262,11 @@ _inst1.update({
     }
 })
 
+_inst2 = copy.deepcopy(_inst1)
+_inst2['instantiatedVnfInfo']['metadata'] = {
+    'namespace': 'test'
+}
+
 datetime_test = datetime.datetime.fromisoformat(
     '2022-06-22T01:23:45.678Z'.replace('Z', '+00:00'))
 
@@ -273,11 +279,31 @@ def unload_uuidsentinel():
 
 
 class _ParamikoTest():
-    def __init__(self):
+    channel = None
+    exp = None
+    recv_exit_status_value = 0
+
+    def __init__(self, exp=None, recv_exit_status_value=0):
+        self.channel = self
+        self.exp = exp
+        self.recv_exit_status_value = recv_exit_status_value
         pass
 
-    def connect(self, **kwargs):
+    def set_missing_host_key_policy(self, arg1):
         pass
+
+    def exec_command(self, *args):
+        return None, self, self
+
+    def recv_exit_status(self):
+        return self.recv_exit_status_value
+
+    def read(self):
+        return b'test'
+
+    def connect(self, *args, **kwargs):
+        if self.exp:
+            raise self.exp
 
     def remove(self, arg1):
         pass
@@ -469,15 +495,23 @@ class TestPrometheusPluginPm(base.TestCase):
         # error
         resp.status_code = 503
         pp.delete_job(context=self.context, pm_job=job)
+        # paramiko error
+        resp.status_code = 202
+        mock_paramiko.return_value = _ParamikoTest(
+            exp=sol_ex.PrometheusPluginError())
+        pp.delete_job(context=self.context, pm_job=job)
 
+    @mock.patch.object(paramiko, 'SSHClient')
     @mock.patch.object(http_client.HttpClient, 'do_request')
     @mock.patch.object(paramiko.SFTPClient, 'from_transport')
     @mock.patch.object(paramiko, 'Transport')
     @mock.patch.object(inst_utils, 'get_inst')
     def test_create_job(
-            self, mock_inst, mock_paramiko, mock_sftp, mock_do_request):
+            self, mock_inst, mock_paramiko, mock_sftp, mock_do_request,
+            mock_sshclient):
         mock_paramiko.return_value = _ParamikoTest()
         mock_sftp.return_value = _ParamikoTest()
+        mock_sshclient.return_value = _ParamikoTest()
         resp = webob.Response()
         resp.status_code = 202
         mock_do_request.return_value = resp, {}
@@ -485,6 +519,8 @@ class TestPrometheusPluginPm(base.TestCase):
 
         self.config_fixture.config(
             group='prometheus_plugin', performance_management=True)
+        self.config_fixture.config(
+            group='prometheus_plugin', test_rule_with_promtool=True)
         pp = mon_base.MonitoringPlugin.get_instance(
             prometheus_plugin.PrometheusPluginPm)
         # VirtualisedComputeResource
@@ -496,6 +532,15 @@ class TestPrometheusPluginPm(base.TestCase):
         rule = pp.create_job(context=self.context, pm_job=job)
         self.assertTrue(len(rule['groups'][0]['rules']) > 0)
         self.assertTrue('interface="*"' in str(rule))
+        # namespace
+        job = objects.PmJobV2.from_dict(_pm_job)
+        rule = pp.create_job(context=self.context, pm_job=job)
+        self.assertTrue('namespace="default"' in str(rule))
+        self.assertFalse('namespace="test"' in str(rule))
+        mock_inst.return_value = objects.VnfInstanceV2.from_dict(_inst2)
+        rule = pp.create_job(context=self.context, pm_job=job)
+        self.assertFalse('namespace="default"' in str(rule))
+        self.assertTrue('namespace="test"' in str(rule))
 
     @mock.patch.object(http_client.HttpClient, 'do_request')
     @mock.patch.object(paramiko.SFTPClient, 'from_transport')
@@ -658,6 +703,111 @@ class TestPrometheusPluginPm(base.TestCase):
         job = copy.deepcopy(_pm_job2)
         job['subObjectInstanceIds'] = ['test_if0']
         job = objects.PmJobV2.from_dict(job)
+        self.assertRaises(
+            sol_ex.PrometheusPluginError,
+            pp.create_job, context=self.context, pm_job=job
+        )
+
+    @mock.patch.object(paramiko, 'SSHClient')
+    @mock.patch.object(http_client.HttpClient, 'do_request')
+    @mock.patch.object(paramiko.SFTPClient, 'from_transport')
+    @mock.patch.object(paramiko, 'Transport')
+    @mock.patch.object(inst_utils, 'get_inst')
+    def test_create_job_uploading_error(
+            self, mock_inst, mock_paramiko, mock_sftp, mock_do_request,
+            mock_sshclient):
+        mock_paramiko.return_value = _ParamikoTest()
+        mock_sftp.return_value = _ParamikoTest()
+        exp = ValueError("test_create_job_error2")
+        mock_sshclient.return_value = _ParamikoTest(
+            exp=exp, recv_exit_status_value=1)
+        resp = webob.Response()
+        resp.status_code = 202
+        mock_do_request.return_value = resp, {}
+        mock_inst.return_value = objects.VnfInstanceV2.from_dict(_inst1)
+
+        self.config_fixture.config(
+            group='prometheus_plugin', performance_management=True)
+        self.config_fixture.config(
+            group='prometheus_plugin', test_rule_with_promtool=True)
+        pp = mon_base.MonitoringPlugin.get_instance(
+            prometheus_plugin.PrometheusPluginPm)
+        # upload error
+        job = objects.PmJobV2.from_dict(_pm_job)
+        self.assertRaises(
+            ValueError,
+            pp.create_job, context=self.context, pm_job=job)
+        exp = sol_ex.PrometheusPluginError("test_create_job_error2")
+        mock_paramiko.return_value = _ParamikoTest(exp=exp)
+        mock_sshclient.return_value = _ParamikoTest(
+            exp=exp, recv_exit_status_value=1)
+        self.assertRaises(
+            sol_ex.PrometheusPluginError,
+            pp.create_job, context=self.context, pm_job=job)
+
+    @mock.patch.object(utils, 'find_config_file')
+    @mock.patch.object(paramiko, 'SSHClient')
+    @mock.patch.object(http_client.HttpClient, 'do_request')
+    @mock.patch.object(paramiko.SFTPClient, 'from_transport')
+    @mock.patch.object(paramiko, 'Transport')
+    @mock.patch.object(inst_utils, 'get_inst')
+    def test_promql_config_file_missing(
+            self, mock_inst, mock_paramiko, mock_sftp, mock_do_request,
+            mock_sshclient, mock_utils):
+        mock_paramiko.return_value = _ParamikoTest()
+        mock_sftp.return_value = _ParamikoTest()
+        mock_sshclient.return_value = _ParamikoTest(recv_exit_status_value=1)
+        resp = webob.Response()
+        resp.status_code = 202
+        mock_do_request.return_value = resp, {}
+        mock_inst.return_value = objects.VnfInstanceV2.from_dict(_inst1)
+
+        self.config_fixture.config(
+            group='prometheus_plugin', performance_management=True)
+        self.config_fixture.config(
+            group='prometheus_plugin', test_rule_with_promtool=True)
+        pp = mon_base.MonitoringPlugin.get_instance(
+            prometheus_plugin.PrometheusPluginPm)
+
+        # no config file
+        mock_utils.return_value = None
+        job = objects.PmJobV2.from_dict(_pm_job)
+        self.assertRaises(
+            sol_ex.PrometheusPluginError,
+            pp.create_job, context=self.context, pm_job=job
+        )
+        # Type check
+        mock_utils.return_value = None
+        pp.make_rule("Threshold", "id", "id", "id", "metric", "exp")
+        self.assertRaises(
+            sol_ex.PrometheusPluginError,
+            pp.make_rule, "TypeError", "id", "id", "id", "metric", "exp"
+        )
+
+    @mock.patch.object(paramiko, 'SSHClient')
+    @mock.patch.object(http_client.HttpClient, 'do_request')
+    @mock.patch.object(paramiko.SFTPClient, 'from_transport')
+    @mock.patch.object(paramiko, 'Transport')
+    @mock.patch.object(inst_utils, 'get_inst')
+    def test_promql(
+            self, mock_inst, mock_paramiko, mock_sftp, mock_do_request,
+            mock_sshclient):
+        mock_paramiko.return_value = _ParamikoTest()
+        mock_sftp.return_value = _ParamikoTest()
+        mock_sshclient.return_value = _ParamikoTest(recv_exit_status_value=1)
+        resp = webob.Response()
+        resp.status_code = 202
+        mock_do_request.return_value = resp, {}
+        mock_inst.return_value = objects.VnfInstanceV2.from_dict(_inst1)
+
+        self.config_fixture.config(
+            group='prometheus_plugin', performance_management=True)
+        self.config_fixture.config(
+            group='prometheus_plugin', test_rule_with_promtool=True)
+        pp = mon_base.MonitoringPlugin.get_instance(
+            prometheus_plugin.PrometheusPluginPm)
+
+        job = objects.PmJobV2.from_dict(_pm_job)
         self.assertRaises(
             sol_ex.PrometheusPluginError,
             pp.create_job, context=self.context, pm_job=job
