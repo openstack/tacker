@@ -212,8 +212,7 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
         if created_vim_info:
             vim_info = self.nfvo_plugin.get_vim(
                 context, created_vim_info.id)
-            if (vim_info['auth_url'] == server and
-                    vim_info['status'] == 'REACHABLE'):
+            if vim_info['auth_url'] == server:
                 return vim_info
         try:
             return self.nfvo_plugin.create_vim(context, create_vim_info)

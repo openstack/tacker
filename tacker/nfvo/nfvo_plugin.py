@@ -42,7 +42,6 @@ from tacker.extensions import common_services as cs
 from tacker.extensions import nfvo
 from tacker.keymgr import API as KEYMGR_API
 from tacker import manager
-from tacker.nfvo.workflows.vim_monitor import vim_monitor_utils
 from tacker.plugins.common import constants
 from tacker.vnfm import keystone
 from tacker.vnfm import vim_client
@@ -124,7 +123,6 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
         if vim_type == 'openstack':
             vim_obj['auth_url'] = utils.get_auth_url_v3(vim_obj['auth_url'])
         vim_obj['id'] = uuidutils.generate_uuid()
-        vim_obj['status'] = 'PENDING'
         try:
             self._vim_drivers.invoke(vim_type,
                                      'register_vim',
@@ -136,11 +134,6 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                                          'delete_vim_auth',
                                          vim_id=vim_obj['id'],
                                          auth=vim_obj['auth_cred'])
-
-        try:
-            self.monitor_vim(context, vim_obj)
-        except Exception:
-            LOG.warning("Failed to set up vim monitoring")
         return res
 
     def _get_vim(self, context, vim_id):
@@ -250,17 +243,7 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
         self._vim_drivers.invoke(vim_obj['type'],
                                  'deregister_vim',
                                  vim_obj=vim_obj)
-        try:
-            auth_dict = self.get_auth_dict(context)
-            vim_monitor_utils.delete_vim_monitor(context, auth_dict, vim_obj)
-        except Exception:
-            LOG.exception("Failed to remove vim monitor")
         super(NfvoPlugin, self).delete_vim(context, vim_id)
-
-    @log.log
-    def monitor_vim(self, context, vim_obj):
-        auth_dict = self.get_auth_dict(context)
-        vim_monitor_utils.monitor_vim(auth_dict, vim_obj)
 
     @log.log
     def validate_tosca(self, template):

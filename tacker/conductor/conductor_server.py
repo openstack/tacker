@@ -39,7 +39,6 @@ from oslo_utils import excutils
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
 from sqlalchemy import exc as sqlexc
-from sqlalchemy.orm import exc as orm_exc
 
 from tacker import auth
 from tacker.common import coordination
@@ -52,11 +51,8 @@ from tacker.common import topics
 from tacker.common import utils
 import tacker.conf
 from tacker import context as t_context
-from tacker.db.common_services import common_services_db
 from tacker.db.db_sqlalchemy import models
-from tacker.db.nfvo import nfvo_db
 from tacker.db.vnfm import vnfm_db
-from tacker.extensions import nfvo
 from tacker.glance_store import store as glance_store
 from tacker import manager
 from tacker import objects
@@ -355,28 +351,6 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
                       " %s doesn't exist",
                       CONF.vnf_package.vnf_package_csar_path)
             sys.exit(1)
-
-    def update_vim(self, context, vim_id, status):
-        t_admin_context = t_context.get_admin_context()
-        update_time = timeutils.utcnow()
-        with t_admin_context.session.begin(subtransactions=True):
-            try:
-                query = t_admin_context.session.query(nfvo_db.Vim)
-                query.filter(
-                    nfvo_db.Vim.id == vim_id).update(
-                        {'status': status,
-                         'updated_at': update_time})
-            except orm_exc.NoResultFound:
-                raise nfvo.VimNotFoundException(vim_id=vim_id)
-            event_db = common_services_db.Event(
-                resource_id=vim_id,
-                resource_type=constants.RES_TYPE_VIM,
-                resource_state=status,
-                event_details="",
-                event_type=constants.RES_EVT_MONITOR,
-                timestamp=update_time)
-            t_admin_context.session.add(event_db)
-        return status
 
     def _create_software_images(self, context, sw_image, flavour_uuid):
         vnf_sw_image = objects.VnfSoftwareImage(context=context)

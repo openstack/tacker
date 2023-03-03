@@ -85,7 +85,6 @@ class VIMCreateTestCase(base.TestCase):
                 ]
             },
             'shared': False,
-            'status': 'PENDING',
             'tenant_id': 'test-project',
             'type': 'openstack',
             'updated_at': None,

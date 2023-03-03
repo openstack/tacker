@@ -1,5 +1,4 @@
-# Copyright (C) 2021 FUJITSU
-# All Rights Reserved.
+# Copyright 2023 OpenStack Foundation
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -12,13 +11,24 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+#
 
-from tacker.conductor.conductorrpc import vim_monitor_rpc
-from tacker.tests.unit import base as unit_base
+"""remove status from Vim
+
+Revision ID: de6bfa5bea46
+Revises: de8d835ae776
+Create Date: 2023-01-09 11:08:53.597828
+
+"""
+
+# flake8: noqa: E402
+
+# revision identifiers, used by Alembic.
+revision = 'de6bfa5bea46'
+down_revision = 'de8d835ae776'
+
+from alembic import op
 
 
-class TestVIMUpdateRPC(unit_base.TestCase):
-
-    def setUp(self):
-        super(TestVIMUpdateRPC, self).setUp()
-        self.vimupdaterpc_object = vim_monitor_rpc.VIMUpdateRPC()
+def upgrade(active_plugins=None, options=None):
+    op.drop_column('vims', 'status')

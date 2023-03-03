@@ -165,7 +165,6 @@ class TestCVNFMPlugin(db_base.SqlTestCase):
             name='fake_vim',
             description='fake_vim_description',
             type='kubernetes',
-            status='Active',
             deleted_at=datetime.min,
             placement_attr={'regions': ['default', 'kube-public',
                                         'kube-system']})

@@ -31,7 +31,7 @@ from tacker.plugins.common import constants
 
 VIM_ATTRIBUTES = ('id', 'type', 'tenant_id', 'name', 'description',
                   'placement_attr', 'shared', 'is_default',
-                  'created_at', 'updated_at', 'status', 'extra')
+                  'created_at', 'updated_at', 'extra')
 
 VIM_AUTH_ATTRIBUTES = ('auth_url', 'vim_project', 'password', 'auth_cred')
 
@@ -52,6 +52,9 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
         res['auth_url'] = vim_auth_db[0].auth_url
         res['vim_project'] = vim_auth_db[0].vim_project
         res['auth_cred'] = vim_auth_db[0].auth_cred
+        # TODO(hiromu): Remove 'status' after removing status field from
+        # tacker-pythonclient
+        res['status'] = 'ACTIVE'
         if vim_auth_db[0].password:
             res['auth_cred']['password'] = vim_auth_db[0].password
         # NOTE(Yao Qibin): Since oidc_token_url contains keyword `token`,
@@ -97,7 +100,6 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
                     description=vim.get('description'),
                     placement_attr=vim.get('placement_attr'),
                     is_default=vim.get('is_default'),
-                    status=vim.get('status'),
                     extra=vim.get('extra'),
                     deleted_at=datetime.min)
                 context.session.add(vim_db)
@@ -114,10 +116,14 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
                 _type="vim",
                 entry=e.columns)
         vim_dict = self._make_vim_dict(vim_db)
+
+        # TODO(hiromu): Remove Event table
+        # NOTE(hiromu): "REGISTERED" in res_state is a workaround to delete
+        # the status field from the Vim table.
         self._cos_db_plg.create_event(
             context, res_id=vim_dict['id'],
             res_type=constants.RES_TYPE_VIM,
-            res_state=vim_dict['status'],
+            res_state='REGISTERED',
             evt_type=constants.RES_EVT_CREATE,
             tstamp=vim_dict['created_at'])
         return vim_dict
@@ -127,10 +133,14 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
             vim_db = self._get_resource(context, nfvo_db.Vim, vim_id)
             if soft_delete:
                 vim_db.update({'deleted_at': timeutils.utcnow()})
+
+                # TODO(hiromu): Remove Event table
+                # NOTE(hiromu): "REGISTERED" in res_state is a workaround to
+                # delete the status field from the Vim table.
                 self._cos_db_plg.create_event(
                     context, res_id=vim_db['id'],
                     res_type=constants.RES_TYPE_VIM,
-                    res_state=vim_db['status'],
+                    res_state='REGISTERED',
                     evt_type=constants.RES_EVT_DELETE,
                     tstamp=vim_db[constants.RES_EVT_DELETED_FLD])
             else:
@@ -181,25 +191,18 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
                                 vim_cred.pop('password', None), 'vim_project':
                                 vim_project})
             vim_db.update({'updated_at': timeutils.utcnow()})
+
+            # TODO(hiromu): Remove Event table
+            # NOTE(hiromu): "REGISTERED" in res_state is a workaround to delete
+            # the status field from the Vim table.
             self._cos_db_plg.create_event(
                 context, res_id=vim_db['id'],
                 res_type=constants.RES_TYPE_VIM,
-                res_state=vim_db['status'],
+                res_state='REGISTERED',
                 evt_type=constants.RES_EVT_UPDATE,
                 tstamp=vim_db[constants.RES_EVT_UPDATED_FLD])
 
         return self.get_vim(context, vim_id)
-
-    def update_vim_status(self, context, vim_id, status):
-        with context.session.begin(subtransactions=True):
-            try:
-                vim_db = (self._model_query(context, nfvo_db.Vim).filter(
-                    nfvo_db.Vim.id == vim_id).with_for_update().one())
-            except orm_exc.NoResultFound:
-                raise nfvo.VimNotFoundException(vim_id=vim_id)
-            vim_db.update({'status': status,
-                           'updated_at': timeutils.utcnow()})
-        return self._make_vim_dict(vim_db)
 
     def _validate_default_vim(self, context, vim, vim_id=None):
         if not vim.get('is_default'):

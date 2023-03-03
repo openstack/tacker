@@ -94,7 +94,6 @@ class TestVNFActionVduAutoheal(db_base.SqlTestCase):
             name='fake_vim',
             description='fake_vim_description',
             type='test_vim',
-            status='Active',
             deleted_at=datetime.min,
             placement_attr={'regions': ['RegionOne']})
         vim_auth_db = nfvo_db.VimAuth(

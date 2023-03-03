@@ -3497,12 +3497,6 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             self.vnfd_pkg_data,
             vnfd_id)
 
-    def test_update_vim(self):
-        vim_id = uuidsentinel.vim_id
-        status = "REACHABLE"
-        result = self.conductor.update_vim(self.context, vim_id, status)
-        self.assertEqual(result, "REACHABLE")
-
     @mock.patch.object(csar_utils, 'load_csar_data')
     @mock.patch.object(glance_store, 'load_csar')
     @mock.patch.object(glance_store, 'delete_csar')

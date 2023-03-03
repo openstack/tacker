@@ -137,7 +137,6 @@ vim_data = {
     'description': "test_description",
     'placement_attr': "test_placement_attr",
     'shared': 0,
-    'status': "REACHABLE",
     'is_default': 0
 }
 

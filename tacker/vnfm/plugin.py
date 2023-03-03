@@ -158,7 +158,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
         vnfs = self.get_vnfs(context)
         for vnf in vnfs:
             # Add tenant_id in context object as it is required
-            # to get VIM in monitoring.
+            # to get VNF in monitoring.
             context.tenant_id = vnf['tenant_id']
             self.add_vnf_to_monitor(context, vnf)
 
