@@ -12,6 +12,8 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+
+from oslo_config import cfg
 from oslo_utils import uuidutils
 import requests
 from unittest import mock
@@ -172,6 +174,35 @@ class TestPmJobUtils(base.BaseTestCase):
         )
         result = pm_job_utils._get_notification_auth_handle(pm_job_3)
         self.assertIsInstance(result, http_client.OAuth2MtlsAuthHandle)
+
+        cfg.CONF.set_override("notification_verify_cert", "True",
+            group="v2_vnfm")
+
+        pm_job_4 = objects.PmJobV2(
+            id='pm_job_4',
+            authentication=pm_job_1_auth)
+        result = pm_job_utils._get_notification_auth_handle(pm_job_4)
+        res = type(result).__name__
+        name = type(http_client.BasicAuthHandle('test', 'test')).__name__
+        self.assertEqual(name, res)
+
+        pm_job_5 = objects.PmJobV2(
+            id='pm_job_5',
+            authentication=objects.SubscriptionAuthentication(
+                authType=["OAUTH2_CLIENT_CREDENTIALS"],
+                paramsOauth2ClientCredentials=(
+                    objects.SubscriptionAuthentication_ParamsOauth2(
+                        clientId='test',
+                        clientPassword='test',
+                        tokenEndpoint='http://127.0.0.1/token'
+                    ))
+            )
+        )
+        result = pm_job_utils._get_notification_auth_handle(pm_job_5)
+        res = type(result).__name__
+        name = type(http_client.OAuth2AuthHandle(
+            None, 'http://127.0.0.1/token', 'test', 'test')).__name__
+        self.assertEqual(name, res)
 
     @mock.patch.object(http_client.HttpClient, 'do_request')
     def test_test_notification(self, mock_do_request):

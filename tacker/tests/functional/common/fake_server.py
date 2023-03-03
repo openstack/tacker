@@ -17,6 +17,7 @@ import http.server
 import inspect
 import json
 import os
+import ssl
 import threading
 import time
 from urllib.parse import urlparse
@@ -384,6 +385,13 @@ class FakeServerManager(object):
             '[ End ] %s.%s()' %
             (self.__class__.__name__,
              inspect.currentframe().f_code.co_name))
+
+    def set_https_server(self):
+        CERTFILE = "/etc/https_server/ssl/https_server.pem"
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        context.load_cert_chain(CERTFILE)
+        self.objHttpd.socket = context.wrap_socket(
+            self.objHttpd.socket, server_side=True)
 
     def start_server(self):
         """Start server in thread."""

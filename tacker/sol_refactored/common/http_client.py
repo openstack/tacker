@@ -120,9 +120,11 @@ class AuthHandle(metaclass=abc.ABCMeta):
 
 class KeystoneTokenAuthHandle(AuthHandle):
 
-    def __init__(self, auth_url, context):
+    def __init__(self, auth_url, context, verify=False,
+            ca_cert=None, client_cert=None):
         self.auth_url = auth_url
         self.context = context
+        self.verify = verify
 
     def get_auth(self, context):
         if context is None:
@@ -133,7 +135,7 @@ class KeystoneTokenAuthHandle(AuthHandle):
                         project_domain_id=context.project_domain_id)
 
     def get_session(self, auth, service_type):
-        _session = session.Session(auth=auth, verify=False)
+        _session = session.Session(auth=auth, verify=self.verify)
         return adapter.Adapter(session=_session,
                                service_type=service_type)
 
@@ -141,13 +143,15 @@ class KeystoneTokenAuthHandle(AuthHandle):
 class KeystonePasswordAuthHandle(AuthHandle):
 
     def __init__(self, auth_url, username, password,
-            project_name, user_domain_name, project_domain_name):
+            project_name, user_domain_name, project_domain_name,
+            verify=False):
         self.auth_url = auth_url
         self.username = username
         self.password = password
         self.project_name = project_name
         self.user_domain_name = user_domain_name
         self.project_domain_name = project_domain_name
+        self.verify = verify
 
     def get_auth(self, context=None):
         return v3.Password(auth_url=self.auth_url,
@@ -158,51 +162,56 @@ class KeystonePasswordAuthHandle(AuthHandle):
                            project_domain_name=self.project_domain_name)
 
     def get_session(self, auth, service_type):
-        _session = session.Session(auth=auth, verify=False)
+        _session = session.Session(auth=auth, verify=self.verify)
         return adapter.Adapter(session=_session,
                                service_type=service_type)
 
 
 class BasicAuthHandle(AuthHandle):
 
-    def __init__(self, username, password):
+    def __init__(self, username, password, verify=False):
         self.username = username
         self.password = password
+        self.verify = verify
 
     def get_auth(self, context=None):
         return http_basic.HTTPBasicAuth(username=self.username,
                                         password=self.password)
 
     def get_session(self, auth, service_type):
-        return session.Session(auth=auth, verify=False)
+        return session.Session(auth=auth, verify=self.verify)
 
 
 class NoAuthHandle(AuthHandle):
 
-    def __init__(self, endpoint=None):
+    def __init__(self, endpoint=None, verify=False):
         self.endpoint = endpoint
+        self.verify = verify
 
     def get_auth(self, context=None):
         return noauth.NoAuth(endpoint=self.endpoint)
 
     def get_session(self, auth, service_type):
-        return session.Session(auth=auth, verify=False)
+        return session.Session(auth=auth, verify=self.verify)
 
 
 class OAuth2AuthPlugin(plugin.FixedEndpointPlugin):
 
-    def __init__(self, endpoint, token_endpoint, client_id, client_password):
+    def __init__(self, endpoint, token_endpoint, client_id, client_password,
+            verify=False):
         super(OAuth2AuthPlugin, self).__init__(endpoint)
         self.token_endpoint = token_endpoint
         self.client_id = client_id
         self.client_password = client_password
+        self.verify = verify
 
     def get_token(self, session, **kwargs):
         auth = BasicAuthHandle(self.client_id,
-                               self.client_password)
+                               self.client_password,
+                               self.verify)
         client = HttpClient(auth)
 
-        url = self.token_endpoint + '/token'
+        url = self.token_endpoint
         data = {'grant_type': 'client_credentials'}
 
         resp, resp_body = client.do_request(url, "POST",
@@ -224,18 +233,20 @@ class OAuth2AuthPlugin(plugin.FixedEndpointPlugin):
 
 class OAuth2AuthHandle(AuthHandle):
 
-    def __init__(self, endpoint, token_endpoint, client_id, client_password):
+    def __init__(self, endpoint, token_endpoint, client_id, client_password,
+            verify=False):
         self.endpoint = endpoint
         self.token_endpoint = token_endpoint
         self.client_id = client_id
         self.client_password = client_password
+        self.verify = verify
 
     def get_auth(self, context=None):
         return OAuth2AuthPlugin(self.endpoint, self.token_endpoint,
-                self.client_id, self.client_password)
+                self.client_id, self.client_password, self.verify)
 
     def get_session(self, auth, service_type):
-        _session = session.Session(auth=auth, verify=False)
+        _session = session.Session(auth=auth, verify=self.verify)
         return adapter.Adapter(session=_session,
                                service_type=service_type)
 
@@ -270,7 +281,7 @@ class OAuth2MtlsAuthPlugin(plugin.FixedEndpointPlugin):
             self.client_cert)
         client = HttpClient(auth)
 
-        url = f'{self.token_endpoint}'
+        url = self.token_endpoint
         data = {
             'grant_type': 'client_credentials',
             'client_id': self.client_id
@@ -297,11 +308,13 @@ class OAuth2MtlsAuthPlugin(plugin.FixedEndpointPlugin):
 class OAuth2MtlsAuthHandle(AuthHandle):
 
     def __init__(self, endpoint, token_endpoint, client_id,
-            verify_cert, client_cert):
+            ca_cert, client_cert):
         self.endpoint = endpoint
         self.token_endpoint = token_endpoint
         self.client_id = client_id
-        self.verify_cert = verify_cert
+        self.verify_cert = True
+        if ca_cert:
+            self.verify_cert = ca_cert
         self.client_cert = client_cert
 
     def get_auth(self, context=None):

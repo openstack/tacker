@@ -3546,6 +3546,7 @@ class TestOpenstack(base.BaseTestCase):
         self.driver = openstack.Openstack()
         self.context = context.get_admin_context()
         CONF.v2_vnfm.default_graceful_termination_timeout = 0
+        CONF.v2_vnfm.use_oauth2_mtls_for_heat = True
 
         cur_dir = os.path.dirname(__file__)
         sample_dir = os.path.join(cur_dir, "../..", "samples")
@@ -4373,3 +4374,93 @@ class TestOpenstack(base.BaseTestCase):
         self.assertEqual(expected_zone, use_zone_list[2]['VDU1-1'])
         self.assertEqual(use_zone_list[2]['VDU1-1'],
                          use_zone_list[2]['VDU1-2'])
+
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'get_stack_id')
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'get_status')
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'create_stack')
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'update_stack')
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'get_resources')
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'get_parameters')
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'get_template')
+    def test_https_with_instantiate(self, mock_template, mock_parameters,
+                         mock_resources, mock_update_stack, mock_create_stack,
+                         mock_status, mock_stack_id):
+        # prepare
+        req = objects.InstantiateVnfRequest.from_dict(_instantiate_req_example)
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED',
+            vimConnectionInfo=req.vimConnectionInfo
+        )
+        grant_req = objects.GrantRequestV1(
+            operation=fields.LcmOperationType.INSTANTIATE
+        )
+        grant = objects.GrantV1()
+        mock_resources.return_value = _heat_reses_example
+        mock_parameters.return_value = _heat_get_parameters_example
+        mock_template.return_value = _heat_get_template_example
+        mock_stack_id.return_value = None
+
+        # execute
+        CONF.v2_vnfm.use_oauth2_mtls_for_heat = True
+        CONF.v2_vnfm.heat_verify_cert = True
+
+        self.driver.instantiate(req, inst, grant_req, grant, self.vnfd_1)
+        mock_create_stack.assert_called_once()
+
+        mock_stack_id.return_value = STACK_ID
+        # execute
+        self.driver.instantiate(req, inst, grant_req, grant, self.vnfd_1)
+        mock_update_stack.assert_called_once()
+
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'get_stack_id')
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'get_status')
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'create_stack')
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'update_stack')
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'get_resources')
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'get_parameters')
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'get_template')
+    def test_oauth2_mtls_with_instantiate(self, mock_template, mock_parameters,
+                         mock_resources, mock_update_stack, mock_create_stack,
+                         mock_status, mock_stack_id):
+        # prepare
+        req = objects.InstantiateVnfRequest.from_dict(_instantiate_req_example)
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED',
+            vimConnectionInfo=req.vimConnectionInfo
+        )
+        grant_req = objects.GrantRequestV1(
+            operation=fields.LcmOperationType.INSTANTIATE
+        )
+        grant = objects.GrantV1()
+        mock_resources.return_value = _heat_reses_example
+        mock_parameters.return_value = _heat_get_parameters_example
+        mock_template.return_value = _heat_get_template_example
+        mock_stack_id.return_value = None
+
+        CONF.v2_vnfm.use_oauth2_mtls_for_heat = False
+        CONF.v2_vnfm.heat_verify_cert = True
+        CONF.v2_vnfm.heat_mtls_ca_cert_file = '/path/to/cacert'
+        CONF.v2_vnfm.heat_mtls_client_cert_file = '/path/to/clientcert'
+
+        # execute
+        self.driver.instantiate(req, inst, grant_req, grant, self.vnfd_1)
+        mock_create_stack.assert_called_once()
+
+        mock_stack_id.return_value = STACK_ID
+        # execute
+        self.driver.instantiate(req, inst, grant_req, grant, self.vnfd_1)
+        mock_update_stack.assert_called_once()

@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Added the ability to verify the certificate of the target server for Tacker
+    to communicate over https to the NFVO, heat, and notification servers.

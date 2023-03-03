@@ -1,0 +1,8 @@
+ssl_dir: "/etc/https_server/ssl"
+ca_key: "{{ ssl_dir }}/ca.key"
+ca_csr: "{{ ssl_dir }}/ca.csr"
+ca_crt: "{{ ssl_dir }}/ca.crt"
+serv_key: "{{ ssl_dir }}/https_server.key"
+serv_csr: "{{ ssl_dir }}/https_server.csr"
+serv_crt: "{{ ssl_dir }}/https_server.crt"
+serv_pem: "{{ ssl_dir }}/https_server.pem"

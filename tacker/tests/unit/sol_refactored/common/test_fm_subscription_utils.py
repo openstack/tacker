@@ -16,6 +16,7 @@ import copy
 import requests
 from unittest import mock
 
+from oslo_config import cfg
 from oslo_log import log as logging
 
 from tacker import context
@@ -70,7 +71,7 @@ class TestFmSubscriptionUtils(base.BaseTestCase):
         resp_no_auth.status_code = 204
         mock_resp.return_value = (resp_no_auth, None)
 
-        # execute no_auth
+        # 1. execute no_auth
         subsc_utils.send_notification(subsc_no_auth, notif_data_no_auth)
 
         subsc_basic_auth = copy.deepcopy(subsc_no_auth)
@@ -78,7 +79,7 @@ class TestFmSubscriptionUtils(base.BaseTestCase):
             paramsBasic=objects.SubscriptionAuthentication_ParamsBasic(
                 userName='test', password='test'))
 
-        # execute basic_auth
+        # 2. execute basic_auth
         subsc_utils.send_notification(subsc_basic_auth, notif_data_no_auth)
 
         subsc_oauth2 = copy.deepcopy(subsc_no_auth)
@@ -88,10 +89,56 @@ class TestFmSubscriptionUtils(base.BaseTestCase):
                     clientId='test', clientPassword='test',
                     tokenEndpoint='http://127.0.0.1/token')))
 
-        # execute oauth2
+        # 3. execute oauth2
         subsc_utils.send_notification(subsc_oauth2, notif_data_no_auth)
 
-        self.assertEqual(3, mock_resp.call_count)
+        subsc_oauth2_mtls = copy.deepcopy(subsc_no_auth)
+        subsc_oauth2_mtls.authentication = objects.SubscriptionAuthentication(
+            paramsOauth2ClientCert=(
+                objects.SubscriptionAuthentication_ParamsOauth2ClientCert(
+                    clientId='test',
+                    certificateRef=objects.
+                    ParamsOauth2ClientCert_CertificateRef(
+                        type='x5t#256',
+                        value='03c6e188d1fe5d3da8c9bc9a8dc531a2'
+                              'b3ecf812b03aede9bec7ba1b410b6b64'
+                    ),
+                    tokenEndpoint='http://127.0.0.1/token'
+                )
+            )
+        )
+
+        # 4. execute oauth2 mTLS
+        subsc_utils.send_notification(subsc_oauth2_mtls, notif_data_no_auth)
+
+        cfg.CONF.set_override("notification_verify_cert", "True",
+            group="v2_vnfm")
+
+        subsc_no_auth = objects.FmSubscriptionV1.from_dict(
+            fakes_for_fm.fm_subsc_example)
+
+        # 5. execute no_auth
+        subsc_utils.send_notification(subsc_no_auth, notif_data_no_auth)
+
+        subsc_basic_auth = copy.deepcopy(subsc_no_auth)
+        subsc_basic_auth.authentication = objects.SubscriptionAuthentication(
+            paramsBasic=objects.SubscriptionAuthentication_ParamsBasic(
+                userName='test', password='test'))
+
+        # 6. execute basic_auth
+        subsc_utils.send_notification(subsc_basic_auth, notif_data_no_auth)
+
+        subsc_oauth2 = copy.deepcopy(subsc_no_auth)
+        subsc_oauth2.authentication = objects.SubscriptionAuthentication(
+            paramsOauth2ClientCredentials=(
+                objects.SubscriptionAuthentication_ParamsOauth2(
+                    clientId='test', clientPassword='test',
+                    tokenEndpoint='http://127.0.0.1/token')))
+
+        # 7. execute oauth2
+        subsc_utils.send_notification(subsc_oauth2, notif_data_no_auth)
+
+        self.assertEqual(7, mock_resp.call_count)
 
     @mock.patch.object(http_client.HttpClient, 'do_request')
     def test_send_notification_error_code(self, mock_resp):

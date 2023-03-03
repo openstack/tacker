@@ -48,11 +48,15 @@ class NfvoClient(object):
             self.is_local = False
             self.endpoint = CONF.v2_nfvo.endpoint
             if CONF.v2_nfvo.use_client_secret_basic:
+                verify = CONF.v2_nfvo.nfvo_verify_cert
+                if verify and CONF.v2_nfvo.nfvo_ca_cert_file:
+                    verify = CONF.v2_nfvo.nfvo_ca_cert_file
                 auth_handle = http_client.OAuth2AuthHandle(
                     self.endpoint,
                     CONF.v2_nfvo.token_endpoint,
                     CONF.v2_nfvo.client_id,
-                    CONF.v2_nfvo.client_password)
+                    CONF.v2_nfvo.client_password,
+                    verify)
             else:
                 auth_handle = http_client.OAuth2MtlsAuthHandle(
                     self.endpoint,

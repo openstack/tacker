@@ -64,11 +64,19 @@ def _get_notification_auth_handle(subsc):
                 param.tokenEndpoint, param.clientId, verify_cert, client_cert)
         elif 'OAUTH2_CLIENT_CREDENTIALS' in auth.authType:
             param = subsc.authentication.paramsOauth2ClientCredentials
+            verify = CONF.v2_vnfm.notification_verify_cert
+            if verify and CONF.v2_vnfm.notification_ca_cert_file:
+                verify = CONF.v2_vnfm.notification_ca_cert_file
             return http_client.OAuth2AuthHandle(None,
-                param.tokenEndpoint, param.clientId, param.clientPassword)
+                param.tokenEndpoint, param.clientId, param.clientPassword,
+                verify=verify)
         elif 'BASIC' in auth.authType:
             param = subsc.authentication.paramsBasic
-            return http_client.BasicAuthHandle(param.userName, param.password)
+            verify = CONF.v2_vnfm.notification_verify_cert
+            if verify and CONF.v2_vnfm.notification_ca_cert_file:
+                verify = CONF.v2_vnfm.notification_ca_cert_file
+            return http_client.BasicAuthHandle(param.userName, param.password,
+                verify=verify)
         else:
             raise sol_ex.AuthTypeNotFound(auth.authType)
     else:

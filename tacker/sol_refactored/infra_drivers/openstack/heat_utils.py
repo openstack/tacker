@@ -16,12 +16,14 @@
 from oslo_log import log as logging
 from oslo_service import loopingcall
 
+from tacker.sol_refactored.common import config
 from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import http_client
 
 
 LOG = logging.getLogger(__name__)
 
+CONF = config.CONF
 
 CHECK_INTERVAL = 5
 
@@ -29,14 +31,28 @@ CHECK_INTERVAL = 5
 class HeatClient(object):
 
     def __init__(self, vim_info):
-        auth = http_client.KeystonePasswordAuthHandle(
-            auth_url=vim_info.interfaceInfo['endpoint'],
-            username=vim_info.accessInfo['username'],
-            password=vim_info.accessInfo['password'],
-            project_name=vim_info.accessInfo['project'],
-            user_domain_name=vim_info.accessInfo['userDomain'],
-            project_domain_name=vim_info.accessInfo['projectDomain']
-        )
+        if CONF.v2_vnfm.use_oauth2_mtls_for_heat:
+            auth = http_client.OAuth2MtlsAuthHandle(
+                endpoint=None,
+                token_endpoint=vim_info.interfaceInfo['endpoint'],
+                client_id=vim_info.accessInfo['username'],
+                ca_cert=CONF.v2_vnfm.heat_mtls_ca_cert_file,
+                client_cert=CONF.v2_vnfm.heat_mtls_client_cert_file
+            )
+        else:
+            verify = CONF.v2_vnfm.heat_verify_cert
+            if verify and CONF.v2_vnfm.heat_ca_cert_file:
+                verify = CONF.v2_vnfm.heat_ca_cert_file
+            auth = http_client.KeystonePasswordAuthHandle(
+                auth_url=vim_info.interfaceInfo['endpoint'],
+                username=vim_info.accessInfo['username'],
+                password=vim_info.accessInfo['password'],
+                project_name=vim_info.accessInfo['project'],
+                user_domain_name=vim_info.accessInfo['userDomain'],
+                project_domain_name=vim_info.accessInfo['projectDomain'],
+                verify=verify
+            )
+
         self.client = http_client.HttpClient(auth,
                                              service_type='orchestration')
 

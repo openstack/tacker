@@ -15,6 +15,7 @@
 import requests
 from unittest import mock
 
+from oslo_config import cfg
 from oslo_utils import uuidutils
 
 from tacker import context
@@ -112,6 +113,46 @@ class TestSubscriptionUtils(base.BaseTestCase):
 
         # execute oauth2 mtls
         subsc_utils.send_notification(subsc_oauth2_mtls, notif_data_no_auth)
+
+        cfg.CONF.set_override("notification_verify_cert", "True",
+            group="v2_vnfm")
+
+        subsc_no_auth = objects.LccnSubscriptionV2(
+            id='sub-5', verbosity='SHORT',
+            callbackUri='http://127.0.0.1/callback')
+        notif_data_no_auth = objects.VnfLcmOperationOccurrenceNotificationV2(
+            id=uuidutils.generate_uuid()
+        )
+        resp_no_auth = requests.Response()
+        resp_no_auth.status_code = 204
+        mock_resp.return_value = (resp_no_auth, None)
+
+        # execute no_auth
+        subsc_utils.send_notification(subsc_no_auth, notif_data_no_auth)
+
+        subsc_basic_auth = objects.LccnSubscriptionV2(
+            id='sub-6', verbosity='SHORT',
+            callbackUri='http://127.0.0.1/callback',
+            authentication=objects.SubscriptionAuthentication(
+                authType=['BASIC'],
+                paramsBasic=objects.SubscriptionAuthentication_ParamsBasic(
+                    userName='test', password='test')))
+
+        # execute basic_auth
+        subsc_utils.send_notification(subsc_basic_auth, notif_data_no_auth)
+
+        subsc_oauth2 = objects.LccnSubscriptionV2(
+            id='sub-7', verbosity='SHORT',
+            callbackUri='http://127.0.0.1/callback',
+            authentication=objects.SubscriptionAuthentication(
+                authType=['OAUTH2_CLIENT_CREDENTIALS'],
+                paramsOauth2ClientCredentials=(
+                    objects.SubscriptionAuthentication_ParamsOauth2(
+                        clientId='test', clientPassword='test',
+                        tokenEndpoint='http://127.0.0.1/token'))))
+
+        # execute oauth2
+        subsc_utils.send_notification(subsc_oauth2, notif_data_no_auth)
 
     @mock.patch.object(http_client.HttpClient, 'do_request')
     def test_send_notification_error_code(self, mock_resp):
