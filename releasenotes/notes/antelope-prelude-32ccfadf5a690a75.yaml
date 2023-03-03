@@ -1,0 +1,19 @@
+---
+prelude: |
+    The 9.0.0 release includes many new features and bug fixes. Please be sure
+    to read the upgrade section which describes the required actions to upgrade
+    your cloud from 8.0.0 (Zed) to 9.0.0 (2023.1).
+
+    - Support fallbackBestEffort in a grant request and re-selection for
+      placement constraints or no availability zones usecases.
+
+    - AutoHeal and AutoScale triggered by external monitoring tools such as
+      Prometheus without NFVO.
+
+    - OAuth 2.0 Mutual-TLS Support for authentication of external servers.
+
+    - Multi DBs backend support for PostgreSQL.
+
+    - CNF auto scale via performance management threshold interface.
+
+    - Update network configuration via Change Current VNF Package API.
