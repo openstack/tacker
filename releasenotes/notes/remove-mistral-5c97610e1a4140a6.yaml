@@ -1,0 +1,9 @@
+---
+deprecations:
+  - |
+    From 2023.1 release, dependency on Mistral has been removed from Tacker
+    entirely. This change removed: i) VIM monitoring; and ii) Mistral workflow
+    in NS API. Due to the deletion of the VIM monitoring, the status field has
+    been removed from the VIM table and VIM status in the response will be
+    filled by a dummy value. This field will be completely removed in the next
+    release

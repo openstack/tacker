@@ -16,7 +16,6 @@ redirectmatch 301 ^/tacker/([^/]+)/devref/vnfd_template_parameterization.html$ ^
 redirectmatch 301 ^/tacker/([^/]+)/devref/vnffgd_template_description.html$ ^/tacker/$1/contributor/vnffgd_template_description.html
 redirectmatch 301 ^/tacker/([^/]+)/devref/vnfm_usage_guide.html$ ^/tacker/$1/user/vnfm_usage_guide.html
 redirectmatch 301 ^/tacker/([^/]+)/policies/dev-process.html$ ^/tacker/$1/contributor/dev-process.html
-redirectmatch 301 ^/tacker/([^/]+)/devref/mistral_workflows_usage_guide.html$ ^/tacker/$1/reference/mistral_workflows_usage_guide.html
 redirectmatch 301 ^/tacker/([^/]+)/devref/alarm_monitoring_usage_guide.html$ ^/tacker/$1/user/alarm_monitoring_usage_guide.html
 redirectmatch 301 ^/tacker/([^/]+)/devref/enhanced_placement_awareness_usage_guide.html$ ^/tacker/$1/user/enhanced_placement_awareness_usage_guide.html
 redirectmatch 301 ^/tacker/([^/]+)/devref/multisite_vim_usage_guide.html$ ^/tacker/$1/user/multisite_vim_usage_guide.html

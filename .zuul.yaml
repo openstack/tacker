@@ -121,12 +121,9 @@
       - openstack/horizon
       - openstack/barbican
       - openstack/heat
-      - openstack/mistral
-      - openstack/mistral-dashboard
       - openstack/networking-sfc
       - openstack/python-barbicanclient
       - openstack/python-blazarclient
-      - openstack/python-mistralclient
       - openstack/python-tackerclient
       - openstack/tacker
       - openstack/tacker-horizon
@@ -168,7 +165,6 @@
           networking-sfc: https://opendev.org/openstack/networking-sfc
           aodh: https://opendev.org/openstack/aodh
           barbican: https://opendev.org/openstack/barbican
-          mistral: https://opendev.org/openstack/mistral
           blazar: https://opendev.org/openstack/blazar
           fenix: https://opendev.org/x/fenix
         devstack_services:
@@ -390,14 +386,12 @@
       - openstack/horizon
       - openstack/keystone
       - openstack/kuryr-kubernetes
-      - openstack/mistral
       - openstack/neutron
       - openstack/nova
       - openstack/octavia
       - openstack/placement
       - openstack/python-barbicanclient
       - openstack/python-blazarclient
-      - openstack/python-mistralclient
       - openstack/python-octaviaclient
       - openstack/python-tackerclient
       - openstack/tacker
@@ -407,7 +401,6 @@
         devstack_plugins:
           barbican: https://opendev.org/openstack/barbican
           heat: https://opendev.org/openstack/heat
-          mistral: https://opendev.org/openstack/mistral
           neutron: https://opendev.org/openstack/neutron
           octavia: https://opendev.org/openstack/octavia
         devstack_services:

@@ -29,7 +29,6 @@ from tacker.db.nfvo import ns_db
 from tacker.db.nfvo import vnffg_db
 from tacker.extensions import nfvo
 from tacker.manager import TackerManager
-from tacker.nfvo.drivers.vim import openstack_driver
 from tacker.nfvo import nfvo_plugin
 from tacker.plugins.common import constants
 from tacker.tests import constants as test_constants
@@ -62,22 +61,6 @@ class FakeDriverManager(mock.Mock):
             return uuidutils.generate_uuid()
         elif 'create_chain' in args:
             return uuidutils.generate_uuid(), uuidutils.generate_uuid()
-        elif 'execute_workflow' in args:
-            mock_execution = mock.Mock()
-            mock_execution.id.return_value = \
-                "ba6bf017-f6f7-45f1-a280-57b073bf78ea"
-            return mock_execution
-        elif ('prepare_and_create_workflow' in args and
-              'delete' == kwargs['action'] and
-              DUMMY_NS_2 == kwargs['kwargs']['ns']['id']):
-            raise nfvo.NoTasksException(action=kwargs['action'],
-                                        resource=kwargs['kwargs']['ns']['id'])
-        elif ('prepare_and_create_workflow' in args and
-              'create' == kwargs['action'] and
-              utils.DUMMY_NS_2_NAME == kwargs['kwargs']['ns']['ns']['name']):
-            raise nfvo.NoTasksException(
-                action=kwargs['action'],
-                resource=kwargs['kwargs']['ns']['ns']['name'])
 
 
 def get_by_name():
@@ -1464,11 +1447,10 @@ class TestNfvoPlugin(db_base.SqlTestCase):
     @mock.patch.object(vim_client.VimClient, 'get_vim',
         return_value={"vim_type": "openstack"})
     @mock.patch.object(nfvo_plugin.NfvoPlugin, '_get_by_name')
-    @mock.patch.object(openstack_driver.OpenStack_Driver, 'get_mistral_client')
     @mock.patch.object(uuidutils, 'generate_uuid',
         return_value=test_constants.UUID)
-    def test_create_ns(self, mock_uuid, mock_mistral_client,
-            mock_get_by_name, mock_get_vimi, mock_auth_dict):
+    def test_create_ns(self, mock_uuid, mock_get_by_name, mock_get_vimi,
+                       mock_auth_dict):
         self._insert_dummy_ns_template()
         self._insert_dummy_vim()
         mock_auth_dict.return_value = {
@@ -1477,62 +1459,6 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             'project_domain_name': 'dummy_domain',
             'project_name': 'dummy_project'
         }
-
-        sample_yaml = 'std.create_ns' + test_constants.UUID + ':\n  '\
-            'input:\n  - ns\n  output:\n    mgmt_ip_address_VNF1: '\
-            '<% $.mgmt_ip_address_VNF1 %>\n    mgmt_ip_address_VNF2: '\
-            '<% $.mgmt_ip_address_VNF2 %>\n    status_VNF1: '\
-            '<% $.status_VNF1 %>\n    status_VNF2: '\
-            '<% $.status_VNF2 %>\n    vim_id_VNF1: <% $.vim_id_VNF1 %>\n'\
-            '    vim_id_VNF2: <% $.vim_id_VNF2 %>\n    vnf_id_VNF1: '\
-            '<% $.vnf_id_VNF1 %>\n    vnf_id_VNF2: <% $.vnf_id_VNF2 %>\n  '\
-            'tasks:\n    create_ns_VNF1:\n      action: tacker.create_vnf '\
-            'body=<% $.ns.VNF1 %>\n      input:\n        body: '\
-            '<% $.ns.VNF1 %>\n      on-success:\n      '\
-            '- wait_vnf_active_VNF1\n      publish:\n        '\
-            'mgmt_ip_address_VNF1: <% task(create_ns_VNF1).result.'\
-            'vnf.mgmt_ip_address %>\n        status_VNF1: <% '\
-            'task(create_ns_VNF1).result.vnf.status %>\n'\
-            '        vim_id_VNF1: <% task(create_ns_VNF1).'\
-            'result.vnf.vim_id %>\n        vnf_id_VNF1: <% '\
-            'task(create_ns_VNF1).result.vnf.id %>\n'\
-            '    create_ns_VNF2:\n      action: tacker.create_vnf '\
-            'body=<% $.ns.VNF2 %>\n      input:\n        '\
-            'body: <% $.ns.VNF2 %>\n      on-success:\n'\
-            '      - wait_vnf_active_VNF2\n      publish:\n        '\
-            'mgmt_ip_address_VNF2: <% task(create_ns_VNF2).result.vnf.'\
-            'mgmt_ip_address %>\n        status_VNF2: <% task(create_ns_VNF2)'\
-            '.result.vnf.status %>\n        vim_id_VNF2: <% '\
-            'task(create_ns_VNF2).result.vnf.vim_id %>\n'\
-            '        vnf_id_VNF2: <% task(create_ns_VNF2).result.vnf.id '\
-            '%>\n    delete_vnf_VNF1:\n      action: tacker.delete_vnf vnf'\
-            '=<% $.vnf_id_VNF1%>\n      input:\n        body:\n          '\
-            'vnf:\n            attributes:\n              force: false\n'\
-            '    delete_vnf_VNF2:\n      action: tacker.delete_vnf'\
-            ' vnf=<% $.vnf_id_VNF2%>\n      input:\n        body:\n'\
-            '          vnf:\n            attributes:\n              '\
-            'force: false\n    wait_vnf_active_VNF1:\n      action:'\
-            ' tacker.show_vnf vnf=<% $.vnf_id_VNF1 %>\n      on-success:\n'\
-            '      - delete_vnf_VNF1: <% $.status_VNF1="ERROR" %>\n      '\
-            'publish:\n        mgmt_ip_address_VNF1: \' <% '\
-            'task(wait_vnf_active_VNF1).result.vnf.mgmt_ip_address\n'\
-            '          %>\'\n        status_VNF1: <% '\
-            'task(wait_vnf_active_VNF1).result.vnf.status %>\n      '\
-            'retry:\n        break-on: <% $.status_VNF1 = "ERROR"'\
-            ' %>\n        continue-on: <% $.status_VNF1 = "PENDING_CREATE" '\
-            '%>\n        count: 10\n        delay: 10\n    '\
-            'wait_vnf_active_VNF2:\n      action: tacker.show_vnf vnf=<% '\
-            '$.vnf_id_VNF2 %>\n      on-success:\n      '\
-            '- delete_vnf_VNF2: <% $.status_VNF2="ERROR" %>\n      '\
-            'publish:\n        mgmt_ip_address_VNF2: \' <% '\
-            'task(wait_vnf_active_VNF2).result.vnf.mgmt_ip_address\n'\
-            '          %>\'\n        status_VNF2: '\
-            '<% task(wait_vnf_active_VNF2).result.vnf.status %>\n'\
-            '      retry:\n        break-on: <% $.status_VNF2 = '\
-            '"ERROR" %>\n        continue-on: '\
-            '<% $.status_VNF2 = "PENDING_CREATE" %>\n        '\
-            'count: 10\n        '\
-            'delay: 10\n  type: direct\nversion: \'2.0\'\n'
 
         with patch.object(TackerManager, 'get_service_plugins') as \
                 mock_plugins:
@@ -1547,17 +1473,13 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             self.assertEqual(ns_obj['ns']['name'], result['name'])
             self.assertIn('status', result)
             self.assertIn('tenant_id', result)
-            mock_mistral_client().workflows.create.\
-                assert_called_with(sample_yaml)
 
     @mock.patch.object(nfvo_plugin.NfvoPlugin, 'get_auth_dict')
     @mock.patch.object(vim_client.VimClient, 'get_vim',
         return_value={"vim_type": "openstack"})
     @mock.patch.object(nfvo_plugin.NfvoPlugin, '_get_by_name')
-    @mock.patch.object(openstack_driver.OpenStack_Driver, 'get_mistral_client')
-    def test_create_ns_empty_description(self, mock_mistral_client,
-                                         mock_get_by_name,
-                                         mock_get_vimi, mock_auth_dict):
+    def test_create_ns_empty_description(self, mock_get_by_name, mock_get_vim,
+                                         mock_auth_dict):
         self._insert_dummy_ns_template()
         self._insert_dummy_vim()
         mock_auth_dict.return_value = {
@@ -1583,8 +1505,7 @@ class TestNfvoPlugin(db_base.SqlTestCase):
     @mock.patch.object(vim_client.VimClient, 'get_vim',
         return_value={"vim_type": "openstack"})
     @mock.patch.object(nfvo_plugin.NfvoPlugin, '_get_by_name')
-    @mock.patch.object(openstack_driver.OpenStack_Driver, 'get_mistral_client')
-    def test_create_ns_inline(self, mock_mistral_client, mock_get_by_name,
+    def test_create_ns_inline(self, mock_get_by_name,
                               mock_get_vimi, mock_auth_dict, mock_create_nsd):
         self._insert_dummy_ns_template_inline()
         self._insert_dummy_vim()
@@ -1613,34 +1534,6 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             mock_create_nsd.assert_called_once_with(mock.ANY, mock.ANY)
 
     @mock.patch.object(nfvo_plugin.NfvoPlugin, 'get_auth_dict')
-    @mock.patch.object(vim_client.VimClient, 'get_vim',
-        return_value={"vim_type": "openstack"})
-    @mock.patch.object(nfvo_plugin.NfvoPlugin, '_get_by_name')
-    @mock.patch('tacker.common.driver_manager.DriverManager.invoke',
-        side_effect=nfvo.NoTasksException(action='create',
-                                          resource='ns'))
-    def test_create_ns_workflow_no_task_exception(
-            self, mock_mistral_client, mock_get_by_name,
-            mock_get_vimi, mock_auth_dict):
-        self._insert_dummy_ns_template()
-        self._insert_dummy_vim()
-        mock_auth_dict.return_value = {
-            'auth_url': 'http://127.0.0.1',
-            'token': 'DummyToken',
-            'project_domain_name': 'dummy_domain',
-            'project_name': 'dummy_project'
-        }
-        with patch.object(TackerManager, 'get_service_plugins') as \
-                mock_plugins:
-            mock_plugins.return_value = {'VNFM': FakeVNFMPlugin()}
-            mock_get_by_name.return_value = get_by_name()
-
-            ns_obj = utils.get_dummy_ns_obj_2()
-            self.assertRaises(nfvo.NoTasksException,
-                              self.nfvo_plugin.create_ns,
-                              self.context, ns_obj)
-
-    @mock.patch.object(nfvo_plugin.NfvoPlugin, 'get_auth_dict')
     @mock.patch.object(vim_client.VimClient, 'get_vim')
     @mock.patch.object(nfvo_plugin.NfvoPlugin, '_get_by_name')
     def test_delete_ns(self, mock_get_by_name, mock_get_vim, mock_auth_dict):
@@ -1661,33 +1554,6 @@ class TestNfvoPlugin(db_base.SqlTestCase):
             result = self.nfvo_plugin.delete_ns(self.context,
                 'ba6bf017-f6f7-45f1-a280-57b073bf78ea')
             self.assertIsNotNone(result)
-
-    @mock.patch.object(nfvo_plugin.NfvoPlugin, 'get_auth_dict')
-    @mock.patch.object(vim_client.VimClient, 'get_vim')
-    @mock.patch.object(nfvo_plugin.NfvoPlugin, '_get_by_name')
-    @mock.patch("tacker.db.nfvo.ns_db.NSPluginDb.delete_ns_post")
-    def test_delete_ns_no_task_exception(
-            self, mock_delete_ns_post, mock_get_by_name, mock_get_vim,
-            mock_auth_dict):
-
-        self._insert_dummy_vim()
-        self._insert_dummy_ns_template()
-        self._insert_dummy_ns_2()
-        mock_auth_dict.return_value = {
-            'auth_url': 'http://127.0.0.1',
-            'token': 'DummyToken',
-            'project_domain_name': 'dummy_domain',
-            'project_name': 'dummy_project'
-        }
-
-        with patch.object(TackerManager, 'get_service_plugins') as \
-                mock_plugins:
-            mock_plugins.return_value = {'VNFM': FakeVNFMPlugin()}
-            mock_get_by_name.return_value = get_by_name()
-            self.nfvo_plugin.delete_ns(self.context,
-                DUMMY_NS_2)
-        mock_delete_ns_post.assert_called_with(
-            self.context, DUMMY_NS_2, None, None, force_delete=False)
 
     @mock.patch.object(nfvo_plugin.NfvoPlugin, 'get_auth_dict')
     @mock.patch.object(vim_client.VimClient, 'get_vim')
