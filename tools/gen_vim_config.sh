@@ -50,18 +50,16 @@ EOF
 }
 
 #######################################
-# Get endpoint of n-th from endpoints.
-# Arguments:
-#   Index of endpoints, usually 0.
+# Get endpoint of k8s.
 # Returns:
 #   URL of endpoint retrieved from kubectl.
 #######################################
 function k8s_endpoints() {
-    local _k8s_ep0_ip=$(kubectl get endpoints -o \
-        jsonpath="{.items[$1].subsets[0].addresses[0].ip}")
-    local _k8s_ep0_port=$(kubectl get endpoints -o \
-        jsonpath="{.items[$1].subsets[0].ports[0].port}")
-    echo "https://${_k8s_ep0_ip}:${_k8s_ep0_port}"
+    local _attr="'kubeadm.kubernetes.io/kube-apiserver.advertise-address.endpoint'"
+    _attr=${_attr//\./\\.}
+    local _ep=$(kubectl get pods -A -o \
+        jsonpath="{.items[0].metadata.annotations[$_attr]}")
+    echo "https://${_ep}"
 }
 
 #######################################
@@ -113,6 +111,7 @@ EOF
 # Setup contents of config from given params and output to a file.
 # Globals:
 #   VIMC_K8S_USE_CERT
+#   VIMC_K8S_USE_HELM
 #   VIMC_OUTPUT
 #   VIMC_ENDPOINT
 #   VIMC_K8S_TOKEN
@@ -129,6 +128,7 @@ function setup_k8s_config() {
 
     # Delimiter used temporarily for replacing blanks.
     local _delim=":"
+    local _extra=""
 
     if "${VIMC_K8S_USE_CERT}"; then
         local _k8s_cert=`k8s_ssl_ca_cert`
@@ -142,12 +142,17 @@ function setup_k8s_config() {
         _k8s_cert="None"
     fi
 
+    if "${VIMC_K8S_USE_HELM}"; then
+        _extra="extra:"$'\n'"    use_helm: true"
+    fi
+
     cat << EOF > ${VIMC_OUTPUT}
 auth_url: "${VIMC_ENDPOINT}"
 bearer_token: "${VIMC_K8S_TOKEN}"
 ssl_ca_cert: "${_k8s_cert}"
 project_name: "${VIMC_PROJ}"
 type: "kubernetes"
+${_extra}
 EOF
 }
 
@@ -201,6 +206,8 @@ options:
       bearer token.
     --k8s-use-cert
       use SSL CA cert.
+    --k8s-use-helm
+      configure VIM to use helm for deploying CNFs.
 EOS
 }
 
@@ -257,7 +264,7 @@ function k8s_main() {
         &>/dev/null
 
     VIMC_K8S_TOKEN=${VIMC_K8S_TOKEN:-`k8s_token`}
-    VIMC_ENDPOINT=${VIMC_ENDPOINT:-`k8s_endpoints 0`}
+    VIMC_ENDPOINT=${VIMC_ENDPOINT:-`k8s_endpoints`}
 
     setup_k8s_config
 }
@@ -281,6 +288,7 @@ function k8s_main() {
 #   VIMC_OS_CERT_VERIFY
 #   VIMC_K8S_TOKEN
 #   VIMC_K8S_USE_CERT
+#   VIMC_K8S_USE_HELM
 #######################################
 function cleanup() {
     OPTIND=${PREV_OPTIND}
@@ -298,6 +306,7 @@ function cleanup() {
     VIMC_OS_CERT_VERIFY=
     VIMC_K8S_TOKEN=
     VIMC_K8S_USE_CERT=
+    VIMC_K8S_USE_HELM=
 }
 
 #######################################
@@ -369,6 +378,9 @@ while getopts t:o:e:p:ch-: opt; do
             ;;
         --k8s-use-cert)
             VIMC_K8S_USE_CERT=true;
+            ;;
+        --k8s-use-helm)
+            VIMC_K8S_USE_HELM=true;
             ;;
 
         -h|--help)

@@ -118,6 +118,8 @@ are explained in next sections.
         bearer token.
       --k8s-use-cert
         use SSL CA cert.
+      --k8s-use-helm
+        configure VIM to use helm for deploying CNFs.
 
 
 OpenStack
