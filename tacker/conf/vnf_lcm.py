@@ -55,11 +55,7 @@ OPTS = [
     cfg.IntOpt(
         'vnf_instance_num',
         default=100,
-        help="Number of vnf_instances contained in 1 page"),
-    cfg.IntOpt(
-        'nextpage_expiration_time',
-        default=3600,
-        help="Expiration time (sec) for paging")]
+        help="Number of vnf_instances contained in 1 page")]
 
 vnf_lcm_group = cfg.OptGroup('vnf_lcm',
     title='vnf_lcm options',

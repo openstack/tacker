@@ -44,7 +44,8 @@ class ViewBuilder(base.BaseViewBuilder):
     def _basic_subscription_info(self, vnf_lcm_subscription, filter=None):
         if filter is None:
             if 'filter' in vnf_lcm_subscription:
-                filter_dict = {}
+                filter_dict = json.loads(
+                    vnf_lcm_subscription.filter)
 
                 if 'filter' in vnf_lcm_subscription.filter:
                     filter_dict = json.loads(

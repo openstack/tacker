@@ -29,6 +29,7 @@ from tacker.common import utils
 from tacker.db import api as db_api
 from tacker.db.db_sqlalchemy import api
 from tacker.db.db_sqlalchemy import models
+from tacker.db import sqlalchemyutils
 from tacker import objects
 from tacker.objects import base
 from tacker.objects import common
@@ -113,6 +114,39 @@ def _update_user_defined_data(context, package_uuid, user_data):
         result = {row['key']: row['value'] for row in save}
 
     return result
+
+
+@db_api.context_manager.reader
+def _vnf_packages_get_by_filters_query(context, read_deleted=None,
+                                    filters=None):
+
+    query = api.model_query(context, models.VnfPackage,
+                            read_deleted=read_deleted,
+                            project_only=True).options(joinedload('_metadata'))
+
+    if filters:
+        # Need to join VnfDeploymentFlavour, VnfSoftwareImage and
+        # VnfSoftwareImageMetadata db table explicitly
+        # only when filters contains one of the column matching
+        # from VnfSoftwareImage or VnfSoftwareImageMetadata db table.
+        filter_data = json.dumps(filters)
+        if 'VnfSoftwareImageMetadata' in filter_data:
+            query = query.join(models.VnfDeploymentFlavour).join(
+                models.VnfSoftwareImage).join(
+                models.VnfSoftwareImageMetadata)
+        elif 'VnfSoftwareImage' in filter_data:
+            query = query.join(models.VnfDeploymentFlavour).join(
+                models.VnfSoftwareImage)
+
+        if 'VnfPackageArtifactInfo' in filter_data:
+            query = query.join(models.VnfPackageArtifactInfo)
+
+        if 'VnfPackageVnfd' in filter_data:
+            query = query.join(models.VnfPackageVnfd)
+
+        query = common.apply_filters(query, filters)
+
+    return query
 
 
 @db_api.context_manager.reader
@@ -677,6 +711,22 @@ class VnfPackagesList(ovoo_base.ObjectListBase, base.TackerObject):
                                             columns_to_join=expected_attrs)
         return _make_vnf_packages_list(context, cls(), db_vnf_packages,
                                        expected_attrs)
+
+    @base.remotable_classmethod
+    def get_by_marker_filter(cls, context,
+            limit, marker_obj,
+            filters=None, read_deleted=None):
+        query = _vnf_packages_get_by_filters_query(context,
+                                               read_deleted=read_deleted,
+                                               filters=filters)
+        query = sqlalchemyutils.paginate_query(query,
+            model=models.VnfPackage,
+            limit=limit,
+            sorts=[['id', 'asc']],
+            marker_obj=marker_obj)
+        db_vnf_packages = query.all()
+
+        return _make_vnf_packages_list(context, cls(), db_vnf_packages)
 
     @base.remotable_classmethod
     def get_by_filters(cls, context, read_deleted=None, filters=None):
