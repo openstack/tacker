@@ -14,6 +14,9 @@
 - include: vim_extra_plugins.yml
   when: use_vim_extra_plugins == true
 
+- include: neovim.yml
+  when: use_neovim == true
+
 - include: devstack.yml
 
 - include: setup_tacker.yml

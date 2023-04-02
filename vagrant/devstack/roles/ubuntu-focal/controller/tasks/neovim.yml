@@ -1,0 +1,22 @@
+---
+- name: install neovim
+  become: yes
+  unarchive:
+      src=https://github.com/neovim/neovim/releases/download/stable/nvim-linux64.tar.gz
+      dest=/usr/local
+      remote_src=yes
+
+- name: set PATH for '.local/bin'
+  lineinfile:
+      line="export PATH=/usr/local/nvim-linux64/bin:$PATH"
+      dest={{ ansible_env.HOME }}/.bashrc
+
+- name: install latest nodejs for nvim coc
+  become: yes
+  shell: curl -sL install-node.vercel.app | sudo bash -s -- --yes
+
+- name: install latest yarn for nvim coc
+  become: yes
+  npm:
+    name: yarn
+    global: yes
