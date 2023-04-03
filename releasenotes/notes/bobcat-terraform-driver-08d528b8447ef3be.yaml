@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Support Terraform infra-driver. Using Terraform as a backend tool enables
+    Tacker to create virtual resources on several platforms that Terraform
+    has already supported, such as AWS.

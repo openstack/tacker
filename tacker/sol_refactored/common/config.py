@@ -130,7 +130,11 @@ VNFM_OPTS = [
     cfg.StrOpt('heat_ca_cert_file',
                default='',
                help=_('Specifies the root CA certificate to use when the '
-                      'heat_verify_cert option is True.'))
+                      'heat_verify_cert option is True.')),
+    cfg.StrOpt('tf_file_dir',
+             default='/var/lib/tacker/terraform/',
+             help=_('Temporary directory for Terraform infra-driver to '
+                    'store terraform config files'))
 ]
 
 CONF.register_opts(VNFM_OPTS, 'v2_vnfm')
