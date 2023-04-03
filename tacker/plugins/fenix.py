@@ -17,6 +17,7 @@ import yaml
 from oslo_config import cfg
 from oslo_serialization import jsonutils
 
+from tacker._i18n import _
 from tacker.common import clients
 from tacker.common import log
 from tacker.extensions import vnfm

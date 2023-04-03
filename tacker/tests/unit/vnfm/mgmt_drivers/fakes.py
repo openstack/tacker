@@ -17,6 +17,7 @@ import datetime
 from kubernetes import client
 import os
 
+from tacker._i18n import _
 from tacker import objects
 from tacker.objects import fields
 from tacker.tests import uuidsentinel

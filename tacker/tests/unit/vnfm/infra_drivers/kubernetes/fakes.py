@@ -18,6 +18,7 @@ import datetime
 from kubernetes import client
 from oslo_serialization import jsonutils
 from oslo_utils import uuidutils
+from tacker._i18n import _
 from tacker.db.db_sqlalchemy import models
 from tacker import objects
 from tacker.objects import vim_connection

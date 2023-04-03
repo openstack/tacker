@@ -15,6 +15,7 @@
 
 from oslo_config import cfg
 
+from tacker._i18n import _
 
 CONF = cfg.CONF
 

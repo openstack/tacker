@@ -15,6 +15,7 @@
 
 from oslo_db.sqlalchemy import utils as sqlalchemyutils
 
+from tacker._i18n import _
 import tacker.context
 
 

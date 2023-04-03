@@ -21,6 +21,7 @@ Request Body validating middleware.
 import functools
 import webob
 
+from tacker._i18n import _
 from tacker.api.validation import validators
 from tacker.common import exceptions
 

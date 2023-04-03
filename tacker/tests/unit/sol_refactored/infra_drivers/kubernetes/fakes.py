@@ -18,6 +18,7 @@ import datetime
 from kubernetes import client
 from oslo_utils import uuidutils
 
+from tacker._i18n import _
 from tacker.sol_refactored import objects
 
 

@@ -21,6 +21,7 @@ from oslo_utils import strutils
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
 
+from tacker._i18n import _
 from tacker.common import exceptions as exception
 
 

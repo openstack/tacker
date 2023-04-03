@@ -31,6 +31,7 @@ from oslo_utils import excutils
 from oslo_utils import timeutils
 from toscaparser import tosca_template
 
+from tacker._i18n import _
 from tacker.common import driver_manager
 from tacker.common import exceptions
 from tacker.common import log
@@ -355,7 +356,7 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
             vnf_package_path=vnf_package_path)
 
         # save the vnf resources in the db
-        for _, resources in vnf_resources.items():
+        for _i, resources in vnf_resources.items():
             for vnf_resource in resources:
                 vnf_resource.create()
 
@@ -1488,7 +1489,7 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                 region_name=vim_connection_info.access_info.get('region_name')
             )
         else:
-            for _ in range(scale_vnf_request.number_of_steps):
+            for _i in range(scale_vnf_request.number_of_steps):
                 last_event_id = self._vnf_manager.invoke(
                     vim_connection_info.vim_type,
                     'scale',

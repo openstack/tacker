@@ -40,6 +40,7 @@ from oslo_utils import timeutils
 from oslo_utils import uuidutils
 from sqlalchemy import exc as sqlexc
 
+from tacker._i18n import _
 from tacker import auth
 from tacker.common import coordination
 from tacker.common import csar_utils
