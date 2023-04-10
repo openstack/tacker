@@ -76,6 +76,7 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
         metadata = vnfd_prop['metadata']
         if 'metadata' in body:
             metadata = inst_utils.json_merge_patch(metadata, body['metadata'])
+            inst_utils.check_metadata_format(metadata)
 
         inst = objects.VnfInstanceV2(
             # required fields

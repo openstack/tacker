@@ -16,6 +16,8 @@
 
 from oslo_log import log as logging
 
+from tacker.sol_refactored.api.schemas import common_types
+from tacker.sol_refactored.api import validator
 from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored import objects
 
@@ -79,3 +81,32 @@ def select_vim_info(vim_connection_info):
         if vim_info.vimType == 'kubernetes':
             vim_info.vimType = 'ETSINFV.KUBERNETES.V_1'
         return vim_info
+
+
+def check_metadata_format(metadata):
+    """Check VnfInstance.metadata format"""
+    # NOTE: This method checks keys which Tacker supports originally.
+    # The key supporting is only 'VDU_VNFc_mapping' for the moment.
+
+    _vdu_vnfc_mapping = {
+        'type': 'object',
+        'patternProperties': {
+            '^.*$': {
+                'type': 'array',
+                'items': common_types.IdentifierInVnf
+            }
+        }
+    }
+
+    if 'VDU_VNFc_mapping' in metadata:
+        schema_validator = validator.SolSchemaValidator(_vdu_vnfc_mapping)
+        schema_validator.validate(metadata['VDU_VNFc_mapping'])
+
+        all_vnfc_info_ids = list()
+        for vnfc_info_ids in metadata['VDU_VNFc_mapping'].values():
+            all_vnfc_info_ids.extend(vnfc_info_ids)
+
+        if len(all_vnfc_info_ids) > len(set(all_vnfc_info_ids)):
+            raise sol_ex.SolValidationError(
+                detail="Duplicated vnfcInfo ids found in "
+                "metadata['VDU_VNFc_mapping'].")

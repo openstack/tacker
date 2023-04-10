@@ -2110,6 +2110,17 @@ _expected_resource_changes_change_vnfpkg = {
     ]
 }
 
+_expected_modifications_triggered_by_vnfpkg_change = {
+    'vnfdId': 'new_vnfd_id',
+    'metadata': {
+        'VDU_VNFc_mapping': {
+            'VDU1': ['a-001', 'a-010', 'a-011'],
+            'VDU2': ['b-001'],
+            'VDU3': ['c-001']
+        }
+    },
+}
+
 # lcmocc_info_example
 _lcmocc_modify_value = {
     'id': 'test-1',
@@ -2327,12 +2338,36 @@ class TestLcmOpOccUtils(base.BaseTestCase):
 
     def test_update_lcmocc_change_vnfpkg(self):
         # prepare
-        inst_saved = objects.VnfInstanceV2()
+        inst_saved = objects.VnfInstanceV2(
+            vnfdId="old_vnfd_id",
+            vnfProvider="Company",
+            vnfProductName="Sample VNF",
+            vnfSoftwareVersion="1.0",
+            vnfdVersion="1.0",
+            metadata={
+                'VDU_VNFc_mapping': {
+                    'VDU1': ['a-001', 'a-010', 'a-011'],
+                    'VDU2': ['b-0']
+                }
+            }
+        )
         inst_saved.instantiatedVnfInfo = (
             objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
                 _inst_info_example_1))
-        inst_saved.vnfdId = 'old_vnfd_id'
-        inst = objects.VnfInstanceV2()
+        inst = objects.VnfInstanceV2(
+            vnfdId="new_vnfd_id",
+            vnfProvider="Company",
+            vnfProductName="Sample VNF",
+            vnfSoftwareVersion="1.0",
+            vnfdVersion="1.0",
+            metadata={
+                'VDU_VNFc_mapping': {
+                    'VDU1': ['a-001', 'a-010', 'a-011'],
+                    'VDU2': ['b-001'],
+                    'VDU3': ['c-001']
+                }
+            }
+        )
         inst.instantiatedVnfInfo = (
             objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
                 _inst_info_example_5))
@@ -2346,6 +2381,9 @@ class TestLcmOpOccUtils(base.BaseTestCase):
         self.assertEqual(
             _expected_resource_changes_change_vnfpkg,
             self._sort_resource_changes(lcmocc['resourceChanges']))
+        self.assertEqual(
+            _expected_modifications_triggered_by_vnfpkg_change,
+            lcmocc['modificationsTriggeredByVnfPkgChange'])
 
     @mock.patch.object(objects.base.TackerPersistentObject, 'get_by_id')
     def test_get_lcmocc(self, mock_lcmocc):

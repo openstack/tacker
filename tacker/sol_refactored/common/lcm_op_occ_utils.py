@@ -300,21 +300,24 @@ def _check_modification(inst_saved, inst, attr):
     return False
 
 
+def _check_modification_inst(obj, inst_saved, inst):
+    obj.vnfdId = inst.vnfdId
+    if inst_saved.vnfProvider != inst.vnfProvider:
+        obj.vnfProvider = inst.vnfProvider
+    if inst_saved.vnfProductName != inst.vnfProductName:
+        obj.vnfProductName = inst.vnfProductName
+    if inst_saved.vnfSoftwareVersion != inst.vnfSoftwareVersion:
+        obj.vnfSoftwareVersion = inst.vnfSoftwareVersion
+    if inst_saved.vnfdVersion != inst.vnfdVersion:
+        obj.vnfdVersion = inst.vnfdVersion
+
+
 def _change_vnf_info(lcmocc, inst_saved, inst):
     vnf_info_modify = objects.VnfInfoModificationsV2()
 
     # vnfdid is required, don't check the existence of the value.
     if inst_saved.vnfdId != inst.vnfdId:
-        vnf_info_modify.vnfdId = inst.vnfdId
-
-        if inst_saved.vnfProvider != inst.vnfProvider:
-            vnf_info_modify.vnfProvider = inst.vnfProvider
-        if inst_saved.vnfProductName != inst.vnfProductName:
-            vnf_info_modify.vnfProductName = inst.vnfProductName
-        if inst_saved.vnfSoftwareVersion != inst.vnfSoftwareVersion:
-            vnf_info_modify.vnfSoftwareVersion = inst.vnfSoftwareVersion
-        if inst_saved.vnfdVersion != inst.vnfdVersion:
-            vnf_info_modify.vnfdVersion = inst.vnfdVersion
+        _check_modification_inst(vnf_info_modify, inst_saved, inst)
 
     attrs = ['vnfInstanceName', 'vnfInstanceDescription',
              'vnfConfigurableProperties', 'metadata', 'extensions']
@@ -363,6 +366,18 @@ def _change_vnf_info(lcmocc, inst_saved, inst):
         vnf_info_modify.vnfcInfoModifications = vnfc_info_mod
 
     lcmocc.changedInfo = vnf_info_modify
+
+
+def _create_modifications_triggered_by_vnfpkg_change(lcmocc, inst_saved, inst):
+    vnfpkg_modifications = objects.ModificationsTriggeredByVnfPkgChangeV2()
+    _check_modification_inst(vnfpkg_modifications, inst_saved, inst)
+
+    attrs = ['vnfConfigurableProperties', 'metadata', 'extensions']
+    for attr in attrs:
+        if _check_modification(inst_saved, inst, attr):
+            setattr(vnfpkg_modifications, attr, getattr(inst, attr))
+
+    lcmocc.modificationsTriggeredByVnfPkgChange = vnfpkg_modifications
 
 
 def update_lcmocc(lcmocc, inst_saved, inst):
@@ -439,6 +454,9 @@ def update_lcmocc(lcmocc, inst_saved, inst):
             if vnfc.metadata != vnfc_saved.metadata:
                 affected_vnfcs.append(
                     _make_affected_vnfc_modified(vnfc, vnfc_saved))
+
+        _create_modifications_triggered_by_vnfpkg_change(
+            lcmocc, inst_saved, inst)
 
     removed_vls, added_vls, common_vls = _calc_diff(
         'vnfVirtualLinkResourceInfo')

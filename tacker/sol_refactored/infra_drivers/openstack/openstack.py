@@ -1256,12 +1256,10 @@ class Openstack(object):
     def _make_vnfc_info_id(self, inst, vnfc_res_info):
         vdu_idx = vnfc_res_info.metadata.get('vdu_idx')
         if (vdu_idx is not None and inst.obj_attr_is_set('metadata') and
-                'VDU_VNFc_mapping' in inst.metadata and
-                isinstance(inst.metadata['VDU_VNFc_mapping'], dict)):
+                'VDU_VNFc_mapping' in inst.metadata):
             vnfc_info_ids = inst.metadata['VDU_VNFc_mapping'].get(
                 vnfc_res_info.vduId)
-            if (isinstance(vnfc_info_ids, list) and
-                    len(vnfc_info_ids) > vdu_idx):
+            if vnfc_info_ids is not None and len(vnfc_info_ids) > vdu_idx:
                 return vnfc_info_ids[vdu_idx]
 
         # default vnfc_id
@@ -1498,6 +1496,9 @@ class Openstack(object):
                         # re-use current object since
                         # vnfcConfigurableProperties may be set.
                         vnfc_info = old_vnfc_info
+                        # metadata['VDU_VNFc_mapping'] may be changed
+                        vnfc_info.id = self._make_vnfc_info_id(inst,
+                                                               vnfc_res_info)
                         break
                 if vnfc_info is None:
                     vnfc_info_id = self._make_vnfc_info_id(inst, vnfc_res_info)
