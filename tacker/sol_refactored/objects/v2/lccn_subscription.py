@@ -12,10 +12,15 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+from oslo_config import cfg
+from oslo_serialization import jsonutils
 
+from tacker.common import crypt_utils
 from tacker.sol_refactored.objects import base
 from tacker.sol_refactored.objects import fields
 from tacker.sol_refactored.objects.v2 import fields as v2fields
+
+CONF = cfg.CONF
 
 
 # NFV-SOL 003
@@ -43,6 +48,33 @@ class LccnSubscriptionV2(base.TackerPersistentObject,
         '_links': fields.ObjectField(
             'LccnSubscriptionV2_Links', nullable=False),
     }
+
+    @classmethod
+    def from_db_obj(cls, db_obj):
+        lccn_subsc = super().from_db_obj(db_obj)
+        if not CONF.use_credential_encryption:
+            # If use_credential_encryption in the config is False,
+            # credential information is not encrypted.
+            return lccn_subsc
+
+        if lccn_subsc.obj_attr_is_set('authentication'):
+            auth = lccn_subsc.authentication
+            crypt_utils.decrypt_subsc_auth_v2(auth)
+        return lccn_subsc
+
+    def to_db_obj(self):
+        obj = super().to_db_obj()
+        if not CONF.use_credential_encryption:
+            # If use_credential_encryption in the config is False,
+            # credential information is not encrypted.
+            return obj
+
+        auth_db_obj = obj.get('authentication', None)
+        if auth_db_obj:
+            auth = jsonutils.loads(auth_db_obj)
+            crypt_utils.encrypt_subsc_auth_v2(auth)
+            obj['authentication'] = jsonutils.dumps(auth)
+        return obj
 
 
 @base.TackerObjectRegistry.register

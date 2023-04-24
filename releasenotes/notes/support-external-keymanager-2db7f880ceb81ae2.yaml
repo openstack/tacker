@@ -1,0 +1,6 @@
+---
+features:
+  - Supports the Tacker service for encrypting credentials such as Password
+    used to log in to vim and subscription servers. Users can choose between
+    two ways to manage encryption keys by config, whether they are stored as
+    local files or in Barbican.

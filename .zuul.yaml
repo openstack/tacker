@@ -627,6 +627,61 @@
       https_setup: true
 
 - job:
+    name: tacker-functional-devstack-multinode-sol-encrypt-cred-barbican
+    parent: tacker-functional-devstack-multinode-sol
+    description: |
+      Multinodes job for SOL devstack-based functional tests
+      with encrypt credentials
+    host-vars:
+      controller-tacker:
+        devstack_local_conf:
+          post-config:
+            $TACKER_CONF:
+              DEFAULT:
+                use_credential_encryption: true
+                keymanager_type: "barbican"
+              v2_nfvo:
+                use_external_nfvo: true
+                endpoint: https://localhost:9990
+                token_endpoint: https://localhost:9990/token
+                client_id: 229ec984de7547b2b662e968961af5a4
+                client_password: devstack
+                nfvo_ca_cert_file: /etc/https_server/ssl/ca.crt
+                nfvo_verify_cert: true
+                use_client_secret_basic: true
+        tox_envlist: dsvm-functional-sol-encrypt-cred-barbican
+    vars:
+      https_setup: true
+
+- job:
+    name: tacker-functional-devstack-multinode-sol-encrypt-cred-local
+    parent: tacker-functional-devstack-multinode-sol
+    description: |
+      Multinodes job for SOL devstack-based functional tests
+      with encrypt credentials
+    host-vars:
+      controller-tacker:
+        devstack_local_conf:
+          post-config:
+            $TACKER_CONF:
+              DEFAULT:
+                use_credential_encryption: true
+                keymanager_type: "local"
+                crypt_key_dir: "/etc/tacker/crypt/fernet_keys"
+              v2_nfvo:
+                use_external_nfvo: true
+                endpoint: https://localhost:9990
+                token_endpoint: https://localhost:9990/token
+                client_id: 229ec984de7547b2b662e968961af5a4
+                client_password: devstack
+                nfvo_ca_cert_file: /etc/https_server/ssl/ca.crt
+                nfvo_verify_cert: true
+                use_client_secret_basic: true
+        tox_envlist: dsvm-functional-sol-encrypt-cred-local
+    vars:
+      https_setup: true
+
+- job:
     name: tacker-functional-devstack-kubernetes-oidc-auth
     parent: tacker-functional-devstack-multinode-sol-kubernetes-v2
     description: |
@@ -729,6 +784,8 @@
         - tacker-functional-devstack-multinode-sol-kubernetes-v2
         - tacker-functional-devstack-multinode-sol-multi-tenant
         - tacker-functional-devstack-multinode-sol-https-v2
+        - tacker-functional-devstack-multinode-sol-encrypt-cred-barbican
+        - tacker-functional-devstack-multinode-sol-encrypt-cred-local
         - tacker-functional-devstack-multinode-sol-kubernetes-multi-tenant
         - tacker-functional-devstack-kubernetes-oidc-auth
         - tacker-functional-devstack-multinode-sol-v2-az-retry

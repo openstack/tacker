@@ -98,27 +98,12 @@ class BaseVnfLcmKubernetesV2Test(base_v2.BaseTackerTestV2):
         resp, body = self.tacker_client.do_request(path, "GET")
         return body
 
-    def create_fm_subscription(self, req_body):
-        path = "/vnffm/v1/subscriptions"
-        return self.tacker_client.do_request(
-            path, "POST", body=req_body, version=VNFFM_V1_VERSION)
-
     def list_fm_subscriptions(self, filter_expr=None):
         path = "/vnffm/v1/subscriptions"
         if filter_expr:
             path = "{}?{}".format(path, urllib.parse.urlencode(filter_expr))
         return self.tacker_client.do_request(
             path, "GET", version=VNFFM_V1_VERSION)
-
-    def show_fm_subscription(self, subscription_id):
-        path = f"/vnffm/v1/subscriptions/{subscription_id}"
-        return self.tacker_client.do_request(
-            path, "GET", version=VNFFM_V1_VERSION)
-
-    def delete_fm_subscription(self, subscription_id):
-        path = f"/vnffm/v1/subscriptions/{subscription_id}"
-        return self.tacker_client.do_request(
-            path, "DELETE", version=VNFFM_V1_VERSION)
 
     def create_fm_alarm(self, req_body):
         path = "/alert"
@@ -142,11 +127,6 @@ class BaseVnfLcmKubernetesV2Test(base_v2.BaseTackerTestV2):
         return self.tacker_client.do_request(
             path, "PATCH", body=req_body, version=VNFFM_V1_VERSION)
 
-    def create_pm_job(self, req_body):
-        path = "/vnfpm/v2/pm_jobs"
-        return self.tacker_client.do_request(
-            path, "POST", body=req_body, version=VNFPM_V2_VERSION)
-
     def update_pm_job(self, pm_job_id, req_body):
         path = f"/vnfpm/v2/pm_jobs/{pm_job_id}"
         return self.tacker_client.do_request(
@@ -164,25 +144,10 @@ class BaseVnfLcmKubernetesV2Test(base_v2.BaseTackerTestV2):
         return self.tacker_client.do_request(
             path, "GET", version=VNFPM_V2_VERSION)
 
-    def show_pm_job(self, pm_job_id):
-        path = f"/vnfpm/v2/pm_jobs/{pm_job_id}"
-        return self.tacker_client.do_request(
-            path, "GET", version=VNFPM_V2_VERSION)
-
     def show_pm_job_report(self, pm_job_id, report_id):
         path = f"/vnfpm/v2/pm_jobs/{pm_job_id}/reports/{report_id}"
         return self.tacker_client.do_request(
             path, "GET", version=VNFPM_V2_VERSION)
-
-    def delete_pm_job(self, pm_job_id):
-        path = f"/vnfpm/v2/pm_jobs/{pm_job_id}"
-        return self.tacker_client.do_request(
-            path, "DELETE", version=VNFPM_V2_VERSION)
-
-    def create_pm_threshold(self, req_body):
-        path = "/vnfpm/v2/thresholds"
-        return self.tacker_client.do_request(
-            path, "POST", body=req_body, version=VNFPM_V2_VERSION)
 
     def update_pm_threshold(self, pm_threshold_id, req_body):
         path = f"/vnfpm/v2/thresholds/{pm_threshold_id}"
@@ -201,13 +166,3 @@ class BaseVnfLcmKubernetesV2Test(base_v2.BaseTackerTestV2):
             path = "{}?{}".format(path, urllib.parse.urlencode(filter_expr))
         return self.tacker_client.do_request(
             path, "GET", version=VNFPM_V2_VERSION)
-
-    def show_pm_threshold(self, pm_threshold_id):
-        path = f"/vnfpm/v2/thresholds/{pm_threshold_id}"
-        return self.tacker_client.do_request(
-            path, "GET", version=VNFPM_V2_VERSION)
-
-    def delete_pm_threshold(self, pm_threshold_id):
-        path = f"/vnfpm/v2/thresholds/{pm_threshold_id}"
-        return self.tacker_client.do_request(
-            path, "DELETE", version=VNFPM_V2_VERSION)

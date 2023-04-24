@@ -39,6 +39,8 @@ RETRY_WAIT_TIME = 3
 VNF_PACKAGE_UPLOAD_TIMEOUT = 300
 
 VNFLCM_V2_VERSION = "2.0.0"
+VNFPM_V2_VERSION = "2.1.0"
+VNFFM_V1_VERSION = "1.3.0"
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
@@ -277,6 +279,51 @@ class BaseTackerTestV2(base.BaseTestCase):
             path = "{}?{}".format(path, urllib.parse.urlencode(filter_expr))
         return self.tacker_client.do_request(
             path, "GET", version=VNFLCM_V2_VERSION)
+
+    def create_fm_subscription(self, req_body):
+        path = "/vnffm/v1/subscriptions"
+        return self.tacker_client.do_request(
+            path, "POST", body=req_body, version=VNFFM_V1_VERSION)
+
+    def show_fm_subscription(self, subscription_id):
+        path = f"/vnffm/v1/subscriptions/{subscription_id}"
+        return self.tacker_client.do_request(
+            path, "GET", version=VNFFM_V1_VERSION)
+
+    def delete_fm_subscription(self, subscription_id):
+        path = f"/vnffm/v1/subscriptions/{subscription_id}"
+        return self.tacker_client.do_request(
+            path, "DELETE", version=VNFFM_V1_VERSION)
+
+    def create_pm_job(self, req_body):
+        path = "/vnfpm/v2/pm_jobs"
+        return self.tacker_client.do_request(
+            path, "POST", body=req_body, version=VNFPM_V2_VERSION)
+
+    def show_pm_job(self, pm_job_id):
+        path = f"/vnfpm/v2/pm_jobs/{pm_job_id}"
+        return self.tacker_client.do_request(
+            path, "GET", version=VNFPM_V2_VERSION)
+
+    def delete_pm_job(self, pm_job_id):
+        path = f"/vnfpm/v2/pm_jobs/{pm_job_id}"
+        return self.tacker_client.do_request(
+            path, "DELETE", version=VNFPM_V2_VERSION)
+
+    def create_pm_threshold(self, req_body):
+        path = "/vnfpm/v2/thresholds"
+        return self.tacker_client.do_request(
+            path, "POST", body=req_body, version=VNFPM_V2_VERSION)
+
+    def show_pm_threshold(self, pm_threshold_id):
+        path = f"/vnfpm/v2/thresholds/{pm_threshold_id}"
+        return self.tacker_client.do_request(
+            path, "GET", version=VNFPM_V2_VERSION)
+
+    def delete_pm_threshold(self, pm_threshold_id):
+        path = f"/vnfpm/v2/thresholds/{pm_threshold_id}"
+        return self.tacker_client.do_request(
+            path, "DELETE", version=VNFPM_V2_VERSION)
 
     def exec_lcm_operation(self, func, *args):
         for _ in range(3):

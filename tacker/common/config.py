@@ -57,6 +57,13 @@ core_opts = [
                       "or negative integer means no limit")),
     cfg.HostAddressOpt('host', default=utils.get_hostname(),
                        help=_("The hostname Tacker is running on")),
+    cfg.BoolOpt('use_credential_encryption', default=False,
+                help=_("Enable to encrypt the credential")),
+    cfg.StrOpt('keymanager_type', default="barbican",
+               help=_("The type of keymanager to use when the "
+                      "'use_credential_encryption' option is True")),
+    cfg.StrOpt('crypt_key_dir', default="/etc/tacker/crypt/fernet_keys",
+               help=_("Dir.path to store fernet_keys"))
 ]
 
 core_cli_opts = [
