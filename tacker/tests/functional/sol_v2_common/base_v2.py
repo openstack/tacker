@@ -49,12 +49,12 @@ class BaseSolV2Test(base_v2.BaseTackerTestV2):
     @classmethod
     def create_vnf_package(cls, sample_path, user_data={},
                            image_path=None, nfvo=False, userdata_path=None,
-                           provider=None):
+                           provider=None, vnfd_id=None):
 
         return super().create_vnf_package(sample_path, user_data=user_data,
                                           image_path=image_path, nfvo=nfvo,
                                           userdata_path=userdata_path,
-                                          provider=provider)
+                                          provider=provider, vnfd_id=vnfd_id)
 
     def get_network_ids(self, networks):
         path = "/v2.0/networks"

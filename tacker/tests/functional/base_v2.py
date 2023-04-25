@@ -118,9 +118,10 @@ class BaseTackerTestV2(base.BaseTestCase):
     @classmethod
     def create_vnf_package(cls, sample_path, user_data={},
                            image_path=None, nfvo=False, userdata_path=None,
-                           provider=None, namespace=None):
+                           provider=None, namespace=None, vnfd_id=None):
+        if vnfd_id is None:
+            vnfd_id = uuidutils.generate_uuid()
 
-        vnfd_id = uuidutils.generate_uuid()
         tmp_dir = tempfile.mkdtemp()
 
         utils.make_zip(sample_path, tmp_dir, vnfd_id, image_path,

@@ -112,6 +112,15 @@ in section 6.8.1 in `NFV-SOL001 v2.6.1`_. Its required properties are:
 * *flavour_description* - is description of the deployment flavour. The
   default can be "" (empty string).
 
+.. note:: Section 6.8.1 of `NFV-SOL001 v2.6.1`_ states that the
+          ``descriptor_id`` string shall be UUID (`IETF RFC 4122`_:
+          "A Universally Unique IDentifier (UUID) URN Namespace").
+          Tacker recommends using UUIDs according to `NFV-SOL001 v2.6.1`_,
+          but ``vnfdId`` defined in `NFV-SOL002 v3.3.1`_ /
+          `NFV-SOL003 v3.3.1`_ has no format restrictions, so any single-byte
+          character string (including alphabets, numbers, spaces, hyphens,
+          underscores, and periods) is also supported.
+
 Topology Template Files
 -----------------------
 
@@ -251,5 +260,8 @@ resources such as VDU and CP. The file includes:
 
 .. _TOSCA-Simple-Profile-yaml-v1.2 : http://docs.oasis-open.org/tosca/TOSCA-Simple-Profile-YAML/v1.2/TOSCA-Simple-Profile-YAML-v1.2.html
 .. _NFV-SOL001 v2.6.1 : https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/001/02.06.01_60/gs_NFV-SOL001v020601p.pdf
+.. _IETF RFC 4122 : https://datatracker.ietf.org/doc/html/rfc4122
+.. _NFV-SOL002 v3.3.1 : https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/002/03.03.01_60/gs_nfv-sol002v030301p.pdf
+.. _NFV-SOL003 v3.3.1 : https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/003/03.03.01_60/gs_nfv-sol003v030301p.pdf
 .. _etsi_nfv_sol001_common_types.yaml : https://forge.etsi.org/rep/nfv/SOL001/raw/v2.6.1/etsi_nfv_sol001_common_types.yaml
 .. _etsi_nfv_sol001_vnfd_types.yaml : https://forge.etsi.org/rep/nfv/SOL001/raw/v2.6.1/etsi_nfv_sol001_vnfd_types.yaml

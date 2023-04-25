@@ -59,11 +59,14 @@ CREATE_STATES = (constants.PENDING_CREATE, constants.DEAD)
 ###########################################################################
 # db tables
 
-class VNFD(model_base.BASE, models_v1.HasId, models_v1.HasTenant,
-           models_v1.Audit):
+class VNFD(model_base.BASE, models_v1.HasTenant, models_v1.Audit):
     """Represents VNFD to create VNF."""
 
     __tablename__ = 'vnfd'
+    # vnfdId
+    id = sa.Column(sa.String(255), primary_key=True,
+                   default=uuidutils.generate_uuid)
+
     # Descriptive name
     name = sa.Column(sa.String(255), nullable=False)
     description = sa.Column(sa.Text)
@@ -98,7 +101,7 @@ class ServiceType(model_base.BASE, models_v1.HasId, models_v1.HasTenant):
     Since a vnf may provide many services, This is one-to-many
     relationship.
     """
-    vnfd_id = sa.Column(types.Uuid, sa.ForeignKey('vnfd.id'),
+    vnfd_id = sa.Column(sa.String(255), sa.ForeignKey('vnfd.id'),
                         nullable=False)
     service_type = sa.Column(sa.String(64), nullable=False)
 
@@ -111,7 +114,7 @@ class VNFDAttribute(model_base.BASE, models_v1.HasId):
     """
 
     __tablename__ = 'vnfd_attribute'
-    vnfd_id = sa.Column(types.Uuid, sa.ForeignKey('vnfd.id'),
+    vnfd_id = sa.Column(sa.String(255), sa.ForeignKey('vnfd.id'),
                         nullable=False)
     key = sa.Column(sa.String(255), nullable=False)
     value = sa.Column(sa.TEXT(65535), nullable=True)
@@ -126,7 +129,7 @@ class VNF(model_base.BASE, models_v1.HasId, models_v1.HasTenant,
     """
 
     __tablename__ = 'vnf'
-    vnfd_id = sa.Column(types.Uuid, sa.ForeignKey('vnfd.id'))
+    vnfd_id = sa.Column(sa.String(255), sa.ForeignKey('vnfd.id'))
     vnfd = orm.relationship('VNFD')
 
     name = sa.Column(sa.String(255), nullable=False)

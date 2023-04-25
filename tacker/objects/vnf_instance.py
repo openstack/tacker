@@ -360,7 +360,7 @@ class VnfInstance(base.TackerObject, base.TackerPersistentObject,
             'vnf_instance_description', 'string', 'VnfInstance'),
         'instantiationState': ('instantiation_state', 'string', 'VnfInstance'),
         'taskState': ('task_state', 'string', 'VnfInstance'),
-        'vnfdId': ('vnfd_id', 'uuid', 'VnfInstance'),
+        'vnfdId': ('vnfd_id', 'string', 'VnfInstance'),
         'vnfProvider': ('vnf_provider', 'string', 'VnfInstance'),
         'vnfProductName': ('vnf_product_name', 'string', 'VnfInstance'),
         'vnfSoftwareVersion': (
