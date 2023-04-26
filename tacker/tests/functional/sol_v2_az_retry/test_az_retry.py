@@ -14,7 +14,6 @@
 #    under the License.
 
 import os
-import time
 
 from tacker.tests.functional.sol_v2_common import paramgen
 from tacker.tests.functional.sol_v2_common import test_vnflcm_basic_common
@@ -44,13 +43,13 @@ class AzRetryTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         # for update_stack_retry test
         pkg_path_1 = os.path.join(cur_dir,
             "../sol_v2_common/samples/userdata_standard_az_retry")
-        cls.vnf_pkg_1, cls.vnfd_id_1 = cls.create_vnf_package(
+        cls.az_retry_pkg, cls.az_retry_vnfd_id = cls.create_vnf_package(
             pkg_path_1, image_path=image_path, userdata_path=userdata_path)
 
     @classmethod
     def tearDownClass(cls):
         super(AzRetryTest, cls).tearDownClass()
-        cls.delete_vnf_package(cls.vnf_pkg_1)
+        cls.delete_vnf_package(cls.az_retry_pkg)
 
     def setUp(self):
         super().setUp()
@@ -71,19 +70,6 @@ class AzRetryTest(test_vnflcm_basic_common.CommonVnfLcmTest):
     def _get_vnfc_zone(self, inst, vdu, index):
         vnfc = self._get_vnfc_by_vdu_index(inst, vdu, index)
         return vnfc['metadata'].get('zone')
-
-    def _delete_instance(self, inst_id):
-        for _ in range(3):
-            resp, body = self.delete_vnf_instance(inst_id)
-            if resp.status_code == 204:  # OK
-                return
-            elif resp.status_code == 409:
-                # may happen. there is a bit time between lcmocc become
-                # COMPLETED and lock of terminate is freed.
-                time.sleep(3)
-            else:
-                break
-        self.assertTrue(False)
 
     def test_update_stack_retry(self):
         """Test _update_stack_retry function using StandardUserData
@@ -117,7 +103,7 @@ class AzRetryTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         MAX_SCALE_COUNT = 4
 
         # Create VNF instance
-        create_req = paramgen.sample6_create(self.vnfd_id_1)
+        create_req = paramgen.sample6_create(self.az_retry_vnfd_id)
         resp, body = self.create_vnf_instance(create_req)
         self.assertEqual(201, resp.status_code)
         inst_id = body['id']
@@ -177,4 +163,5 @@ class AzRetryTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         self.wait_lcmocc_complete(lcmocc_id)
 
         # Delete VNF instance
-        self._delete_instance(inst_id)
+        resp, body = self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
+        self.assertEqual(204, resp.status_code)

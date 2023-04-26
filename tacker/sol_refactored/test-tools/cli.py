@@ -32,6 +32,8 @@ domain_name = "Default"
 user_domain_name = "Default"
 project_domain_name = "Default"
 
+VNFLCM_V2_VERSION = "2.0.0"
+
 
 class Client(object):
 
@@ -55,82 +57,85 @@ class Client(object):
 
     def create(self, req_body):
         resp, body = self.client.do_request(
-            self.path, "POST", body=req_body, version="2.0.0")
+            self.path, "POST", body=req_body, version=VNFLCM_V2_VERSION)
         self.print(resp, body)
 
     def list(self, req_body):
         if req_body is not None:
             resp, body = self.client.do_request(
-                self.path, "GET", version="2.0.0", params=req_body)
+                self.path, "GET", version=VNFLCM_V2_VERSION, params=req_body)
         else:
             resp, body = self.client.do_request(
-                self.path, "GET", version="2.0.0")
+                self.path, "GET", version=VNFLCM_V2_VERSION)
         self.print(resp, body)
 
     def show(self, id):
         resp, body = self.client.do_request(
-            self.path + '/' + id, "GET", version="2.0.0")
+            self.path + '/' + id, "GET", version=VNFLCM_V2_VERSION)
         self.print(resp, body)
 
     def delete(self, id):
         resp, body = self.client.do_request(
-            self.path + '/' + id, "DELETE", version="2.0.0")
+            self.path + '/' + id, "DELETE", version=VNFLCM_V2_VERSION)
         self.print(resp, body)
 
     def update(self, id, req_body):
-        resp, body = self.client.do_request(
-            self.path + '/' + id, "PATCH", body=req_body, version="2.0.0")
+        resp, body = self.client.do_request(self.path + '/' + id,
+            "PATCH", body=req_body, version=VNFLCM_V2_VERSION)
         self.print(resp, body)
 
     def inst(self, id, req_body):
         path = self.path + '/' + id + '/instantiate'
         resp, body = self.client.do_request(
-            path, "POST", body=req_body, version="2.0.0")
+            path, "POST", body=req_body, version=VNFLCM_V2_VERSION)
         self.print(resp, body)
 
     def term(self, id, req_body):
         path = self.path + '/' + id + '/terminate'
         resp, body = self.client.do_request(
-            path, "POST", body=req_body, version="2.0.0")
+            path, "POST", body=req_body, version=VNFLCM_V2_VERSION)
         self.print(resp, body)
 
     def scale(self, id, req_body):
         path = self.path + '/' + id + '/scale'
         resp, body = self.client.do_request(
-            path, "POST", body=req_body, version="2.0.0")
+            path, "POST", body=req_body, version=VNFLCM_V2_VERSION)
         self.print(resp, body)
 
     def heal(self, id, req_body):
         path = self.path + '/' + id + '/heal'
         resp, body = self.client.do_request(
-            path, "POST", body=req_body, version="2.0.0")
+            path, "POST", body=req_body, version=VNFLCM_V2_VERSION)
         self.print(resp, body)
 
     def chg_ext_conn(self, id, req_body):
         path = self.path + '/' + id + '/change_ext_conn'
         resp, body = self.client.do_request(
-            path, "POST", body=req_body, version="2.0.0")
+            path, "POST", body=req_body, version=VNFLCM_V2_VERSION)
         self.print(resp, body)
 
     def change_vnfpkg(self, id, req_body):
         path = self.path + '/' + id + '/change_vnfpkg'
         resp, body = self.client.do_request(
-            path, "POST", body=req_body, version="2.0.0")
+            path, "POST", body=req_body, version=VNFLCM_V2_VERSION)
         self.print(resp, body)
 
     def retry(self, id):
         path = self.path + '/' + id + '/retry'
-        resp, body = self.client.do_request(path, "POST", version="2.0.0")
+        resp, body = self.client.do_request(
+            path, "POST", version=VNFLCM_V2_VERSION)
         self.print(resp, body)
 
     def rollback(self, id):
         path = self.path + '/' + id + '/rollback'
-        resp, body = self.client.do_request(path, "POST", version="2.0.0")
+        resp, body = self.client.do_request(
+            path, "POST", version=VNFLCM_V2_VERSION)
         self.print(resp, body)
 
     def fail(self, id):
         path = self.path + '/' + id + '/fail'
-        resp, body = self.client.do_request(path, "POST", version="2.0.0")
+        resp, body = self.client.do_request(
+            path, "POST", version=VNFLCM_V2_VERSION)
         self.print(resp, body)
 
 

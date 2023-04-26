@@ -21,11 +21,12 @@ from tacker.sol_refactored.common import http_client
 from tacker.sol_refactored import objects
 from tacker.tests.functional.sol_enhanced_policy.base import (
     BaseEnhancedPolicyTest)
-from tacker.tests.functional.sol_v2_common import base_v2
 from tacker.tests.functional.sol_v2_common import paramgen
 from tacker.tests.functional.sol_v2_common.test_vnflcm_basic_common import (
     CommonVnfLcmTest)
 from tacker.tests import utils as base_utils
+
+WAIT_LCMOCC_UPDATE_TIME = 3
 
 
 class VnflcmAPIsV2VNFBase(CommonVnfLcmTest, BaseEnhancedPolicyTest):
@@ -335,7 +336,7 @@ class VnflcmAPIsV2VNFBase(CommonVnfLcmTest, BaseEnhancedPolicyTest):
 
             # wait a bit because there is a bit time lag between lcmocc DB
             # update and instantiate completion.
-            time.sleep(3)
+            time.sleep(WAIT_LCMOCC_UPDATE_TIME)
 
     def _step_lcm_show(self, username, inst_id, expected_status_code):
         self.tacker_client = self.get_tk_http_client_by_user(username)
@@ -363,7 +364,7 @@ class VnflcmAPIsV2VNFBase(CommonVnfLcmTest, BaseEnhancedPolicyTest):
         if expected_status_code == 202:
             lcmocc_id = os.path.basename(resp.headers['Location'])
             self.wait_lcmocc_complete(lcmocc_id)
-            time.sleep(3)
+            time.sleep(WAIT_LCMOCC_UPDATE_TIME)
 
     def _step_lcm_update(self, username, inst_id, update_vnfd_id,
                          expected_status_code):
@@ -424,7 +425,7 @@ class VnflcmAPIsV2VNFBase(CommonVnfLcmTest, BaseEnhancedPolicyTest):
 
             # wait a bit because there is a bit time lag between lcmocc DB
             # update and change_vnfpkg completion.
-            time.sleep(3)
+            time.sleep(WAIT_LCMOCC_UPDATE_TIME)
 
     def _step_lcm_change_ext_conn(self, username, inst_id, area,
                                   zone_name_list, expected_status_code):
@@ -490,7 +491,7 @@ class VnflcmAPIsV2VNFBase(CommonVnfLcmTest, BaseEnhancedPolicyTest):
         if expected_status_code == 202:
             lcmocc_id = os.path.basename(resp.headers['Location'])
             self.wait_lcmocc_complete(lcmocc_id)
-            time.sleep(3)
+            time.sleep(WAIT_LCMOCC_UPDATE_TIME)
 
     def _step_lcm_terminate(self, username, inst_id, expected_status_code):
         self.tacker_client = self.get_tk_http_client_by_user(username)
@@ -502,23 +503,20 @@ class VnflcmAPIsV2VNFBase(CommonVnfLcmTest, BaseEnhancedPolicyTest):
             lcmocc_id = os.path.basename(resp.headers['Location'])
             self.wait_lcmocc_complete(lcmocc_id)
 
-            # wait a bit because there is a bit time lag between lcmocc DB
-            # update and terminate completion.
-            time.sleep(3)
-
     def _step_lcm_delete(self, username, inst_id, expected_status_code):
         self.tacker_client = self.get_tk_http_client_by_user(username)
-        resp, body = self.delete_vnf_instance(inst_id)
+        resp, body = self.exec_lcm_operation(self.delete_vnf_instance,
+                                             inst_id)
         self.assertEqual(expected_status_code, resp.status_code)
 
     def vnflcm_apis_v2_vnf_test_before_instantiate(self):
         # Create subscription
         self.tacker_client = self.get_tk_http_client_by_user('user_all')
 
-        callback_url = os.path.join(base_v2.MOCK_NOTIFY_CALLBACK_URL,
+        callback_url = os.path.join(self.get_notify_callback_url(),
                                     self._testMethodName)
         callback_uri = ('http://localhost:'
-                        f'{base_v2.FAKE_SERVER_MANAGER.SERVER_PORT}'
+                        f'{self.get_server_port()}'
                         f'{callback_url}')
 
         sub_req = paramgen.sub_create_min(callback_uri)
@@ -530,7 +528,7 @@ class VnflcmAPIsV2VNFBase(CommonVnfLcmTest, BaseEnhancedPolicyTest):
         # Test notification
         self.assert_notification_get(callback_url)
         # check usageState of VNF Package
-        self._check_package_usage(False, self.vnf_pkg_a)
+        self.check_package_usage(self.vnf_pkg_a)
 
         # step 1 LCM-CreateV2, Resource Group A / User Group A
         inst_id_a = self._step_lcm_create('user_a', self.vnfd_id_a, 201)
@@ -820,10 +818,10 @@ class VnflcmAPIsV2VNFInstanceWithoutArea(VnflcmAPIsV2VNFBase):
         # Create subscription
         self.tacker_client = self.get_tk_http_client_by_user('user_all')
 
-        callback_url = os.path.join(base_v2.MOCK_NOTIFY_CALLBACK_URL,
+        callback_url = os.path.join(self.get_notify_callback_url(),
                                     self._testMethodName)
         callback_uri = ('http://localhost:'
-                        f'{base_v2.FAKE_SERVER_MANAGER.SERVER_PORT}'
+                        f'{self.get_server_port()}'
                         f'{callback_url}')
 
         sub_req = paramgen.sub_create_min(callback_uri)
@@ -835,7 +833,7 @@ class VnflcmAPIsV2VNFInstanceWithoutArea(VnflcmAPIsV2VNFBase):
         # Test notification
         self.assert_notification_get(callback_url)
         # check usageState of VNF Package
-        self._check_package_usage(False, self.vnf_pkg_c)
+        self.check_package_usage(self.vnf_pkg_c)
 
         # step 1 LCM-CreateV2, Resource Group C / User Group C
         inst_id_c = self._step_lcm_create('user_c', self.vnfd_id_c, 201)

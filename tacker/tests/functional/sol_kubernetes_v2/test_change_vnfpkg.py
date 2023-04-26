@@ -19,6 +19,8 @@ import time
 from tacker.tests.functional.sol_kubernetes_v2 import base_v2
 from tacker.tests.functional.sol_kubernetes_v2 import paramgen
 
+WAIT_LCMOCC_UPDATE_TIME = 3
+
 
 class VnfLcmKubernetesChangeVnfpkgTest(base_v2.BaseVnfLcmKubernetesV2Test):
 
@@ -30,20 +32,20 @@ class VnfLcmKubernetesChangeVnfpkgTest(base_v2.BaseVnfLcmKubernetesV2Test):
 
         test_instantiate_cnf_resources_path = os.path.join(
             cur_dir, "samples/test_instantiate_cnf_resources")
-        cls.vnf_pkg_1, cls.vnfd_id_1 = cls.create_vnf_package(
+        cls.old_pkg, cls.old_vnfd_id = cls.create_vnf_package(
             test_instantiate_cnf_resources_path)
 
         test_change_vnf_pkg_with_deployment_path = os.path.join(
             cur_dir, "samples/test_change_vnf_pkg_with_deployment")
-        cls.vnf_pkg_2, cls.vnfd_id_2 = cls.create_vnf_package(
+        cls.new_pkg, cls.new_vnfd_id = cls.create_vnf_package(
             test_change_vnf_pkg_with_deployment_path)
 
     @classmethod
     def tearDownClass(cls):
         super(VnfLcmKubernetesChangeVnfpkgTest, cls).tearDownClass()
 
-        cls.delete_vnf_package(cls.vnf_pkg_1)
-        cls.delete_vnf_package(cls.vnf_pkg_2)
+        cls.delete_vnf_package(cls.old_pkg)
+        cls.delete_vnf_package(cls.new_pkg)
 
     def setUp(self):
         super(VnfLcmKubernetesChangeVnfpkgTest, self).setUp()
@@ -83,7 +85,7 @@ class VnfLcmKubernetesChangeVnfpkgTest(base_v2.BaseVnfLcmKubernetesV2Test):
             '_links'
         ]
         create_req = paramgen.test_instantiate_cnf_resources_create(
-            self.vnfd_id_1)
+            self.old_vnfd_id)
         resp, body = self.create_vnf_instance(create_req)
         self.assertEqual(201, resp.status_code)
         self.check_resp_headers_in_create(resp)
@@ -91,8 +93,7 @@ class VnfLcmKubernetesChangeVnfpkgTest(base_v2.BaseVnfLcmKubernetesV2Test):
         inst_id = body['id']
 
         # check usageState of VNF Package
-        usage_state = self.get_vnf_package(self.vnf_pkg_1)['usageState']
-        self.assertEqual('IN_USE', usage_state)
+        self.check_package_usage(self.old_pkg, 'IN_USE')
 
         # 2. Instantiate a VNF instance
         instantiate_req = paramgen.change_vnfpkg_instantiate(
@@ -121,21 +122,20 @@ class VnfLcmKubernetesChangeVnfpkgTest(base_v2.BaseVnfLcmKubernetesV2Test):
         self.assertEqual(2, len(before_resource_ids))
 
         # 4. Change Current VNF Package
-        change_vnfpkg_req = paramgen.change_vnfpkg(self.vnfd_id_2)
+        change_vnfpkg_req = paramgen.change_vnfpkg(self.new_vnfd_id)
         resp, body = self.change_vnfpkg(inst_id, change_vnfpkg_req)
         self.assertEqual(202, resp.status_code)
         self.check_resp_headers_in_operation_task(resp)
 
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
-        time.sleep(3)
+        time.sleep(WAIT_LCMOCC_UPDATE_TIME)
 
         # check usageState of VNF Package
-        usage_state = self.get_vnf_package(self.vnf_pkg_1).get('usageState')
-        self.assertEqual('NOT_IN_USE', usage_state)
+        self.check_package_usage(self.old_pkg, 'NOT_IN_USE')
+
         # check usageState of VNF Package
-        usage_state = self.get_vnf_package(self.vnf_pkg_2).get('usageState')
-        self.assertEqual('IN_USE', usage_state)
+        self.check_package_usage(self.new_pkg, 'IN_USE')
 
         # 5. Show VNF instance
         additional_inst_attrs = [
@@ -163,12 +163,8 @@ class VnfLcmKubernetesChangeVnfpkgTest(base_v2.BaseVnfLcmKubernetesV2Test):
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
 
-        # wait a bit because there is a bit time lag between lcmocc DB
-        # update and terminate completion.
-        time.sleep(3)
-
         # 7. Delete a VNF instance
-        resp, body = self.delete_vnf_instance(inst_id)
+        resp, body = self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
         self.assertEqual(204, resp.status_code)
         self.check_resp_headers_in_delete(resp)
 
@@ -177,8 +173,7 @@ class VnfLcmKubernetesChangeVnfpkgTest(base_v2.BaseVnfLcmKubernetesV2Test):
         self.assertEqual(404, resp.status_code)
 
         # check usageState of VNF Package
-        usage_state = self.get_vnf_package(self.vnf_pkg_2).get('usageState')
-        self.assertEqual('NOT_IN_USE', usage_state)
+        self.check_package_usage(self.new_pkg, 'NOT_IN_USE')
 
     def test_change_vnfpkg_failed_and_rollback(self):
         """Test LCM operations error handing
@@ -216,7 +211,7 @@ class VnfLcmKubernetesChangeVnfpkgTest(base_v2.BaseVnfLcmKubernetesV2Test):
             '_links'
         ]
         create_req = paramgen.test_instantiate_cnf_resources_create(
-            self.vnfd_id_1)
+            self.old_vnfd_id)
         resp, body = self.create_vnf_instance(create_req)
         self.assertEqual(201, resp.status_code)
         self.check_resp_headers_in_create(resp)
@@ -224,8 +219,7 @@ class VnfLcmKubernetesChangeVnfpkgTest(base_v2.BaseVnfLcmKubernetesV2Test):
         inst_id = body['id']
 
         # check usageState of VNF Package
-        usage_state = self.get_vnf_package(self.vnf_pkg_1)['usageState']
-        self.assertEqual('IN_USE', usage_state)
+        self.check_package_usage(self.old_pkg, 'IN_USE')
 
         # 2. Instantiate a VNF instance
         instantiate_req = paramgen.change_vnfpkg_instantiate(
@@ -253,7 +247,7 @@ class VnfLcmKubernetesChangeVnfpkgTest(base_v2.BaseVnfLcmKubernetesV2Test):
                             for vnfc_info in vnfc_resource_infos]
 
         # 4. Change Current VNF Package (will fail)
-        change_vnfpkg_req = paramgen.change_vnfpkg_error(self.vnfd_id_2)
+        change_vnfpkg_req = paramgen.change_vnfpkg_error(self.new_vnfd_id)
         resp, body = self.change_vnfpkg(inst_id, change_vnfpkg_req)
         self.assertEqual(202, resp.status_code)
         self.check_resp_headers_in_operation_task(resp)
@@ -292,12 +286,8 @@ class VnfLcmKubernetesChangeVnfpkgTest(base_v2.BaseVnfLcmKubernetesV2Test):
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
 
-        # wait a bit because there is a bit time lag between lcmocc DB
-        # update and terminate completion.
-        time.sleep(3)
-
         # 8. Delete a VNF instance
-        resp, body = self.delete_vnf_instance(inst_id)
+        resp, body = self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
         self.assertEqual(204, resp.status_code)
         self.check_resp_headers_in_delete(resp)
 
@@ -306,5 +296,4 @@ class VnfLcmKubernetesChangeVnfpkgTest(base_v2.BaseVnfLcmKubernetesV2Test):
         self.assertEqual(404, resp.status_code)
 
         # check usageState of VNF Package
-        usage_state = self.get_vnf_package(self.vnf_pkg_2).get('usageState')
-        self.assertEqual('NOT_IN_USE', usage_state)
+        self.check_package_usage(self.new_pkg, 'NOT_IN_USE')

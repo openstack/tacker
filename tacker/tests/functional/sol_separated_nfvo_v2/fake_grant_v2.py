@@ -49,7 +49,7 @@ class GrantV2:
             "userDomain": "Default"
         }
         vim_params = yaml.safe_load(base_utils.read_file('local-vim.yaml'))
-        vim_params['auth_url'] += '/v3'
+        vim_params['auth_url'] = f"{vim_params['auth_url']}/v3"
         return {
             "vim1": {
                 "vimId": uuidsentinel.vim_connection_id,

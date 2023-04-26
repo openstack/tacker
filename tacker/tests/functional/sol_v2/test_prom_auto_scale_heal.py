@@ -98,8 +98,8 @@ class PromAutoScaleHealTest(test_vnflcm_basic_common.CommonVnfLcmTest):
 
         # 4-5. Send alert and auto heal
         affected_vnfcs = body['resourceChanges']['affectedVnfcs']
-        vnfc_info_id = (affected_vnfcs[0]['vduId'] + '-'
-                        + affected_vnfcs[0]['id'])
+        vnfc_info_id = (f"{affected_vnfcs[0]['vduId']}-"
+                        f"{affected_vnfcs[0]['id']}")
         alert = paramgen.prometheus_auto_healing_alert(inst_id, vnfc_info_id)
         resp, body = self.prometheus_auto_healing_alert(alert)
         self.assertEqual(204, resp.status_code)
@@ -137,8 +137,8 @@ class PromAutoScaleHealTest(test_vnflcm_basic_common.CommonVnfLcmTest):
             if vnfc['changeType'] == 'REMOVED']
         self.assertEqual(1, len(removed_vnfcs))
 
-        removed_vnfc_info_id = (affected_vnfcs[0]['vduId'] + '-'
-                                + affected_vnfcs[0]['id'])
+        removed_vnfc_info_id = (f"{affected_vnfcs[0]['vduId']}-"
+                                f"{affected_vnfcs[0]['id']}")
         self.assertEqual(vnfc_info_id, removed_vnfc_info_id)
 
         # 7. Send alert
@@ -193,8 +193,8 @@ class PromAutoScaleHealTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         self.assertEqual(2, len(removed_vnfcs))
 
         removed_vnfc_info_ids = [
-            removed_vnfcs[0]['vduId'] + '-' + removed_vnfcs[0]['id'],
-            removed_vnfcs[1]['vduId'] + '-' + removed_vnfcs[1]['id']
+            f"{removed_vnfcs[0]['vduId']}-{removed_vnfcs[0]['id']}",
+            f"{removed_vnfcs[1]['vduId']}-{removed_vnfcs[1]['id']}"
         ]
         self.assertCountEqual(
             [vnfc_info_id_1, vnfc_info_id_2], removed_vnfc_info_ids)
@@ -207,10 +207,6 @@ class PromAutoScaleHealTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
 
-        # wait a bit because there is a bit time lag between lcmocc DB
-        # update and terminate completion.
-        time.sleep(WAIT_LCMOCC_UPDATE_TIME)
-
         # 12. Show OpOcc
         resp, body = self.show_lcmocc(lcmocc_id)
         self.assertEqual(200, resp.status_code)
@@ -218,7 +214,7 @@ class PromAutoScaleHealTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         self.assertEqual('TERMINATE', body['operation'])
 
         # 13. Delete a VNF instance
-        resp, body = self.delete_vnf_instance(inst_id)
+        resp, body = self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
         self.assertEqual(204, resp.status_code)
 
         # check deletion of VNF instance
@@ -342,10 +338,6 @@ class PromAutoScaleHealTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
 
-        # wait a bit because there is a bit time lag between lcmocc DB
-        # update and terminate completion.
-        time.sleep(WAIT_LCMOCC_UPDATE_TIME)
-
         # 11. Show OpOcc
         resp, body = self.show_lcmocc(lcmocc_id)
         self.assertEqual(200, resp.status_code)
@@ -353,7 +345,7 @@ class PromAutoScaleHealTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         self.assertEqual('TERMINATE', body['operation'])
 
         # 12. Delete a VNF instance
-        resp, body = self.delete_vnf_instance(inst_id)
+        resp, body = self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
         self.assertEqual(204, resp.status_code)
 
         # check deletion of VNF instance

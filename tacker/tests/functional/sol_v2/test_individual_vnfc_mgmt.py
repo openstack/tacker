@@ -14,14 +14,12 @@
 #    under the License.
 
 import os
-import time
 
-from tacker.tests.functional.sol_v2_common import base_v2
 from tacker.tests.functional.sol_v2_common import paramgen
 from tacker.tests.functional.sol_v2_common import test_vnflcm_basic_common
 
 
-def create_coordinate_response(req_header, req_body):
+def _create_coordinate_response(req_header, req_body):
 
     resp_body = {
         'id': 'aeca5328-085c-4cd6-a6f4-c010e9082528',
@@ -60,37 +58,30 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         # main vnf package for StandardUserData test
         pkg_path_1 = os.path.join(cur_dir,
             "../sol_v2_common/samples/userdata_standard")
-        cls.vnf_pkg_1, cls.vnfd_id_1 = cls.create_vnf_package(
+        cls.standard_pkg, cls.standard_vnfd_id = cls.create_vnf_package(
             pkg_path_1, image_path=image_path, userdata_path=userdata_path)
 
         # for change_vnfpkg test
         pkg_path_2 = os.path.join(cur_dir,
             "../sol_v2_common/samples/userdata_standard_change_vnfpkg")
-        cls.vnf_pkg_2, cls.vnfd_id_2 = cls.create_vnf_package(
+        cls.new_pkg, cls.new_vnfd_id = cls.create_vnf_package(
             pkg_path_2, image_path=image_path, userdata_path=userdata_path)
 
         # for change_vnfpkg network/flavor change test
         pkg_path_3 = os.path.join(cur_dir,
             "../sol_v2_common/samples/userdata_standard_change_vnfpkg_nw")
-        cls.vnf_pkg_3, cls.vnfd_id_3 = cls.create_vnf_package(
+        cls.new_nw_pkg, cls.new_nw_vnfd_id = cls.create_vnf_package(
             pkg_path_3, image_path=image_path, userdata_path=userdata_path)
 
     @classmethod
     def tearDownClass(cls):
         super(IndividualVnfcMgmtTest, cls).tearDownClass()
-        cls.delete_vnf_package(cls.vnf_pkg_1)
-        cls.delete_vnf_package(cls.vnf_pkg_2)
-        cls.delete_vnf_package(cls.vnf_pkg_3)
+        cls.delete_vnf_package(cls.standard_pkg)
+        cls.delete_vnf_package(cls.new_pkg)
+        cls.delete_vnf_package(cls.new_nw_pkg)
 
     def setUp(self):
         super().setUp()
-
-    def _put_fail_file(self, operation):
-        with open(f'/tmp/{operation}', 'w'):
-            pass
-
-    def _rm_fail_file(self, operation):
-        os.remove(f'/tmp/{operation}')
 
     def _get_vdu_indexes(self, inst, vdu):
         return {
@@ -159,19 +150,6 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         # must exist
         return vnfc['metadata']['flavor']
 
-    def _delete_instance(self, inst_id):
-        for _ in range(3):
-            resp, body = self.delete_vnf_instance(inst_id)
-            if resp.status_code == 204:  # OK
-                return
-            elif resp.status_code == 409:
-                # may happen. there is a bit time between lcmocc become
-                # COMPLETED and lock of terminate is freed.
-                time.sleep(3)
-            else:
-                break
-        self.assertTrue(False)
-
     def test_basic_operations(self):
         """Test basic operations using StandardUserData
 
@@ -202,7 +180,7 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         subnet_ids = self.get_subnet_ids(['subnet0', 'subnet1'])
 
         # Create VNF instance
-        create_req = paramgen.sample3_create(self.vnfd_id_1)
+        create_req = paramgen.sample3_create(self.standard_vnfd_id)
         resp, body = self.create_vnf_instance(create_req)
         self.assertEqual(201, resp.status_code)
         inst_id = body['id']
@@ -322,20 +300,20 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
             self._get_vnfc_cp_net_id(inst_5, 'VDU2', 0, 'VDU2_CP1'))
 
         # 6. Change_vnfpkg operation
-        change_vnfpkg_req = paramgen.sample4_change_vnfpkg(self.vnfd_id_2,
+        change_vnfpkg_req = paramgen.sample4_change_vnfpkg(self.new_vnfd_id,
             net_ids, subnet_ids)
 
         for vdu_param in change_vnfpkg_req['additionalParams']['vdu_params']:
             vdu_param['new_vnfc_param']['endpoint'] = (
-                f'http://localhost:{base_v2.FAKE_SERVER_MANAGER.SERVER_PORT}')
+                f'http://localhost:{self.get_server_port()}')
 
         # Prepare coordination
-        base_v2.FAKE_SERVER_MANAGER.set_callback(
+        self.set_server_callback(
             'POST',
             '/lcmcoord/v1/coordinations',
             status_code=201,
             response_headers={"Content-Type": "application/json"},
-            callback=create_coordinate_response
+            callback=_create_coordinate_response
         )
 
         with open('/tmp/change_vnfpkg_coordination', 'w'):
@@ -355,7 +333,7 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         self.assertEqual(200, resp.status_code)
 
         # check vnfdId is changed
-        self.assertEqual(self.vnfd_id_2, inst_6['vnfdId'])
+        self.assertEqual(self.new_vnfd_id, inst_6['vnfdId'])
         # check images are changed
         self.assertNotEqual(self._get_vnfc_image(inst_5, 'VDU1', 0),
                             self._get_vnfc_image(inst_6, 'VDU1', 0))
@@ -390,7 +368,7 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         self.wait_lcmocc_complete(lcmocc_id)
 
         # Delete VNF instance
-        self._delete_instance(inst_id)
+        self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
 
     def test_rollback_operations(self):
         """Test rollback operations using StandardUserData
@@ -421,7 +399,7 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         subnet_ids = self.get_subnet_ids(['subnet0', 'subnet1'])
 
         # Create VNF instance
-        create_req = paramgen.sample3_create(self.vnfd_id_1)
+        create_req = paramgen.sample3_create(self.standard_vnfd_id)
         resp, body = self.create_vnf_instance(create_req)
         self.assertEqual(201, resp.status_code)
         inst_id = body['id']
@@ -440,14 +418,14 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         self.assertEqual(200, resp.status_code)
 
         # 1. Scale out operation
-        self._put_fail_file('scale_end')
+        self.put_fail_file('scale_end')
         scale_out_req = paramgen.sample3_scale_out()
         resp, body = self.scale_vnf_instance(inst_id, scale_out_req)
         self.assertEqual(202, resp.status_code)
 
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_failed_temp(lcmocc_id)
-        self._rm_fail_file('scale_end')
+        self.rm_fail_file('scale_end')
 
         # Rollback
         resp, body = self.rollback_lcmocc(lcmocc_id)
@@ -469,14 +447,14 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
                          self._get_vnfc_id(inst_1, 'VDU2', 0))
 
         # 2. Change_ext_conn operation
-        self._put_fail_file('change_external_connectivity_end')
+        self.put_fail_file('change_external_connectivity_end')
         change_ext_conn_req = paramgen.sample3_change_ext_conn(net_ids)
         resp, body = self.change_ext_conn(inst_id, change_ext_conn_req)
         self.assertEqual(202, resp.status_code)
 
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_failed_temp(lcmocc_id)
-        self._rm_fail_file('change_external_connectivity_end')
+        self.rm_fail_file('change_external_connectivity_end')
 
         # Rollback
         resp, body = self.rollback_lcmocc(lcmocc_id)
@@ -494,23 +472,23 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
             self._get_vnfc_cp_net_id(inst_2, 'VDU2', 0, 'VDU2_CP1'))
 
         # 3. Change_vnfpkg operation
-        self._put_fail_file('change_vnfpkg')
+        self.put_fail_file('change_vnfpkg')
         with open('/tmp/change_vnfpkg_coordination', 'w'):
             pass
 
-        change_vnfpkg_req = paramgen.sample4_change_vnfpkg(self.vnfd_id_2,
+        change_vnfpkg_req = paramgen.sample4_change_vnfpkg(self.new_vnfd_id,
             net_ids, subnet_ids)
         for vdu_param in change_vnfpkg_req['additionalParams']['vdu_params']:
             vdu_param['old_vnfc_param']['endpoint'] = (
-                f'http://localhost:{base_v2.FAKE_SERVER_MANAGER.SERVER_PORT}')
+                f'http://localhost:{self.get_server_port()}')
 
         # Prepare coordination
-        base_v2.FAKE_SERVER_MANAGER.set_callback(
+        self.set_server_callback(
             'POST',
             '/lcmcoord/v1/coordinations',
             status_code=201,
             response_headers={"Content-Type": "application/json"},
-            callback=create_coordinate_response
+            callback=_create_coordinate_response
         )
 
         resp, body = self.change_vnfpkg(inst_id, change_vnfpkg_req)
@@ -518,7 +496,7 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
 
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_failed_temp(lcmocc_id)
-        self._rm_fail_file('change_vnfpkg')
+        self.rm_fail_file('change_vnfpkg')
 
         # Rollback
         resp, body = self.rollback_lcmocc(lcmocc_id)
@@ -532,7 +510,7 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         self.assertEqual(200, resp.status_code)
 
         # check vnfdId is not changed
-        self.assertEqual(self.vnfd_id_1, inst_3['vnfdId'])
+        self.assertEqual(self.standard_vnfd_id, inst_3['vnfdId'])
         # check images are not changed
         self.assertEqual(self._get_vnfc_image(inst_2, 'VDU1', 0),
                          self._get_vnfc_image(inst_3, 'VDU1', 0))
@@ -553,7 +531,7 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         self.wait_lcmocc_complete(lcmocc_id)
 
         # Delete VNF instance
-        self._delete_instance(inst_id)
+        self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
 
     def test_heal_vnfc_after_image_change(self):
         """Test heal operation after image change using StandardUserData
@@ -579,7 +557,7 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         subnet_ids = self.get_subnet_ids(['subnet0', 'subnet1'])
 
         # Create VNF instance
-        create_req = paramgen.sample3_create(self.vnfd_id_1)
+        create_req = paramgen.sample3_create(self.standard_vnfd_id)
         resp, body = self.create_vnf_instance(create_req)
         self.assertEqual(201, resp.status_code)
         inst_id = body['id']
@@ -603,7 +581,7 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         self.assertEqual({0}, self._get_vdu_indexes(inst_1, 'VDU2'))
 
         # 2. Update VNF instance
-        update_req = paramgen.sample3_update_vnf_vnfd_id(self.vnfd_id_2)
+        update_req = paramgen.sample3_update_vnf_vnfd_id(self.new_vnfd_id)
         resp, body = self.update_vnf_instance(inst_id, update_req)
         self.assertEqual(202, resp.status_code)
 
@@ -619,7 +597,7 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         self.assertEqual({0}, self._get_vdu_indexes(inst_2, 'VDU2'))
 
         # check vnfdId is changed
-        self.assertEqual(self.vnfd_id_2, inst_2['vnfdId'])
+        self.assertEqual(self.new_vnfd_id, inst_2['vnfdId'])
 
         # 3. Heal operation
         heal_req = paramgen.sample3_heal()
@@ -661,7 +639,7 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         self.wait_lcmocc_complete(lcmocc_id)
 
         # Delete VNF instance
-        self._delete_instance(inst_id)
+        self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
 
     def test_change_vnfpkg_nw(self):
         """Test change_vnfpkg with additional functions
@@ -689,7 +667,7 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         subnet_ids = self.get_subnet_ids(['subnet0', 'subnet1'])
 
         # Create VNF instance
-        create_req = paramgen.sample3_create(self.vnfd_id_1)
+        create_req = paramgen.sample3_create(self.standard_vnfd_id)
         resp, body = self.create_vnf_instance(create_req)
         self.assertEqual(201, resp.status_code)
         inst_id = body['id']
@@ -713,7 +691,7 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         self.assertEqual({0}, self._get_vdu_indexes(inst_1, 'VDU2'))
 
         # 2. Change_vnfpkg operation
-        change_vnfpkg_req = paramgen.sample5_change_vnfpkg(self.vnfd_id_3,
+        change_vnfpkg_req = paramgen.sample5_change_vnfpkg(self.new_nw_vnfd_id,
             net_ids, subnet_ids)
         resp, body = self.change_vnfpkg(inst_id, change_vnfpkg_req)
         self.assertEqual(202, resp.status_code)
@@ -726,7 +704,7 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         self.assertEqual(200, resp.status_code)
 
         # check vnfdId is changed
-        self.assertEqual(self.vnfd_id_3, inst_2['vnfdId'])
+        self.assertEqual(self.new_nw_vnfd_id, inst_2['vnfdId'])
         # check images are changed
         self.assertNotEqual(self._get_vnfc_image(inst_1, 'VDU1', 0),
                             self._get_vnfc_image(inst_2, 'VDU1', 0))
@@ -773,7 +751,7 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         self.wait_lcmocc_complete(lcmocc_id)
 
         # Delete VNF instance
-        self._delete_instance(inst_id)
+        self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
 
     def test_change_vnfpkg_nw_rollback(self):
         """Test rollback of change_vnfpkg with additional functions
@@ -803,7 +781,7 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         subnet_ids = self.get_subnet_ids(['subnet0', 'subnet1'])
 
         # Create VNF instance
-        create_req = paramgen.sample3_create(self.vnfd_id_1)
+        create_req = paramgen.sample3_create(self.standard_vnfd_id)
         resp, body = self.create_vnf_instance(create_req)
         self.assertEqual(201, resp.status_code)
         inst_id = body['id']
@@ -827,15 +805,15 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         self.assertEqual({0}, self._get_vdu_indexes(inst_1, 'VDU2'))
 
         # 2. Change_vnfpkg operation
-        self._put_fail_file('change_vnfpkg')
-        change_vnfpkg_req = paramgen.sample5_change_vnfpkg(self.vnfd_id_3,
+        self.put_fail_file('change_vnfpkg')
+        change_vnfpkg_req = paramgen.sample5_change_vnfpkg(self.new_nw_vnfd_id,
             net_ids, subnet_ids)
         resp, body = self.change_vnfpkg(inst_id, change_vnfpkg_req)
         self.assertEqual(202, resp.status_code)
 
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_failed_temp(lcmocc_id)
-        self._rm_fail_file('change_vnfpkg')
+        self.rm_fail_file('change_vnfpkg')
 
         # Rollback
         resp, body = self.rollback_lcmocc(lcmocc_id)
@@ -847,7 +825,7 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         self.assertEqual(200, resp.status_code)
 
         # check vnfdId is not changed
-        self.assertEqual(self.vnfd_id_1, inst_2['vnfdId'])
+        self.assertEqual(self.standard_vnfd_id, inst_2['vnfdId'])
         # check images are not changed
         self.assertEqual(self._get_vnfc_image(inst_1, 'VDU1', 0),
                          self._get_vnfc_image(inst_2, 'VDU1', 0))
@@ -882,4 +860,4 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         self.wait_lcmocc_complete(lcmocc_id)
 
         # Delete VNF instance
-        self._delete_instance(inst_id)
+        self.exec_lcm_operation(self.delete_vnf_instance, inst_id)

@@ -20,6 +20,8 @@ from tacker.objects import fields
 from tacker.tests.functional.sol_kubernetes_v2 import base_v2
 from tacker.tests.functional.sol_kubernetes_v2 import paramgen
 
+WAIT_NOTIFICATION_TIME = 5
+
 
 @ddt.ddt
 class VnfFmTest(base_v2.BaseVnfLcmKubernetesV2Test):
@@ -32,14 +34,14 @@ class VnfFmTest(base_v2.BaseVnfLcmKubernetesV2Test):
 
         test_instantiate_cnf_resources_path = os.path.join(
             cur_dir, "samples/test_instantiate_cnf_resources")
-        cls.vnf_pkg_1, cls.vnfd_id_1 = cls.create_vnf_package(
+        cls.cnf_pkg, cls.cnf_vnfd_id = cls.create_vnf_package(
             test_instantiate_cnf_resources_path)
 
     @classmethod
     def tearDownClass(cls):
         super(VnfFmTest, cls).tearDownClass()
 
-        cls.delete_vnf_package(cls.vnf_pkg_1)
+        cls.delete_vnf_package(cls.cnf_pkg)
 
     def setUp(self):
         super(VnfFmTest, self).setUp()
@@ -77,7 +79,8 @@ class VnfFmTest(base_v2.BaseVnfLcmKubernetesV2Test):
         # 1. LCM-Create: Create a new VNF instance resource
         # NOTE: extensions and vnfConfigurableProperties are omitted
         # because they are commented out in etsi_nfv_sol001.
-        create_req = paramgen.instantiate_cnf_resources_create(self.vnfd_id_1)
+        create_req = paramgen.instantiate_cnf_resources_create(
+            self.cnf_vnfd_id)
         resp, body = self.create_vnf_instance(create_req)
         self.assertEqual(201, resp.status_code)
         inst_id = body['id']
@@ -103,33 +106,33 @@ class VnfFmTest(base_v2.BaseVnfLcmKubernetesV2Test):
 
         # 3. FM-Create-Subscription: Create a new subscription
         expected_inst_attrs = ['id', 'callbackUri', '_links']
-        callback_url = os.path.join(base_v2.MOCK_NOTIFY_CALLBACK_URL,
+        callback_url = os.path.join(self.get_notify_callback_url(),
                                     self._testMethodName)
         callback_uri = ('http://localhost:'
-                        f'{base_v2.FAKE_SERVER_MANAGER.SERVER_PORT}'
+                        f'{self.get_server_port()}'
                         f'{callback_url}')
 
         sub_req = paramgen.sub_create_min(callback_uri)
-        resp, body = self.create_subscription(sub_req)
+        resp, body = self.create_fm_subscription(sub_req)
         self.assertEqual(201, resp.status_code)
         self.check_resp_headers_in_create(resp)
         sub_id = body['id']
         self.check_resp_body(body, expected_inst_attrs)
         # Test notification
         self.assert_notification_get(callback_url)
-        self.addCleanup(self.delete_subscription, sub_id)
+        self.addCleanup(self.delete_fm_subscription, sub_id)
 
         # 4. FM-List-Subscription: List subscription with attribute-based
         # filtering
         expected_attrs = ['id', 'callbackUri', '_links']
-        resp, body = self.list_subscriptions()
+        resp, body = self.list_fm_subscriptions()
         self.assertEqual(200, resp.status_code)
         self.check_resp_headers_in_get(resp)
         for sbsc in body:
             self.check_resp_body(sbsc, expected_attrs)
 
         # 5. FM-Show-Subscription: Show subscription
-        resp, body = self.show_subscription(sub_id)
+        resp, body = self.show_fm_subscription(sub_id)
         self.assertEqual(200, resp.status_code)
         self.check_resp_headers_in_get(resp)
         self.check_resp_body(body, expected_attrs)
@@ -138,7 +141,7 @@ class VnfFmTest(base_v2.BaseVnfLcmKubernetesV2Test):
         alert = paramgen.alert_event_firing(inst_id, pod_name)
         resp, body = self.create_fm_alarm(alert)
         self.assertEqual(204, resp.status_code)
-        time.sleep(5)
+        time.sleep(WAIT_NOTIFICATION_TIME)
         self._check_notification(callback_url, 'AlarmNotification')
 
         # 7. FM-List-Alarm
@@ -201,7 +204,7 @@ class VnfFmTest(base_v2.BaseVnfLcmKubernetesV2Test):
         alert = paramgen.alert_event_resolved(inst_id, pod_name)
         resp, body = self.create_fm_alarm(alert)
         self.assertEqual(204, resp.status_code)
-        time.sleep(5)
+        time.sleep(WAIT_NOTIFICATION_TIME)
         self._check_notification(callback_url, 'AlarmClearedNotification')
 
         # 12. FM-Show-Alarm
@@ -211,7 +214,7 @@ class VnfFmTest(base_v2.BaseVnfLcmKubernetesV2Test):
         self.check_resp_body(body, alarm_expected_attrs)
 
         # 13. FM-Delete-Subscription: Delete subscription
-        resp, body = self.delete_subscription(sub_id)
+        resp, body = self.delete_fm_subscription(sub_id)
         self.assertEqual(204, resp.status_code)
         self.check_resp_headers_in_delete(resp)
 
@@ -223,10 +226,6 @@ class VnfFmTest(base_v2.BaseVnfLcmKubernetesV2Test):
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
 
-        # wait a bit because there is a bit time lag between lcmocc DB
-        # update and terminate completion.
-        time.sleep(10)
-
         # check instantiationState of VNF
         resp, body = self.show_vnf_instance(inst_id)
         self.assertEqual(200, resp.status_code)
@@ -234,7 +233,7 @@ class VnfFmTest(base_v2.BaseVnfLcmKubernetesV2Test):
                          body['instantiationState'])
 
         # 15. LCM-Delete: Delete a VNF instance
-        resp, body = self.delete_vnf_instance(inst_id)
+        resp, body = self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
         self.assertEqual(204, resp.status_code)
 
         # check deletion of VNF instance
@@ -274,7 +273,8 @@ class VnfFmTest(base_v2.BaseVnfLcmKubernetesV2Test):
         # 1. LCM-Create: Create a new VNF instance resource
         # NOTE: extensions and vnfConfigurableProperties are omitted
         # because they are commented out in etsi_nfv_sol001.
-        create_req = paramgen.instantiate_cnf_resources_create(self.vnfd_id_1)
+        create_req = paramgen.instantiate_cnf_resources_create(
+            self.cnf_vnfd_id)
         resp, body = self.create_vnf_instance(create_req)
         self.assertEqual(201, resp.status_code)
         inst_id = body['id']
@@ -300,14 +300,14 @@ class VnfFmTest(base_v2.BaseVnfLcmKubernetesV2Test):
 
         # 3. FM-Create-Subscription: Create a new subscription
         expected_inst_attrs = ['id', 'callbackUri', '_links', 'filter']
-        callback_url = os.path.join(base_v2.MOCK_NOTIFY_CALLBACK_URL,
+        callback_url = os.path.join(self.get_notify_callback_url(),
                                     self._testMethodName)
         callback_uri = ('http://localhost:'
-                        f'{base_v2.FAKE_SERVER_MANAGER.SERVER_PORT}'
+                        f'{self.get_server_port()}'
                         f'{callback_url}')
         sub_req = paramgen.sub_create_max(
-            callback_uri, self.vnfd_id_1, inst_id)
-        resp, body = self.create_subscription(sub_req)
+            callback_uri, self.cnf_vnfd_id, inst_id)
+        resp, body = self.create_fm_subscription(sub_req)
         self.assertEqual(201, resp.status_code)
         self.check_resp_headers_in_create(resp)
         sub_id = body['id']
@@ -321,14 +321,14 @@ class VnfFmTest(base_v2.BaseVnfLcmKubernetesV2Test):
         filter_expr = {
             'filter': f'(eq,id,{sub_id})'
         }
-        resp, body = self.list_subscriptions(filter_expr)
+        resp, body = self.list_fm_subscriptions(filter_expr)
         self.assertEqual(200, resp.status_code)
         self.check_resp_headers_in_get(resp)
         for sbsc in body:
             self.check_resp_body(sbsc, expected_attrs)
 
         # 5. FM-Show-Subscription: Show subscription
-        resp, body = self.show_subscription(sub_id)
+        resp, body = self.show_fm_subscription(sub_id)
         self.assertEqual(200, resp.status_code)
         self.check_resp_headers_in_get(resp)
         self.check_resp_body(body, expected_attrs)
@@ -337,7 +337,7 @@ class VnfFmTest(base_v2.BaseVnfLcmKubernetesV2Test):
         alert = paramgen.alert_event_firing(inst_id, pod_name)
         resp, body = self.create_fm_alarm(alert)
         self.assertEqual(204, resp.status_code)
-        time.sleep(5)
+        time.sleep(WAIT_NOTIFICATION_TIME)
         self._check_notification(callback_url, 'AlarmNotification')
 
         # 7. FM-List-Alarm
@@ -399,7 +399,7 @@ class VnfFmTest(base_v2.BaseVnfLcmKubernetesV2Test):
         alert = paramgen.alert_event_resolved(inst_id, pod_name)
         resp, body = self.create_fm_alarm(alert)
         self.assertEqual(204, resp.status_code)
-        time.sleep(5)
+        time.sleep(WAIT_NOTIFICATION_TIME)
         self._check_notification(callback_url, 'AlarmClearedNotification')
 
         # 12. FM-Show-Alarm
@@ -409,7 +409,7 @@ class VnfFmTest(base_v2.BaseVnfLcmKubernetesV2Test):
         self.check_resp_body(body, alarm_expected_attrs)
 
         # 13. FM-Delete-Subscription: Delete subscription
-        resp, body = self.delete_subscription(sub_id)
+        resp, body = self.delete_fm_subscription(sub_id)
         self.assertEqual(204, resp.status_code)
         self.check_resp_headers_in_delete(resp)
 
@@ -421,10 +421,6 @@ class VnfFmTest(base_v2.BaseVnfLcmKubernetesV2Test):
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
 
-        # wait a bit because there is a bit time lag between lcmocc DB
-        # update and terminate completion.
-        time.sleep(10)
-
         # check instantiationState of VNF
         resp, body = self.show_vnf_instance(inst_id)
         self.assertEqual(200, resp.status_code)
@@ -432,7 +428,7 @@ class VnfFmTest(base_v2.BaseVnfLcmKubernetesV2Test):
                          body['instantiationState'])
 
         # 15. LCM-Delete: Delete a VNF instance
-        resp, body = self.delete_vnf_instance(inst_id)
+        resp, body = self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
         self.assertEqual(204, resp.status_code)
 
         # check deletion of VNF instance

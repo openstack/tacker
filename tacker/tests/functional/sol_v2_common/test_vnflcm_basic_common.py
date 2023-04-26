@@ -22,6 +22,8 @@ from tacker.tests.functional.sol_separated_nfvo_v2 import fake_vnfpkgm_v2
 from tacker.tests.functional.sol_v2_common import base_v2
 from tacker.tests.functional.sol_v2_common import paramgen
 
+WAIT_LCMOCC_UPDATE_TIME = 10
+
 
 @ddt.ddt
 class CommonVnfLcmTest(base_v2.BaseSolV2Test):
@@ -45,7 +47,7 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
             Response: VNF Package information
         """
         # Set Token
-        base_v2.FAKE_SERVER_MANAGER.set_callback(
+        self.set_server_callback(
             'POST', fake_grant_v2.GrantV2.TOKEN,
             status_code=200,
             response_headers={"Content-Type": "application/json"},
@@ -53,7 +55,7 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         )
 
         # Set "VNF Package content" response
-        base_v2.FAKE_SERVER_MANAGER.set_callback(
+        self.set_server_callback(
             'GET',
             os.path.join(
                 '/vnfpkgm/v2/onboarded_vnf_packages',
@@ -64,7 +66,7 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         )
 
         # Set "Individual VNF package" response
-        base_v2.FAKE_SERVER_MANAGER.set_callback(
+        self.set_server_callback(
             'GET',
             os.path.join(
                 '/vnfpkgm/v2/onboarded_vnf_packages',
@@ -76,7 +78,7 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         )
 
         # Set "VNFD of individual VNF package" response
-        base_v2.FAKE_SERVER_MANAGER.set_callback(
+        self.set_server_callback(
             'GET',
             os.path.join(
                 '/vnfpkgm/v2/onboarded_vnf_packages',
@@ -86,17 +88,12 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
             content=package_path
         )
 
-    def _check_package_usage(self, is_nfvo, package_id, state='NOT_IN_USE'):
-        if not is_nfvo:
-            usage_state = self.get_vnf_package(package_id)['usageState']
-            self.assertEqual(state, usage_state)
-
     def _set_grant_response(self, is_nfvo, operation, glance_image=None,
                             flavour_vdu_dict=None, zone_name_list=None):
         if is_nfvo:
             if operation == 'INSTANTIATE':
                 # Set Fake server response for Grant-Req(Instantiate)
-                base_v2.FAKE_SERVER_MANAGER.set_callback(
+                self.set_server_callback(
                     'POST', fake_grant_v2.GrantV2.GRANT_REQ_PATH,
                     status_code=201,
                     response_headers={"Content-Type": "application/json"},
@@ -106,7 +103,7 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
                         zone_name_list))
             elif operation == 'TERMINATE':
                 # Set Fake server response for Grant-Req(Terminate)
-                base_v2.FAKE_SERVER_MANAGER.set_callback(
+                self.set_server_callback(
                     'POST',
                     fake_grant_v2.GrantV2.GRANT_REQ_PATH,
                     status_code=201,
@@ -116,7 +113,7 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
                         req_body))
             elif operation == 'SCALE':
                 # Set Fake server response for Grant-Req(Scale)
-                base_v2.FAKE_SERVER_MANAGER.set_callback(
+                self.set_server_callback(
                     'POST',
                     fake_grant_v2.GrantV2.GRANT_REQ_PATH, status_code=201,
                     response_headers={"Content-Type": "application/json"},
@@ -126,7 +123,7 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
                         flavour_vdu_dict, zone_name_list))
             elif operation == 'HEAL':
                 # Set Fake server response for Grant-Req(Heal)
-                base_v2.FAKE_SERVER_MANAGER.set_callback(
+                self.set_server_callback(
                     'POST',
                     fake_grant_v2.GrantV2.GRANT_REQ_PATH, status_code=201,
                     response_headers={"Content-Type": "application/json"},
@@ -136,7 +133,7 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
                         flavour_vdu_dict, zone_name_list))
             elif operation == 'CHANGE_EXT_CONN':
                 # Set Fake server response for Grant-Req(change_ext_conn)
-                base_v2.FAKE_SERVER_MANAGER.set_callback(
+                self.set_server_callback(
                     'POST',
                     fake_grant_v2.GrantV2.GRANT_REQ_PATH, status_code=201,
                     response_headers={"Content-Type": "application/json"},
@@ -145,7 +142,7 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
                         req_body, zone_name_list))
             elif operation == 'CHANGE_VNFPKG':
                 # Set Fake server response for Grant-Req(Change_vnfpkg)
-                base_v2.FAKE_SERVER_MANAGER.set_callback(
+                self.set_server_callback(
                     'POST',
                     fake_grant_v2.GrantV2.GRANT_REQ_PATH,
                     status_code=201,
@@ -218,15 +215,15 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
             update_vnf_path = os.path.join(
                 cur_dir, "samples/update_vnf")
             vnfd_path = "contents/Definitions/v2_sample1_df_simple.yaml"
-            zip_path_file_1, vnfd_id_1 = self.create_vnf_package(
+            max_zip_path, max_vnfd_id = self.create_vnf_package(
                 basic_lcms_max_path, image_path=image_path, nfvo=True)
-            zip_path_file_2, vnfd_id_2 = self.create_vnf_package(
+            upd_zip_path, upd_vnfd_id = self.create_vnf_package(
                 update_vnf_path, nfvo=True)
 
-            self._register_vnf_package_mock_response(vnfd_id_1,
-                                                     zip_path_file_1)
-            self._register_vnf_package_mock_response(vnfd_id_2,
-                                                     zip_path_file_2)
+            self._register_vnf_package_mock_response(max_vnfd_id,
+                                                     max_zip_path)
+            self._register_vnf_package_mock_response(upd_vnfd_id,
+                                                     upd_zip_path)
             glance_image = fake_grant_v2.GrantV2.get_sw_image(
                 basic_lcms_max_path, vnfd_path)
             flavour_vdu_dict = fake_grant_v2.GrantV2.get_compute_flavor(
@@ -234,14 +231,14 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
             zone_name_list = self.get_zone_list()
             sw_data = fake_grant_v2.GrantV2.get_sw_data(
                 basic_lcms_max_path, vnfd_path)
-            create_req = paramgen.create_vnf_max(vnfd_id_1)
-            self.vnf_pkg_1 = None
-            self.vnf_pkg_3 = None
+            create_req = paramgen.create_vnf_max(max_vnfd_id)
+            self.max_pkg = None
+            self.upd_pkg = None
         else:
             glance_image = None
             flavour_vdu_dict = None
             zone_name_list = None
-            create_req = paramgen.create_vnf_max(self.vnfd_id_1)
+            create_req = paramgen.create_vnf_max(self.max_vnfd_id)
         # Create a new network and subnet to check the IP allocation of
         # IPv4 and IPv6
         ft_net0_name = 'ft-net0'
@@ -295,10 +292,10 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
             self.addCleanup(self.delete_port, port_id)
 
         # 1. Create subscription
-        callback_url = os.path.join(base_v2.MOCK_NOTIFY_CALLBACK_URL,
+        callback_url = os.path.join(self.get_notify_callback_url(),
                                     self._testMethodName)
         callback_uri = ('http://localhost:'
-                        f'{base_v2.FAKE_SERVER_MANAGER.SERVER_PORT}'
+                        f'{self.get_server_port()}'
                         f'{callback_url}')
 
         sub_req = paramgen.sub_create_max(callback_uri)
@@ -311,7 +308,7 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         self.assert_notification_get(callback_url)
 
         # check usageState of VNF Package
-        self._check_package_usage(is_nfvo, self.vnf_pkg_1)
+        self.check_package_usage(self.max_pkg, is_nfvo=is_nfvo)
 
         # 3. Show subscription
         expected_attrs = [
@@ -360,7 +357,7 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         inst_id = body['id']
 
         # check usageState of VNF Package
-        self._check_package_usage(is_nfvo, self.vnf_pkg_1, 'IN_USE')
+        self.check_package_usage(self.max_pkg, 'IN_USE', is_nfvo)
 
         # check instantiationState of VNF
         resp, body = self.show_vnf_instance(inst_id)
@@ -377,7 +374,7 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
                 image_path, sw_data, inst_id, num_vdu=2)
             glance_image['VDU1-VirtualStorage'] = image_1_id
             glance_image['VDU2-VirtualStorage'] = image_2_id
-            time.sleep(10)
+            time.sleep(WAIT_LCMOCC_UPDATE_TIME)
 
         self._set_grant_response(
             is_nfvo, 'INSTANTIATE', glance_image=glance_image,
@@ -781,7 +778,7 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         self.wait_lcmocc_complete(lcmocc_id)
 
         # check usageState of VNF Package
-        self._check_package_usage(is_nfvo, self.vnf_pkg_1, 'IN_USE')
+        self.check_package_usage(self.max_pkg, 'IN_USE', is_nfvo)
 
         # check stack info
         stack_status, _ = self.heat_client.get_status(stack_name)
@@ -902,7 +899,7 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         self.wait_lcmocc_complete(lcmocc_id)
 
         # check usageState of VNF Package
-        self._check_package_usage(is_nfvo, self.vnf_pkg_1, 'IN_USE')
+        self.check_package_usage(self.max_pkg, 'IN_USE', is_nfvo)
 
         # check stack info
         stack_status, _ = self.heat_client.get_status(stack_name)
@@ -945,7 +942,7 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         self.wait_lcmocc_complete(lcmocc_id)
 
         # check usageState of VNF Package
-        self._check_package_usage(is_nfvo, self.vnf_pkg_1, 'IN_USE')
+        self.check_package_usage(self.max_pkg, 'IN_USE', is_nfvo)
 
         # check stack info
         stack_status, _ = self.heat_client.get_status(stack_name)
@@ -999,7 +996,7 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         self.wait_lcmocc_complete(lcmocc_id)
 
         # check usageState of VNF Package
-        self._check_package_usage(is_nfvo, self.vnf_pkg_1, 'IN_USE')
+        self.check_package_usage(self.max_pkg, 'IN_USE', is_nfvo)
 
         # check stack info
         stack_status, _ = self.heat_client.get_status(stack_name)
@@ -1037,19 +1034,19 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
 
         # 23. Update VNF
         # check attribute value before update VNF
-        # check usageState of VNF Package 1
-        self._check_package_usage(is_nfvo, self.vnf_pkg_1, 'IN_USE')
+        # check usageState of max pattern VNF Package
+        self.check_package_usage(self.max_pkg, 'IN_USE', is_nfvo)
 
-        # check usageState of VNF Package 3
-        self._check_package_usage(is_nfvo, self.vnf_pkg_3)
+        # check usageState of update VNF Package
+        self.check_package_usage(self.upd_pkg, is_nfvo=is_nfvo)
 
         # check vnfd id
         resp, body = self.show_vnf_instance(inst_id)
         self.assertEqual(200, resp.status_code)
         if not is_nfvo:
-            self.assertEqual(self.vnfd_id_1, body['vnfdId'])
+            self.assertEqual(self.max_vnfd_id, body['vnfdId'])
         else:
-            self.assertEqual(vnfd_id_1, body['vnfdId'])
+            self.assertEqual(max_vnfd_id, body['vnfdId'])
 
         # check vnfc info
         vnfc_info = body['instantiatedVnfInfo']['vnfcInfo']
@@ -1062,9 +1059,9 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
             self.assertIsNone(vnfc.get('vnfcConfigurableProperties'))
 
         if not is_nfvo:
-            update_req = paramgen.update_vnf_max(self.vnfd_id_3, vnfc_ids)
+            update_req = paramgen.update_vnf_max(self.upd_vnfd_id, vnfc_ids)
         else:
-            update_req = paramgen.update_vnf_max(vnfd_id_2, vnfc_ids)
+            update_req = paramgen.update_vnf_max(upd_vnfd_id, vnfc_ids)
         resp, body = self.update_vnf_instance(inst_id, update_req)
         self.assertEqual(202, resp.status_code)
         self.check_resp_headers_in_operation_task(resp)
@@ -1087,17 +1084,17 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         self.assertEqual(fields.VnfOperationalStateType.STARTED,
                          body['instantiatedVnfInfo']['vnfState'])
 
-        # check usageState of VNF Package 1
-        self._check_package_usage(is_nfvo, self.vnf_pkg_1)
+        # check usageState of max pattern VNF Package
+        self.check_package_usage(self.max_pkg, is_nfvo=is_nfvo)
 
-        # check usageState of VNF Package 3
-        self._check_package_usage(is_nfvo, self.vnf_pkg_3, 'IN_USE')
+        # check usageState of update VNF Package
+        self.check_package_usage(self.upd_pkg, 'IN_USE', is_nfvo)
 
         if not is_nfvo:
             # check the specified attribute after update VNF
-            self.assertEqual(self.vnfd_id_3, body['vnfdId'])
+            self.assertEqual(self.upd_vnfd_id, body['vnfdId'])
         else:
-            self.assertEqual(vnfd_id_2, body['vnfdId'])
+            self.assertEqual(upd_vnfd_id, body['vnfdId'])
         self.assertEqual('new name', body['vnfInstanceName'])
         self.assertEqual('new description', body['vnfInstanceDescription'])
         dummy_key_value = {'dummy-key': 'dummy-value'}
@@ -1147,7 +1144,7 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
 
         # wait a bit because there is a bit time lag between lcmocc DB
         # update and terminate completion.
-        time.sleep(10)
+        time.sleep(WAIT_LCMOCC_UPDATE_TIME)
 
         # check deletion of Heat-stack
         stack_status, _ = self.heat_client.get_status(stack_name)
@@ -1160,7 +1157,7 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
                 self.assertIsNone(image_id)
 
         # check usageState of VNF Package
-        self._check_package_usage(is_nfvo, self.vnf_pkg_3, 'IN_USE')
+        self.check_package_usage(self.upd_pkg, 'IN_USE', is_nfvo)
 
         # check instantiationState of VNF
         resp, body = self.show_vnf_instance(inst_id)
@@ -1175,9 +1172,10 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         # execute "update vnf" again to update the vnfd_id to the
         # original vnfd_id
         if not is_nfvo:
-            update_req = paramgen.update_vnf_min_with_parameter(self.vnfd_id_1)
+            update_req = paramgen.update_vnf_min_with_parameter(
+                self.max_vnfd_id)
         else:
-            update_req = paramgen.update_vnf_min_with_parameter(vnfd_id_1)
+            update_req = paramgen.update_vnf_min_with_parameter(max_vnfd_id)
         resp, body = self.update_vnf_instance(inst_id, update_req)
         self.assertEqual(202, resp.status_code)
         self.check_resp_headers_in_operation_task(resp)
@@ -1202,12 +1200,8 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
 
-        # wait a bit because there is a bit time lag between lcmocc DB
-        # update and terminate completion.
-        time.sleep(10)
-
         # 29. Delete VNF instance
-        resp, body = self.delete_vnf_instance(inst_id)
+        resp, body = self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
         self.assertEqual(204, resp.status_code)
         self.check_resp_headers_in_delete(resp)
 
@@ -1216,7 +1210,7 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         resp, body = self.show_vnf_instance(inst_id)
         self.assertEqual(404, resp.status_code)
 
-        self._check_package_usage(is_nfvo, self.vnf_pkg_3)
+        self.check_package_usage(self.upd_pkg, is_nfvo=is_nfvo)
 
         # 31. Delete subscription
         resp, body = self.delete_subscription(sub_id)
@@ -1236,8 +1230,9 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
     def basic_lcms_min_common_test(self, is_nfvo=False):
         """Test LCM operations with omitting except for required attributes
 
-        The change_ext_conn can't be tested here because VNF package 2 don't
-        have external connectivity. So moved it to the test_scale_other_lcm().
+        The change_ext_conn can't be tested here because min pattern VNF
+        package don't have external connectivity. So moved it to
+        the test_scale_other_lcm().
 
         * About attributes:
           Omit except for required attributes.
@@ -1274,38 +1269,39 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
             # for basic lcms tests min pattern
             basic_lcms_min_path = os.path.join(
                 cur_dir, "samples/basic_lcms_min")
-            zip_path_file_1, vnfd_id_1 = self.create_vnf_package(
+            min_zip_path, min_vnfd_id = self.create_vnf_package(
                 basic_lcms_min_path, nfvo=True)
             update_vnf_path = os.path.join(
                 cur_dir, "samples/update_vnf")
             vnfd_path = "contents/Definitions/v2_sample2_df_simple.yaml"
-            zip_path_file_2, vnfd_id_2 = self.create_vnf_package(
+            upd_zip_path, upd_vnfd_id = self.create_vnf_package(
                 update_vnf_path, nfvo=True)
             self._register_vnf_package_mock_response(
-                vnfd_id_1, zip_path_file_1)
+                min_vnfd_id, min_zip_path)
             self._register_vnf_package_mock_response(
-                vnfd_id_2, zip_path_file_2)
+                upd_vnfd_id, upd_zip_path)
             glance_image = fake_grant_v2.GrantV2.get_sw_image(
                 basic_lcms_min_path, vnfd_path)
             flavour_vdu_dict = fake_grant_v2.GrantV2.get_compute_flavor(
                 basic_lcms_min_path, vnfd_path)
             zone_name_list = self.get_zone_list()
-            create_req = paramgen.create_vnf_min(vnfd_id_1)
-            update_req = paramgen.update_vnf_min_with_parameter(vnfd_id_2)
-            self.vnf_pkg_2 = None
-            self.vnf_pkg_3 = None
+            create_req = paramgen.create_vnf_min(min_vnfd_id)
+            update_req = paramgen.update_vnf_min_with_parameter(upd_vnfd_id)
+            self.min_pkg = None
+            self.upd_pkg = None
         else:
             glance_image = None
             flavour_vdu_dict = None
             zone_name_list = None
-            create_req = paramgen.create_vnf_min(self.vnfd_id_2)
-            update_req = paramgen.update_vnf_min_with_parameter(self.vnfd_id_3)
+            create_req = paramgen.create_vnf_min(self.min_vnfd_id)
+            update_req = paramgen.update_vnf_min_with_parameter(
+                self.upd_vnfd_id)
 
         # 1. Create subscription
-        callback_url = os.path.join(base_v2.MOCK_NOTIFY_CALLBACK_URL,
+        callback_url = os.path.join(self.get_notify_callback_url(),
                                     self._testMethodName)
         callback_uri = ('http://localhost:'
-                        f'{base_v2.FAKE_SERVER_MANAGER.SERVER_PORT}'
+                        f'{self.get_server_port()}'
                         f'{callback_url}')
 
         sub_req = paramgen.sub_create_min(callback_uri)
@@ -1317,7 +1313,7 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         # 2. Test notification
         self.assert_notification_get(callback_url)
         # check usageState of VNF Package
-        self._check_package_usage(is_nfvo, self.vnf_pkg_2)
+        self.check_package_usage(self.min_pkg, is_nfvo=is_nfvo)
 
         # 3. Create VNF instance
         # ETSI NFV SOL003 v3.3.1 5.5.2.2 VnfInstance
@@ -1345,7 +1341,7 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         inst_id = body['id']
 
         # check usageState of VNF Package
-        self._check_package_usage(is_nfvo, self.vnf_pkg_2, 'IN_USE')
+        self.check_package_usage(self.min_pkg, 'IN_USE', is_nfvo)
 
         # check instantiationState of VNF
         resp, body = self.show_vnf_instance(inst_id)
@@ -1457,18 +1453,18 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         self.assertEqual(fields.VnfOperationalStateType.STARTED,
                          body['instantiatedVnfInfo']['vnfState'])
 
-        # check usageState of VNF Package 2
-        self._check_package_usage(is_nfvo, self.vnf_pkg_2, 'IN_USE')
+        # check usageState of min pattern VNF Package
+        self.check_package_usage(self.min_pkg, 'IN_USE', is_nfvo)
 
-        # check usageState of VNF Package 3
-        self._check_package_usage(is_nfvo, self.vnf_pkg_3)
+        # check usageState of update VNF Package
+        self.check_package_usage(self.upd_pkg, is_nfvo=is_nfvo)
 
         if not is_nfvo:
             # check vnfd id
-            self.assertEqual(self.vnfd_id_2, body['vnfdId'])
+            self.assertEqual(self.min_vnfd_id, body['vnfdId'])
         else:
             # check vnfd id
-            self.assertEqual(vnfd_id_1, body['vnfdId'])
+            self.assertEqual(min_vnfd_id, body['vnfdId'])
 
         # 8. Update VNF
         resp, body = self.update_vnf_instance(inst_id, update_req)
@@ -1478,21 +1474,21 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
 
-        # check usageState of VNF Package 2
-        self._check_package_usage(is_nfvo, self.vnf_pkg_2)
+        # check usageState of min pattern VNF Package
+        self.check_package_usage(self.min_pkg, is_nfvo=is_nfvo)
 
-        # check usageState of VNF Package 3
-        self._check_package_usage(is_nfvo, self.vnf_pkg_3, 'IN_USE')
+        # check usageState of update VNF Package
+        self.check_package_usage(self.upd_pkg, 'IN_USE', is_nfvo)
         if not is_nfvo:
             # check vnfd id
             resp, body = self.show_vnf_instance(inst_id)
             self.assertEqual(200, resp.status_code)
-            self.assertEqual(self.vnfd_id_3, body['vnfdId'])
+            self.assertEqual(self.upd_vnfd_id, body['vnfdId'])
         else:
             # check vnfd id
             resp, body = self.show_vnf_instance(inst_id)
             self.assertEqual(200, resp.status_code)
-            self.assertEqual(vnfd_id_2, body['vnfdId'])
+            self.assertEqual(upd_vnfd_id, body['vnfdId'])
 
         # 9. Heal VNF(vnfc)
         self._set_grant_response(
@@ -1547,8 +1543,8 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         self.assertEqual(fields.VnfOperationalStateType.STARTED,
                          body['instantiatedVnfInfo']['vnfState'])
 
-        # check usageState of VNF Package 3
-        self._check_package_usage(is_nfvo, self.vnf_pkg_3, 'IN_USE')
+        # check usageState of update VNF Package
+        self.check_package_usage(self.upd_pkg, 'IN_USE', is_nfvo)
 
         # 11. Scale out operation
         self._set_grant_response(
@@ -1614,16 +1610,12 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
 
-        # wait a bit because there is a bit time lag between lcmocc DB
-        # update and terminate completion.
-        time.sleep(10)
-
         # check deletion of Heat-stack
         stack_status, _ = self.heat_client.get_status(stack_name)
         self.assertIsNone(stack_status)
 
         # check usageState of VNF Package
-        self._check_package_usage(is_nfvo, self.vnf_pkg_3, 'IN_USE')
+        self.check_package_usage(self.upd_pkg, 'IN_USE', is_nfvo)
 
         # check instantiationState of VNF
         resp, body = self.show_vnf_instance(inst_id)
@@ -1638,10 +1630,12 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         # execute "update vnf" again to update the vnfd_id to the
         # original vnfd_id
         if not is_nfvo:
-            update_req = paramgen.update_vnf_min_with_parameter(self.vnfd_id_2)
+            update_req = paramgen.update_vnf_min_with_parameter(
+                self.min_vnfd_id)
         else:
-            update_req = paramgen.update_vnf_min_with_parameter(vnfd_id_1)
-        resp, body = self.update_vnf_instance(inst_id, update_req)
+            update_req = paramgen.update_vnf_min_with_parameter(min_vnfd_id)
+        resp, body = self.exec_lcm_operation(self.update_vnf_instance,
+                                      inst_id, update_req)
         self.assertEqual(202, resp.status_code)
         self.check_resp_headers_in_operation_task(resp)
 
@@ -1665,12 +1659,8 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
 
-        # wait a bit because there is a bit time lag between lcmocc DB
-        # update and terminate completion.
-        time.sleep(10)
-
         # 18. Delete a VNF instance
-        resp, body = self.delete_vnf_instance(inst_id)
+        resp, body = self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
         self.assertEqual(204, resp.status_code)
         self.check_resp_headers_in_delete(resp)
 
@@ -1679,7 +1669,7 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         self.assertEqual(404, resp.status_code)
 
         # check usageState of VNF Package
-        self._check_package_usage(is_nfvo, self.vnf_pkg_3)
+        self.check_package_usage(self.upd_pkg, is_nfvo=is_nfvo)
 
         # 19. Delete subscription
         resp, body = self.delete_subscription(sub_id)
@@ -1732,7 +1722,7 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
             change_vnfpkg_from_image_to_image_path = os.path.join(
                 cur_dir,
                 "samples/test_instantiate_vnf_with_old_image_or_volume")
-            zip_file_path_1, vnfd_id_1 = self.create_vnf_package(
+            old_zip_path, old_vnfd_id = self.create_vnf_package(
                 change_vnfpkg_from_image_to_image_path, nfvo=True)
             change_vnfpkg_from_image_to_image_path_2 = os.path.join(
                 cur_dir, "samples/test_change_vnf_pkg_with_new_image")
@@ -1740,7 +1730,7 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
                 cur_dir, "../../etc/samples/etsi/nfv/common/Files/images")
             image_file = "cirros-0.5.2-x86_64-disk.img"
             image_path = os.path.abspath(os.path.join(image_dir, image_file))
-            zip_file_path_2, vnfd_id_2 = self.create_vnf_package(
+            new_image_zip_path, new_image_vnfd_id = self.create_vnf_package(
                 change_vnfpkg_from_image_to_image_path_2,
                 image_path=image_path, nfvo=True)
             package_dir = os.path.join(
@@ -1762,17 +1752,17 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
                 package_dir, vnfd_path)
             zone_name_list = self.get_zone_list()
             self._register_vnf_package_mock_response(
-                vnfd_id_1, zip_file_path_1)
-            create_req = paramgen.change_vnfpkg_create(vnfd_id_1)
+                old_vnfd_id, old_zip_path)
+            create_req = paramgen.change_vnfpkg_create(old_vnfd_id)
             change_vnfpkg_req = paramgen.change_vnfpkg_with_ext_vl(
-                vnfd_id_2, self.get_network_ids(['net1']))
+                new_image_vnfd_id, self.get_network_ids(['net1']))
         else:
             glance_image = None
             flavour_vdu_dict = None
             zone_name_list = None
-            create_req = paramgen.change_vnfpkg_create(self.vnfd_id_1)
+            create_req = paramgen.change_vnfpkg_create(self.old_vnfd_id)
             change_vnfpkg_req = paramgen.change_vnfpkg_with_ext_vl(
-                self.vnfd_id_2, self.get_network_ids(['net1']))
+                self.new_image_vnfd_id, self.get_network_ids(['net1']))
 
         # 1. Create VNF instance
         resp, body = self.create_vnf_instance(create_req)
@@ -1835,7 +1825,7 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         # 4. Change Current VNF Package
         if is_nfvo:
             self._register_vnf_package_mock_response(
-                vnfd_id_2, zip_file_path_2)
+                new_image_vnfd_id, new_image_zip_path)
             g_image_id_1, g_image_id_2 = self.glance_create_image(
                 instantiate_req.get("vimConnectionInfo").get("vim1"),
                 image_path, sw_data, inst_id, num_vdu=2)
@@ -1873,12 +1863,8 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
 
-        # wait a bit because there is a bit time lag between lcmocc DB
-        # update and terminate completion.
-        time.sleep(10)
-
         # 7. Delete VNF instance
-        resp, body = self.delete_vnf_instance(inst_id)
+        resp, body = self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
         self.assertEqual(204, resp.status_code)
         self.check_resp_headers_in_delete(resp)
 
@@ -1929,7 +1915,7 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
 
             # Scale operation will fail
             scale_ng_path = os.path.join(cur_dir, "samples/scale_ng")
-            zip_file_path_1, vnfd_id_1 = self.create_vnf_package(
+            scale_ng_zip_path, scale_ng_vnfd_id = self.create_vnf_package(
                 scale_ng_path, image_path=image_path, nfvo=True)
             vnfd_path = "contents/Definitions/v2_sample1_df_simple.yaml"
             glance_image = fake_grant_v2.GrantV2.get_sw_image(
@@ -1940,14 +1926,14 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
             sw_data = fake_grant_v2.GrantV2.get_sw_data(scale_ng_path,
                                                         vnfd_path)
             self._register_vnf_package_mock_response(
-                vnfd_id_1, zip_file_path_1)
-            create_req = paramgen.create_vnf_max(vnfd_id_1)
-            self.vnf_pkg_1 = None
+                scale_ng_vnfd_id, scale_ng_zip_path)
+            create_req = paramgen.create_vnf_max(scale_ng_vnfd_id)
+            self.scale_ng_pkg = None
         else:
             glance_image = None
             flavour_vdu_dict = None
             zone_name_list = None
-            create_req = paramgen.create_vnf_max(self.vnfd_id_1)
+            create_req = paramgen.create_vnf_max(self.scale_ng_vnfd_id)
         # Create a new network and subnet to check the IP allocation of
         # IPv4 and IPv6
         ft_net0_name = 'ft-net0'
@@ -1981,10 +1967,10 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
             self.addCleanup(self.delete_port, port_id)
 
         # 1. Create subscription
-        callback_url = os.path.join(base_v2.MOCK_NOTIFY_CALLBACK_URL,
+        callback_url = os.path.join(self.get_notify_callback_url(),
                                     self._testMethodName)
         callback_uri = ('http://localhost:'
-                        f'{base_v2.FAKE_SERVER_MANAGER.SERVER_PORT}'
+                        f'{self.get_server_port()}'
                         f'{callback_url}')
 
         sub_req = paramgen.sub_create_max(callback_uri)
@@ -1996,7 +1982,7 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         # 2. Test notification
         self.assert_notification_get(callback_url)
         # check usageState of VNF Package
-        self._check_package_usage(is_nfvo, self.vnf_pkg_1)
+        self.check_package_usage(self.scale_ng_pkg, is_nfvo=is_nfvo)
 
         # 3. Create VNF instance
         # ETSI NFV SOL003 v3.3.1 5.5.2.2 VnfInstance
@@ -2024,7 +2010,7 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         inst_id = body['id']
 
         # check usageState of VNF Package
-        self._check_package_usage(is_nfvo, self.vnf_pkg_1, 'IN_USE')
+        self.check_package_usage(self.scale_ng_pkg, 'IN_USE', is_nfvo)
 
         # check instantiationState of VNF
         self.assertEqual(fields.VnfInstanceState.NOT_INSTANTIATED,
@@ -2039,7 +2025,7 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
                 image_path, sw_data, inst_id, num_vdu=2)
             glance_image['VDU1-VirtualStorage'] = image_1_id
             glance_image['VDU2-VirtualStorage'] = image_2_id
-            time.sleep(10)
+            time.sleep(WAIT_LCMOCC_UPDATE_TIME)
 
         self._set_grant_response(
             is_nfvo, 'INSTANTIATE', glance_image=glance_image,
@@ -2052,7 +2038,7 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         self.wait_lcmocc_complete(lcmocc_id)
 
         # check usageState of VNF Package
-        self._check_package_usage(is_nfvo, self.vnf_pkg_1, 'IN_USE')
+        self.check_package_usage(self.scale_ng_pkg, 'IN_USE', is_nfvo)
 
         # 5. Show VNF instance
         additional_inst_attrs = [
@@ -2087,7 +2073,7 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         self.wait_lcmocc_failed_temp(lcmocc_id)
 
         # check usageState of VNF Package
-        self._check_package_usage(is_nfvo, self.vnf_pkg_1, 'IN_USE')
+        self.check_package_usage(self.scale_ng_pkg, 'IN_USE', is_nfvo)
 
         # 7. Show VNF instance
         resp, body = self.show_vnf_instance(inst_id)
@@ -2174,7 +2160,7 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         self.wait_lcmocc_complete(lcmocc_id)
 
         # check usageState of VNF Package
-        self._check_package_usage(is_nfvo, self.vnf_pkg_1, 'IN_USE')
+        self.check_package_usage(self.scale_ng_pkg, 'IN_USE', is_nfvo)
 
         # check instantiationState of VNF
         resp, body = self.show_vnf_instance(inst_id)
@@ -2182,17 +2168,13 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         self.assertEqual(fields.VnfInstanceState.NOT_INSTANTIATED,
                          body.get('instantiationState'))
 
-        # wait a bit because there is a bit time lag between vnf instance DB
-        # terminate and delete completion.
-        time.sleep(5)
-
         # 13. Delete VNF instance
-        resp, body = self.delete_vnf_instance(inst_id)
+        resp, body = self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
         self.assertEqual(204, resp.status_code)
         self.check_resp_headers_in_delete(resp)
 
         # check usageState of VNF Package
-        self._check_package_usage(is_nfvo, self.vnf_pkg_1)
+        self.check_package_usage(self.scale_ng_pkg, is_nfvo=is_nfvo)
 
         # 14. Delete subscription
         resp, body = self.delete_subscription(sub_id)
@@ -2237,7 +2219,7 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
             error_network_path = os.path.join(
                 cur_dir, "samples/error_network")
             # no image contained
-            zip_file_path_1, vnfd_id_1 = self.create_vnf_package(
+            err_nw_zip_path, err_nw_vnfd_id = self.create_vnf_package(
                 error_network_path, nfvo=True)
             vnfd_path = "contents/Definitions/v2_sample2_df_simple.yaml"
             glance_image = fake_grant_v2.GrantV2.get_sw_image(
@@ -2246,19 +2228,19 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
                 error_network_path, vnfd_path)
             zone_name_list = self.get_zone_list()
             self._register_vnf_package_mock_response(
-                vnfd_id_1, zip_file_path_1)
-            create_req = paramgen.create_vnf_min(vnfd_id_1)
-            self.vnf_pkg_2 = None
+                err_nw_vnfd_id, err_nw_zip_path)
+            create_req = paramgen.create_vnf_min(err_nw_vnfd_id)
+            self.err_nw_pkg = None
         else:
             glance_image = None
             flavour_vdu_dict = None
             zone_name_list = None
-            create_req = paramgen.create_vnf_min(self.vnfd_id_2)
+            create_req = paramgen.create_vnf_min(self.err_nw_vnfd_id)
         # 1. Create subscription
-        callback_url = os.path.join(base_v2.MOCK_NOTIFY_CALLBACK_URL,
+        callback_url = os.path.join(self.get_notify_callback_url(),
                                     self._testMethodName)
         callback_uri = ('http://localhost:'
-                        f'{base_v2.FAKE_SERVER_MANAGER.SERVER_PORT}'
+                        f'{self.get_server_port()}'
                         f'{callback_url}')
 
         sub_req = paramgen.sub_create_min(callback_uri)
@@ -2270,7 +2252,7 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         # 2. Test notification
         self.assert_notification_get(callback_url)
         # check usageState of VNF Package
-        self._check_package_usage(is_nfvo, self.vnf_pkg_2)
+        self.check_package_usage(self.err_nw_pkg, is_nfvo=is_nfvo)
 
         # 3. Create VNF instance
         # ETSI NFV SOL003 v3.3.1 5.5.2.2 VnfInstance
@@ -2298,7 +2280,7 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         inst_id = body['id']
 
         # check usageState of VNF Package
-        self._check_package_usage(is_nfvo, self.vnf_pkg_2, 'IN_USE')
+        self.check_package_usage(self.err_nw_pkg, 'IN_USE', is_nfvo)
 
         # check instantiationState of VNF
         self.assertEqual(fields.VnfInstanceState.NOT_INSTANTIATED,
@@ -2317,7 +2299,7 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         self.wait_lcmocc_failed_temp(lcmocc_id)
 
         # check usageState of VNF Package
-        self._check_package_usage(is_nfvo, self.vnf_pkg_2, 'IN_USE')
+        self.check_package_usage(self.err_nw_pkg, 'IN_USE', is_nfvo)
 
         # 5. Show VNF instance
         resp, body = self.show_vnf_instance(inst_id)
@@ -2401,7 +2383,7 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         self.check_resp_headers_in_delete(resp)
 
         # check usageState of VNF Package
-        self._check_package_usage(is_nfvo, self.vnf_pkg_2, 'NOT_IN_USE')
+        self.check_package_usage(self.err_nw_pkg, 'NOT_IN_USE', is_nfvo)
 
         # 10. Delete subscription
         resp, body = self.delete_subscription(sub_id)

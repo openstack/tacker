@@ -16,7 +16,6 @@
 import copy
 import ddt
 import os
-import time
 
 from tacker.tests.functional.sol_kubernetes_oidc_auth.vnflcm_v2 import base_v2
 from tacker.tests.functional.sol_kubernetes_v2 import paramgen
@@ -33,14 +32,14 @@ class VnfLcmKubernetesTest(base_v2.BaseVnfLcmKubernetesV2OidcTest):
 
         test_instantiate_cnf_resources_path = os.path.join(cur_dir,
             "../../sol_kubernetes_v2/samples/test_instantiate_cnf_resources")
-        cls.vnf_pkg_1, cls.vnfd_id_1 = cls.create_vnf_package(
+        cls.cnf_pkg, cls.cnf_vnfd_id = cls.create_vnf_package(
             test_instantiate_cnf_resources_path)
 
     @classmethod
     def tearDownClass(cls):
         super(VnfLcmKubernetesTest, cls).tearDownClass()
 
-        cls.delete_vnf_package(cls.vnf_pkg_1)
+        cls.delete_vnf_package(cls.cnf_pkg)
 
     def setUp(self):
         super(VnfLcmKubernetesTest, self).setUp()
@@ -84,7 +83,7 @@ class VnfLcmKubernetesTest(base_v2.BaseVnfLcmKubernetesV2OidcTest):
             '_links'
         ]
         create_req = paramgen.test_instantiate_cnf_resources_create(
-            self.vnfd_id_1)
+            self.cnf_vnfd_id)
         resp, body = self.create_vnf_instance(create_req)
         self.assertEqual(201, resp.status_code)
         self.check_resp_headers_in_create(resp)
@@ -92,8 +91,7 @@ class VnfLcmKubernetesTest(base_v2.BaseVnfLcmKubernetesV2OidcTest):
         inst_id = body['id']
 
         # check usageState of VNF Package
-        usage_state = self.get_vnf_package(self.vnf_pkg_1)['usageState']
-        self.assertEqual('IN_USE', usage_state)
+        self.check_package_usage(self.cnf_pkg, 'IN_USE')
 
         # 2. Instantiate a VNF instance
         vim_id = self.get_k8s_vim_id()
@@ -130,12 +128,8 @@ class VnfLcmKubernetesTest(base_v2.BaseVnfLcmKubernetesV2OidcTest):
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
 
-        # wait a bit because there is a bit time lag between lcmocc DB
-        # update and terminate completion.
-        time.sleep(10)
-
         # 5. Delete a VNF instance
-        resp, body = self.delete_vnf_instance(inst_id)
+        resp, body = self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
         self.assertEqual(204, resp.status_code)
         self.check_resp_headers_in_delete(resp)
 
@@ -144,8 +138,7 @@ class VnfLcmKubernetesTest(base_v2.BaseVnfLcmKubernetesV2OidcTest):
         self.assertEqual(404, resp.status_code)
 
         # check usageState of VNF Package
-        usage_state = self.get_vnf_package(self.vnf_pkg_1).get('usageState')
-        self.assertEqual('NOT_IN_USE', usage_state)
+        self.check_package_usage(self.cnf_pkg, 'NOT_IN_USE')
 
     def test_instantiationV2_with_bad_oidc_auth_info(self):
         """Test CNF LCM v2 with bad OIDC auth
@@ -183,7 +176,7 @@ class VnfLcmKubernetesTest(base_v2.BaseVnfLcmKubernetesV2OidcTest):
             '_links'
         ]
         create_req = paramgen.test_instantiate_cnf_resources_create(
-            self.vnfd_id_1)
+            self.cnf_vnfd_id)
         resp, body = self.create_vnf_instance(create_req)
         self.assertEqual(201, resp.status_code)
         self.check_resp_headers_in_create(resp)
@@ -191,8 +184,7 @@ class VnfLcmKubernetesTest(base_v2.BaseVnfLcmKubernetesV2OidcTest):
         inst_id = body['id']
 
         # check usageState of VNF Package
-        usage_state = self.get_vnf_package(self.vnf_pkg_1)['usageState']
-        self.assertEqual('IN_USE', usage_state)
+        self.check_package_usage(self.cnf_pkg, 'IN_USE')
 
         # 2. Instantiate a VNF instance
         k8s_vim_info = copy.deepcopy(self.k8s_vim_info)
@@ -251,5 +243,4 @@ class VnfLcmKubernetesTest(base_v2.BaseVnfLcmKubernetesV2OidcTest):
         self.assertEqual(404, resp.status_code)
 
         # check usageState of VNF Package
-        usage_state = self.get_vnf_package(self.vnf_pkg_1).get('usageState')
-        self.assertEqual('NOT_IN_USE', usage_state)
+        self.check_package_usage(self.cnf_pkg, 'NOT_IN_USE')

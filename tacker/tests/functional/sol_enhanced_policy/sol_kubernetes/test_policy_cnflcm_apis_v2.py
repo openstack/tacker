@@ -26,6 +26,9 @@ from tacker.tests.functional.sol_kubernetes_v2.base_v2 import (
 from tacker.tests.functional.sol_kubernetes_v2 import paramgen
 from tacker.tests import utils as base_utils
 
+VNFLCM_V2_VERSION = "2.0.0"
+WAIT_LCMOCC_UPDATE_TIME = 3
+
 
 class VnflcmAPIsV2CNFBase(BaseVnfLcmKubernetesV2Test, BaseEnhancedPolicyTest):
 
@@ -245,7 +248,7 @@ class VnflcmAPIsV2CNFBase(BaseVnfLcmKubernetesV2Test, BaseEnhancedPolicyTest):
         self.tacker_client = self.get_tk_http_client_by_user(username)
         path = "/vnflcm/v2/vnf_instances"
         resp, vnf_instances = self.tacker_client.do_request(
-            path, "GET", version="2.0.0")
+            path, "GET", version=VNFLCM_V2_VERSION)
         self.assertEqual(200, resp.status_code)
         inst_ids = set([inst.get('id') for inst in vnf_instances])
         for inst_id in expected_inst_list:
@@ -377,7 +380,7 @@ class VnflcmAPIsV2CNFBase(BaseVnfLcmKubernetesV2Test, BaseEnhancedPolicyTest):
 
             # wait a bit because there is a bit time lag between lcmocc DB
             # update and change_vnfpkg completion.
-            time.sleep(3)
+            time.sleep(WAIT_LCMOCC_UPDATE_TIME)
 
     def _step_lcm_update(self, username, inst_id,
                          expected_status_code):
@@ -387,7 +390,7 @@ class VnflcmAPIsV2CNFBase(BaseVnfLcmKubernetesV2Test, BaseEnhancedPolicyTest):
         }
         path = f"/vnflcm/v2/vnf_instances/{inst_id}"
         resp, body = self.tacker_client.do_request(
-            path, "PATCH", body=update_req, version="2.0.0")
+            path, "PATCH", body=update_req, version=VNFLCM_V2_VERSION)
         self.assertEqual(expected_status_code, resp.status_code)
         if expected_status_code == 202:
             lcmocc_id = os.path.basename(resp.headers['Location'])
@@ -439,14 +442,11 @@ class VnflcmAPIsV2CNFBase(BaseVnfLcmKubernetesV2Test, BaseEnhancedPolicyTest):
             lcmocc_id = os.path.basename(resp.headers['Location'])
             self.wait_lcmocc_complete(lcmocc_id)
 
-            # wait a bit because there is a bit time lag between lcmocc DB
-            # update and terminate completion.
-            time.sleep(3)
-
     def _step_lcm_delete(self, username, inst_id, expected_status_code):
         self.tacker_client = self.get_tk_http_client_by_user(username)
         # Delete a VNF instance
-        resp, body = self.delete_vnf_instance(inst_id)
+        resp, body = self.exec_lcm_operation(self.delete_vnf_instance,
+                                             inst_id)
         self.assertEqual(expected_status_code, resp.status_code)
         if expected_status_code == 204:
             # check deletion of VNF instance

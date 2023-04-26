@@ -15,7 +15,6 @@
 
 import ddt
 import os
-import time
 
 from tacker.tests.functional.sol_kubernetes_v2 import base_v2
 from tacker.tests.functional.sol_kubernetes_v2 import paramgen
@@ -32,14 +31,14 @@ class VnfLcmKubernetesTest(base_v2.BaseVnfLcmKubernetesV2Test):
 
         test_instantiate_cnf_resources_path = os.path.join(
             cur_dir, "samples/test_instantiate_cnf_resources")
-        cls.vnf_pkg_1, cls.vnfd_id_1 = cls.create_vnf_package(
+        cls.cnf_pkg, cls.cnf_vnfd_id = cls.create_vnf_package(
             test_instantiate_cnf_resources_path)
 
     @classmethod
     def tearDownClass(cls):
         super(VnfLcmKubernetesTest, cls).tearDownClass()
 
-        cls.delete_vnf_package(cls.vnf_pkg_1)
+        cls.delete_vnf_package(cls.cnf_pkg)
 
     def setUp(self):
         super(VnfLcmKubernetesTest, self).setUp()
@@ -91,7 +90,7 @@ class VnfLcmKubernetesTest(base_v2.BaseVnfLcmKubernetesV2Test):
             '_links'
         ]
         create_req = paramgen.test_instantiate_cnf_resources_create(
-            self.vnfd_id_1)
+            self.cnf_vnfd_id)
         resp, body = self.create_vnf_instance(create_req)
         self.assertEqual(201, resp.status_code)
         self.check_resp_headers_in_create(resp)
@@ -99,8 +98,7 @@ class VnfLcmKubernetesTest(base_v2.BaseVnfLcmKubernetesV2Test):
         inst_id = body['id']
 
         # check usageState of VNF Package
-        usage_state = self.get_vnf_package(self.vnf_pkg_1)['usageState']
-        self.assertEqual('IN_USE', usage_state)
+        self.check_package_usage(self.cnf_pkg, 'IN_USE')
 
         # 2. Instantiate a VNF instance
         instantiate_req = paramgen.max_sample_instantiate(
@@ -225,12 +223,8 @@ class VnfLcmKubernetesTest(base_v2.BaseVnfLcmKubernetesV2Test):
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
 
-        # wait a bit because there is a bit time lag between lcmocc DB
-        # update and terminate completion.
-        time.sleep(3)
-
         # 11. Delete a VNF instance
-        resp, body = self.delete_vnf_instance(inst_id)
+        resp, body = self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
         self.assertEqual(204, resp.status_code)
         self.check_resp_headers_in_delete(resp)
 
@@ -239,8 +233,7 @@ class VnfLcmKubernetesTest(base_v2.BaseVnfLcmKubernetesV2Test):
         self.assertEqual(404, resp.status_code)
 
         # check usageState of VNF Package
-        usage_state = self.get_vnf_package(self.vnf_pkg_1).get('usageState')
-        self.assertEqual('NOT_IN_USE', usage_state)
+        self.check_package_usage(self.cnf_pkg, 'NOT_IN_USE')
 
     def test_basic_lcms_min(self):
         """Test LCM operations with all attributes set
@@ -281,7 +274,7 @@ class VnfLcmKubernetesTest(base_v2.BaseVnfLcmKubernetesV2Test):
             '_links'
         ]
         create_req = paramgen.test_instantiate_cnf_resources_create(
-            self.vnfd_id_1)
+            self.cnf_vnfd_id)
         resp, body = self.create_vnf_instance(create_req)
         self.assertEqual(201, resp.status_code)
         self.check_resp_headers_in_create(resp)
@@ -289,8 +282,7 @@ class VnfLcmKubernetesTest(base_v2.BaseVnfLcmKubernetesV2Test):
         inst_id = body['id']
 
         # check usageState of VNF Package
-        usage_state = self.get_vnf_package(self.vnf_pkg_1)['usageState']
-        self.assertEqual('IN_USE', usage_state)
+        self.check_package_usage(self.cnf_pkg, 'IN_USE')
 
         # 2. Instantiate a VNF instance
         vim_id = self.get_k8s_vim_id()
@@ -327,12 +319,8 @@ class VnfLcmKubernetesTest(base_v2.BaseVnfLcmKubernetesV2Test):
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
 
-        # wait a bit because there is a bit time lag between lcmocc DB
-        # update and terminate completion.
-        time.sleep(3)
-
         # 5. Delete a VNF instance
-        resp, body = self.delete_vnf_instance(inst_id)
+        resp, body = self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
         self.assertEqual(204, resp.status_code)
         self.check_resp_headers_in_delete(resp)
 
@@ -341,15 +329,7 @@ class VnfLcmKubernetesTest(base_v2.BaseVnfLcmKubernetesV2Test):
         self.assertEqual(404, resp.status_code)
 
         # check usageState of VNF Package
-        usage_state = self.get_vnf_package(self.vnf_pkg_1).get('usageState')
-        self.assertEqual('NOT_IN_USE', usage_state)
-
-    def _put_fail_file(self, operation):
-        with open(f'/tmp/{operation}', 'w'):
-            pass
-
-    def _rm_fail_file(self, operation):
-        os.remove(f'/tmp/{operation}')
+        self.check_package_usage(self.cnf_pkg, 'NOT_IN_USE')
 
     def test_instantiate_rollback(self):
         """Test LCM operations with all attributes set
@@ -366,14 +346,14 @@ class VnfLcmKubernetesTest(base_v2.BaseVnfLcmKubernetesV2Test):
 
         # 1. Create a new VNF instance resource
         create_req = paramgen.test_instantiate_cnf_resources_create(
-            self.vnfd_id_1)
+            self.cnf_vnfd_id)
         resp, body = self.create_vnf_instance(create_req)
         self.assertEqual(201, resp.status_code)
         self.check_resp_headers_in_create(resp)
         inst_id = body['id']
 
         # 2. Instantiate a VNF instance
-        self._put_fail_file('instantiate_end')
+        self.put_fail_file('instantiate_end')
         instantiate_req = paramgen.error_handling_instantiate(
             self.auth_url, self.bearer_token)
         resp, body = self.instantiate_vnf_instance(inst_id, instantiate_req)
@@ -382,7 +362,7 @@ class VnfLcmKubernetesTest(base_v2.BaseVnfLcmKubernetesV2Test):
 
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_failed_temp(lcmocc_id)
-        self._rm_fail_file('instantiate_end')
+        self.rm_fail_file('instantiate_end')
 
         # 3. Show VNF instance
         resp, body = self.show_vnf_instance(inst_id)
@@ -423,7 +403,7 @@ class VnfLcmKubernetesTest(base_v2.BaseVnfLcmKubernetesV2Test):
 
         # 1. Create a new VNF instance resource
         create_req = paramgen.test_instantiate_cnf_resources_create(
-            self.vnfd_id_1)
+            self.cnf_vnfd_id)
         resp, body = self.create_vnf_instance(create_req)
         self.assertEqual(201, resp.status_code)
         self.check_resp_headers_in_create(resp)
@@ -450,7 +430,7 @@ class VnfLcmKubernetesTest(base_v2.BaseVnfLcmKubernetesV2Test):
         self.assertEqual(2, len(vdu2_ids_0))
 
         # 4. Scale out a VNF instance
-        self._put_fail_file('scale_end')
+        self.put_fail_file('scale_end')
         scale_out_req = paramgen.error_handling_scale_out()
         resp, body = self.scale_vnf_instance(inst_id, scale_out_req)
         self.assertEqual(202, resp.status_code)
@@ -458,7 +438,7 @@ class VnfLcmKubernetesTest(base_v2.BaseVnfLcmKubernetesV2Test):
 
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_failed_temp(lcmocc_id)
-        self._rm_fail_file('scale_end')
+        self.rm_fail_file('scale_end')
 
         # 5. Rollback instantiate
         resp, body = self.rollback_lcmocc(lcmocc_id)
@@ -484,11 +464,7 @@ class VnfLcmKubernetesTest(base_v2.BaseVnfLcmKubernetesV2Test):
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
 
-        # wait a bit because there is a bit time lag between lcmocc DB
-        # update and terminate completion.
-        time.sleep(3)
-
         # 8. Delete a VNF instance
-        resp, body = self.delete_vnf_instance(inst_id)
+        resp, body = self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
         self.assertEqual(204, resp.status_code)
         self.check_resp_headers_in_delete(resp)

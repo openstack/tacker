@@ -15,15 +15,12 @@
 
 import ddt
 import os
-import time
-
 
 from tacker.sol_refactored.common import config
 
 from tacker.objects import fields
 from tacker.tests.functional.sol_https_v2 import paramgen
 from tacker.tests.functional.sol_separated_nfvo_v2 import fake_grant_v2
-from tacker.tests.functional.sol_v2_common import base_v2
 from tacker.tests.functional.sol_v2_common import test_vnflcm_basic_common
 
 CONF = config.CONF
@@ -68,12 +65,12 @@ class VnfLcmWithHttpsRequest(test_vnflcm_basic_common.CommonVnfLcmTest):
         cur_dir = os.path.dirname(__file__)
         basic_lcms_min_path = os.path.join(
             cur_dir, "../sol_v2_common/samples/basic_lcms_min")
-        zip_path_file_1, vnfd_id_1 = self.create_vnf_package(
+        min_zip_path, min_vnfd_id = self.create_vnf_package(
             basic_lcms_min_path, nfvo=True)
 
         vnfd_path = "contents/Definitions/v2_sample2_df_simple.yaml"
-        self._register_vnf_package_mock_response(vnfd_id_1,
-                                                 zip_path_file_1)
+        self._register_vnf_package_mock_response(min_vnfd_id,
+                                                 min_zip_path)
 
         glance_image = fake_grant_v2.GrantV2.get_sw_image(
             basic_lcms_min_path, vnfd_path)
@@ -81,13 +78,13 @@ class VnfLcmWithHttpsRequest(test_vnflcm_basic_common.CommonVnfLcmTest):
             basic_lcms_min_path, vnfd_path)
 
         zone_name_list = self.get_zone_list()
-        create_req = paramgen.create_vnf_min(vnfd_id_1)
+        create_req = paramgen.create_vnf_min(min_vnfd_id)
 
         # 1. LCM-Create-Subscription
-        callback_url = os.path.join(base_v2.MOCK_NOTIFY_CALLBACK_URL,
+        callback_url = os.path.join(self.get_notify_callback_url(),
                                     self._testMethodName)
         callback_uri = ('https://localhost:'
-                        f'{base_v2.FAKE_SERVER_MANAGER.SERVER_PORT}'
+                        f'{self.get_server_port()}'
                         f'{callback_url}')
 
         sub_req = paramgen.sub_create_https_no_auth(callback_uri)
@@ -156,10 +153,6 @@ class VnfLcmWithHttpsRequest(test_vnflcm_basic_common.CommonVnfLcmTest):
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
 
-        # wait a bit because there is a bit time lag between lcmocc DB
-        # update and terminate completion.
-        time.sleep(10)
-
         # check deletion of Heat-stack
         stack_name = "vnf-{}".format(inst_id)
         stack_status, _ = self.heat_client.get_status(stack_name)
@@ -169,7 +162,7 @@ class VnfLcmWithHttpsRequest(test_vnflcm_basic_common.CommonVnfLcmTest):
         self.assertEqual(200, resp.status_code)
 
         # 7. LCM-Delete
-        resp, body = self.delete_vnf_instance(inst_id)
+        resp, body = self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
         self.assertEqual(204, resp.status_code)
         self.check_resp_headers_in_delete(resp)
 
@@ -211,12 +204,12 @@ class VnfLcmWithHttpsRequest(test_vnflcm_basic_common.CommonVnfLcmTest):
         cur_dir = os.path.dirname(__file__)
         basic_lcms_min_path = os.path.join(
             cur_dir, "../sol_v2_common/samples/basic_lcms_min")
-        zip_path_file_1, vnfd_id_1 = self.create_vnf_package(
+        min_zip_path, min_vnfd_id = self.create_vnf_package(
             basic_lcms_min_path, nfvo=True)
 
         vnfd_path = "contents/Definitions/v2_sample2_df_simple.yaml"
-        self._register_vnf_package_mock_response(vnfd_id_1,
-                                                 zip_path_file_1)
+        self._register_vnf_package_mock_response(min_vnfd_id,
+                                                 min_zip_path)
 
         glance_image = fake_grant_v2.GrantV2.get_sw_image(
             basic_lcms_min_path, vnfd_path)
@@ -224,13 +217,13 @@ class VnfLcmWithHttpsRequest(test_vnflcm_basic_common.CommonVnfLcmTest):
             basic_lcms_min_path, vnfd_path)
 
         zone_name_list = self.get_zone_list()
-        create_req = paramgen.create_vnf_min(vnfd_id_1)
+        create_req = paramgen.create_vnf_min(min_vnfd_id)
 
         # 1. LCM-Create-Subscription
-        callback_url = os.path.join(base_v2.MOCK_NOTIFY_CALLBACK_URL,
+        callback_url = os.path.join(self.get_notify_callback_url(),
                                     self._testMethodName)
         callback_uri = ('https://localhost:'
-                        f'{base_v2.FAKE_SERVER_MANAGER.SERVER_PORT}'
+                        f'{self.get_server_port()}'
                         f'{callback_url}')
         sub_req = paramgen.sub_create_https_basic_auth(callback_uri)
         resp, body = self.create_subscription(sub_req)
@@ -297,10 +290,6 @@ class VnfLcmWithHttpsRequest(test_vnflcm_basic_common.CommonVnfLcmTest):
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
 
-        # wait a bit because there is a bit time lag between lcmocc DB
-        # update and terminate completion.
-        time.sleep(10)
-
         # check deletion of Heat-stack
         stack_name = "vnf-{}".format(inst_id)
         stack_status, _ = self.heat_client.get_status(stack_name)
@@ -310,7 +299,7 @@ class VnfLcmWithHttpsRequest(test_vnflcm_basic_common.CommonVnfLcmTest):
         self.assertEqual(200, resp.status_code)
 
         # 7. LCM-Delete
-        resp, body = self.delete_vnf_instance(inst_id)
+        resp, body = self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
         self.assertEqual(204, resp.status_code)
         self.check_resp_headers_in_delete(resp)
 
@@ -352,12 +341,12 @@ class VnfLcmWithHttpsRequest(test_vnflcm_basic_common.CommonVnfLcmTest):
         cur_dir = os.path.dirname(__file__)
         basic_lcms_min_path = os.path.join(
             cur_dir, "../sol_v2_common/samples/basic_lcms_min")
-        zip_path_file_1, vnfd_id_1 = self.create_vnf_package(
+        min_zip_path, min_vnfd_id = self.create_vnf_package(
             basic_lcms_min_path, nfvo=True)
 
         vnfd_path = "contents/Definitions/v2_sample2_df_simple.yaml"
-        self._register_vnf_package_mock_response(vnfd_id_1,
-                                                 zip_path_file_1)
+        self._register_vnf_package_mock_response(min_vnfd_id,
+                                                 min_zip_path)
 
         glance_image = fake_grant_v2.GrantV2.get_sw_image(
             basic_lcms_min_path, vnfd_path)
@@ -365,13 +354,13 @@ class VnfLcmWithHttpsRequest(test_vnflcm_basic_common.CommonVnfLcmTest):
             basic_lcms_min_path, vnfd_path)
 
         zone_name_list = self.get_zone_list()
-        create_req = paramgen.create_vnf_min(vnfd_id_1)
+        create_req = paramgen.create_vnf_min(min_vnfd_id)
 
         # 1. LCM-Create-Subscription
-        callback_url = os.path.join(base_v2.MOCK_NOTIFY_CALLBACK_URL,
+        callback_url = os.path.join(self.get_notify_callback_url(),
                                     self._testMethodName)
         callback_uri = ('https://localhost:'
-                        f'{base_v2.FAKE_SERVER_MANAGER.SERVER_PORT}'
+                        f'{self.get_server_port()}'
                         f'{callback_url}')
         sub_req = paramgen.sub_create_https_oauth2_auth(callback_uri)
         resp, body = self.create_subscription(sub_req)
@@ -438,10 +427,6 @@ class VnfLcmWithHttpsRequest(test_vnflcm_basic_common.CommonVnfLcmTest):
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
 
-        # wait a bit because there is a bit time lag between lcmocc DB
-        # update and terminate completion.
-        time.sleep(10)
-
         # check deletion of Heat-stack
         stack_name = "vnf-{}".format(inst_id)
         stack_status, _ = self.heat_client.get_status(stack_name)
@@ -451,7 +436,7 @@ class VnfLcmWithHttpsRequest(test_vnflcm_basic_common.CommonVnfLcmTest):
         self.assertEqual(200, resp.status_code)
 
         # 7. LCM-Delete
-        resp, body = self.delete_vnf_instance(inst_id)
+        resp, body = self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
         self.assertEqual(204, resp.status_code)
         self.check_resp_headers_in_delete(resp)
 

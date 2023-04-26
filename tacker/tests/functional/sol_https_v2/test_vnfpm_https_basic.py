@@ -23,10 +23,12 @@ from tacker.sol_refactored.common import config
 from tacker.sol_refactored.conductor import conductor_rpc_v2
 from tacker.tests.functional.sol_https_v2 import paramgen
 from tacker.tests.functional.sol_separated_nfvo_v2 import fake_grant_v2
-from tacker.tests.functional.sol_v2_common import base_v2
 from tacker.tests.functional.sol_v2_common import test_vnflcm_basic_common
 
 CONF = config.CONF
+
+VNFPM_V2_VERSION = "2.1.0"
+WAIT_NOTIFICATION_TIME = 5
 
 
 @ddt.ddt
@@ -45,7 +47,7 @@ class VnfPmWithHttpsRequestTest(test_vnflcm_basic_common.CommonVnfLcmTest):
 
     def setUp(self):
         super(VnfPmWithHttpsRequestTest, self).setUp()
-        base_v2.FAKE_SERVER_MANAGER.set_callback(
+        self.set_server_callback(
             'PUT', "/-/reload", status_code=202,
             response_headers={"Content-Type": "text/plain"})
 
@@ -62,27 +64,17 @@ class VnfPmWithHttpsRequestTest(test_vnflcm_basic_common.CommonVnfLcmTest):
     def _create_pm_job(self, req_body):
         path = "/vnfpm/v2/pm_jobs"
         return self.tacker_client.do_request(
-            path, "POST", body=req_body, version="2.1.0")
+            path, "POST", body=req_body, version=VNFPM_V2_VERSION)
 
     def _create_pm_event(self, req_body):
         path = "/pm_event"
         return self.tacker_client.do_request(
-            path, "POST", body=req_body, version="2.1.0")
-
-    def _check_notification(self, callback_url, notify_type):
-        notify_mock_responses = base_v2.FAKE_SERVER_MANAGER.get_history(
-            callback_url)
-        base_v2.FAKE_SERVER_MANAGER.clear_history(
-            callback_url)
-        self.assertEqual(1, len(notify_mock_responses))
-        self.assertEqual(204, notify_mock_responses[0].status_code)
-        self.assertEqual(notify_type, notify_mock_responses[0].request_body[
-            'notificationType'])
+            path, "POST", body=req_body, version=VNFPM_V2_VERSION)
 
     def _delete_pm_job(self, pm_job_id):
         path = f"/vnfpm/v2/pm_jobs/{pm_job_id}"
         return self.tacker_client.do_request(
-            path, "DELETE", version="2.1.0")
+            path, "DELETE", version=VNFPM_V2_VERSION)
 
     def test_pm_notification_over_https_no_auth(self):
         """Test PM operations over https with no auth
@@ -107,23 +99,23 @@ class VnfPmWithHttpsRequestTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         cur_dir = os.path.dirname(__file__)
         basic_lcms_min_path = os.path.join(
             cur_dir, "../sol_v2_common/samples/basic_lcms_min")
-        zip_path_file_1, vnfd_id_1 = self.create_vnf_package(
+        min_zip_path, min_vnfd_id = self.create_vnf_package(
             basic_lcms_min_path, nfvo=True)
         vnfd_path = "contents/Definitions/v2_sample2_df_simple.yaml"
-        self._register_vnf_package_mock_response(vnfd_id_1,
-                                                 zip_path_file_1)
+        self._register_vnf_package_mock_response(min_vnfd_id,
+                                                 min_zip_path)
         glance_image = fake_grant_v2.GrantV2.get_sw_image(
             basic_lcms_min_path, vnfd_path)
         flavour_vdu_dict = fake_grant_v2.GrantV2.get_compute_flavor(
             basic_lcms_min_path, vnfd_path)
         zone_name_list = self.get_zone_list()
-        create_req = paramgen.create_vnf_min(vnfd_id_1)
+        create_req = paramgen.create_vnf_min(min_vnfd_id)
 
         # 1. LCM-Create
         self._set_grant_response(
             True, 'INSTANTIATE', glance_image=glance_image,
             flavour_vdu_dict=flavour_vdu_dict, zone_name_list=zone_name_list)
-        create_req = paramgen.create_vnf_min(vnfd_id_1)
+        create_req = paramgen.create_vnf_min(min_vnfd_id)
         resp, body = self.create_vnf_instance(create_req)
         self.assertEqual(201, resp.status_code)
         inst_id = body['id']
@@ -148,10 +140,10 @@ class VnfPmWithHttpsRequestTest(test_vnflcm_basic_common.CommonVnfLcmTest):
             'callbackUri',
             '_links'
         ]
-        callback_url = os.path.join(base_v2.MOCK_NOTIFY_CALLBACK_URL,
+        callback_url = os.path.join(self.get_notify_callback_url(),
                                     self._testMethodName)
         callback_uri = ('https://localhost:'
-                        f'{base_v2.FAKE_SERVER_MANAGER.SERVER_PORT}'
+                        f'{self.get_server_port()}'
                         f'{callback_url}')
         sub_req = paramgen.pm_job_https_no_auth(
             callback_uri, inst_id, self.fake_prometheus_ip)
@@ -168,7 +160,7 @@ class VnfPmWithHttpsRequestTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         ctx = context.get_admin_context()
         entries = paramgen.entries(body, inst_id)
         r.store_job_info(ctx, entries)
-        time.sleep(5)
+        time.sleep(WAIT_NOTIFICATION_TIME)
         self._check_notification(
             callback_url, 'PerformanceInformationAvailableNotification')
 
@@ -186,10 +178,6 @@ class VnfPmWithHttpsRequestTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
 
-        # wait a bit because there is a bit time lag between lcmocc DB
-        # update and terminate completion.
-        time.sleep(10)
-
         # check deletion of Heat-stack
         stack_name = "vnf-{}".format(inst_id)
         stack_status, _ = self.heat_client.get_status(stack_name)
@@ -199,7 +187,7 @@ class VnfPmWithHttpsRequestTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         self.assertEqual(200, resp.status_code)
 
         # 7. LCM-Delete
-        resp, body = self.delete_vnf_instance(inst_id)
+        resp, body = self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
         self.assertEqual(204, resp.status_code)
         self.check_resp_headers_in_delete(resp)
 
@@ -230,20 +218,20 @@ class VnfPmWithHttpsRequestTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         cur_dir = os.path.dirname(__file__)
         basic_lcms_min_path = os.path.join(
             cur_dir, "../sol_v2_common/samples/basic_lcms_min")
-        zip_path_file_1, vnfd_id_1 = self.create_vnf_package(
+        min_zip_path, min_vnfd_id = self.create_vnf_package(
             basic_lcms_min_path, nfvo=True)
         vnfd_path = "contents/Definitions/v2_sample2_df_simple.yaml"
-        self._register_vnf_package_mock_response(vnfd_id_1,
-                                                 zip_path_file_1)
+        self._register_vnf_package_mock_response(min_vnfd_id,
+                                                 min_zip_path)
         glance_image = fake_grant_v2.GrantV2.get_sw_image(
             basic_lcms_min_path, vnfd_path)
         flavour_vdu_dict = fake_grant_v2.GrantV2.get_compute_flavor(
             basic_lcms_min_path, vnfd_path)
         zone_name_list = self.get_zone_list()
-        create_req = paramgen.create_vnf_min(vnfd_id_1)
+        create_req = paramgen.create_vnf_min(min_vnfd_id)
 
         # 1. LCM-Create
-        create_req = paramgen.create_vnf_min(vnfd_id_1)
+        create_req = paramgen.create_vnf_min(min_vnfd_id)
         resp, body = self.create_vnf_instance(create_req)
         self.assertEqual(201, resp.status_code)
         inst_id = body['id']
@@ -266,10 +254,10 @@ class VnfPmWithHttpsRequestTest(test_vnflcm_basic_common.CommonVnfLcmTest):
             'callbackUri',
             '_links'
         ]
-        callback_url = os.path.join(base_v2.MOCK_NOTIFY_CALLBACK_URL,
+        callback_url = os.path.join(self.get_notify_callback_url(),
                                     self._testMethodName)
         callback_uri = ('https://localhost:'
-                        f'{base_v2.FAKE_SERVER_MANAGER.SERVER_PORT}'
+                        f'{self.get_server_port()}'
                         f'{callback_url}')
         sub_req = paramgen.pm_job_https_basic_auth(
             callback_uri, inst_id, self.fake_prometheus_ip)
@@ -286,7 +274,7 @@ class VnfPmWithHttpsRequestTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         ctx = context.get_admin_context()
         entries = paramgen.entries(body, inst_id)
         r.store_job_info(ctx, entries)
-        time.sleep(5)
+        time.sleep(WAIT_NOTIFICATION_TIME)
         self._check_notification(
             callback_url, 'PerformanceInformationAvailableNotification')
 
@@ -303,10 +291,6 @@ class VnfPmWithHttpsRequestTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
 
-        # wait a bit because there is a bit time lag between lcmocc DB
-        # update and terminate completion.
-        time.sleep(10)
-
         # check deletion of Heat-stack
         stack_name = "vnf-{}".format(inst_id)
         stack_status, _ = self.heat_client.get_status(stack_name)
@@ -316,7 +300,7 @@ class VnfPmWithHttpsRequestTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         self.assertEqual(200, resp.status_code)
 
         # 7. LCM-Delete
-        resp, body = self.delete_vnf_instance(inst_id)
+        resp, body = self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
         self.assertEqual(204, resp.status_code)
         self.check_resp_headers_in_delete(resp)
 
@@ -348,23 +332,23 @@ class VnfPmWithHttpsRequestTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         cur_dir = os.path.dirname(__file__)
         basic_lcms_min_path = os.path.join(
             cur_dir, "../sol_v2_common/samples/basic_lcms_min")
-        zip_path_file_1, vnfd_id_1 = self.create_vnf_package(
+        min_zip_path, min_vnfd_id = self.create_vnf_package(
             basic_lcms_min_path, nfvo=True)
         vnfd_path = "contents/Definitions/v2_sample2_df_simple.yaml"
-        self._register_vnf_package_mock_response(vnfd_id_1,
-                                                 zip_path_file_1)
+        self._register_vnf_package_mock_response(min_vnfd_id,
+                                                 min_zip_path)
         glance_image = fake_grant_v2.GrantV2.get_sw_image(
             basic_lcms_min_path, vnfd_path)
         flavour_vdu_dict = fake_grant_v2.GrantV2.get_compute_flavor(
             basic_lcms_min_path, vnfd_path)
         zone_name_list = self.get_zone_list()
-        create_req = paramgen.create_vnf_min(vnfd_id_1)
+        create_req = paramgen.create_vnf_min(min_vnfd_id)
 
         # 1. LCM-Create
         self._set_grant_response(
             True, 'INSTANTIATE', glance_image=glance_image,
             flavour_vdu_dict=flavour_vdu_dict, zone_name_list=zone_name_list)
-        create_req = paramgen.create_vnf_min(vnfd_id_1)
+        create_req = paramgen.create_vnf_min(min_vnfd_id)
         resp, body = self.create_vnf_instance(create_req)
         self.assertEqual(201, resp.status_code)
         inst_id = body['id']
@@ -384,10 +368,10 @@ class VnfPmWithHttpsRequestTest(test_vnflcm_basic_common.CommonVnfLcmTest):
             'callbackUri',
             '_links'
         ]
-        callback_url = os.path.join(base_v2.MOCK_NOTIFY_CALLBACK_URL,
+        callback_url = os.path.join(self.get_notify_callback_url(),
                                     self._testMethodName)
         callback_uri = ('https://localhost:'
-                        f'{base_v2.FAKE_SERVER_MANAGER.SERVER_PORT}'
+                        f'{self.get_server_port()}'
                         f'{callback_url}')
         sub_req = paramgen.pm_job_https_oauth2_auth(
             callback_uri, inst_id, self.fake_prometheus_ip)
@@ -404,7 +388,7 @@ class VnfPmWithHttpsRequestTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         ctx = context.get_admin_context()
         entries = paramgen.entries(body, inst_id)
         r.store_job_info(ctx, entries)
-        time.sleep(5)
+        time.sleep(WAIT_NOTIFICATION_TIME)
         self._check_notification(
             callback_url, 'PerformanceInformationAvailableNotification')
 
@@ -422,10 +406,6 @@ class VnfPmWithHttpsRequestTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
 
-        # wait a bit because there is a bit time lag between lcmocc DB
-        # update and terminate completion.
-        time.sleep(10)
-
         # check deletion of Heat-stack
         stack_name = "vnf-{}".format(inst_id)
         stack_status, _ = self.heat_client.get_status(stack_name)
@@ -435,7 +415,7 @@ class VnfPmWithHttpsRequestTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         self.assertEqual(200, resp.status_code)
 
         # 7. LCM-Delete
-        resp, body = self.delete_vnf_instance(inst_id)
+        resp, body = self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
         self.assertEqual(204, resp.status_code)
         self.check_resp_headers_in_delete(resp)
 

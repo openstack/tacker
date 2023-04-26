@@ -15,7 +15,6 @@
 
 import ddt
 import os
-import time
 
 from tacker.tests.functional.sol_v2_common import paramgen
 from tacker.tests.functional.sol_v2_common import test_vnflcm_basic_common
@@ -39,35 +38,35 @@ class ChangeVnfPkgVnfLcmTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         change_vnfpkg_from_image_to_image_path = os.path.join(
             cur_dir, "../sol_v2_common/samples/"
                      "test_instantiate_vnf_with_old_image_or_volume")
-        cls.vnf_pkg_1, cls.vnfd_id_1 = cls.create_vnf_package(
+        cls.old_pkg, cls.old_vnfd_id = cls.create_vnf_package(
             change_vnfpkg_from_image_to_image_path)
 
         change_vnfpkg_from_image_to_image_path_2 = os.path.join(
             cur_dir, "../sol_v2_common/samples/"
                      "test_change_vnf_pkg_with_new_image")
-        cls.vnf_pkg_2, cls.vnfd_id_2 = cls.create_vnf_package(
+        cls.new_image_pkg, cls.new_image_vnfd_id = cls.create_vnf_package(
             change_vnfpkg_from_image_to_image_path_2, image_path=image_path)
 
         change_vnfpkg_from_image_to_volume_path = os.path.join(
             cur_dir, "../sol_v2_common/samples/"
                      "test_change_vnf_pkg_with_new_volume")
-        cls.vnf_pkg_3, cls.vnfd_id_3 = cls.create_vnf_package(
+        cls.new_volume_pkg, cls.new_volume_vnfd_id = cls.create_vnf_package(
             change_vnfpkg_from_image_to_volume_path, image_path=image_path)
 
         change_vnfpkg_failed_in_update_path = os.path.join(
             cur_dir, "../sol_v2_common/samples/"
                      "test_change_vnf_pkg_with_update_failed")
-        cls.vnf_pkg_4, cls.vnfd_id_4 = cls.create_vnf_package(
+        cls.failed_pkg, cls.failed_vnfd_id = cls.create_vnf_package(
             change_vnfpkg_failed_in_update_path, image_path=image_path)
 
     @classmethod
     def tearDownClass(cls):
         super(ChangeVnfPkgVnfLcmTest, cls).tearDownClass()
 
-        cls.delete_vnf_package(cls.vnf_pkg_1)
-        cls.delete_vnf_package(cls.vnf_pkg_2)
-        cls.delete_vnf_package(cls.vnf_pkg_3)
-        cls.delete_vnf_package(cls.vnf_pkg_4)
+        cls.delete_vnf_package(cls.old_pkg)
+        cls.delete_vnf_package(cls.new_image_pkg)
+        cls.delete_vnf_package(cls.new_volume_pkg)
+        cls.delete_vnf_package(cls.failed_pkg)
 
     def setUp(self):
         super(ChangeVnfPkgVnfLcmTest, self).setUp()
@@ -76,7 +75,7 @@ class ChangeVnfPkgVnfLcmTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         self.change_vnfpkg_from_image_to_image_common_test()
 
     def test_change_vnfpkg_from_volume_to_volume(self):
-        create_req = paramgen.change_vnfpkg_create(self.vnfd_id_1)
+        create_req = paramgen.change_vnfpkg_create(self.old_vnfd_id)
         resp, body = self.create_vnf_instance(create_req)
         expected_inst_attrs = [
             'id',
@@ -132,7 +131,7 @@ class ChangeVnfPkgVnfLcmTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         self.check_resp_headers_in_get(resp_1)
         self.check_resp_body(body_1, expected_inst_attrs)
 
-        change_vnfpkg_req = paramgen.change_vnfpkg(self.vnfd_id_3)
+        change_vnfpkg_req = paramgen.change_vnfpkg(self.new_volume_vnfd_id)
         resp, body = self.change_vnfpkg(inst_id, change_vnfpkg_req)
         self.assertEqual(202, resp.status_code)
         self.check_resp_headers_in_operation_task(resp)
@@ -165,16 +164,12 @@ class ChangeVnfPkgVnfLcmTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
 
-        # wait a bit because there is a bit time lag between lcmocc DB
-        # update and terminate completion.
-        time.sleep(10)
-
-        resp, body = self.delete_vnf_instance(inst_id)
+        resp, body = self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
         self.assertEqual(204, resp.status_code)
         self.check_resp_headers_in_delete(resp)
 
     def test_change_vnfpkg_failed_in_update(self):
-        create_req = paramgen.change_vnfpkg_create(self.vnfd_id_1)
+        create_req = paramgen.change_vnfpkg_create(self.old_vnfd_id)
         resp, body = self.create_vnf_instance(create_req)
         expected_inst_attrs = [
             'id',
@@ -221,7 +216,7 @@ class ChangeVnfPkgVnfLcmTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         self.check_resp_headers_in_get(resp_1)
         self.check_resp_body(body_1, expected_inst_attrs)
 
-        change_vnfpkg_req = paramgen.change_vnfpkg(self.vnfd_id_4)
+        change_vnfpkg_req = paramgen.change_vnfpkg(self.failed_vnfd_id)
         del change_vnfpkg_req['additionalParams']['vdu_params'][1]
         resp, body = self.change_vnfpkg(inst_id, change_vnfpkg_req)
         self.assertEqual(202, resp.status_code)
@@ -230,7 +225,7 @@ class ChangeVnfPkgVnfLcmTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_failed_temp(lcmocc_id)
 
-        resp, body = self.rollback(lcmocc_id)
+        resp, body = self.rollback_lcmocc(lcmocc_id)
         self.assertEqual(202, resp.status_code)
         self.wait_lcmocc_rolled_back(lcmocc_id)
 
@@ -250,16 +245,12 @@ class ChangeVnfPkgVnfLcmTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
 
-        # wait a bit because there is a bit time lag between lcmocc DB
-        # update and terminate completion.
-        time.sleep(10)
-
-        resp, body = self.delete_vnf_instance(inst_id)
+        resp, body = self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
         self.assertEqual(204, resp.status_code)
         self.check_resp_headers_in_delete(resp)
 
     def test_change_vnfpkg_failed_with_error_coordinate_vnf(self):
-        create_req = paramgen.change_vnfpkg_create(self.vnfd_id_1)
+        create_req = paramgen.change_vnfpkg_create(self.old_vnfd_id)
         resp, body = self.create_vnf_instance(create_req)
         expected_inst_attrs = [
             'id',
@@ -312,7 +303,7 @@ class ChangeVnfPkgVnfLcmTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         self.check_resp_headers_in_get(resp_1)
         self.check_resp_body(body_1, expected_inst_attrs)
 
-        change_vnfpkg_req = paramgen.change_vnfpkg(self.vnfd_id_3)
+        change_vnfpkg_req = paramgen.change_vnfpkg(self.new_volume_vnfd_id)
         change_vnfpkg_req['additionalParams'][
             'lcm-operation-coordinate-new-vnf'
         ] = "./Scripts/error_coordinate_new_vnf.py"
@@ -324,7 +315,7 @@ class ChangeVnfPkgVnfLcmTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_failed_temp(lcmocc_id)
 
-        resp, body = self.rollback(lcmocc_id)
+        resp, body = self.rollback_lcmocc(lcmocc_id)
         self.assertEqual(202, resp.status_code)
         self.wait_lcmocc_rolled_back(lcmocc_id)
 
@@ -351,10 +342,6 @@ class ChangeVnfPkgVnfLcmTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
 
-        # wait a bit because there is a bit time lag between lcmocc DB
-        # update and terminate completion.
-        time.sleep(10)
-
-        resp, body = self.delete_vnf_instance(inst_id)
+        resp, body = self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
         self.assertEqual(204, resp.status_code)
         self.check_resp_headers_in_delete(resp)

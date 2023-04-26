@@ -14,7 +14,6 @@
 #    under the License.
 
 import os
-import time
 
 from tacker.objects import fields
 from tacker.tests.functional.sol_v2_common import base_v2
@@ -45,27 +44,27 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
         # vnf package for basic lcms tests max pattern
         pkg_path_1 = os.path.join(cur_dir,
             "../sol_v2_common/samples/basic_lcms_max_individual_vnfc")
-        cls.vnf_pkg_1, cls.vnfd_id_1 = cls.create_vnf_package(
+        cls.max_pkg, cls.max_vnfd_id = cls.create_vnf_package(
             pkg_path_1, image_path=image_path,
             userdata_path=userdata_path)
 
         # vnf package for basic lcms tests min pattern
         pkg_path_2 = os.path.join(cur_dir,
             "../sol_v2_common/samples/basic_lcms_min_individual_vnfc")
-        cls.vnf_pkg_2, cls.vnfd_id_2 = cls.create_vnf_package(
+        cls.min_pkg, cls.min_vnfd_id = cls.create_vnf_package(
             pkg_path_2, userdata_path=userdata_path)
 
         # vnf package for update vnf max pattern
         pkg_path_3 = os.path.join(cur_dir,
             "../sol_v2_common/samples/update_vnf_max_individual_vnfc")
-        cls.vnf_pkg_3, cls.vnfd_id_3 = cls.create_vnf_package(
+        cls.upd_max_pkg, cls.upd_max_vnfd_id = cls.create_vnf_package(
             pkg_path_3, image_path=image_path,
             userdata_path=userdata_path)
 
         # vnf package for change vnf package max pattern
         pkg_path_4 = os.path.join(cur_dir,
             "../sol_v2_common/samples/change_vnfpkg_max_individual_vnfc")
-        cls.vnf_pkg_4, cls.vnfd_id_4 = cls.create_vnf_package(
+        cls.new_max_pkg, cls.new_max_vnfd_id = cls.create_vnf_package(
             pkg_path_4, userdata_path=userdata_path)
 
         # vnf package for change vnf package or update min pattern
@@ -73,7 +72,7 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
             cur_dir,
             "../sol_v2_common/samples/"
             "change_vnfpkg_or_update_min_individual_vnfc")
-        cls.vnf_pkg_5, cls.vnfd_id_5 = cls.create_vnf_package(
+        cls.upd_new_min_pkg, cls.upd_new_min_vnfd_id = cls.create_vnf_package(
             pkg_path_5, image_path=image_path, userdata_path=userdata_path)
 
         cls.expected_list_attrs = [
@@ -102,11 +101,11 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
     @classmethod
     def tearDownClass(cls):
         super(IndividualVnfcMgmtBasicTest, cls).tearDownClass()
-        cls.delete_vnf_package(cls.vnf_pkg_1)
-        cls.delete_vnf_package(cls.vnf_pkg_2)
-        cls.delete_vnf_package(cls.vnf_pkg_3)
-        cls.delete_vnf_package(cls.vnf_pkg_4)
-        cls.delete_vnf_package(cls.vnf_pkg_5)
+        cls.delete_vnf_package(cls.max_pkg)
+        cls.delete_vnf_package(cls.min_pkg)
+        cls.delete_vnf_package(cls.upd_max_pkg)
+        cls.delete_vnf_package(cls.new_max_pkg)
+        cls.delete_vnf_package(cls.upd_new_min_pkg)
 
     def setUp(self):
         super().setUp()
@@ -157,13 +156,6 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
         cls.subnet_ids = cls.get_subnet_ids(
             cls, ['subnet0', 'subnet1', 'ft-ipv4-subnet0', 'ft-ipv6-subnet0',
              'ft-ipv4-subnet1', 'ft-ipv6-subnet1'])
-
-    def _put_fail_file(self, operation):
-        with open(f'/tmp/{operation}', 'w'):
-            pass
-
-    def _rm_fail_file(self, operation):
-        os.remove(f'/tmp/{operation}')
 
     def _get_vdu_indexes(self, inst, vdu):
         return {
@@ -294,23 +286,6 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
 
         return body
 
-    def _check_package_usage(self, package_id, state='NOT_IN_USE'):
-        usage_state = self.get_vnf_package(package_id)['usageState']
-        self.assertEqual(state, usage_state)
-
-    def _delete_instance(self, inst_id):
-        for _ in range(3):
-            resp, body = self.delete_vnf_instance(inst_id)
-            if resp.status_code == 204:  # OK
-                return
-            elif resp.status_code == 409:
-                # may happen. there is a bit time between lcmocc become
-                # COMPLETED and lock of terminate is freed.
-                time.sleep(3)
-            else:
-                break
-        self.assertTrue(False)
-
     def test_basic_lcms_max(self):
         """Test LCM operations for individual vnfc mgmt with all attributes set
 
@@ -359,7 +334,7 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
         """
         # 0. Create VNF
         create_req = paramgen.create_vnf_max(
-            self.vnfd_id_1,
+            self.max_vnfd_id,
             description="test for basic_lcms_max_individual_vnfc")
         _, body = self.create_vnf_instance(create_req)
         inst_id = body['id']
@@ -418,7 +393,7 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
         # The Response Header will contain a 'Link' Header only when there
         # are at least two vnf instance data in the database, so it needs to
         # create an unused data.
-        create_req = paramgen.create_vnf_min(self.vnfd_id_2)
+        create_req = paramgen.create_vnf_min(self.min_vnfd_id)
         _, tmp_body = self.create_vnf_instance(create_req)
         resp, body = self.list_vnf_instance()
         self.assertEqual(200, resp.status_code)
@@ -474,7 +449,7 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
             self.assertNotIn('vimConnectionInfo', inst)
             self.assertNotIn('instantiatedVnfInfo', inst)
             self.assertNotIn('metadata', inst)
-        self._delete_instance(tmp_body['id'])
+        self.delete_vnf_instance(tmp_body['id'])
 
         # 4. Show VNF LCM operation occurrence
         expected_attrs = [
@@ -765,16 +740,16 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
                             self._get_vnfc_storage_ids(inst_23, 'VDU2', 0))
         # 24. Update VNF
         # check attribute value before update VNF
-        # check usageState of VNF Package 1
-        self._check_package_usage(self.vnf_pkg_1, 'IN_USE')
-        # check usageState of VNF Package 3
-        self._check_package_usage(self.vnf_pkg_3)
+        # check usageState of max pattern VNF Package
+        self.check_package_usage(self.max_pkg, 'IN_USE')
+        # check usageState of update VNF Package
+        self.check_package_usage(self.upd_max_pkg)
         # check vnfd id
-        self.assertEqual(self.vnfd_id_1, inst_23['vnfdId'])
+        self.assertEqual(self.max_vnfd_id, inst_23['vnfdId'])
 
         vnfc_info = inst_23['instantiatedVnfInfo']['vnfcInfo']
         vnfc_ids = [vnfc['id'] for vnfc in vnfc_info]
-        update_req = paramgen.update_vnf_max(self.vnfd_id_3, vnfc_ids)
+        update_req = paramgen.update_vnf_max(self.upd_max_vnfd_id, vnfc_ids)
         resp, body = self.update_vnf_instance(inst_id, update_req)
         self.assertEqual(202, resp.status_code)
         self.check_resp_headers_in_operation_task(resp)
@@ -786,11 +761,11 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
         vdu_result = {'VDU1': {0}, 'VDU2': {0}}
         inst_25 = self._check_for_show_operation(
             'MODIFY_INFO', expected_inst_attrs, inst_id, vdu_result)
-        # check usageState of VNF Package 1
-        self._check_package_usage(self.vnf_pkg_1)
-        # check usageState of VNF Package 3
-        self._check_package_usage(self.vnf_pkg_3, 'IN_USE')
-        self.assertEqual(self.vnfd_id_3, inst_25['vnfdId'])
+        # check usageState of max pattern VNF Package
+        self.check_package_usage(self.max_pkg)
+        # check usageState of update max pattern VNF Package
+        self.check_package_usage(self.upd_max_pkg, 'IN_USE')
+        self.assertEqual(self.upd_max_vnfd_id, inst_25['vnfdId'])
         self.assertEqual('new name', inst_25['vnfInstanceName'])
         self.assertEqual('new description', inst_25['vnfInstanceDescription'])
         dummy_key_value = {'dummy-key': 'dummy-value'}
@@ -799,28 +774,28 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
         self.assertEqual(dummy_key_value, inst_25['vnfConfigurableProperties'])
 
         # 26. Update VNF(again)
-        # check usageState of VNF Package 1
-        self._check_package_usage(self.vnf_pkg_1)
-        # check usageState of VNF Package 3
-        self._check_package_usage(self.vnf_pkg_3, 'IN_USE')
+        # check usageState of max pattern VNF Package
+        self.check_package_usage(self.max_pkg)
+        # check usageState of update max pattern VNF Package
+        self.check_package_usage(self.upd_max_pkg, 'IN_USE')
         # check vnfd id
-        self.assertEqual(self.vnfd_id_3, inst_25['vnfdId'])
+        self.assertEqual(self.upd_max_vnfd_id, inst_25['vnfdId'])
 
-        update_req = paramgen.update_vnf_min_with_parameter(self.vnfd_id_1)
+        update_req = paramgen.update_vnf_min_with_parameter(self.max_vnfd_id)
         resp, body = self.update_vnf_instance(inst_id, update_req)
         self.assertEqual(202, resp.status_code)
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
 
         # 27. Change current VNF Package
-        # check usageState of VNF Package 1
-        self._check_package_usage(self.vnf_pkg_1, 'IN_USE')
-        # check usageState of VNF Package 3
-        self._check_package_usage(self.vnf_pkg_3)
-        # check usageState of VNF Package 4
-        self._check_package_usage(self.vnf_pkg_4)
+        # check usageState of max pattern VNF Package
+        self.check_package_usage(self.max_pkg, 'IN_USE')
+        # check usageState of update max pattern VNF Package
+        self.check_package_usage(self.upd_max_pkg)
+        # check usageState of new max pattern VNF Package
+        self.check_package_usage(self.new_max_pkg)
         change_vnf_pkg_req = paramgen.change_vnf_pkg_individual_vnfc_max(
-            self.vnfd_id_4, self.net_ids, self.subnet_ids)
+            self.new_max_vnfd_id, self.net_ids, self.subnet_ids)
         resp, body = self.change_vnfpkg(inst_id, change_vnf_pkg_req)
         self.assertEqual(202, resp.status_code)
         self.check_resp_headers_in_operation_task(resp)
@@ -828,15 +803,15 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
         self.wait_lcmocc_complete(lcmocc_id)
 
         # 28. Show VNF instance(check for change-vnfpkg)
-        # check usageState of VNF Package 1
-        self._check_package_usage(self.vnf_pkg_1)
-        # check usageState of VNF Package 4
-        self._check_package_usage(self.vnf_pkg_4, 'IN_USE')
+        # check usageState of max pattern VNF Package
+        self.check_package_usage(self.max_pkg)
+        # check usageState of new max pattern VNF Package
+        self.check_package_usage(self.new_max_pkg, 'IN_USE')
         vdu_result = {'VDU1': {0}, 'VDU2': {0}}
         inst_28 = self._check_for_show_operation(
             'CHANGE_VNFPKG', expected_inst_attrs, inst_id, vdu_result)
         # check vnfdId
-        self.assertEqual(self.vnfd_id_4, inst_28['vnfdId'])
+        self.assertEqual(self.new_max_vnfd_id, inst_28['vnfdId'])
         # check all ids of VDU are changed
         self.assertNotEqual(self._get_vnfc_id(inst_25, 'VDU1', 0),
                             self._get_vnfc_id(inst_28, 'VDU1', 0))
@@ -889,13 +864,13 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
                          body['instantiationState'])
 
         # 30. Delete VNF
-        self._delete_instance(inst_id)
+        self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
 
     def test_basic_lcms_min(self):
         """Test LCM operations with omitting except for required attributes
 
-        The change_ext_conn can't be tested here because VNF package 2 don't
-        have external connectivity. So moved it to the
+        The change_ext_conn can't be tested here because min pattern VNF
+        package 2 don't have external connectivity. So moved it to the
         test_various_lcm_operations_before_and_after().
 
         * About attributes:
@@ -928,7 +903,7 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
           - 19. Delete VNF
         """
         # 0. Create VNF
-        create_req = paramgen.create_vnf_min(self.vnfd_id_2)
+        create_req = paramgen.create_vnf_min(self.min_vnfd_id)
         _, body = self.create_vnf_instance(create_req)
         inst_id = body['id']
 
@@ -1014,22 +989,23 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
             vdu_result, image_result)
 
         # 7. Update VNF
-        update_req = paramgen.update_vnf_min_with_parameter(self.vnfd_id_5)
+        update_req = paramgen.update_vnf_min_with_parameter(
+            self.upd_new_min_vnfd_id)
         resp, body = self.update_vnf_instance(inst_id, update_req)
         self.assertEqual(202, resp.status_code)
         self.check_resp_headers_in_operation_task(resp)
 
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
-        # check usageState of VNF Package 2
-        self._check_package_usage(self.vnf_pkg_2)
-        # check usageState of VNF Package 5
-        self._check_package_usage(self.vnf_pkg_5, 'IN_USE')
+        # check usageState of min pattern VNF Package
+        self.check_package_usage(self.min_pkg)
+        # check usageState of update or new min pattern VNF Package
+        self.check_package_usage(self.upd_new_min_pkg, 'IN_USE')
 
         # 8. Show VNF instance(check for update)
         inst_8 = self._check_for_show_operation(
             'MODIFY_INFO', expected_inst_attrs, inst_id)
-        self.assertEqual(self.vnfd_id_5, inst_8['vnfdId'])
+        self.assertEqual(self.upd_new_min_vnfd_id, inst_8['vnfdId'])
 
         # 9. Heal VNF(vnfc)
         vnfc_info = inst_8['instantiatedVnfInfo']['vnfcInfo']
@@ -1092,17 +1068,18 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
                          body['instantiationState'])
 
         # 14. Update VNF again
-        update_req = paramgen.update_vnf_min_with_parameter(self.vnfd_id_2)
-        resp, body = self.update_vnf_instance(inst_id, update_req)
+        update_req = paramgen.update_vnf_min_with_parameter(self.min_vnfd_id)
+        resp, body = self.exec_lcm_operation(self.update_vnf_instance,
+                                      inst_id, update_req)
         self.assertEqual(202, resp.status_code)
         self.check_resp_headers_in_operation_task(resp)
 
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
-        # check usageState of VNF Package 2
-        self._check_package_usage(self.vnf_pkg_2, 'IN_USE')
-        # check usageState of VNF Package 5
-        self._check_package_usage(self.vnf_pkg_5)
+        # check usageState of min pattern VNF Package
+        self.check_package_usage(self.min_pkg, 'IN_USE')
+        # check usageState of update or new min pattern VNF Package
+        self.check_package_usage(self.upd_new_min_pkg)
 
         # 15. Instantiate VNF again
         resp, body = self.instantiate_vnf_instance(
@@ -1117,7 +1094,7 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
 
         # 16. Change current VNF Package
         change_vnf_pkg_req = paramgen.change_vnf_pkg_individual_vnfc_min(
-            self.vnfd_id_5)
+            self.upd_new_min_vnfd_id)
         resp, body = self.change_vnfpkg(inst_id, change_vnf_pkg_req)
         self.assertEqual(202, resp.status_code)
         self.check_resp_headers_in_operation_task(resp)
@@ -1125,14 +1102,14 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
         self.wait_lcmocc_complete(lcmocc_id)
 
         # 17. Show VNF instance(check for change-vnfpkg)
-        # check usageState of VNF Package 2
-        self._check_package_usage(self.vnf_pkg_2)
-        # check usageState of VNF Package 5
-        self._check_package_usage(self.vnf_pkg_5, 'IN_USE')
+        # check usageState of min pattern VNF Package
+        self.check_package_usage(self.min_pkg)
+        # check usageState of update or new min pattern VNF Package
+        self.check_package_usage(self.upd_new_min_pkg, 'IN_USE')
         inst_17 = self._check_for_show_operation(
             'CHANGE_VNFPKG', expected_inst_attrs, inst_id)
         # check vnfdId
-        self.assertEqual(self.vnfd_id_5, inst_17['vnfdId'])
+        self.assertEqual(self.upd_new_min_vnfd_id, inst_17['vnfdId'])
         # check ids of VDU are not changed
         self.assertEqual(self._get_vnfc_id(inst_15, 'VDU1', 0),
                          self._get_vnfc_id(inst_17, 'VDU1', 0))
@@ -1163,7 +1140,7 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
                          body['instantiationState'])
 
         # 19. Delete VNF
-        self._delete_instance(inst_id)
+        self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
 
     def test_retry_rollback_scale_out(self):
         """Test retry and rollback scale out operations
@@ -1192,7 +1169,7 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
         """
         # 0. Create VNF
         create_req = paramgen.create_vnf_max(
-            self.vnfd_id_1,
+            self.max_vnfd_id,
             description="test for retry and rollback scale out")
         _, body = self.create_vnf_instance(create_req)
         inst_id = body['id']
@@ -1231,7 +1208,7 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
             'INSTANTIATE', expected_inst_attrs, inst_id)
 
         # 3. Scale out operation(will fail)
-        self._put_fail_file('scale_end')
+        self.put_fail_file('scale_end')
         scaleout_req = paramgen.scaleout_vnf_max()
         self._add_additional_params(scaleout_req)
         resp, body = self.scale_vnf_instance(inst_id, scaleout_req)
@@ -1251,7 +1228,7 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
         self.assertEqual(202, resp.status_code)
         self.check_resp_headers_in_delete(resp)
         self.wait_lcmocc_failed_temp(lcmocc_id)
-        self._rm_fail_file('scale_end')
+        self.rm_fail_file('scale_end')
 
         # 6. Rollback scale out operation
         resp, body = self.rollback_lcmocc(lcmocc_id)
@@ -1308,7 +1285,7 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
                          body.get('instantiationState'))
 
         # 10. Delete VNF
-        self._delete_instance(inst_id)
+        self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
 
     def test_rollback_instantiate(self):
         """Test rollback instantiate operation
@@ -1330,12 +1307,12 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
           - 6. Delete VNF
         """
         # 0. Create VNF
-        create_req = paramgen.create_vnf_min(self.vnfd_id_2)
+        create_req = paramgen.create_vnf_min(self.min_vnfd_id)
         _, body = self.create_vnf_instance(create_req)
         inst_id = body['id']
 
         # 1. Instantiate VNF(will fail)
-        self._put_fail_file('instantiate_end')
+        self.put_fail_file('instantiate_end')
         instantiate_req = paramgen.instantiate_vnf_min()
         self._add_additional_params(instantiate_req)
         resp, body = self.instantiate_vnf_instance(
@@ -1345,7 +1322,7 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
 
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_failed_temp(lcmocc_id)
-        self._rm_fail_file('instantiate_end')
+        self.rm_fail_file('instantiate_end')
 
         # 2. Show VNF instance
         expected_inst_attrs = [
@@ -1414,7 +1391,7 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
             self.check_resp_body(lcmocc, self.expected_list_attrs)
 
         # 6. Delete VNF
-        self._delete_instance(inst_id)
+        self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
 
     def test_rollback_chgextconn_and_update(self):
         """Test rollback change_ext_conn and update operation
@@ -1444,7 +1421,7 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
           - 12. Delete VNF
         """
         # 0. Create VNF
-        create_req = paramgen.create_vnf_max(self.vnfd_id_1)
+        create_req = paramgen.create_vnf_max(self.max_vnfd_id)
         _, body = self.create_vnf_instance(create_req)
         inst_id = body['id']
 
@@ -1483,7 +1460,7 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
             'INSTANTIATE', expected_inst_attrs, inst_id)
 
         # 3. Change external connectivity(will fail)
-        self._put_fail_file('change_external_connectivity_end')
+        self.put_fail_file('change_external_connectivity_end')
         change_ext_conn_req = paramgen.change_ext_conn_min(
             self.net_ids, self.subnet_ids)
         self._add_additional_params(change_ext_conn_req)
@@ -1492,7 +1469,7 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
         self.check_resp_headers_in_operation_task(resp)
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_failed_temp(lcmocc_id)
-        self._rm_fail_file('change_external_connectivity_end')
+        self.rm_fail_file('change_external_connectivity_end')
 
         # 4. Rollback change_ext_conn operation
         resp, body = self.rollback_lcmocc(lcmocc_id)
@@ -1539,7 +1516,7 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
             self.check_resp_body(lcmocc, self.expected_list_attrs)
 
         # 7. Update VNF(will fail)
-        self._put_fail_file('modify_information_start')
+        self.put_fail_file('modify_information_start')
         update_req = paramgen.update_vnf_min()
         resp, body = self.update_vnf_instance(inst_id, update_req)
         self.assertEqual(202, resp.status_code)
@@ -1547,7 +1524,7 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
 
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_failed_temp(lcmocc_id)
-        self._rm_fail_file('modify_information_start')
+        self.rm_fail_file('modify_information_start')
 
         # 8. Rollback update operation
         resp, body = self.rollback_lcmocc(lcmocc_id)
@@ -1604,7 +1581,7 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
                          body['instantiationState'])
 
         # 12. Delete VNF
-        self._delete_instance(inst_id)
+        self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
 
     def test_rollback_change_vnfpkg(self):
         """Test rollback change_vnfpkg operation
@@ -1636,7 +1613,7 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
         """
         # 0. Create VNF
         create_req = paramgen.create_vnf_max(
-            self.vnfd_id_1,
+            self.max_vnfd_id,
             description="test for rollback change vnf package")
         _, body = self.create_vnf_instance(create_req)
         inst_id = body['id']
@@ -1675,15 +1652,15 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
             'INSTANTIATE', expected_inst_attrs, inst_id)
 
         # 3. Change Current VNF Package(will fail)
-        self._put_fail_file('change_vnfpkg')
+        self.put_fail_file('change_vnfpkg')
         change_vnf_pkg_req = paramgen.change_vnf_pkg_individual_vnfc_max(
-            self.vnfd_id_4, self.net_ids, self.subnet_ids)
+            self.new_max_vnfd_id, self.net_ids, self.subnet_ids)
         resp, body = self.change_vnfpkg(inst_id, change_vnf_pkg_req)
         self.assertEqual(202, resp.status_code)
         self.check_resp_headers_in_operation_task(resp)
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_failed_temp(lcmocc_id)
-        self._rm_fail_file('change_vnfpkg')
+        self.rm_fail_file('change_vnfpkg')
 
         # 4. Rollback change_vnfpkg operation
         resp, body = self.rollback_lcmocc(lcmocc_id)
@@ -1720,7 +1697,7 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
         # 6. Show VNF instance
         _, inst_6 = self.show_vnf_instance(inst_id)
         # check vnfdId
-        self.assertEqual(self.vnfd_id_1, inst_6['vnfdId'])
+        self.assertEqual(self.max_vnfd_id, inst_6['vnfdId'])
         # check images of VDU are not changed
         self.assertEqual(self._get_vnfc_image(inst_2, 'VDU1', 0),
                          self._get_vnfc_image(inst_6, 'VDU1', 0))
@@ -1752,7 +1729,7 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
         #   1. change VM created by image to VM created by new image
         #   2. change VM created by volume to VM created by new volume
         change_vnf_pkg_req = paramgen.change_vnf_pkg_individual_vnfc_min(
-            self.vnfd_id_5, vdu2_old_vnfc='VDU2_CP2')
+            self.upd_new_min_vnfd_id, vdu2_old_vnfc='VDU2_CP2')
         resp, body = self.change_vnfpkg(inst_id, change_vnf_pkg_req)
         self.assertEqual(202, resp.status_code)
         self.check_resp_headers_in_operation_task(resp)
@@ -1806,7 +1783,7 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
         # 11. Show VNF instance
         _, inst_11 = self.show_vnf_instance(inst_id)
         # check vnfdId
-        self.assertEqual(self.vnfd_id_1, inst_11['vnfdId'])
+        self.assertEqual(self.max_vnfd_id, inst_11['vnfdId'])
         # check images of VDU are not changed
         self.assertEqual(self._get_vnfc_image(inst_2, 'VDU1', 0),
                          self._get_vnfc_image(inst_11, 'VDU1', 0))
@@ -1829,7 +1806,7 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
                          body['instantiationState'])
 
         # 13. Delete VNF
-        self._delete_instance(inst_id)
+        self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
 
     def test_various_lcm_operations_before_and_after(self):
         """Test various vnflcm operations before and after
@@ -1880,7 +1857,7 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
         """
         # 0. Create VNF
         create_req = paramgen.create_vnf_max(
-            self.vnfd_id_1, description="test for various lcm operations")
+            self.max_vnfd_id, description="test for various lcm operations")
         _, body = self.create_vnf_instance(create_req)
         inst_id = body['id']
 
@@ -2209,12 +2186,12 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
 
         # 25. Update VNF
         # check attribute value before update VNF
-        # check usageState of VNF Package 1
-        self._check_package_usage(self.vnf_pkg_1, 'IN_USE')
-        # check usageState of VNF Package 3
-        self._check_package_usage(self.vnf_pkg_3)
+        # check usageState of max pattern VNF Package
+        self.check_package_usage(self.max_pkg, 'IN_USE')
+        # check usageState of update max pattern VNF Package
+        self.check_package_usage(self.upd_max_pkg)
         # check vnfd id
-        self.assertEqual(self.vnfd_id_1, inst_24['vnfdId'])
+        self.assertEqual(self.max_vnfd_id, inst_24['vnfdId'])
         # check vnfc info
         vnfc_info = inst_24['instantiatedVnfInfo']['vnfcInfo']
         self.assertGreater(len(vnfc_info), 1)
@@ -2225,7 +2202,7 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
             self.assertIsNotNone(vnfc.get('vnfcState'))
             self.assertIsNone(vnfc.get('vnfcConfigurableProperties'))
 
-        update_req = paramgen.update_vnf_max(self.vnfd_id_3, vnfc_ids)
+        update_req = paramgen.update_vnf_max(self.upd_max_vnfd_id, vnfc_ids)
         resp, body = self.update_vnf_instance(inst_id, update_req)
         self.assertEqual(202, resp.status_code)
         self.check_resp_headers_in_operation_task(resp)
@@ -2237,11 +2214,11 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
         vdu_result = {'VDU1': {0}, 'VDU2': {0}}
         inst_26 = self._check_for_show_operation(
             'MODIFY_INFO', expected_inst_attrs, inst_id, vdu_result)
-        # check usageState of VNF Package 1
-        self._check_package_usage(self.vnf_pkg_1)
-        # check usageState of VNF Package 3
-        self._check_package_usage(self.vnf_pkg_3, 'IN_USE')
-        self.assertEqual(self.vnfd_id_3, inst_26['vnfdId'])
+        # check usageState of max pattern VNF Package
+        self.check_package_usage(self.max_pkg)
+        # check usageState of update max pattern VNF Package
+        self.check_package_usage(self.upd_max_pkg, 'IN_USE')
+        self.assertEqual(self.upd_max_vnfd_id, inst_26['vnfdId'])
         self.assertEqual('new name', inst_26['vnfInstanceName'])
         self.assertEqual('new description', inst_26['vnfInstanceDescription'])
         dummy_key_value = {'dummy-key': 'dummy-value'}
@@ -2415,4 +2392,4 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
                          body['instantiationState'])
 
         # 32. Delete VNF
-        self._delete_instance(inst_id)
+        self.exec_lcm_operation(self.delete_vnf_instance, inst_id)

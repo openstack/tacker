@@ -18,18 +18,19 @@ import os
 import time
 
 from tacker.objects import fields
-from tacker.tests.functional.sol_v2_common import base_v2
 from tacker.tests.functional.sol_v2_common import paramgen
 from tacker.tests.functional.sol_v2_common import test_vnflcm_basic_common
 
-test_count = 0
+TEST_COUNT = 0
 RETRY_LIMIT = 10
 RETRY_TIMEOUT = 3
+WAIT_AUTO_HEAL_TIME = 60
+SERVER_NOTIFICATION_INTERVAL = 1
 
 
-def make_alarm_id(header, body):
+def _make_alarm_id(header, body):
     from tacker.tests.functional.sol_v2 import test_server_notification
-    id = 'alarm_id_' + str(test_server_notification.test_count)
+    id = f"alarm_id_{test_server_notification.TEST_COUNT}"
     return {'alarm_id': id}
 
 
@@ -49,21 +50,22 @@ class ServerNotificationTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         # for basic lcms tests max pattern
         basic_lcms_max_path = os.path.join(cur_dir, "../sol_v2_common/"
                                                     "samples/basic_lcms_max")
-        cls.vnf_pkg_1, cls.vnfd_id_1 = cls.create_vnf_package(
+        cls.max_pkg, cls.max_vnfd_id = cls.create_vnf_package(
             basic_lcms_max_path, image_path=image_path)
 
         # for basic lcms tests min pattern
         basic_lcms_min_path = os.path.join(cur_dir, "../sol_v2_common/"
                                                     "samples/basic_lcms_min")
         # no image contained
-        cls.vnf_pkg_2, cls.vnfd_id_2 = cls.create_vnf_package(
+        cls.min_pkg, cls.min_vnfd_id = cls.create_vnf_package(
             basic_lcms_min_path)
 
         # for update vnf test
         update_vnf_path = os.path.join(cur_dir, "../sol_v2_common/"
                                                 "samples/update_vnf")
         # no image contained
-        cls.vnf_pkg_3, cls.vnfd_id_3 = cls.create_vnf_package(update_vnf_path)
+        cls.upd_pkg, cls.upd_vnfd_id = cls.create_vnf_package(
+            update_vnf_path)
 
         # for server_notification test
         server_notification_path = os.path.join(
@@ -75,18 +77,13 @@ class ServerNotificationTest(test_vnflcm_basic_common.CommonVnfLcmTest):
     @classmethod
     def tearDownClass(cls):
         super(ServerNotificationTest, cls).tearDownClass()
-        cls.delete_vnf_package(cls.vnf_pkg_1)
-        cls.delete_vnf_package(cls.vnf_pkg_2)
-        cls.delete_vnf_package(cls.vnf_pkg_3)
+        cls.delete_vnf_package(cls.max_pkg)
+        cls.delete_vnf_package(cls.min_pkg)
+        cls.delete_vnf_package(cls.upd_pkg)
         cls.delete_vnf_package(cls.svn_pkg)
 
     def setUp(self):
         super().setUp()
-
-    def _check_package_usage(self, is_nfvo, package_id, state='NOT_IN_USE'):
-        if not is_nfvo:
-            usage_state = self.get_vnf_package(package_id)['usageState']
-            self.assertEqual(state, usage_state)
 
     def fault_notification_queueing_test(self):
         """Test Fault Notification with queueing
@@ -152,21 +149,21 @@ class ServerNotificationTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         create_req = paramgen.create_vnf_min(self.svn_id)
 
         # Create subscription
-        callback_url = os.path.join(base_v2.MOCK_NOTIFY_CALLBACK_URL,
+        callback_url = os.path.join(self.get_notify_callback_url(),
                                     self._testMethodName)
         callback_uri = ('http://localhost:'
-                        f'{base_v2.FAKE_SERVER_MANAGER.SERVER_PORT}'
+                        f'{self.get_server_port()}'
                         f'{callback_url}')
         server_notification_uri = ('http://localhost:'
-                        f'{base_v2.FAKE_SERVER_MANAGER.SERVER_PORT}'
+                        f'{self.get_server_port()}'
                         '/server_notification')
 
-        base_v2.FAKE_SERVER_MANAGER.set_callback(
+        self.set_server_callback(
             'POST',
             '/server_notification',
             status_code=200,
             response_headers={"Content-Type": "application/json"},
-            callback=make_alarm_id
+            callback=_make_alarm_id
         )
 
         sub_req = paramgen.sub_create_min(callback_uri)
@@ -197,7 +194,7 @@ class ServerNotificationTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         inst_id = body['id']
 
         # check usageState of VNF Package
-        self._check_package_usage(is_nfvo, self.svn_pkg, 'IN_USE')
+        self.check_package_usage(self.svn_pkg, 'IN_USE', is_nfvo)
 
         # check instantiationState of VNF
         resp, body = self.show_vnf_instance(inst_id)
@@ -262,11 +259,11 @@ class ServerNotificationTest(test_vnflcm_basic_common.CommonVnfLcmTest):
             resp, body = self.server_notification(
                 inst_id, 'server_id', fault_notification_param)
             self.assertTrue(resp.status_code == 204 or resp.status_code == 404)
-            time.sleep(1)
+            time.sleep(SERVER_NOTIFICATION_INTERVAL)
 
         if is_autoheal_enabled:
             # waiting for auto healing process complete after packing timer.
-            time.sleep(60)
+            time.sleep(WAIT_AUTO_HEAL_TIME)
 
             # 4. LCM-Heal
             nested_stacks = self.heat_client.get_resources(stack_name)
@@ -326,8 +323,8 @@ class ServerNotificationTest(test_vnflcm_basic_common.CommonVnfLcmTest):
             self.assertEqual(fields.VnfOperationalStateType.STARTED,
                             body['instantiatedVnfInfo']['vnfState'])
 
-            # check usageState of VNF Package 2
-            self._check_package_usage(is_nfvo, self.svn_pkg, 'IN_USE')
+            # check usageState of server notification VNF Package
+            self.check_package_usage(self.svn_pkg, 'IN_USE', is_nfvo)
 
             self.assertEqual(self.svn_id, body['vnfdId'])
 
@@ -442,10 +439,6 @@ class ServerNotificationTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
 
-        # wait a bit because there is a bit time lag between lcmocc DB
-        # update and terminate completion.
-        time.sleep(20)
-
         # check deletion of Heat-stack
         stack_status, _ = self.heat_client.get_status(stack_name)
         self.assertIsNone(stack_status)
@@ -457,7 +450,7 @@ class ServerNotificationTest(test_vnflcm_basic_common.CommonVnfLcmTest):
                          body['instantiationState'])
 
         # 8. LCM-Delete
-        resp, body = self.delete_vnf_instance(inst_id)
+        resp, body = self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
         self.assertEqual(204, resp.status_code)
         self.check_resp_headers_in_delete(resp)
 

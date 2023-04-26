@@ -20,6 +20,8 @@ from tacker.objects import fields
 from tacker.tests.functional.sol_kubernetes_v2 import base_v2
 from tacker.tests.functional.sol_kubernetes_v2 import paramgen
 
+WAIT_NOTIFICATION_TIME = 5
+
 
 @ddt.ddt
 class VnfPmThresholdTest(base_v2.BaseVnfLcmKubernetesV2Test):
@@ -32,19 +34,18 @@ class VnfPmThresholdTest(base_v2.BaseVnfLcmKubernetesV2Test):
 
         test_instantiate_cnf_resources_path = os.path.join(
             cur_dir, "samples/test_instantiate_cnf_resources")
-        cls.vnf_pkg_1, cls.vnfd_id_1 = cls.create_vnf_package(
+        cls.cnf_pkg, cls.cnf_vnfd_id = cls.create_vnf_package(
             test_instantiate_cnf_resources_path)
 
     @classmethod
     def tearDownClass(cls):
         super(VnfPmThresholdTest, cls).tearDownClass()
-        cls.delete_vnf_package(cls.vnf_pkg_1)
+        cls.delete_vnf_package(cls.cnf_pkg)
 
     def setUp(self):
         super(VnfPmThresholdTest, self).setUp()
-        base_v2.FAKE_SERVER_MANAGER.set_callback(
-            'PUT', "/-/reload",
-            status_code=202,
+        self.set_server_callback(
+            'PUT', "/-/reload", status_code=202,
             response_headers={"Content-Type": "text/plain"})
 
     def test_pm_threshold_interface_min(self):
@@ -73,7 +74,7 @@ class VnfPmThresholdTest(base_v2.BaseVnfLcmKubernetesV2Test):
         # NOTE: extensions and vnfConfigurableProperties are omitted
         # because they are commented out in etsi_nfv_sol001.
         create_req = paramgen.pm_instantiate_cnf_resources_create(
-            self.vnfd_id_1)
+            self.cnf_vnfd_id)
         resp, body = self.create_vnf_instance(create_req)
         self.assertEqual(201, resp.status_code)
         inst_id = body['id']
@@ -98,10 +99,10 @@ class VnfPmThresholdTest(base_v2.BaseVnfLcmKubernetesV2Test):
             'callbackUri',
             '_links'
         ]
-        callback_url = os.path.join(base_v2.MOCK_NOTIFY_CALLBACK_URL,
+        callback_url = os.path.join(self.get_notify_callback_url(),
                                     self._testMethodName)
         callback_uri = ('http://localhost:'
-                        f'{base_v2.FAKE_SERVER_MANAGER.SERVER_PORT}'
+                        f'{self.get_server_port()}'
                         f'{callback_url}')
         sub_req = paramgen.pm_threshold_min(
             callback_uri, inst_id, self.fake_prometheus_ip
@@ -116,19 +117,17 @@ class VnfPmThresholdTest(base_v2.BaseVnfLcmKubernetesV2Test):
 
         # 4. PMThreshold-Update
         callback_url = os.path.join(
-            base_v2.MOCK_NOTIFY_CALLBACK_URL,
+            self.get_notify_callback_url(),
             self._testMethodName
         )
         callback_url = f'{callback_url}_1'
         callback_uri = ('http://localhost:'
-                        f'{base_v2.FAKE_SERVER_MANAGER.SERVER_PORT}'
+                        f'{self.get_server_port()}'
                         f'{callback_url}')
         # Because the update of the threshold is executed, the 'callback_url'
         # is updated, so the url of the fake server needs to be modified.
-        base_v2.FAKE_SERVER_MANAGER.set_callback(
-            'GET', callback_url, status_code=204)
-        base_v2.FAKE_SERVER_MANAGER.set_callback(
-            'POST', callback_url, status_code=204)
+        self.set_server_callback('GET', callback_url, status_code=204)
+        self.set_server_callback('POST', callback_url, status_code=204)
         update_req = paramgen.update_pm_threshold(callback_uri)
         resp, body = self.update_pm_threshold(pm_threshold_id, update_req)
         self.assertEqual(200, resp.status_code)
@@ -141,9 +140,7 @@ class VnfPmThresholdTest(base_v2.BaseVnfLcmKubernetesV2Test):
         sub_req = paramgen.pm_threshold(pm_threshold_id, inst_id)
         resp, body = self.pm_threshold(sub_req)
         self.assertEqual(204, resp.status_code)
-        # The creation of "pm_threshold" will be asynchronous
-        # and wait for the creation to end
-        time.sleep(5)
+        time.sleep(WAIT_NOTIFICATION_TIME)
         self._check_notification(
             callback_url, 'ThresholdCrossedNotification')
 
@@ -173,10 +170,6 @@ class VnfPmThresholdTest(base_v2.BaseVnfLcmKubernetesV2Test):
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
 
-        # wait a bit because there is a bit time lag between lcmocc DB
-        # update and terminate completion.
-        time.sleep(10)
-
         # check instantiationState of VNF
         resp, body = self.show_vnf_instance(inst_id)
         self.assertEqual(200, resp.status_code)
@@ -185,7 +178,7 @@ class VnfPmThresholdTest(base_v2.BaseVnfLcmKubernetesV2Test):
             body['instantiationState'])
 
         # 10. LCM-Delete: Delete a VNF instance
-        resp, body = self.delete_vnf_instance(inst_id)
+        resp, body = self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
         self.assertEqual(204, resp.status_code)
 
         # check deletion of VNF instance
@@ -219,7 +212,8 @@ class VnfPmThresholdTest(base_v2.BaseVnfLcmKubernetesV2Test):
         # 1. LCM-Create: Create a new VNF instance resource
         # NOTE: extensions and vnfConfigurableProperties are omitted
         # because they are commented out in etsi_nfv_sol001.
-        create_req = paramgen.instantiate_cnf_resources_create(self.vnfd_id_1)
+        create_req = paramgen.instantiate_cnf_resources_create(
+            self.cnf_vnfd_id)
         resp, body = self.create_vnf_instance(create_req)
         self.assertEqual(201, resp.status_code)
         inst_id = body['id']
@@ -244,10 +238,10 @@ class VnfPmThresholdTest(base_v2.BaseVnfLcmKubernetesV2Test):
             'callbackUri',
             '_links'
         ]
-        callback_url = os.path.join(base_v2.MOCK_NOTIFY_CALLBACK_URL,
+        callback_url = os.path.join(self.get_notify_callback_url(),
                                     self._testMethodName)
         callback_uri = ('http://localhost:'
-                        f'{base_v2.FAKE_SERVER_MANAGER.SERVER_PORT}'
+                        f'{self.get_server_port()}'
                         f'{callback_url}')
         sub_req = paramgen.pm_threshold_max(
             callback_uri, inst_id, self.fake_prometheus_ip)
@@ -260,18 +254,16 @@ class VnfPmThresholdTest(base_v2.BaseVnfLcmKubernetesV2Test):
         pm_threshold_id = body.get('id')
 
         # 4. PMThreshold-Update
-        callback_url = os.path.join(base_v2.MOCK_NOTIFY_CALLBACK_URL,
+        callback_url = os.path.join(self.get_notify_callback_url(),
                                     self._testMethodName)
         callback_url = f'{callback_url}_1'
         callback_uri = ('http://localhost:'
-                        f'{base_v2.FAKE_SERVER_MANAGER.SERVER_PORT}'
+                        f'{self.get_server_port()}'
                         f'{callback_url}')
         # Because the update of the threshold is executed, the 'callback_url'
         # is updated, so the url of the fake server needs to be modified.
-        base_v2.FAKE_SERVER_MANAGER.set_callback(
-            'GET', callback_url, status_code=204)
-        base_v2.FAKE_SERVER_MANAGER.set_callback(
-            'POST', callback_url, status_code=204)
+        self.set_server_callback('GET', callback_url, status_code=204)
+        self.set_server_callback('POST', callback_url, status_code=204)
         update_req = paramgen.update_pm_threshold(callback_uri)
         resp, body = self.update_pm_threshold(pm_threshold_id, update_req)
         self.assertEqual(200, resp.status_code)
@@ -284,9 +276,7 @@ class VnfPmThresholdTest(base_v2.BaseVnfLcmKubernetesV2Test):
         sub_req = paramgen.pm_threshold(pm_threshold_id, inst_id)
         resp, body = self.pm_threshold(sub_req)
         self.assertEqual(204, resp.status_code)
-        # The creation of "pm_threshold" will be asynchronous
-        # and wait for the creation to end
-        time.sleep(5)
+        time.sleep(WAIT_NOTIFICATION_TIME)
         self._check_notification(
             callback_url, 'ThresholdCrossedNotification')
 
@@ -317,10 +307,6 @@ class VnfPmThresholdTest(base_v2.BaseVnfLcmKubernetesV2Test):
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
 
-        # wait a bit because there is a bit time lag between lcmocc DB
-        # update and terminate completion.
-        time.sleep(10)
-
         # check instantiationState of VNF
         resp, body = self.show_vnf_instance(inst_id)
         self.assertEqual(200, resp.status_code)
@@ -328,7 +314,7 @@ class VnfPmThresholdTest(base_v2.BaseVnfLcmKubernetesV2Test):
                          body['instantiationState'])
 
         # 10. LCM-Delete: Delete a VNF instance
-        resp, body = self.delete_vnf_instance(inst_id)
+        resp, body = self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
         self.assertEqual(204, resp.status_code)
 
         # check deletion of VNF instance
