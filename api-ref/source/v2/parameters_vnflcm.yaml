@@ -39,6 +39,41 @@ address_range:
   in: body
   required: false
   type: object
+affected_ext_link_ports:
+  description: |
+    Information about external VNF link ports that were
+    affected during the lifecycle operation.
+    This allows the NFVO to obtain the information contained
+    in the latest "result" notification if it has not received it
+    due to an error or a wrongly configured subscription filter.
+  in: body
+  required: false
+  type: array
+affected_ext_link_ports_change_type:
+  description: |
+    Signals the type of change.
+    Permitted values:
+
+    ADDED
+
+    REMOVED
+
+  in: body
+  required: true
+  type: string
+affected_ext_link_ports_ext_cp_instance_id:
+  description: |
+    Identifier of the related external CP instance.
+  in: body
+  required: true
+  type: string
+affected_ext_link_ports_id:
+  description: |
+    Identifier of the link port, identifying the applicable
+    "extLinkPorts" entry in the "ExtVirtualLinkInfo" data type.
+  in: body
+  required: true
+  type: string
 affected_virtual_links:
   description: |
     Information about VL instances that were affected during
@@ -111,6 +146,15 @@ affected_virtual_storages_id:
   in: body
   required: true
   type: string
+affected_virtual_storages_metadata:
+  description: |
+    Metadata about this resource.
+    The content of this attribute shall be a copy of
+    the content of the "metadata" attribute of the
+    VirtualStorageResourceInfo structure.
+  in: body
+  required: false
+  type: key value pairs
 affected_virtual_storages_virtual_storage_desc_id:
   description: |
     Identifier of the related VirtualStorage
@@ -164,6 +208,15 @@ affected_vnfcs_id:
   in: body
   required: true
   type: string
+affected_vnfcs_metadata:
+  description: |
+    Metadata about this resource.
+    The content of this attribute shall be a copy of
+    the content of the "metadata" attribute of the
+    VnfcResourceInfo structure.
+  in: body
+  required: true
+  type: key value pairs
 affected_vnfcs_vdu_id:
   description: |
     Identifier of the related VDU in the VNFD.
@@ -943,6 +996,15 @@ is_cancel_pending:
   in: body
   required: true
   type: boolean
+is_dynamic:
+  description: |
+    Indicates whether this set of addresses was assigned dynamically (true)
+    or based on address information provided as input from the API consumer
+    (false). Shall be present if "addresses" is present and shall be absent
+    otherwise.
+  in: body
+  required: false
+  type: boolean
 layer_protocol:
   description: |
     Identifier of layer(s) and protocol(s).
@@ -999,6 +1061,41 @@ min_address:
     Lowest IP address belonging to the range.
   in: body
   required: true
+  type: string
+monitoring_parameters:
+  description: |
+    Active monitoring parameters.
+  in: body
+  required: false
+  type: array
+monitoring_parameters_id:
+  description: |
+    Identifier of the monitoring parameter defined in the VNFD.
+  in: body
+  required: true
+  type: string
+monitoring_parameters_name:
+  description: |
+    Human readable name of the monitoring
+    parameter, as defined in the VNFD.
+  in: body
+  required: false
+  type: string
+monitoring_parameters_performance_metric:
+  description: |
+    Performance metric that is monitored.
+  in: body
+  required: true
+  type: string
+monitoring_parameters_vnfd_id:
+  description: |
+    Identifier of the VNFD.
+    Shall be present in case the value differs from
+    the vnfdId attribute of the VnfInstance (e.g.
+    during a "Change current VNF package"
+    operation or due to its final failure).
+  in: body
+  required: false
   type: string
 num_dynamic_addresses:
   description: |
@@ -1732,6 +1829,15 @@ vnfc_cp_info_vnf_ext_cp_id:
   in: body
   required: false
   type: string
+vnfc_cp_info_vnf_link_port_id:
+  description: |
+    Identifier of the "VnfLinkPortInfo" structure in the
+    "VnfVirtualLinkResourceInfo" structure. Shall be present
+    if the CP is associated to a link port on an internal VL of
+    the VNF instance and shall be absent otherwise.
+  in: body
+  required: false
+  type: string
 vnfc_info:
   description: |
     Information about the VNFC instances.
@@ -1801,6 +1907,19 @@ vnfc_resource_info_ids:
   in: body
   required: false
   type: array
+vnfc_resource_info_metadata:
+  description: |
+    This attribute provides values for the "metadata" attribute in "VnfcResourceInfo".
+  in: body
+  required: false
+  type: key value pairs
+vnfc_resource_info_storage_resource_ids:
+  description: |
+    References to the VirtualStorage resources. The value refers to a
+    VirtualStorageResourceInfo item in the VnfInstance.
+  in: body
+  required: false
+  type: array
 vnfc_resource_info_vdu_id:
   description: |
     Reference to the applicable VDU in the VNFD.
@@ -1817,6 +1936,15 @@ vnfc_resource_info_vnfc_cp_info:
   in: body
   required: false
   type: array
+vnfc_resource_info_zone_id:
+  description: |
+    The identifier of the resource zone, as managed by the
+    resource management layer (typically, the VIM), where
+    the referenced VirtualCompute resource is placed. Shall
+    be provided if this information is available from the VIM.
+  in: body
+  required: false
+  type: string
 vnfd_ids:
   description: |
     If present, match VNF instances that were created based on a VNFD
