@@ -73,12 +73,20 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         cls.new_nw_pkg, cls.new_nw_vnfd_id = cls.create_vnf_package(
             pkg_path_3, image_path=image_path, userdata_path=userdata_path)
 
+        # for attach non-boot volume to VDU test
+        pkg_path_4 = os.path.join(cur_dir,
+            "../sol_v2_common/samples/userdata_standard_with_non_boot_volume")
+        cls.non_boot_volume_pkg, cls.non_boot_volume_vnfd_id = (
+            cls.create_vnf_package(pkg_path_4, image_path=image_path,
+                                   userdata_path=userdata_path))
+
     @classmethod
     def tearDownClass(cls):
         super(IndividualVnfcMgmtTest, cls).tearDownClass()
         cls.delete_vnf_package(cls.standard_pkg)
         cls.delete_vnf_package(cls.new_pkg)
         cls.delete_vnf_package(cls.new_nw_pkg)
+        cls.delete_vnf_package(cls.non_boot_volume_pkg)
 
     def setUp(self):
         super().setUp()
@@ -149,6 +157,11 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         vnfc = self._get_vnfc_by_vdu_index(inst, vdu, index)
         # must exist
         return vnfc['metadata']['flavor']
+
+    def _get_vnfc_storage_ids(self, inst, vdu, index):
+        vnfc = self._get_vnfc_by_vdu_index(inst, vdu, index)
+        storage_res_ids = vnfc.get('storageResourceIds', [])
+        return sorted(storage_res_ids)
 
     def test_basic_operations(self):
         """Test basic operations using StandardUserData
@@ -853,6 +866,110 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
 
         # Terminate VNF instance
         terminate_req = paramgen.sample3_terminate()
+        resp, body = self.terminate_vnf_instance(inst_id, terminate_req)
+        self.assertEqual(202, resp.status_code)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # Delete VNF instance
+        self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
+
+    def test_instantiate_attach_non_boot_volume(self):
+        """Test Instantiate with non-boot volume attached to VDU
+
+        * Note:
+          This test focuses on the non-boot volume attached by
+          OS::Cinder::VolumeAttachment in HOT being registered to
+          storageResourceIds.
+
+        * About LCM operations:
+          This test includes the following operations.
+          -    Create VNF instance
+          - 1. Instantiate VNF instance
+          -    Show VNF instance / check
+          - 2. Heal operation("all"=True)
+          -    Show VNF instance / check
+          - 3. Heal operation("all" is not specified)
+          -    Show VNF instance / check
+          -    Terminate VNF instance
+          -    Delete VNF instance
+        """
+
+        net_ids = self.get_network_ids(['net0', 'net1', 'net_mgmt'])
+        subnet_ids = self.get_subnet_ids(['subnet0', 'subnet1'])
+
+        # Create VNF instance
+        create_req = paramgen.sample7_create(self.non_boot_volume_vnfd_id)
+        resp, body = self.create_vnf_instance(create_req)
+        self.assertEqual(201, resp.status_code)
+        inst_id = body['id']
+
+        # 1. Instantiate VNF instance
+        instantiate_req = paramgen.sample7_instantiate(
+            net_ids, subnet_ids, self.auth_url)
+        resp, body = self.instantiate_vnf_instance(inst_id, instantiate_req)
+        self.assertEqual(202, resp.status_code)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # Show VNF instance
+        resp, inst_1 = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+
+        # check number of VDUs and indexes
+        self.assertEqual({0}, self._get_vdu_indexes(inst_1, 'VDU1'))
+
+        # check storageResourceIds of attached non-boot volume
+        self.assertNotEqual([], self._get_vnfc_storage_ids(inst_1, 'VDU1', 0))
+
+        # 2. Heal operation("all"=True)
+        # VDU1-0 to heal
+        heal_req = paramgen.sample7_heal('a-001')
+        resp, body = self.heal_vnf_instance(inst_id, heal_req)
+        self.assertEqual(202, resp.status_code)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # Show VNF instance
+        resp, inst_2 = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+
+        # check id of VDU1-0 is changed
+        self.assertNotEqual(self._get_vnfc_id(inst_1, 'VDU1', 0),
+                            self._get_vnfc_id(inst_2, 'VDU1', 0))
+
+        # check storageResourceIds of VDU1-0 is changed
+        self.assertNotEqual([], self._get_vnfc_storage_ids(inst_2, 'VDU1', 0))
+        self.assertNotEqual(self._get_vnfc_storage_ids(inst_1, 'VDU1', 0),
+                            self._get_vnfc_storage_ids(inst_2, 'VDU1', 0))
+
+        # 3. Heal operation("all" is not specified)
+        # VDU1-0 to heal
+        heal_req['vnfcInstanceId'] = ['a-001']
+        del heal_req['additionalParams']['all']
+        resp, body = self.heal_vnf_instance(inst_id, heal_req)
+        self.assertEqual(202, resp.status_code)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # Show VNF instance
+        resp, inst_3 = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+
+        # check id of VDU1-0 is changed
+        self.assertNotEqual(self._get_vnfc_id(inst_2, 'VDU1', 0),
+                            self._get_vnfc_id(inst_3, 'VDU1', 0))
+
+        # check storageResourceIds of VDU1-0 is not changed
+        self.assertEqual(self._get_vnfc_storage_ids(inst_2, 'VDU1', 0),
+                         self._get_vnfc_storage_ids(inst_3, 'VDU1', 0))
+
+        # Terminate VNF instance
+        terminate_req = paramgen.sample7_terminate()
         resp, body = self.terminate_vnf_instance(inst_id, terminate_req)
         self.assertEqual(202, resp.status_code)
 

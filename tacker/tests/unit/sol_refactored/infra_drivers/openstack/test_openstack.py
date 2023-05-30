@@ -1030,6 +1030,36 @@ _heat_reses_example_S = [
     },
     {
         "creation_time": "2022-11-24T23:31:18Z",
+        "links": [
+            {
+                "href": _href_VDU1_0_S,
+                "rel": "stack"
+            }
+        ],
+        "parent_resource": "VDU1-0",
+        "physical_resource_id": "res_id_VDU1-VirtualStorage_0",
+        "required_by": [
+            "volume_attachment"
+        ],
+        "resource_name": "VDU1-VirtualStorage",
+        "resource_type": "OS::Cinder::Volume",
+    },
+    {
+        "creation_time": "2022-11-24T23:31:18Z",
+        "links": [
+            {
+                "href": _href_VDU1_0_S,
+                "rel": "stack"
+            }
+        ],
+        "parent_resource": "VDU1-0",
+        "physical_resource_id": "res_id_VDU1-VirtualStorage_0",
+        "required_by": [],
+        "resource_name": "volume_attachment",
+        "resource_type": "OS::Cinder::VolumeAttachment",
+    },
+    {
+        "creation_time": "2022-11-24T23:31:18Z",
         "resource_name": "VDU1",
         "physical_resource_id": "res_id_VDU1_1",
         "resource_type": "OS::Nova::Server",
@@ -1089,6 +1119,36 @@ _heat_reses_example_S = [
             "VDU1"
         ],
         "parent_resource": "VDU1-1"
+    },
+    {
+        "creation_time": "2022-11-24T23:31:20Z",
+        "links": [
+            {
+                "href": _href_VDU1_1_S,
+                "rel": "stack"
+            }
+        ],
+        "parent_resource": "VDU1-1",
+        "physical_resource_id": "res_id_VDU1-VirtualStorage_1",
+        "required_by": [
+            "volume_attachment"
+        ],
+        "resource_name": "VDU1-VirtualStorage",
+        "resource_type": "OS::Cinder::Volume",
+    },
+    {
+        "creation_time": "2022-11-24T23:31:20Z",
+        "links": [
+            {
+                "href": _href_VDU1_1_S,
+                "rel": "stack"
+            }
+        ],
+        "parent_resource": "VDU1-1",
+        "physical_resource_id": "res_id_VDU1-VirtualStorage_1",
+        "required_by": [],
+        "resource_name": "volume_attachment",
+        "resource_type": "OS::Cinder::VolumeAttachment",
     },
     {
         "creation_time": "2022-11-24T23:31:17Z",
@@ -2817,6 +2877,9 @@ _expected_inst_info_S = {
                 "vimLevelResourceType": "OS::Nova::Server"
             },
             "zoneId": "zone1",
+            "storageResourceIds": [
+                "res_id_VDU1-VirtualStorage_1"
+            ],
             "vnfcCpInfo": [
                 {
                     "id": "VDU1_CP1-res_id_VDU1_1",
@@ -2852,6 +2915,9 @@ _expected_inst_info_S = {
                 "vimLevelResourceType": "OS::Nova::Server"
             },
             "zoneId": "zone1",
+            "storageResourceIds": [
+                "res_id_VDU1-VirtualStorage_0"
+            ],
             "vnfcCpInfo": [
                 {
                     "id": "VDU1_CP1-res_id_VDU1_0",
@@ -2959,6 +3025,30 @@ _expected_inst_info_S = {
         }
     ],
     "virtualStorageResourceInfo": [
+        {
+            "id": "res_id_VDU1-VirtualStorage_0",
+            "virtualStorageDescId": "VDU1-VirtualStorage",
+            "storageResource": {
+                "vimConnectionId": "vim_id_1",
+                "resourceId": "res_id_VDU1-VirtualStorage_0",
+                "vimLevelResourceType": "OS::Cinder::Volume"
+            },
+            "metadata": {
+                "stack_id": _stack_id_VDU1_0_S
+            }
+        },
+        {
+            "id": "res_id_VDU1-VirtualStorage_1",
+            "virtualStorageDescId": "VDU1-VirtualStorage",
+            "storageResource": {
+                "vimConnectionId": "vim_id_1",
+                "resourceId": "res_id_VDU1-VirtualStorage_1",
+                "vimLevelResourceType": "OS::Cinder::Volume"
+            },
+            "metadata": {
+                "stack_id": _stack_id_VDU1_1_S
+            }
+        },
         {
             "id": "res_id_VDU2-VirtualStorage_0",
             "virtualStorageDescId": "VDU2-VirtualStorage",

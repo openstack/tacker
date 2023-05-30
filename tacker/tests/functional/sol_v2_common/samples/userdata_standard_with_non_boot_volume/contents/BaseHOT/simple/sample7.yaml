@@ -1,0 +1,40 @@
+heat_template_version: 2013-05-23
+description: 'For Test of Individual Vnfc Management: sample7'
+
+parameters:
+  nfv:
+    type: json
+
+resources:
+  VDU1:
+    type: VDU1.yaml
+    properties:
+      flavor: { get_param: [ nfv, VDU, VDU1, computeFlavourId ] }
+      image-VDU1: { get_param: [ nfv, VDU, VDU1, vcImageId ] }
+      zone: { get_param: [ nfv, VDU, VDU1, locationConstraints] }
+      net1: { get_param: [ nfv, CP, VDU1_CP1, network ] }
+      net2: { get_resource: internalVL1 }
+      net3: { get_resource: internalVL2 }
+
+# delete the following lines when extmanagedVLs are specified in instantiatevnfrequest
+  internalVL1:
+    type: OS::Neutron::Net
+  internalVL2:
+    type: OS::Neutron::Net
+
+  internalVL1_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      ip_version: 4
+      network:
+        get_resource: internalVL1
+      cidr: 192.168.3.0/24
+  internalVL2_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      ip_version: 4
+      network:
+        get_resource: internalVL2
+      cidr: 192.168.4.0/24
+
+outputs: {}
