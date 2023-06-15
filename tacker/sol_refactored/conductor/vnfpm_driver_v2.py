@@ -15,11 +15,11 @@
 
 import datetime
 
-from tacker.sol_refactored.common import common_script_utils
 from tacker.sol_refactored.common import config
 from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import pm_job_utils
 from tacker.sol_refactored.common import pm_threshold_utils
+from tacker.sol_refactored.common import subscription_utils as subsc_utils
 from tacker.sol_refactored.nfvo import nfvo_client
 from tacker.sol_refactored import objects
 
@@ -71,8 +71,8 @@ class VnfPmDriverV2():
                 notif_data = pm_threshold_utils.make_threshold_notif_data(
                     datetime_now, threshold_state,
                     self.endpoint, threshold)
-                common_script_utils.send_notification(
-                    threshold, notif_data, common_script_utils.NOTIFY_TYPE_PM)
+                subsc_utils.send_notification(
+                    threshold, notif_data, subsc_utils.NOTIFY_TYPE_PM)
 
     def _store_report(self, context, report):
         report = objects.PerformanceReportV2.from_dict(report)

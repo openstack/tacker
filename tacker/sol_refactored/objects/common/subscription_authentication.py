@@ -18,7 +18,7 @@ from tacker.sol_refactored.objects import fields
 
 
 # NFV-SOL 013
-# - v3.4.1 Table 8.3.4-1
+# - v3.5.1 Table 8.3.4-1
 @base.TackerObjectRegistry.register
 class SubscriptionAuthentication(base.TackerObject,
                                  base.TackerObjectDictCompat):
@@ -85,7 +85,7 @@ class SubscriptionAuthentication_ParamsOauth2ClientCert(
 
     fields = {
         'clientId': fields.StringField(nullable=False),
-        'cerficateRef': fields.ObjectField(
+        'certificateRef': fields.ObjectField(
             'ParamsOauth2ClientCert_CertificateRef', nullable=False),
         'tokenEndpoint': fields.UriField(nullable=False),
     }

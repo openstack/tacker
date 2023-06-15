@@ -20,7 +20,6 @@ from tacker.sol_refactored.api import api_version
 from tacker.sol_refactored.api.schemas import vnffm_v1 as schema
 from tacker.sol_refactored.api import validator
 from tacker.sol_refactored.api import wsgi as sol_wsgi
-from tacker.sol_refactored.common import common_script_utils
 from tacker.sol_refactored.common import config
 from tacker.sol_refactored.common import coordinate
 from tacker.sol_refactored.common import exceptions as sol_ex
@@ -120,11 +119,11 @@ class VnfFmControllerV1(sol_wsgi.SolAPIController):
 
         auth_req = body.get('authentication')
         if auth_req:
-            subsc.authentication = subsc_utils.check_http_client_auth(auth_req)
+            subsc.authentication = subsc_utils.get_subsc_auth(auth_req)
 
         if CONF.v2_nfvo.test_callback_uri:
-            common_script_utils.test_notification(
-                subsc, common_script_utils.NOTIFY_TYPE_FM)
+            subsc_utils.test_notification(
+                subsc, subsc_utils.NOTIFY_TYPE_FM)
 
         subsc.create(context)
 

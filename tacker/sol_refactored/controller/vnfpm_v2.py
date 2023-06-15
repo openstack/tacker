@@ -23,7 +23,6 @@ from tacker.sol_refactored.api import api_version
 from tacker.sol_refactored.api.schemas import vnfpm_v2 as schema
 from tacker.sol_refactored.api import validator
 from tacker.sol_refactored.api import wsgi as sol_wsgi
-from tacker.sol_refactored.common import common_script_utils
 from tacker.sol_refactored.common import config
 from tacker.sol_refactored.common import coordinate
 from tacker.sol_refactored.common import exceptions as sol_ex
@@ -173,7 +172,7 @@ class VnfPmControllerV2(sol_wsgi.SolAPIController):
         # authentication
         auth_req = body.get('authentication')
         if auth_req:
-            pm_job.authentication = subsc_utils.check_http_client_auth(
+            pm_job.authentication = subsc_utils.get_subsc_auth(
                 auth_req)
 
         # metadata
@@ -182,8 +181,8 @@ class VnfPmControllerV2(sol_wsgi.SolAPIController):
             pm_job.metadata = metadata
 
         if CONF.v2_nfvo.test_callback_uri:
-            common_script_utils.test_notification(
-                pm_job, common_script_utils.NOTIFY_TYPE_PM)
+            subsc_utils.test_notification(
+                pm_job, subsc_utils.NOTIFY_TYPE_PM)
 
         try:
             self.plugin.create_job(context=context, pm_job=pm_job)
@@ -235,12 +234,12 @@ class VnfPmControllerV2(sol_wsgi.SolAPIController):
         if body.get("callbackUri"):
             pm_job.callbackUri = body.get("callbackUri")
         if body.get("authentication"):
-            pm_job.authentication = subsc_utils.check_http_client_auth(
+            pm_job.authentication = subsc_utils.get_subsc_auth(
                 body.get("authentication"))
 
         if CONF.v2_nfvo.test_callback_uri:
-            common_script_utils.test_notification(
-                pm_job, common_script_utils.NOTIFY_TYPE_PM)
+            subsc_utils.test_notification(
+                pm_job, subsc_utils.NOTIFY_TYPE_PM)
 
         with context.session.begin(subtransactions=True):
             pm_job.update(context)
@@ -348,12 +347,12 @@ class VnfPmControllerV2(sol_wsgi.SolAPIController):
 
         auth_req = body.get('authentication')
         if auth_req:
-            threshold.authentication = subsc_utils.check_http_client_auth(
+            threshold.authentication = subsc_utils.get_subsc_auth(
                 auth_req)
 
         if CONF.v2_nfvo.test_callback_uri:
-            common_script_utils.test_notification(
-                threshold, common_script_utils.NOTIFY_TYPE_PM)
+            subsc_utils.test_notification(
+                threshold, subsc_utils.NOTIFY_TYPE_PM)
 
         try:
             self.threshold_plugin.create_threshold(
@@ -410,10 +409,10 @@ class VnfPmControllerV2(sol_wsgi.SolAPIController):
         if body.get("callbackUri"):
             pm_threshold.callbackUri = body.get("callbackUri")
         if CONF.v2_nfvo.test_callback_uri:
-            common_script_utils.test_notification(
-                pm_threshold, common_script_utils.NOTIFY_TYPE_PM)
+            subsc_utils.test_notification(
+                pm_threshold, subsc_utils.NOTIFY_TYPE_PM)
         if body.get("authentication"):
-            pm_threshold.authentication = subsc_utils.check_http_client_auth(
+            pm_threshold.authentication = subsc_utils.get_subsc_auth(
                 body.get("authentication"))
 
         with context.session.begin(subtransactions=True):

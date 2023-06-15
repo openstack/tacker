@@ -18,9 +18,9 @@ from unittest import mock
 from tacker.tests import base
 
 from tacker import context
-from tacker.sol_refactored.common import common_script_utils
 from tacker.sol_refactored.common import pm_job_utils
 from tacker.sol_refactored.common import pm_threshold_utils
+from tacker.sol_refactored.common import subscription_utils as subsc_utils
 from tacker.sol_refactored.conductor.vnfpm_driver_v2 import VnfPmDriverV2
 from tacker.sol_refactored.nfvo.nfvo_client import NfvoClient
 from tacker.sol_refactored import objects
@@ -72,7 +72,7 @@ class TestVnfPmDriverV2(base.BaseTestCase):
         VnfPmDriverV2().store_job_info(context=self.context,
                                        report=report)
 
-    @mock.patch.object(common_script_utils, 'send_notification')
+    @mock.patch.object(subsc_utils, 'send_notification')
     @mock.patch.object(objects.base.TackerPersistentObject, 'get_by_id')
     @mock.patch.object(pm_threshold_utils,
                        'update_threshold_state_data')
