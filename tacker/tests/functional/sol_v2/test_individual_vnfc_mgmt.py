@@ -14,9 +14,14 @@
 #    under the License.
 
 import os
+import subprocess
 
+import tacker.conf
 from tacker.tests.functional.sol_v2_common import paramgen
 from tacker.tests.functional.sol_v2_common import test_vnflcm_basic_common
+
+
+CONF = tacker.conf.CONF
 
 
 def _create_coordinate_response(req_header, req_body):
@@ -66,6 +71,16 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
             "../sol_v2_common/samples/userdata_standard_change_vnfpkg")
         cls.new_pkg, cls.new_vnfd_id = cls.create_vnf_package(
             pkg_path_2, image_path=image_path, userdata_path=userdata_path)
+        # Currently, the vnfpkgm v1 API does not support mgmt_driver_script
+        # in change_vnfpkg. Replace with sample file for FT to run
+        # mgmt_driver_script in change_vnfpkg.
+        csar_dir = os.path.join(CONF.vnf_package.vnf_package_csar_path,
+                                cls.new_pkg)
+        source_path = "contents/Scripts/v2_sample4_df_simple.yaml"
+        dest_path = "Definitions/v2_sample4_df_simple.yaml"
+        # use of sudo is a temporary for FT
+        subprocess.run(["sudo", "cp", os.path.join(pkg_path_2, source_path),
+                        os.path.join(csar_dir, dest_path)])
 
         # for change_vnfpkg network/flavor change test
         pkg_path_3 = os.path.join(cur_dir,

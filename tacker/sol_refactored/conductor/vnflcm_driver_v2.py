@@ -205,11 +205,13 @@ class VnfLcmDriverV2(object):
     def _script_method_name(self, operation):
         # According to the definition in etsi_nfv_sol001_vnfd_types.yaml,
         # get script method name from lcmocc.operation.
-        # only MODIFY_INFO and CHANGE_EXT_CONN are exceptional.
+        # only MODIFY_INFO, CHANGE_EXT_CONN, and CHANGE_VNFPKG are exceptional.
         if operation == v2fields.LcmOperationType.MODIFY_INFO:
             return "modify_information"
         elif operation == v2fields.LcmOperationType.CHANGE_EXT_CONN:
             return "change_external_connectivity"
+        elif operation == v2fields.LcmOperationType.CHANGE_VNFPKG:
+            return "change_current_package"
         else:
             return operation.lower()
 
