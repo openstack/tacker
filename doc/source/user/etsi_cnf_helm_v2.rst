@@ -1120,6 +1120,10 @@ Tacker Antelope release
 
 - Helm: 3.10
 
+Tacker Bobcat release
+
+- Helm: 3.11
+
 References
 ==========
 .. [#credential] https://docs.openstack.org/tacker/latest/install/kubernetes_vim_installation.html

@@ -33,11 +33,11 @@ It deploys VMs and Kubernetes resources on the same network.
      KUBERNETES_VIM=True
      # It is necessary to specify the patch version
      # because it is the version used when executing "apt-get install" command.
-     KURYR_KUBERNETES_VERSION="1.25.6"
+     KURYR_KUBERNETES_VERSION="1.26.8"
      CONTAINER_ENGINE="crio"
      # It is not necessary to specify the patch version
      # because it is the version used when adding the apt repository.
-     CRIO_VERSION="1.25"
+     CRIO_VERSION="1.26"
      enable_plugin kuryr-kubernetes https://opendev.org/openstack/kuryr-kubernetes master
      enable_plugin octavia https://opendev.org/openstack/octavia master
      enable_plugin devstack-plugin-container https://opendev.org/openstack/devstack-plugin-container master
