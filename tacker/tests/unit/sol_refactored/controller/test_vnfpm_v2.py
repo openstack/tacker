@@ -575,6 +575,13 @@ class TestVnfpmV2(base.BaseTestCase):
         result = self.controller.show_threshold(self.request, 'pm_threshold_1')
         self.assertEqual(200, result.status)
 
+    @mock.patch.object(objects.base.TackerPersistentObject, 'get_by_id')
+    def test_pm_threshold_show_not_exist(self, mock_pm):
+        mock_pm.return_value = None
+        self.assertRaises(
+            sol_ex.PMThresholdNotExist, self.controller.show_threshold,
+            request=self.request, thresholdId='pm_threshold_1')
+
     @mock.patch.object(objects.base.TackerPersistentObject, 'update')
     @mock.patch.object(objects.base.TackerPersistentObject, 'get_by_id')
     @mock.patch.object(common_script_utils, 'test_notification')
@@ -611,6 +618,24 @@ class TestVnfpmV2(base.BaseTestCase):
             body=body)
         self.assertEqual(200, result.status)
 
+    @mock.patch.object(objects.base.TackerPersistentObject, 'get_by_id')
+    def test_pm_threshold_update_not_exist(self, mock_pm):
+        mock_pm.return_value = None
+        _SubscriptionAuthentication = {
+            'authType': ['BASIC'],
+            'paramsBasic': {
+                'userName': 'test_name',
+                'password': 'test_pwd'
+            }
+        }
+        body = {
+            'callbackUri': 'callbackuri_update',
+            'authentication': _SubscriptionAuthentication
+        }
+        self.assertRaises(
+            sol_ex.PMThresholdNotExist, self.controller.update_threshold,
+            request=self.request, thresholdId='id', body=body)
+
     @mock.patch.object(PrometheusPluginThreshold, 'create_threshold')
     @mock.patch.object(objects.base.TackerPersistentObject, 'get_by_id')
     def test_pm_threshold_delete(
@@ -621,3 +646,10 @@ class TestVnfpmV2(base.BaseTestCase):
         result = self.controller.delete_threshold(
             self.request, 'pm_threshold_1')
         self.assertEqual(204, result.status)
+
+    @mock.patch.object(objects.base.TackerPersistentObject, 'get_by_id')
+    def test_pm_threshold_delete_not_exist(self, mock_pm):
+        mock_pm.return_value = None
+        self.assertRaises(
+            sol_ex.PMThresholdNotExist, self.controller.delete_threshold,
+            request=self.request, thresholdId='pm_threshold_1')

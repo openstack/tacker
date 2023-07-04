@@ -431,7 +431,7 @@ class VnfPmControllerV2(sol_wsgi.SolAPIController):
         pm_threshold = pm_threshold_utils.get_pm_threshold(
             context, thresholdId)
         if not pm_threshold:
-            raise sol_ex.PMThresholdNotExist(thresholdId=thresholdId)
+            raise sol_ex.PMThresholdNotExist(threshold_id=thresholdId)
 
         self.threshold_plugin.delete_threshold(
             context=context, pm_threshold=pm_threshold)
