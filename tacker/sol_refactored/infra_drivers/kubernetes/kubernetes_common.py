@@ -316,7 +316,7 @@ class KubernetesCommon(object):
     def _get_pod_information(self, resource_name,
             resource_type, vnf_instance, vim_connection_info):
         """Extract a Pod starting with the specified 'resource_name' name"""
-        namespace = vnf_instance.metadata.get('namespace')
+        namespace = vnf_instance.instantiatedVnfInfo.metadata.get('namespace')
         if not namespace:
             namespace = "default"
 
