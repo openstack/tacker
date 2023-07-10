@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    We provide a sample of MgmtDriver for the Update VNF in the V2 API,
+    which can update the configuration of ConfigMap and Secret in Kubernetes
+    and update the image parameters in the Pod, Deployment, ReplicaSet and
+    DaemonSet manifests.

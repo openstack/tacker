@@ -255,8 +255,10 @@ class Vnfd(object):
         # 'dirs_exists_ok=True' to copytree instead when tacker support
         # only py38 or later.
         os.rmdir(tmp_dir)
+        # In the case of CNF, the definition Files under Files/kubernetes
+        # need to be obtained. Only images files are excluded here.
         shutil.copytree(self.csar_dir, tmp_dir,
-            ignore=shutil.ignore_patterns('Files'))
+                        ignore=shutil.ignore_patterns('Files/images'))
         return tmp_dir
 
     def remove_tmp_csar_dir(self, tmp_dir):

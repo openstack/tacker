@@ -27,7 +27,7 @@ SAMPLE_VNFD_ID = "b1bb0ce7-ebca-4fa7-95ed-4840d7000000"
 
 
 def make_zip(sample_dir, tmp_dir, vnfd_id, image_path=None,
-        userdata_path=None, provider=None, namespace=None):
+        userdata_path=None, provider=None, namespace=None, mgmt_driver=None):
     # NOTE: '.zip' will be added by shutil.make_archive
     zip_file_name = os.path.basename(os.path.abspath(sample_dir))
     zip_file_path = os.path.join(tmp_dir, zip_file_name)
@@ -107,6 +107,12 @@ def make_zip(sample_dir, tmp_dir, vnfd_id, image_path=None,
                         allow_unicode=True))
         with open(tosca_file, 'w') as f:
             f.write('\n'.join(artifact_data_strs))
+
+    if mgmt_driver is not None:
+        # mkdir Scripts/ if not exist and copy mgmt_driver_path into it
+        file_path = os.path.join(tmp_contents, "Scripts")
+        os.makedirs(file_path)
+        shutil.copy(mgmt_driver, file_path)
 
     shutil.make_archive(zip_file_path, "zip", tmp_contents)
 

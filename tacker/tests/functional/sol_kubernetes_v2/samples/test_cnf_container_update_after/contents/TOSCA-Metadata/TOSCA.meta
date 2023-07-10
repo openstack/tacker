@@ -1,0 +1,64 @@
+TOSCA-Meta-File-Version: 1.0
+Created-by: dummy_user
+CSAR-Version: 1.1
+Entry-Definitions: Definitions/sample_top.vnfd.yaml
+
+Name: Files/kubernetes/configmap_2.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: 6f34907da12cb5ad82b25d8e7dd6a7dd4219bd0cbad65e678b58b8466be220e0
+
+Name: Files/kubernetes/configmap_3.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: 77561abb949dbc3e71cc7cc5311556f37e69e14743fb6dfe44617ad9929ce615
+
+Name: Files/kubernetes/daemonset.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: 5431163fcba979bcad5f77ef956a5a1cc2069ff0f3e13131ef8826fb7e8f039b
+
+Name: Files/kubernetes/deployment.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: 70ec5964857f31a730c54a20b74128b6376ed6379d7bbb2e875fd0becdb248ec
+
+Name: Files/kubernetes/deployment_2.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: 3c89ba20b8e49a4d24297e0392e2f8774319cbe131bd28dfe80a263c0f0ce6e0
+
+Name: Files/kubernetes/pod_env.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: b8674c55cd387fd2ab3d550bc622b314bed151d0afffe4f6bc44a553280d400c
+
+Name: Files/kubernetes/pod_env_2.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: 2193e9633c750886ad6d19013887ffe550c94c1da0985fbe60ce8663022c67a5
+
+Name: Files/kubernetes/pod_volume.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: 87507e140db298662b6cf3bc905be42b6697a6724d86ca661bbf28e18ae19397
+
+Name: Files/kubernetes/pod_volume_2.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: 5e29e35c849b2b8677efe8d6ec8554d638481bd41b4705856382698d96bcb040
+
+Name: Files/kubernetes/replicaset.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: 933f8d8d3a85b3dfed1b2ea72270104fd8930894615792843a649bd82963fe07
+
+Name: Files/kubernetes/secret_2.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: f57cbb1822c57e523e5c6d48feea37ee1b1bbd976d720baf8491d47331249e11
+
+Name: Files/kubernetes/secret_3.yaml
+Content-Type: application/yaml
+Algorithm: SHA-256
+Hash: 2a1b16ab7e9ee34a23a67a3aa0535311c927f4194b639bcb0a70905578940695

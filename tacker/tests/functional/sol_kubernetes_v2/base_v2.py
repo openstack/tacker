@@ -75,12 +75,14 @@ class BaseVnfLcmKubernetesV2Test(base_v2.BaseTackerTestV2):
 
     @classmethod
     def create_vnf_package(cls, sample_path, user_data={}, image_path=None,
-                           provider=None, namespace=None):
+                           provider=None, namespace=None,
+                           mgmt_driver=None):
 
         return super().create_vnf_package(sample_path, user_data=user_data,
                                           image_path=image_path,
                                           provider=provider,
-                                          namespace=namespace)
+                                          namespace=namespace,
+                                          mgmt_driver=mgmt_driver)
 
     @classmethod
     def get_controller_tacker_ip(cls):

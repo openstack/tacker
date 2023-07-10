@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cm-data
+data:
+  cmKey1.txt: |
+    configmap data
+    foo
+    bar

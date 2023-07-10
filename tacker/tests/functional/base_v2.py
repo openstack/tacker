@@ -118,14 +118,15 @@ class BaseTackerTestV2(base.BaseTestCase):
     @classmethod
     def create_vnf_package(cls, sample_path, user_data={},
                            image_path=None, nfvo=False, userdata_path=None,
-                           provider=None, namespace=None, vnfd_id=None):
+                           provider=None, namespace=None, vnfd_id=None,
+                           mgmt_driver=None):
         if vnfd_id is None:
             vnfd_id = uuidutils.generate_uuid()
 
         tmp_dir = tempfile.mkdtemp()
 
         utils.make_zip(sample_path, tmp_dir, vnfd_id, image_path,
-                       userdata_path, provider, namespace)
+                       userdata_path, provider, namespace, mgmt_driver)
 
         zip_file_name = f"{os.path.basename(os.path.abspath(sample_path))}.zip"
         zip_file_path = os.path.join(tmp_dir, zip_file_name)
@@ -223,6 +224,11 @@ class BaseTackerTestV2(base.BaseTestCase):
         path = f"/vnflcm/v2/vnf_instances/{inst_id}/scale"
         return self.tacker_client.do_request(
             path, "POST", body=req_body, version=VNFLCM_V2_VERSION)
+
+    def update_vnf_instance(self, inst_id, req_body):
+        path = f"/vnflcm/v2/vnf_instances/{inst_id}"
+        return self.tacker_client.do_request(
+            path, "PATCH", body=req_body, version=VNFLCM_V2_VERSION)
 
     def change_vnfpkg(self, inst_id, req_body):
         path = f"/vnflcm/v2/vnf_instances/{inst_id}/change_vnfpkg"
