@@ -84,7 +84,7 @@ Following shows sample output.
 scale()
 ^^^^^^^
 
-The method must return the following structure.
+The method must return the following structure if it is necessary to modify.
 Data are for update stack API in HEAT.
 The requirements of HEAT API are described in
 `reference of Orchestration Service API v1
@@ -106,7 +106,7 @@ Following shows sample output.
 scale_rollback()
 ^^^^^^^^^^^^^^^^
 
-The method must return the following structure.
+The method must return the following structure if it is necessary to modify.
 Data are for update stack API in HEAT.
 The requirements of HEAT API are described in
 `reference of Orchestration Service API v1

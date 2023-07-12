@@ -178,6 +178,16 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         storage_res_ids = vnfc.get('storageResourceIds', [])
         return sorted(storage_res_ids)
 
+    def _get_server_name(self, inst, vdu, index):
+        for vnfc in inst['instantiatedVnfInfo']['vnfcResourceInfo']:
+            if (vnfc['vduId'] == vdu and
+                    vnfc['metadata'].get('vdu_idx') == index):
+                # must be found
+                server_id = vnfc['computeResource']['resourceId']
+                break
+        server_details = self.get_server_details_by_id(server_id)
+        return server_details.get('name')
+
     def test_basic_operations(self):
         """Test basic operations using StandardUserData
 
@@ -232,6 +242,9 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         # check vnfcInfo ids
         self.assertEqual('a-001', self._get_vnfc_info_id(inst_1, 'VDU1', 0))
         self.assertEqual('b-000', self._get_vnfc_info_id(inst_1, 'VDU2', 0))
+        # check server name
+        self.assertEqual('VDU1-a-001-instantiate',
+                         self._get_server_name(inst_1, 'VDU1', 0))
 
         # 2. Scale out operation
         scale_out_req = paramgen.sample3_scale_out()
@@ -251,6 +264,11 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         # check vnfcInfo ids
         self.assertEqual('a-010', self._get_vnfc_info_id(inst_2, 'VDU1', 1))
         self.assertEqual('a-011', self._get_vnfc_info_id(inst_2, 'VDU1', 2))
+        # check server names
+        self.assertEqual('VDU1-a-010-scale_out',
+                         self._get_server_name(inst_2, 'VDU1', 1))
+        self.assertEqual('VDU1-a-011-instantiate',
+                         self._get_server_name(inst_2, 'VDU1', 2))
 
         # 3. Heal operation
         heal_req = paramgen.sample3_heal()
@@ -278,6 +296,9 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
                          self._get_vnfc_id(inst_3, 'VDU2', 0))
         # check vnfcInfo id of VDU1-1 is not changed.
         self.assertEqual('a-010', self._get_vnfc_info_id(inst_3, 'VDU1', 1))
+        # check server name
+        self.assertEqual('VDU1-a-010-heal',
+                         self._get_server_name(inst_3, 'VDU1', 1))
 
         # 4. Scale in operation
         scale_in_req = paramgen.sample3_scale_in()
@@ -326,6 +347,12 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
             self._get_vnfc_cp_net_id(inst_5, 'VDU1', 1, 'VDU1_CP1'))
         self.assertEqual(net_ids['net1'],
             self._get_vnfc_cp_net_id(inst_5, 'VDU2', 0, 'VDU2_CP1'))
+
+        # check server names
+        self.assertEqual('VDU1-a-001-change_ext_conn',
+                         self._get_server_name(inst_5, 'VDU1', 0))
+        self.assertEqual('VDU1-a-010-change_ext_conn',
+                         self._get_server_name(inst_5, 'VDU1', 1))
 
         # 6. Change_vnfpkg operation
         change_vnfpkg_req = paramgen.sample4_change_vnfpkg(self.new_vnfd_id,
@@ -386,6 +413,11 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         self.assertEqual('a-001', self._get_vnfc_info_id(inst_6, 'VDU1', 0))
         self.assertEqual('a-010', self._get_vnfc_info_id(inst_6, 'VDU1', 1))
         self.assertEqual('b-000', self._get_vnfc_info_id(inst_6, 'VDU2', 0))
+        # check server names
+        self.assertEqual('VDU1-a-001-change_vnfpkg',
+                         self._get_server_name(inst_6, 'VDU1', 0))
+        self.assertEqual('VDU1-a-010-change_vnfpkg',
+                         self._get_server_name(inst_6, 'VDU1', 1))
 
         # Terminate VNF instance
         terminate_req = paramgen.sample4_terminate()
@@ -498,6 +530,9 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
             self._get_vnfc_cp_net_id(inst_2, 'VDU1', 0, 'VDU1_CP1'))
         self.assertEqual(net_ids['net1'],
             self._get_vnfc_cp_net_id(inst_2, 'VDU2', 0, 'VDU2_CP1'))
+        # check server name is not changed
+        self.assertEqual('VDU1-a-001-instantiate',
+                         self._get_server_name(inst_2, 'VDU1', 0))
 
         # 3. Change_vnfpkg operation
         self.put_fail_file('change_vnfpkg')
@@ -549,6 +584,9 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
             self._get_vnfc_cp_net_id(inst_3, 'VDU1', 0, 'VDU1_CP1'))
         self.assertEqual(net_ids['net1'],
             self._get_vnfc_cp_net_id(inst_3, 'VDU2', 0, 'VDU2_CP1'))
+        # check server name is not changed
+        self.assertEqual('VDU1-a-001-instantiate',
+                         self._get_server_name(inst_3, 'VDU1', 0))
 
         # Terminate VNF instance
         terminate_req = paramgen.sample3_terminate()

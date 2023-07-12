@@ -26,6 +26,7 @@ import eventlet
 from oslo_log import log as logging
 from oslo_utils import uuidutils
 
+from tacker.sol_refactored.common import common_script_utils
 from tacker.sol_refactored.common import config
 from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import lcm_op_occ_utils as lcmocc_utils
@@ -92,7 +93,7 @@ class Openstack(object):
     def instantiate(self, req, inst, grant_req, grant, vnfd):
         # make HOT
         fields = self._make_hot(req, inst, grant_req, grant, vnfd)
-        vdu_ids = self._get_vdu_id_from_fields(fields)
+        vdu_ids = self._get_additional_vdu_id(grant_req, inst)
 
         # create or update stack
         vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
@@ -174,7 +175,8 @@ class Openstack(object):
     def scale(self, req, inst, grant_req, grant, vnfd):
         # make HOT
         fields = self._make_hot(req, inst, grant_req, grant, vnfd)
-        vdu_ids = self._get_vdu_id_from_fields(fields)
+        if req.type == 'SCALE_OUT':
+            vdu_ids = self._get_additional_vdu_id(grant_req, inst)
 
         vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
         heat_client = heat_utils.HeatClient(vim_info)
@@ -751,9 +753,20 @@ class Openstack(object):
         return (vdu_id,
                 vdu_dict.get(vdu_id, {}).get('locationConstraints'))
 
-    def _get_vdu_id_from_fields(self, fields):
-        vdu_dict = fields['parameters']['nfv']['VDU']
-        return set(vdu_dict.keys())
+    def _get_additional_vdu_id(self, grant_req, inst):
+        add_vdus = {}
+        for res_def in grant_req.addResources:
+            if res_def.type == 'COMPUTE':
+                add_vdus.setdefault(res_def.resourceTemplateId, 0)
+                add_vdus[res_def.resourceTemplateId] += 1
+
+        vdu_ids = set()
+        for vdu_name, num in add_vdus.items():
+            current_vdu_num = common_script_utils.get_current_capacity(
+                vdu_name, inst)
+            for idx in range(current_vdu_num, current_vdu_num + num):
+                vdu_ids.add(f'{vdu_name}-{idx}')
+        return vdu_ids
 
     def _get_vdu_id_from_grant_req(self, grant_req, inst):
         vnfc_res_ids = [res_def.resource.resourceId
@@ -1563,7 +1576,8 @@ class Openstack(object):
                 inst.instantiatedVnfInfo.obj_attr_is_set('metadata')):
             inst_vnf_info.metadata.update(inst.instantiatedVnfInfo.metadata)
 
-        # store stack_id into metadata
+        # store stack_id and nfv parameters into metadata
         inst_vnf_info.metadata['stack_id'] = stack_id
+        inst_vnf_info.metadata['nfv'] = nfv_dict
 
         inst.instantiatedVnfInfo = inst_vnf_info

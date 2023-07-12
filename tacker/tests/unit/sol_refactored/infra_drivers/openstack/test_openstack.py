@@ -2230,7 +2230,17 @@ _expected_inst_info = {
             "vnfcState": "STARTED"
         }
     ],
-    "metadata": {"stack_id": STACK_ID}
+    "metadata": {
+        "stack_id": STACK_ID,
+        "nfv": {
+            "VDU": {
+                "VDU1": {"computeFlavourId": "m1.tiny"},
+                "VDU1-VirtualStorage": {"vcImageId": "image-VDU1"},
+                "VDU2": {"computeFlavourId": "m1.small",
+                         "vcImageId": "image-VDU2"}
+            }
+        }
+    }
 }
 
 _expected_inst_info_vnfc_updated = copy.copy(_expected_inst_info)
@@ -2255,6 +2265,48 @@ _expected_inst_info_vnfc_updated["vnfcInfo"] = [
         "vnfcState": "STARTED"
     }
 ]
+
+_expected_inst_info_vnfc_updated["metadata"] = {
+    "stack_id": STACK_ID,
+    "nfv": {
+        "VDU": {
+            "VDU1": {
+                "desired_capacity": 1,
+                "computeFlavourId": "m1.tiny",
+                "locationConstraints": None
+            },
+            "VirtualStorage": {
+                "vcImageId": "image-1.0.0-x86_64-disk"
+            },
+            "VDU2": {
+                "computeFlavourId": "m1.small",
+                "vcImageId": "image-VDU2"
+            }
+        },
+        "CP": {
+            "VDU1_CP1": {
+                "network": "res_id_ext_vl_1"
+            },
+            "VDU1_CP2": {
+                "network": "res_id_id_ext_vl_2",
+                "fixed_ips": [{
+                    "subnet": "res_id_subnet_1"
+                }]
+            },
+            "VDU2_CP1": {
+                "network": "res_id_ext_vl_1",
+                "fixed_ips": [{
+                    "ip_address": "10.10.0.102"
+                }]
+            },
+            "VDU2_CP2": {
+                "network": "res_id_id_ext_vl_2",
+                "fixed_ips": []
+            }
+        }
+    }
+}
+
 
 # expected results for change_ext_conn
 _expected_inst_info_change_ext_conn = {
@@ -2675,7 +2727,44 @@ _expected_inst_info_change_ext_conn = {
         _expected_inst_info["virtualStorageResourceInfo"],
     "vnfcInfo": _expected_inst_info["vnfcInfo"],
     "metadata": {
-        "stack_id": STACK_ID
+        "stack_id": STACK_ID,
+        "nfv": {
+            "VDU": {
+                "VDU1": {
+                    "desired_capacity": 1,
+                    "computeFlavourId": "m1.tiny",
+                    "locationConstraints": None
+                },
+                "VirtualStorage": {
+                    "vcImageId": "image-1.0.0-x86_64-disk"
+                },
+                "VDU2": {
+                    "computeFlavourId": "m1.small",
+                    "vcImageId": "image-VDU2"
+                }
+            },
+            "CP": {
+                "VDU1_CP1": {
+                    "network": "res_id_ext_vl_1"
+                },
+                "VDU1_CP2": {
+                    "network": "res_id_id_ext_vl_2",
+                    "fixed_ips": [{
+                        "subnet": "res_id_subnet_1"
+                    }]
+                },
+                "VDU2_CP1": {
+                    "network": "res_id_ext_vl_1",
+                    "fixed_ips": [{
+                        "ip_address": "10.10.0.102"
+                    }]
+                },
+                "VDU2_CP2": {
+                    "network": "res_id_id_ext_vl_2",
+                    "fixed_ips": []
+                }
+            }
+        }
     }
 }
 
@@ -3083,7 +3172,19 @@ _expected_inst_info_S = {
         }
     ],
     "metadata": {
-        "stack_id": STACK_ID
+        "stack_id": STACK_ID,
+        "nfv": {
+            "VDU": {
+                "VDU1-0": {"vcImageId": "image-VDU1",
+                           "computeFlavourId": "m1.tiny",
+                           "locationConstraints": "zone1"},
+                "VDU1-1": {"vcImageId": "image-VDU1",
+                           "computeFlavourId": "m1.tiny",
+                           "locationConstraints": "zone1"},
+                "VDU2-0": {"computeFlavourId": "m1.small"},
+                "VDU2-VirtualStorage-0": {"vcImageId": "image-VDU2"}
+            }
+        }
     }
 }
 
@@ -3738,6 +3839,10 @@ class TestOpenstack(base.BaseTestCase):
             self.assertEqual(expected["virtualStorageResourceInfo"],
                 result["virtualStorageResourceInfo"])
 
+        if "metadata" in expected:
+            self.assertIn("metadata", result)
+            self.assertEqual(expected["metadata"], result["metadata"])
+
         # order of vnfcInfo is same as vnfcResourceInfo
         if "vnfcInfo" in expected:
             self.assertIn("vnfcInfo", result)
@@ -3792,7 +3897,8 @@ class TestOpenstack(base.BaseTestCase):
         # prepare heat responses
         heat_client = mock.Mock()
         heat_client.get_resources.return_value = _heat_reses_example
-        heat_client.get_parameters.return_value = _heat_get_parameters_example
+        heat_client.get_parameters.return_value = {
+            'nfv': json.dumps(_heat_parameters)}
         heat_client.get_template.return_value = _heat_get_template_example
 
         # execute make_instantiated_vnf_info
@@ -3828,7 +3934,8 @@ class TestOpenstack(base.BaseTestCase):
         heat_client = mock.Mock()
         heat_client.get_resources.return_value = (
             _heat_reses_example_change_ext_conn)
-        heat_client.get_parameters.return_value = _heat_get_parameters_example
+        heat_client.get_parameters.return_value = {
+            'nfv': json.dumps(_heat_parameters)}
         heat_client.get_template.return_value = _heat_get_template_example
 
         # execute make_instantiated_vnf_info
@@ -3877,6 +3984,7 @@ class TestOpenstack(base.BaseTestCase):
         result = inst.to_dict()["instantiatedVnfInfo"]
         self._check_inst_info(_expected_inst_info_S, result)
 
+    @mock.patch.object(openstack.Openstack, '_get_additional_vdu_id')
     @mock.patch.object(openstack.heat_utils.HeatClient, 'get_stack_id')
     @mock.patch.object(openstack.heat_utils.HeatClient, 'get_status')
     @mock.patch.object(openstack.heat_utils.HeatClient, 'create_stack')
@@ -3886,7 +3994,7 @@ class TestOpenstack(base.BaseTestCase):
     @mock.patch.object(openstack.heat_utils.HeatClient, 'get_template')
     def test_instantiate(self, mock_template, mock_parameters, mock_resources,
                          mock_update_stack, mock_create_stack, mock_status,
-                         mock_stack_id):
+                         mock_stack_id, mock_get_vdu_ids):
         # prepare
         req = objects.InstantiateVnfRequest.from_dict(_instantiate_req_example)
         inst = objects.VnfInstanceV2(
@@ -3990,13 +4098,14 @@ class TestOpenstack(base.BaseTestCase):
         self.driver.terminate(req, inst, grant_req, grant, self.vnfd_1)
         self.assertEqual(3, mock_delete_stack.call_count)
 
+    @mock.patch.object(openstack.Openstack, '_get_additional_vdu_id')
     @mock.patch.object(openstack.heat_utils.HeatClient, 'update_stack')
     @mock.patch.object(openstack.heat_utils.HeatClient, 'get_resources')
     @mock.patch.object(openstack.heat_utils.HeatClient, 'get_parameters')
     @mock.patch.object(openstack.heat_utils.HeatClient, 'mark_unhealthy')
     @mock.patch.object(openstack.heat_utils.HeatClient, 'get_template')
     def test_scale(self, mock_template, mock_unhealthy, mock_parameters,
-                   mock_reses, mock_stack):
+                   mock_reses, mock_stack, mock_get_vdu_ids):
         # prepare
         req_inst = objects.InstantiateVnfRequest.from_dict(
             _instantiate_req_example)
@@ -4216,6 +4325,7 @@ class TestOpenstack(base.BaseTestCase):
             }
         )
         mock_reses.return_value = _heat_reses_example
+        mock_create.return_value = STACK_ID
         self.driver.heal(req, inst, grant_req, grant, self.vnfd_1)
         # check
         result = inst.to_dict()["instantiatedVnfInfo"]
@@ -4489,6 +4599,7 @@ class TestOpenstack(base.BaseTestCase):
             inst, anti_rules, failed_vdu_id, vdu_ids, vdu_dict)
         self.assertEqual({'az-1', 'az-3', 'az-4'}, result)
 
+    @mock.patch.object(openstack.Openstack, '_get_additional_vdu_id')
     @mock.patch.object(openstack.heat_utils.HeatClient, 'get_stack_id')
     @mock.patch.object(openstack.heat_utils.HeatClient, 'get_status')
     @mock.patch.object(openstack.heat_utils.HeatClient, 'create_stack')
@@ -4498,7 +4609,7 @@ class TestOpenstack(base.BaseTestCase):
     @mock.patch.object(openstack.heat_utils.HeatClient, 'get_template')
     def test_https_with_instantiate(self, mock_template, mock_parameters,
                          mock_resources, mock_update_stack, mock_create_stack,
-                         mock_status, mock_stack_id):
+                         mock_status, mock_stack_id, mock_get_vdus_ids):
         # prepare
         req = objects.InstantiateVnfRequest.from_dict(_instantiate_req_example)
         inst = objects.VnfInstanceV2(
@@ -4533,6 +4644,7 @@ class TestOpenstack(base.BaseTestCase):
         self.driver.instantiate(req, inst, grant_req, grant, self.vnfd_1)
         mock_update_stack.assert_called_once()
 
+    @mock.patch.object(openstack.Openstack, '_get_additional_vdu_id')
     @mock.patch.object(openstack.heat_utils.HeatClient, 'get_stack_id')
     @mock.patch.object(openstack.heat_utils.HeatClient, 'get_status')
     @mock.patch.object(openstack.heat_utils.HeatClient, 'create_stack')
@@ -4542,7 +4654,7 @@ class TestOpenstack(base.BaseTestCase):
     @mock.patch.object(openstack.heat_utils.HeatClient, 'get_template')
     def test_oauth2_mtls_with_instantiate(self, mock_template, mock_parameters,
                          mock_resources, mock_update_stack, mock_create_stack,
-                         mock_status, mock_stack_id):
+                         mock_status, mock_stack_id, mock_get_vdus_ids):
         # prepare
         req = objects.InstantiateVnfRequest.from_dict(_instantiate_req_example)
         inst = objects.VnfInstanceV2(
@@ -4582,3 +4694,58 @@ class TestOpenstack(base.BaseTestCase):
         # execute
         self.driver.instantiate(req, inst, grant_req, grant, self.vnfd_1)
         mock_update_stack.assert_called_once()
+
+    def test_get_additional_vdu_id(self):
+        # prepare
+        inst = objects.VnfInstanceV2(
+            id=uuidutils.generate_uuid(),
+            instantiatedVnfInfo=(
+                objects.VnfInstanceV2_InstantiatedVnfInfo(
+                    flavourId='fake_flavour_id',
+                    vnfState='STOPPED'
+                )
+            )
+        )
+        grant_req = objects.GrantRequestV1(
+            addResources=[
+                objects.ResourceDefinitionV1(
+                    type='COMPUTE',
+                    resourceTemplateId='VDU1'
+                ),
+                objects.ResourceDefinitionV1(
+                    type='COMPUTE',
+                    resourceTemplateId='VDU2'
+                ),
+                objects.ResourceDefinitionV1(
+                    type='LINKPORT',
+                    resourceTemplateId='VDU1-CP1'
+                )
+            ]
+        )
+
+        # execute
+        result = self.driver._get_additional_vdu_id(grant_req, inst)
+        self.assertEqual({'VDU1-0', 'VDU2-0'}, result)
+
+        inst = objects.VnfInstanceV2(
+            id=uuidutils.generate_uuid(),
+            instantiatedVnfInfo=(
+                objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
+                    _update_retry_instantiated_vnfinfo))
+        )
+        grant_req = objects.GrantRequestV1(
+            addResources=[
+                objects.ResourceDefinitionV1(
+                    type='COMPUTE',
+                    resourceTemplateId='VDU1'
+                ),
+                objects.ResourceDefinitionV1(
+                    type='COMPUTE',
+                    resourceTemplateId='VDU1'
+                )
+            ]
+        )
+
+        # execute
+        result = self.driver._get_additional_vdu_id(grant_req, inst)
+        self.assertEqual({'VDU1-1', 'VDU1-2'}, result)

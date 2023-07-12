@@ -168,6 +168,12 @@ class BaseSolV2Test(base_v2.BaseTackerTestV2):
                 server_details = server
         return server_details
 
+    def get_server_details_by_id(self, server_id):
+        path = f"/servers/{server_id}"
+        resp, resp_body = self.nova_client.do_request(path, "GET")
+
+        return resp_body.get('server', {})
+
     def get_zone_list(self):
         path = "/os-services"
         resp, resp_body = self.nova_client.do_request(path, "GET")

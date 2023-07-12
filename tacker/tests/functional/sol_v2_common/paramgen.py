@@ -1049,7 +1049,14 @@ def sample3_instantiate(net_ids, subnet_ids, auth_url):
         },
         "additionalParams": {
             "lcm-operation-user-data": "./UserData/userdata_standard.py",
-            "lcm-operation-user-data-class": "StandardUserData"
+            "lcm-operation-user-data-class": "StandardUserData",
+            "nfv": {
+                "VDU": {
+                    "VDU1-0": {"name": "VDU1-a-001-instantiate"},
+                    "VDU1-1": {"name": "VDU1-a-010-instantiate"},
+                    "VDU1-2": {"name": "VDU1-a-011-instantiate"}
+                }
+            }
         }
     }
 
@@ -1061,7 +1068,15 @@ def sample3_scale_out():
         "numberOfSteps": 2,
         "additionalParams": {
             "lcm-operation-user-data": "./UserData/userdata_standard.py",
-            "lcm-operation-user-data-class": "StandardUserData"
+            "lcm-operation-user-data-class": "StandardUserData",
+            # In this sample, VDU1-2 nfv parameters is not set for test,
+            # but in normal operation, it is recommended to set nfv parameters
+            # when adding or updating.
+            "nfv": {
+                "VDU": {
+                    "VDU1-1": {"name": "VDU1-a-010-scale_out"},
+                }
+            }
         }
     }
 
@@ -1083,7 +1098,12 @@ def sample3_heal():
         "vnfcInstanceId": [],  # should be filled
         "additionalParams": {
             "lcm-operation-user-data": "./UserData/userdata_standard.py",
-            "lcm-operation-user-data-class": "StandardUserData"
+            "lcm-operation-user-data-class": "StandardUserData",
+            "nfv": {
+                "VDU": {
+                    "VDU1-1": {"name": "VDU1-a-010-heal"},
+                }
+            }
         }
     }
 
@@ -1112,7 +1132,14 @@ def sample3_change_ext_conn(net_ids):
         ],
         "additionalParams": {
             "lcm-operation-user-data": "./UserData/userdata_standard.py",
-            "lcm-operation-user-data-class": "StandardUserData"
+            "lcm-operation-user-data-class": "StandardUserData",
+            "nfv": {
+                "VDU": {
+                    "VDU1-0": {"name": "VDU1-a-001-change_ext_conn"},
+                    "VDU1-1": {"name": "VDU1-a-010-change_ext_conn"},
+                    "VDU1-2": {"name": "VDU1-a-011-change_ext_conn"}
+                }
+            }
         }
     }
 
@@ -1229,7 +1256,14 @@ def sample4_change_vnfpkg(vnfd_id, net_ids, subnet_ids):
                 }
             ],
             "lcm-operation-user-data": "./UserData/userdata_standard.py",
-            "lcm-operation-user-data-class": "StandardUserData"
+            "lcm-operation-user-data-class": "StandardUserData",
+            "nfv": {
+                "VDU": {
+                    "VDU1-0": {"name": "VDU1-a-001-change_vnfpkg"},
+                    "VDU1-1": {"name": "VDU1-a-010-change_vnfpkg"},
+                    "VDU1-2": {"name": "VDU1-a-011-change_vnfpkg"},
+                }
+            }
         }
     }
 
@@ -1402,7 +1436,14 @@ def sample5_change_vnfpkg(vnfd_id, net_ids, subnet_ids):
                 }
             ],
             "lcm-operation-user-data": "./UserData/userdata_standard.py",
-            "lcm-operation-user-data-class": "StandardUserData"
+            "lcm-operation-user-data-class": "StandardUserData",
+            "nfv": {
+                "VDU": {
+                    "VDU1-0": {"name": "VDU1-a-001-change_vnfpkg"},
+                    "VDU1-1": {"name": "VDU1-a-010-change_vnfpkg"},
+                    "VDU1-2": {"name": "VDU1-a-011-change_vnfpkg"}
+                }
+            }
         }
     }
 

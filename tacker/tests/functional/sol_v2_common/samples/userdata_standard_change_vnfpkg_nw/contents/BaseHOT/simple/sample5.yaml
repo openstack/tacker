@@ -16,6 +16,7 @@ resources:
       net3: { get_resource: internalVL3 }
       net4: { get_param: [ nfv, CP, VDU1_CP4, network ] }
       zone: { get_param: [ nfv, VDU, VDU1, locationConstraints ] }
+      name: { get_param: [ nfv, VDU, VDU1, name] }
 
   VDU2:
     type: VDU2-ver2.yaml

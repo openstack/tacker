@@ -16,13 +16,15 @@ parameters:
     type: string
   zone:
     type: string
+  name:
+    type: string
 
 resources:
   VDU1:
     type: OS::Nova::Server
     properties:
       flavor: { get_param: flavor }
-      name: VDU1
+      name: { get_param: name }
       image: { get_param: image-VDU1 }
       networks:
       - port:
