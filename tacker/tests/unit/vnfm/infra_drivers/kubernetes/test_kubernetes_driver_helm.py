@@ -18,6 +18,7 @@ import paramiko
 from ddt import ddt
 from kubernetes import client
 from oslo_serialization import jsonutils
+from tacker._i18n import _
 from tacker.common import exceptions
 from tacker import context
 from tacker.db.db_sqlalchemy import models

@@ -19,6 +19,7 @@ from oslo_utils import uuidutils
 from oslo_versionedobjects import base as ovoo_base
 from sqlalchemy.orm import joinedload
 
+from tacker._i18n import _
 from tacker.common import exceptions
 from tacker.db import api as db_api
 from tacker.db.db_sqlalchemy import api

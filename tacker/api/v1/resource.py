@@ -20,6 +20,7 @@ Utility methods for working with WSGI servers redux
 from oslo_log import log as logging
 import webob.dec
 
+from tacker._i18n import _
 from tacker.api import api_common
 from tacker import wsgi
 

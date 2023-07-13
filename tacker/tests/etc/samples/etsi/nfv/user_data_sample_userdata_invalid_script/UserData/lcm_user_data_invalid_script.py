@@ -11,6 +11,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from tacker._i18n import _
 from tacker.extensions import vnfm
 from tacker.vnfm.lcm_user_data.abstract_user_data import AbstractUserData
 

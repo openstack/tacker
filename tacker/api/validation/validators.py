@@ -25,6 +25,7 @@ from oslo_utils import uuidutils
 import rfc3986
 import webob
 
+from tacker._i18n import _
 from tacker.common import exceptions as exception
 
 

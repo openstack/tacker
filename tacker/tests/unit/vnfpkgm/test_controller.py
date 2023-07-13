@@ -27,6 +27,7 @@ from oslo_config import cfg
 from oslo_policy import policy as oslo_policy
 from oslo_serialization import jsonutils
 
+from tacker._i18n import _
 from tacker.api.vnfpkgm.v1 import controller
 from tacker.common import csar_utils
 from tacker.common import exceptions as tacker_exc

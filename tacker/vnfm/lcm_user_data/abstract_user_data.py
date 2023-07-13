@@ -13,6 +13,7 @@
 
 import abc
 
+from tacker._i18n import _
 from tacker.extensions import vnfm
 
 

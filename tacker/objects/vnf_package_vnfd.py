@@ -16,6 +16,7 @@ from oslo_db import exception as db_exc
 from oslo_log import log as logging
 from oslo_utils import uuidutils
 
+from tacker._i18n import _
 from tacker.common import exceptions
 import tacker.context
 from tacker.db import api as db_api

@@ -25,6 +25,7 @@ from oslo_serialization import jsonutils
 from oslo_utils import uuidutils
 
 from heatclient.v1 import resources
+from tacker._i18n import _
 from tacker.common import driver_manager
 from tacker.common import exceptions
 from tacker.common import utils
