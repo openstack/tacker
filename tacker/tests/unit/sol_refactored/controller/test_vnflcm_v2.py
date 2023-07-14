@@ -189,18 +189,18 @@ def get_test_data_policy_vnf_instantiated(action, success_status_code):
         # 'expected_status_code': success_status_code
         {
             'vnf_instance_updates': vnf_instance_updates,
-            'tenant': 'namespace_A',
+            'tenant': 'tenant_A',
             'rules': rule_area_vendor_tenant,
             'roles': [
                 'AREA_area_A@region_A',
                 'VENDOR_provider_A',
-                'TENANT_namespace_A'
+                'TENANT_tenant_A'
             ],
             'expected_status_code': success_status_code
         },
         {
             'vnf_instance_updates': vnf_instance_updates,
-            'tenant': 'namespace_A',
+            'tenant': 'tenant_A',
             'rules': rule_area_vendor_tenant,
             'roles': [
                 'AREA_all@all', 'VENDOR_all', 'TENANT_all'
@@ -209,7 +209,7 @@ def get_test_data_policy_vnf_instantiated(action, success_status_code):
         },
         {
             'vnf_instance_updates': vnf_instance_updates,
-            'tenant': 'namespace_A',
+            'tenant': 'tenant_A',
             'rules': rule_area_vendor_tenant,
             'roles': [
                 'AREA_all@region_A', 'VENDOR_all', 'TENANT_all'
@@ -218,12 +218,12 @@ def get_test_data_policy_vnf_instantiated(action, success_status_code):
         },
         {
             'vnf_instance_updates': vnf_instance_updates,
-            'tenant': 'namespace_A',
+            'tenant': 'tenant_A',
             'rules': rule_vendor,
             'roles': [
                 'AREA_area_A@region_A',
                 'VENDOR_provider_A',
-                'TENANT_namespace_A'
+                'TENANT_tenant_A'
             ],
             'expected_status_code': success_status_code
         },
@@ -235,18 +235,18 @@ def get_test_data_policy_vnf_instantiated(action, success_status_code):
             'roles': [
                 'AREA_area_A@region_A',
                 'VENDOR_provider_A',
-                'TENANT_namespace_A'
+                'TENANT_tenant_A'
             ],
             'expected_status_code': http_client.FORBIDDEN
         },
         {
             'vnf_instance_updates': vnf_instance_updates_without_area,
-            'tenant': 'namespace_A',
+            'tenant': 'tenant_A',
             'rules': rule_area_vendor_tenant,
             'roles': [
                 'AREA_area_A@region_A',
                 'VENDOR_provider_A',
-                'TENANT_namespace_A'
+                'TENANT_tenant_A'
             ],
             'expected_status_code': http_client.FORBIDDEN
         },
@@ -258,66 +258,66 @@ def get_test_data_policy_vnf_instantiated(action, success_status_code):
             'roles': [
                 'AREA_area_A@region_A',
                 'VENDOR_provider_A',
-                'TENANT_namespace_A'
+                'TENANT_tenant_A'
             ],
             'expected_status_code': http_client.FORBIDDEN
         },
         {
             'vnf_instance_updates': vnf_instance_updates,
-            'tenant': 'namespace_A',
+            'tenant': 'tenant_A',
             'rules': rule_area_vendor_tenant,
             'roles': [
                 'AREA_area_B@region_A',
                 'VENDOR_provider_A',
-                'TENANT_namespace_A'
+                'TENANT_tenant_A'
             ],
             'expected_status_code': http_client.FORBIDDEN
         },
         {
             'vnf_instance_updates': vnf_instance_updates,
-            'tenant': 'namespace_A',
+            'tenant': 'tenant_A',
             'rules': rule_area_vendor_tenant,
             'roles': [
                 'AREA_area_A@region_A',
                 'VENDOR_provider_B',
-                'TENANT_namespace_A'
+                'TENANT_tenant_A'
             ],
             'expected_status_code': http_client.FORBIDDEN
         },
         {
             'vnf_instance_updates': vnf_instance_updates,
-            'tenant': 'namespace_A',
+            'tenant': 'tenant_A',
             'rules': rule_area_vendor_tenant,
             'roles': [
                 'AREA_area_A@region_A',
                 'VENDOR_provider_A',
-                'TENANT_namespace_B'
+                'TENANT_tenant_B'
             ],
             'expected_status_code': http_client.FORBIDDEN
         },
         {
             'vnf_instance_updates': vnf_instance_updates,
-            'tenant': 'namespace_A',
+            'tenant': 'tenant_A',
             'rules': rule_area_vendor_tenant,
             'roles': [
                 'VENDOR_provider_A',
-                'TENANT_namespace_A'
+                'TENANT_tenant_A'
             ],
             'expected_status_code': http_client.FORBIDDEN
         },
         {
             'vnf_instance_updates': vnf_instance_updates,
-            'tenant': 'namespace_A',
+            'tenant': 'tenant_A',
             'rules': rule_area_vendor_tenant,
             'roles': [
                 'AREA_area_A@region_A',
-                'TENANT_namespace_A'
+                'TENANT_tenant_A'
             ],
             'expected_status_code': http_client.FORBIDDEN
         },
         {
             'vnf_instance_updates': vnf_instance_updates,
-            'tenant': 'namespace_A',
+            'tenant': 'tenant_A',
             'rules': rule_area_vendor_tenant,
             'roles': [
                 'AREA_area_A@region_A',
@@ -327,40 +327,40 @@ def get_test_data_policy_vnf_instantiated(action, success_status_code):
         },
         {
             'vnf_instance_updates': vnf_instance_updates,
-            'tenant': 'namespace_A',
+            'tenant': 'tenant_A',
             'rules': rule_area_vendor_tenant,
             'roles': [],
             'expected_status_code': http_client.FORBIDDEN
         },
         {
             'vnf_instance_updates': vnf_instance_updates,
-            'tenant': 'namespace_A',
+            'tenant': 'tenant_A',
             'rules': rule_area_vendor_tenant,
             'roles': [
                 'AREA_all@region_B',
                 'VENDOR_provider_A',
-                'TENANT_namespace_A'
+                'TENANT_tenant_A'
             ],
             'expected_status_code': http_client.FORBIDDEN
         },
         {
             'vnf_instance_updates': vnf_instance_updates,
-            'tenant': 'namespace_A',
+            'tenant': 'tenant_A',
             'rules': rule_vendor,
             'roles': [
                 'AREA_area_A@region_A',
                 'VENDOR_provider_B',
-                'TENANT_namespace_A'
+                'TENANT_tenant_A'
             ],
             'expected_status_code': http_client.FORBIDDEN
         },
         {
             'vnf_instance_updates': vnf_instance_updates,
-            'tenant': 'namespace_A',
+            'tenant': 'tenant_A',
             'rules': rule_vendor,
             'roles': [
                 'AREA_area_A@region_A',
-                'TENANT_namespace_A'
+                'TENANT_tenant_A'
             ],
             'expected_status_code': http_client.FORBIDDEN
         },
@@ -372,7 +372,7 @@ def get_test_data_policy_vnf_instantiated(action, success_status_code):
             'roles': [
                 'AREA_area_B@region_A',
                 'VENDOR_provider_B',
-                'TENANT_namespace_A'
+                'TENANT_tenant_A'
             ],
             'expected_status_code': http_client.FORBIDDEN
         },
@@ -396,6 +396,39 @@ def get_test_data_policy_vnf_instantiated(action, success_status_code):
             ],
             'expected_status_code': http_client.FORBIDDEN
         }
+    ]
+    return test_data
+
+
+def get_test_data_policy_delete():
+    rules = {POLICY_NAME.format('delete'): "vendor:%(vendor)s"}
+    test_data = [
+        # 'expected_status_code': http_client.NO_CONTENT
+        {
+            'vnf_instance_updates': {'vnfProvider': 'provider_A'},
+            'rules': rules,
+            'roles': ['VENDOR_provider_A'],
+            'expected_status_code': http_client.NO_CONTENT
+        },
+        {
+            'vnf_instance_updates': {'vnfProvider': 'provider_A'},
+            'rules': rules,
+            'roles': ['VENDOR_all'],
+            'expected_status_code': http_client.NO_CONTENT
+        },
+        # 'expected_status_code': http_client.FORBIDDEN
+        {
+            'vnf_instance_updates': {'vnfProvider': 'provider_A'},
+            'rules': rules,
+            'roles': [],
+            'expected_status_code': http_client.FORBIDDEN
+        },
+        {
+            'vnf_instance_updates': {'vnfProvider': 'provider_A'},
+            'rules': rules,
+            'roles': ['VENDOR_provider_B'],
+            'expected_status_code': http_client.FORBIDDEN
+        },
     ]
     return test_data
 
@@ -435,8 +468,8 @@ def make_vnf_instance(
             objects.VnfInstanceV2_InstantiatedVnfInfo(
                 flavourId='fake_flavour_id',
                 vnfState='STARTED',
-                metadata={'namespace': tenant}))
-        vnf_inst_fields.update({'metadata': {'namespace': tenant}})
+                metadata={'tenant': tenant}))
+        vnf_inst_fields.update({'metadata': {'tenant': tenant}})
 
     return vnf_instance
 
@@ -452,50 +485,59 @@ def get_test_data_policy_index():
 
     inst_1 = make_vnf_instance(
         'ETSINFV.OPENSTACK_KEYSTONE.V_3', 'INSTANTIATED', 'provider_A',
-        area='area_A@region_A')
+        area='area_A@region_A', tenant='tenant_A')
     # OK
     test_data.append({
         'vnf_instance_list': [inst_1],
         'rules': rule_area_vendor_tenant,
-        'roles': ['AREA_area_A@region_A', 'VENDOR_provider_A'],
+        'roles': ['AREA_area_A@region_A', 'VENDOR_provider_A',
+                  'TENANT_tenant_A'],
         'expected_vnf_inst_ids': [inst_1.id]
     })
     test_data.append({
         'vnf_instance_list': [inst_1],
         'rules': rule_area_vendor_tenant,
-        'roles': ['AREA_all@all', 'VENDOR_all'],
+        'roles': ['AREA_all@all', 'VENDOR_all', 'TENANT_all'],
         'expected_vnf_inst_ids': [inst_1.id]
     })
     test_data.append({
         'vnf_instance_list': [inst_1],
         'rules': rule_area_vendor_tenant,
-        'roles': ['AREA_all@region_A', 'VENDOR_all'],
+        'roles': ['AREA_all@region_A', 'VENDOR_all', 'TENANT_all'],
         'expected_vnf_inst_ids': [inst_1.id]
     })
     # wrong region role
     test_data.append({
         'vnf_instance_list': [inst_1],
         'rules': rule_area_vendor_tenant,
-        'roles': ['AREA_all@region_B', 'VENDOR_all'],
+        'roles': ['AREA_all@region_B', 'VENDOR_all', 'TENANT_all'],
         'expected_vnf_inst_ids': []
     })
     # wrong area role
     test_data.append({
         'vnf_instance_list': [inst_1],
         'rules': rule_area_vendor_tenant,
-        'roles': ['AREA_area_B@region_A', 'VENDOR_provider_A'],
+        'roles': ['AREA_area_B@region_A', 'VENDOR_provider_A', 'TENANT_all'],
         'expected_vnf_inst_ids': []
     })
     # wrong vendor role
     test_data.append({
         'vnf_instance_list': [inst_1],
         'rules': rule_area_vendor_tenant,
-        'roles': ['AREA_area_A@region_A', 'VENDOR_provider_B'],
+        'roles': ['AREA_area_A@region_A', 'VENDOR_provider_B', 'TENANT_all'],
+        'expected_vnf_inst_ids': []
+    })
+    # wrong tenant role
+    test_data.append({
+        'vnf_instance_list': [inst_1],
+        'rules': rule_area_vendor_tenant,
+        'roles': ['AREA_area_A@region_A', 'VENDOR_provider_A', 'TENANT_B'],
         'expected_vnf_inst_ids': []
     })
     # without area
     inst_2 = make_vnf_instance(
-        'ETSINFV.OPENSTACK_KEYSTONE.V_3', 'INSTANTIATED', 'provider_A')
+        'ETSINFV.OPENSTACK_KEYSTONE.V_3', 'INSTANTIATED', 'provider_A',
+        tenant='tenant_A')
     test_data.append({
         'vnf_instance_list': [inst_2],
         'rules': rule_area_vendor_tenant,
@@ -504,7 +546,8 @@ def get_test_data_policy_index():
     })
     # NOT_INSTANTIATED
     inst_3 = make_vnf_instance(
-        'ETSINFV.OPENSTACK_KEYSTONE.V_3', 'NOT_INSTANTIATED', 'provider_A')
+        'ETSINFV.OPENSTACK_KEYSTONE.V_3', 'NOT_INSTANTIATED', 'provider_A',
+        tenant='tenant_A')
     test_data.append({
         'vnf_instance_list': [inst_3],
         'rules': rule_area_vendor_tenant,
@@ -1837,7 +1880,7 @@ class TestVnflcmV2EnhancedPolicy(TestVnflcmV2):
                 objects.VnfInstanceV2_InstantiatedVnfInfo(
                     flavourId='fake_flavour_id',
                     vnfState='STARTED',
-                    metadata={'namespace': 'namespace_A'}))
+                    metadata={'tenant': 'tenant_A'}))
         inst.create(self.context)
         lcmocc.create(self.context)
 
@@ -1897,7 +1940,7 @@ class TestVnflcmV2EnhancedPolicy(TestVnflcmV2):
             'maxScaleLevels': max_scale_levels,
         }
         if tenant:
-            instantiated_vnf_info.update({'metadata': {'namespace': tenant}})
+            instantiated_vnf_info.update({'metadata': {'tenant': tenant}})
         inst.instantiatedVnfInfo = objects.VnfInstanceV2_InstantiatedVnfInfo(
             **instantiated_vnf_info
         )
@@ -1931,7 +1974,7 @@ class TestVnflcmV2EnhancedPolicy(TestVnflcmV2):
             ]
         )
         if tenant:
-            inst.instantiatedVnfInfo.metadata = {'namespace': tenant}
+            inst.instantiatedVnfInfo.metadata = {'tenant': tenant}
         if not vnf_inst_updates:
             inst.vimConnectionInfo = {
                 "vim1": objects.VimConnectionInfo.from_dict(
@@ -2100,17 +2143,15 @@ class TestVnflcmV2EnhancedPolicy(TestVnflcmV2):
             if expected_status_code != http_client.FORBIDDEN:
                 raise
 
-    @ddt.data(*get_test_data_policy_vnf_instantiated(
-        'delete', http_client.NO_CONTENT))
+    @ddt.data(*get_test_data_policy_delete())
     @ddt.unpack
     @mock.patch.object(nfvo_client.NfvoClient, 'send_inst_delete_notification')
     def test_delete_enhanced_policy(self, mock_delete, vnf_instance_updates,
-            tenant, rules, roles, expected_status_code):
+            rules, roles, expected_status_code):
         self._overwrite_policy(rules)
         inst_id, _ = self._create_inst_and_lcmocc('NOT_INSTANTIATED',
             fields.LcmOperationStateType.COMPLETED,
-            vnf_inst_updates=vnf_instance_updates,
-            tenant=tenant)
+            vnf_inst_updates=vnf_instance_updates)
         try:
             result = self.controller.delete(
                 self._fake_request(roles), id=inst_id)
@@ -2205,11 +2246,11 @@ class TestVnflcmV2EnhancedPolicy(TestVnflcmV2):
             ]
         )
         if tenant:
-            inst.instantiatedVnfInfo.metadata = {'namespace': tenant}
+            inst.instantiatedVnfInfo.metadata = {'tenant': tenant}
         # inst.instantiatedVnfInfo = objects.VnfInstanceV2_InstantiatedVnfInfo(
         #     flavourId='fake_flavour_id',
         #     vnfState='STARTED',
-        #     metadata={'namespace': tenant}
+        #     metadata={'tenant': tenant}
         # )
         inst.create(self.context)
 

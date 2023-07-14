@@ -2040,6 +2040,7 @@ class TestOpenStack(base.FixturedTestCase):
 
         vnf_instance = fd_utils.get_vnf_instance_object(
             instantiated_vnf_info=inst_vnf_info)
+        vnf_instance.vnf_metadata = None
 
         vim_connection_info = fd_utils.get_vim_connection_info_object()
         resources = [{'resource_name': vnfc_resource_info.vdu_id,
@@ -2079,6 +2080,10 @@ class TestOpenStack(base.FixturedTestCase):
             vnf_instance.instantiated_vnf_info.
             vnf_virtual_link_resource_info[0].vnf_link_ports[0].
             resource_handle.resource_id)
+
+        # Check if tenant data is stored in vnf_metadata
+        self.assertEqual(vnf_instance.vnf_metadata['tenant'],
+            vim_connection_info.access_info['project_name'])
 
     def test_post_vnf_instantiation_with_ext_managed_virtual_link(self):
         v_s_resource_info = fd_utils.get_virtual_storage_resource_info(

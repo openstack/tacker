@@ -20,6 +20,7 @@ import time
 import yaml
 import zipfile
 
+from glanceclient.v2 import client as glance_client
 from keystoneauth1.identity import v3
 from keystoneauth1 import session
 from keystoneclient.v3 import client as ks_client
@@ -46,15 +47,19 @@ class BaseEnhancedPolicyTest(object):
     vim_base_url = "/v1.0/vims"
     pkg_base_url = '/vnfpkgm/v1/vnf_packages'
     user_role_map = {}
+    vim_user_project_map = {}
 
     @classmethod
-    def setUpClass(cls, subclass_with_user_role_map):
-        cls.user_role_map = subclass_with_user_role_map.user_role_map
+    def setUpClass(cls, subclass_with_maps):
+        cls.user_role_map = subclass_with_maps.user_role_map
+        cls.vim_user_project_map = subclass_with_maps.vim_user_project_map
         cls.ks_client = cls.keystone_client()
         cls.project = cls._get_project()
+        cls._create_project()
         cls._create_user_role()
         cls.create_tacker_http_client_for_user()
         cls.cleanup_list = []
+        cls.images_to_delete = []
 
     @classmethod
     def create_tacker_http_client_for_user(cls):
@@ -69,7 +74,9 @@ class BaseEnhancedPolicyTest(object):
 
     @classmethod
     def tearDownClass(cls):
+        cls._delete_image()
         cls._delete_user_role()
+        cls._delete_project()
 
     @classmethod
     def keystone_client(cls):
@@ -151,25 +158,27 @@ class BaseEnhancedPolicyTest(object):
 
     @classmethod
     def _create_project(cls):
-        project_name = 'policy-test'
-        projects = cls.ks_client.projects.list()
-        project_exists = False
-        for project in projects:
-            if project_name == project.name:
-                project_exists = True
-                cls.project_id = project.id
-                cls.project = project
-                break
-        if not project_exists:
-            project = cls.ks_client.projects.create(project_name, 'default')
-            cls.project_id = project.id
-            cls.project = project
+        cls.projects = []
+        if cls.vim_user_project_map:
+            # create project
+            projects = cls.ks_client.projects.list()
+            project_names = [project.name for project in projects]
+            projects_to_create = [
+                project_name
+                for project_name in cls.vim_user_project_map.values()
+                if project_name not in project_names]
+            if projects_to_create:
+                for project_name in set(projects_to_create):
+                    project = cls.ks_client.projects.create(project_name,
+                                                            'default')
+                    cls.projects.append(project)
 
     @classmethod
-    def _get_project(cls):
-        vim_params = base.BaseTackerTest.get_credentials(
-            cls.local_vim_conf_file)
-        project_name = vim_params['project_name']
+    def _get_project(cls, project_name=None):
+        if not project_name:
+            vim_params = base.BaseTackerTest.get_credentials(
+                cls.local_vim_conf_file)
+            project_name = vim_params['project_name']
         projects = cls.ks_client.projects.list()
         for project in projects:
             if project.name == project_name:
@@ -179,9 +188,9 @@ class BaseEnhancedPolicyTest(object):
 
     @classmethod
     def _delete_project(cls):
-        if hasattr(cls, 'project_id') and cls.project_id:
-            if hasattr(cls, 'ks_client') and cls.ks_client:
-                cls.ks_client.projects.delete(cls.project_id)
+        if cls.projects:
+            for project in cls.projects:
+                cls.ks_client.projects.delete(project.id)
 
     @classmethod
     def _get_user_by_name(cls, name):
@@ -228,6 +237,34 @@ class BaseEnhancedPolicyTest(object):
                     user=cls._get_user_by_name(username),
                     project=cls.project.id
                 )
+
+    @classmethod
+    def create_vim_user(cls):
+        if cls.vim_user_project_map:
+            vim_user_project_map = cls.vim_user_project_map
+        else:
+            raise Exception('vim_user_project_map is needed.')
+        users = cls.ks_client.users.list()
+        usernames = [user.name for user in users]
+        projects = cls.ks_client.projects.list()
+        password = 'devstack'
+        for username in vim_user_project_map.keys():
+            vim_username = f'vim_{username}'
+            if vim_username in usernames:
+                # already exist
+                continue
+            project_name = vim_user_project_map[username]
+            project_id = [project.id for project in projects
+                          if project_name == project.name][0]
+            user = cls.ks_client.users.create(
+                vim_username, project=project_id, password=password)
+            cls.users.append(user)
+            # add member role to vim users
+            cls.ks_client.roles.grant(
+                cls.role_map.get('member'),
+                user=cls._get_user_by_name(vim_username),
+                project=project_id
+            )
 
     @classmethod
     def _create_role(cls, role_name):
@@ -286,11 +323,12 @@ class BaseEnhancedPolicyTest(object):
 
     @classmethod
     def register_vim(cls, client, url, vim_file, name, description, vim_type,
-                     extra, is_default=False):
+                     extra, is_default=False, username=None, tenant=None):
         base_data = yaml.safe_load(read_file(vim_file))
         if vim_type == 'openstack':
+            username = f'vim_{username}' if username else base_data['username']
             auth_cred = {
-                'username': base_data['username'],
+                'username': username,
                 'password': base_data['password'],
                 'user_domain_name': base_data['user_domain_name']
             }
@@ -299,7 +337,7 @@ class BaseEnhancedPolicyTest(object):
         else:
             raise Exception(f'unknown vim type: {vim_type}.')
         vim_project = {
-            'name': base_data['project_name'],
+            'name': tenant if tenant else base_data['project_name'],
         }
         if 'project_domain_name' in base_data:
             vim_project['project_domain_name'] = (
@@ -457,7 +495,7 @@ class BaseEnhancedPolicyTest(object):
     @classmethod
     def _step_vim_register(
             cls, username, vim_type, local_vim, vim_name, area,
-            is_default=False):
+            is_default=False, tenant=None):
         extra = {}
         if area:
             extra = {'area': area}
@@ -465,7 +503,8 @@ class BaseEnhancedPolicyTest(object):
             cls.get_tk_http_client_by_user(username), cls.vim_base_url,
             local_vim, vim_name,
             "{}-{}".format(vim_name, uuidutils.generate_uuid()),
-            vim_type, extra, is_default=is_default)
+            vim_type, extra, is_default=is_default, username=username,
+            tenant=tenant)
         if resp.status_code == 201:
             return body.get('vim')
         else:
@@ -487,6 +526,55 @@ class BaseEnhancedPolicyTest(object):
             csar_name))
 
         return csar_dir
+
+    @classmethod
+    def _glance_client(cls, username=None, tenant=None):
+        vim_params = base.BaseTackerTest.get_credentials()
+        auth = v3.Password(auth_url=vim_params['auth_url'],
+            username=username if username else vim_params['username'],
+            password=vim_params['password'],
+            project_name=tenant if tenant else vim_params['project_name'],
+            user_domain_name=vim_params['user_domain_name'],
+            project_domain_name=vim_params['project_domain_name'])
+        verify = 'True' == vim_params.pop('cert_verify', 'False')
+        auth_ses = session.Session(auth=auth, verify=verify)
+        return glance_client.Client(session=auth_ses)
+
+    @classmethod
+    def create_image(cls):
+        if cls.vim_user_project_map:
+            vim_user_project_map = cls.vim_user_project_map
+        else:
+            raise Exception('vim_user_project_map is needed.')
+        image_name = "cirros-0.5.2-x86_64-disk"
+        image_path = os.path.abspath(
+            os.path.join(os.path.dirname(__file__),
+            "../../etc/samples/etsi/nfv/common/Files/images",
+            f"{image_name}.img"))
+        image_data = {
+            'disk_format': 'qcow2',
+            'container_format': 'bare',
+            'visibility': 'private',
+            'name': image_name}
+        for username, projectname in vim_user_project_map.items():
+            glance_client = cls._glance_client(username=f'vim_{username}',
+                                               tenant=projectname)
+            images = glance_client.images.list()
+            images = list(filter(
+                lambda image: image.name == image_name, images))
+            if not images:
+                image = glance_client.images.create(**image_data)
+                with open(image_path, 'rb') as f:
+                    glance_client.images.upload(image.id, f)
+                cls.images_to_delete.append(image)
+
+    @classmethod
+    def _delete_image(cls):
+        if not cls.images_to_delete:
+            return
+        glance_client = cls._glance_client()
+        for image in cls.images_to_delete:
+            glance_client.images.delete(image.id)
 
     def _register_subscription(self, request_body, http_client=None):
         if http_client is None:
@@ -684,18 +772,6 @@ class VimAPIsTest(BaseTackerTest, BaseEnhancedPolicyTest):
 
 class VnflcmAPIsV1Base(vnflcm_base.BaseVnfLcmTest, BaseEnhancedPolicyTest):
 
-    user_role_map = {
-        'user_a': ['VENDOR_company_A', 'AREA_area_A@region_A',
-                   'TENANT_namespace-a', 'manager'],
-        'user_a_1': ['VENDOR_company_A', 'manager'],
-        'user_b': ['VENDOR_company_B', 'AREA_area_B@region_B',
-                   'TENANT_namespace-b', 'manager'],
-        'user_c': ['VENDOR_company_C', 'AREA_area_C@region_C',
-                   'TENANT_namespace-c', 'manager'],
-        'user_all': ['VENDOR_all', 'AREA_all@all', 'TENANT_all', 'manager'],
-        'user_admin': ['admin']
-    }
-
     @classmethod
     def setUpClass(cls):
         vnflcm_base.BaseVnfLcmTest.setUpClass()
@@ -703,6 +779,11 @@ class VnflcmAPIsV1Base(vnflcm_base.BaseVnfLcmTest, BaseEnhancedPolicyTest):
 
     def setUp(self):
         super().setUp()
+
+    @classmethod
+    def tearDownClass(cls):
+        BaseEnhancedPolicyTest.tearDownClass()
+        vnflcm_base.BaseVnfLcmTest.tearDownClass()
 
     def _step_lcm_create(self, username, vnfd_id, vnf_instance_name,
                          expected_status_code):

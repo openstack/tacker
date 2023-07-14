@@ -2586,6 +2586,11 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
             vim_connection_info, instantiate_vnf_req):
         self._update_vnfc_resources_and_info(
             context, vnf_instance, vim_connection_info)
+        # store tenant information for enhanced policy
+        if not vnf_instance.vnf_metadata:
+            vnf_instance.vnf_metadata = {}
+        access_info = vim_connection_info.access_info
+        vnf_instance.vnf_metadata['tenant'] = access_info.get('project_name')
 
     @log.log
     def post_change_ext_conn_vnf(self, context, vnf_instance,

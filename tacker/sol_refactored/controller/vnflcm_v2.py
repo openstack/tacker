@@ -236,15 +236,8 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
             if (vnf_instance.obj_attr_is_set('instantiatedVnfInfo') and
                     vnf_instance.instantiatedVnfInfo.obj_attr_is_set(
                         'metadata')):
-
                 tenant = (vnf_instance.instantiatedVnfInfo
-                          .metadata.get('namespace'))
-
-            # TODO(kexuesheng): Add steps to get tenant of VNFs deployed
-            #  in OpenStack VIM. This is a temporary workaround until that
-            #  information is available.
-            if vim_type == "ETSINFV.OPENSTACK_KEYSTONE.V_3":
-                tenant = '*'
+                          .metadata.get('tenant'))
 
         target = {
             'vendor': vendor,
