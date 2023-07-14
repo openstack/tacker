@@ -218,6 +218,11 @@ class ServerNotificationTest(test_vnflcm_basic_common.CommonVnfLcmTest):
 
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
+        lcmocc_resp, lcmocc_body = self.show_lcmocc(lcmocc_id)
+        self.assertEqual(200, lcmocc_resp.status_code)
+        self.assertEqual('COMPLETED', lcmocc_body['operationState'])
+        self.assertEqual('INSTANTIATE', lcmocc_body['operation'])
+        self.assertEqual(False, lcmocc_body['isAutomaticInvocation'])
 
         # check creation of Heat-stack
         stack_name = f'vnf-{inst_id}'
@@ -265,6 +270,25 @@ class ServerNotificationTest(test_vnflcm_basic_common.CommonVnfLcmTest):
             # waiting for auto healing process complete after packing timer.
             time.sleep(WAIT_AUTO_HEAL_TIME)
 
+            # List-OpOcc
+            filter_expr = {'filter': f'(eq,vnfInstanceId,{inst_id})'}
+            resp, body = self.list_lcmocc(filter_expr)
+            self.assertEqual(200, resp.status_code)
+
+            heal_lcmocc = [
+                heal_lcmocc for heal_lcmocc in body
+                if heal_lcmocc['startTime'] == max(
+                    [lcmocc['startTime'] for lcmocc in body])][0]
+            lcmocc_id = heal_lcmocc['id']
+            self.wait_lcmocc_complete(lcmocc_id)
+
+            # Show-OpOcc
+            resp, body = self.show_lcmocc(lcmocc_id)
+            self.assertEqual(200, resp.status_code)
+            self.assertEqual('COMPLETED', body['operationState'])
+            self.assertEqual('HEAL', body['operation'])
+            self.assertEqual(True, body['isAutomaticInvocation'])
+
             # 4. LCM-Heal
             nested_stacks = self.heat_client.get_resources(stack_name)
             temp_stacks = [stack for stack in nested_stacks if
@@ -280,6 +304,11 @@ class ServerNotificationTest(test_vnflcm_basic_common.CommonVnfLcmTest):
             self.check_resp_headers_in_operation_task(resp)
             lcmocc_id = os.path.basename(resp.headers['Location'])
             self.wait_lcmocc_complete(lcmocc_id)
+            lcmocc_resp, lcmocc_body = self.show_lcmocc(lcmocc_id)
+            self.assertEqual(200, lcmocc_resp.status_code)
+            self.assertEqual('COMPLETED', lcmocc_body['operationState'])
+            self.assertEqual('HEAL', lcmocc_body['operation'])
+            self.assertEqual(False, lcmocc_body['isAutomaticInvocation'])
 
             # check stack info
             stack_status, _ = self.heat_client.get_status(stack_name)
@@ -348,6 +377,11 @@ class ServerNotificationTest(test_vnflcm_basic_common.CommonVnfLcmTest):
             self.check_resp_headers_in_operation_task(resp)
             lcmocc_id = os.path.basename(resp.headers['Location'])
             self.wait_lcmocc_complete(lcmocc_id)
+            lcmocc_resp, lcmocc_body = self.show_lcmocc(lcmocc_id)
+            self.assertEqual(200, lcmocc_resp.status_code)
+            self.assertEqual('COMPLETED', lcmocc_body['operationState'])
+            self.assertEqual('HEAL', lcmocc_body['operation'])
+            self.assertEqual(False, lcmocc_body['isAutomaticInvocation'])
 
             # check stack info
             stack_status, _ = self.heat_client.get_status(stack_name)
@@ -390,6 +424,11 @@ class ServerNotificationTest(test_vnflcm_basic_common.CommonVnfLcmTest):
             self.check_resp_headers_in_operation_task(resp)
             lcmocc_id = os.path.basename(resp.headers['Location'])
             self.wait_lcmocc_complete(lcmocc_id)
+            lcmocc_resp, lcmocc_body = self.show_lcmocc(lcmocc_id)
+            self.assertEqual(200, lcmocc_resp.status_code)
+            self.assertEqual('COMPLETED', lcmocc_body['operationState'])
+            self.assertEqual('SCALE', lcmocc_body['operation'])
+            self.assertEqual(False, lcmocc_body['isAutomaticInvocation'])
 
             # Show VNF instance
             additional_inst_attrs = [
@@ -421,6 +460,11 @@ class ServerNotificationTest(test_vnflcm_basic_common.CommonVnfLcmTest):
             self.check_resp_headers_in_operation_task(resp)
             lcmocc_id = os.path.basename(resp.headers['Location'])
             self.wait_lcmocc_complete(lcmocc_id)
+            lcmocc_resp, lcmocc_body = self.show_lcmocc(lcmocc_id)
+            self.assertEqual(200, lcmocc_resp.status_code)
+            self.assertEqual('COMPLETED', lcmocc_body['operationState'])
+            self.assertEqual('SCALE', lcmocc_body['operation'])
+            self.assertEqual(False, lcmocc_body['isAutomaticInvocation'])
 
             # get nested stack count after scale in
             nested_stacks = self.heat_client.get_resources(stack_name)
@@ -438,6 +482,11 @@ class ServerNotificationTest(test_vnflcm_basic_common.CommonVnfLcmTest):
 
         lcmocc_id = os.path.basename(resp.headers['Location'])
         self.wait_lcmocc_complete(lcmocc_id)
+        lcmocc_resp, lcmocc_body = self.show_lcmocc(lcmocc_id)
+        self.assertEqual(200, lcmocc_resp.status_code)
+        self.assertEqual('COMPLETED', lcmocc_body['operationState'])
+        self.assertEqual('TERMINATE', lcmocc_body['operation'])
+        self.assertEqual(False, lcmocc_body['isAutomaticInvocation'])
 
         # check deletion of Heat-stack
         stack_status, _ = self.heat_client.get_status(stack_name)

@@ -109,7 +109,8 @@ class ServerNotificationDriverMain(ServerNotificationDriver):
                  vnf_instance_id)
         context = tacker_context.get_admin_context()
         try:
-            vnflcm_utils.heal(context, vnf_instance_id, body)
+            vnflcm_utils.heal(context, vnf_instance_id, body,
+                              auto_invocation=True)
         except Exception as exp:
             LOG.error(str(body))
             LOG.error("server_notification auto healing is failed: %s.",

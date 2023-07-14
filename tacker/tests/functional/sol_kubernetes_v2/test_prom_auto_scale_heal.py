@@ -93,6 +93,7 @@ class PromAutoScaleHealTest(base_v2.BaseVnfLcmKubernetesV2Test):
         self.assertEqual(200, resp.status_code)
         self.assertEqual('COMPLETED', body['operationState'])
         self.assertEqual('INSTANTIATE', body['operation'])
+        self.assertEqual(False, body['isAutomaticInvocation'])
 
         # 4-5. Send alert and auto heal
         affected_vnfcs = body['resourceChanges']['affectedVnfcs']
@@ -125,6 +126,7 @@ class PromAutoScaleHealTest(base_v2.BaseVnfLcmKubernetesV2Test):
         self.assertEqual('COMPLETED', body['operationState'])
         self.assertEqual('HEAL', body['operation'])
         self.assertEqual(2, len(affected_vnfcs))
+        self.assertEqual(True, body['isAutomaticInvocation'])
 
         added_vnfcs = [
             vnfc for vnfc in affected_vnfcs
@@ -180,6 +182,7 @@ class PromAutoScaleHealTest(base_v2.BaseVnfLcmKubernetesV2Test):
         self.assertEqual('COMPLETED', body['operationState'])
         self.assertEqual('HEAL', body['operation'])
         self.assertEqual(4, len(affected_vnfcs))
+        self.assertEqual(True, body['isAutomaticInvocation'])
 
         added_vnfcs = [
             vnfc for vnfc in affected_vnfcs
@@ -211,6 +214,7 @@ class PromAutoScaleHealTest(base_v2.BaseVnfLcmKubernetesV2Test):
         self.assertEqual(200, resp.status_code)
         self.assertEqual('COMPLETED', body['operationState'])
         self.assertEqual('TERMINATE', body['operation'])
+        self.assertEqual(False, body['isAutomaticInvocation'])
 
         # 13. LCM-Delete: Delete a VNF instance
         resp, body = self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
@@ -262,6 +266,7 @@ class PromAutoScaleHealTest(base_v2.BaseVnfLcmKubernetesV2Test):
         self.assertEqual(200, resp.status_code)
         self.assertEqual('COMPLETED', body['operationState'])
         self.assertEqual('INSTANTIATE', body['operation'])
+        self.assertEqual(False, body['isAutomaticInvocation'])
 
         # 4-5. Send alert and auto-scale out
         alert = paramgen.prometheus_auto_scaling_alert(inst_id)
@@ -294,6 +299,7 @@ class PromAutoScaleHealTest(base_v2.BaseVnfLcmKubernetesV2Test):
         self.assertEqual(
             alert['alerts'][0]['labels']['aspect_id'],
             body['operationParams']['aspectId'])
+        self.assertEqual(True, body['isAutomaticInvocation'])
 
         # 7-8. Send alert and auto-scale in
         alert['alerts'][0]['labels']['auto_scale_type'] = 'SCALE_IN'
@@ -326,6 +332,7 @@ class PromAutoScaleHealTest(base_v2.BaseVnfLcmKubernetesV2Test):
         self.assertEqual(
             alert['alerts'][0]['labels']['aspect_id'],
             body['operationParams']['aspectId'])
+        self.assertEqual(True, body['isAutomaticInvocation'])
 
         # 10. LCM-Terminate: Terminate VNF
         terminate_req = paramgen.terminate_vnf_min()
@@ -340,6 +347,7 @@ class PromAutoScaleHealTest(base_v2.BaseVnfLcmKubernetesV2Test):
         self.assertEqual(200, resp.status_code)
         self.assertEqual('COMPLETED', body['operationState'])
         self.assertEqual('TERMINATE', body['operation'])
+        self.assertEqual(False, body['isAutomaticInvocation'])
 
         # 12. LCM-Delete: Delete a VNF instance
         resp, body = self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
