@@ -151,6 +151,8 @@ class ViewBuilder(base.BaseViewBuilder):
     def _get_vnf_instance_info(self, vnf_instance):
         vnf_instance_dict = vnf_instance.to_dict()
         vnf_metadata = vnf_instance_dict.pop("vnf_metadata")
+        if vnf_instance_dict['vnf_instance_description'] is None:
+            vnf_instance_dict.pop("vnf_instance_description")
         if vnf_metadata:
             vnf_instance_dict.update({"metadata": vnf_metadata})
         vnf_instance_dict = utils.convert_snakecase_to_camelcase(
