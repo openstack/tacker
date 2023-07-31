@@ -105,15 +105,17 @@ class Openstack(object):
             try:
                 stack_id = heat_client.create_stack(fields)
             except sol_ex.StackOperationFailed as ex:
+                anti_rules = vnfd.get_anti_affinity_targets(req.flavourId)
                 self._update_stack_retry(heat_client, fields, inst, None,
-                    ex, vim_info, vdu_ids)
+                    ex, vim_info, vdu_ids, anti_rules)
                 stack_id = heat_client.get_stack_id(stack_name)
         else:
             try:
                 heat_client.update_stack(f'{stack_name}/{stack_id}', fields)
             except sol_ex.StackOperationFailed as ex:
+                anti_rules = vnfd.get_anti_affinity_targets(req.flavourId)
                 self._update_stack_retry(heat_client, fields, inst, stack_id,
-                    ex, vim_info, vdu_ids)
+                    ex, vim_info, vdu_ids, anti_rules)
 
         # make instantiated_vnf_info
         self._make_instantiated_vnf_info(req, inst, grant_req, grant, vnfd,
@@ -201,8 +203,10 @@ class Openstack(object):
             heat_client.update_stack(stack_name, fields)
         except sol_ex.StackOperationFailed as ex:
             if req.type == 'SCALE_OUT':
+                anti_rules = vnfd.get_anti_affinity_targets(
+                    inst.instantiatedVnfInfo.flavourId)
                 self._update_stack_retry(heat_client, fields, inst, None, ex,
-                    vim_info, vdu_ids)
+                    vim_info, vdu_ids, anti_rules)
             else:
                 raise ex
 
@@ -311,8 +315,10 @@ class Openstack(object):
                 stack_id = heat_client.create_stack(fields)
             except sol_ex.StackOperationFailed as ex:
                 vdu_ids = self._get_vdu_id_from_grant_req(grant_req, inst)
+                anti_rules = vnfd.get_anti_affinity_targets(
+                    inst.instantiatedVnfInfo.flavourId)
                 self._update_stack_retry(heat_client, fields, inst, None,
-                    ex, vim_info, vdu_ids)
+                    ex, vim_info, vdu_ids, anti_rules)
                 stack_id = heat_client.get_stack_id(stack_name)
         else:
             # mark unhealthy to target resources.
@@ -343,8 +349,10 @@ class Openstack(object):
                 heat_client.update_stack(stack_name, fields)
             except sol_ex.StackOperationFailed as ex:
                 vdu_ids = self._get_vdu_id_from_grant_req(grant_req, inst)
+                anti_rules = vnfd.get_anti_affinity_targets(
+                    inst.instantiatedVnfInfo.flavourId)
                 self._update_stack_retry(heat_client, fields, inst, None,
-                    ex, vim_info, vdu_ids)
+                    ex, vim_info, vdu_ids, anti_rules)
 
             stack_id = inst.instantiatedVnfInfo.metadata['stack_id']
 
@@ -668,17 +676,14 @@ class Openstack(object):
             heat_client, is_rollback=True)
 
     def _update_stack_retry(self, heat_client, fields, inst, stack_id,
-            error_ex, vim_info, vdu_ids):
-        # NOTE: This method first selects a zone from unused zones
-        # and retries in case of failure due to zone resource constraints.
-        # If there are no unused zones, it selects from the used zones.
+            error_ex, vim_info, vdu_ids, anti_rules):
         if not CONF.v2_vnfm.placement_fallback_best_effort:
             # NOTE: If fallback_best_effort is False,
             # AZ reselection is not executed.
             raise error_ex
 
         vdu_dict = fields['parameters']['nfv']['VDU']
-        failed_zone = self._check_and_get_failed_zone(
+        failed_vdu_id, failed_zone = self._check_and_get_failed_zone(
             error_ex.detail, vdu_dict)
         if failed_zone is None:
             raise error_ex
@@ -686,25 +691,22 @@ class Openstack(object):
         stack_name = heat_utils.get_stack_name(inst, stack_id)
         nova_client = nova_utils.NovaClient(vim_info)
         zones = nova_client.get_zone()
-        used_zones = {parameters.get('locationConstraints')
-                      for parameters in vdu_dict.values()
-                      if parameters.get('locationConstraints') is not None}
-        if (inst.obj_attr_is_set('instantiatedVnfInfo') and
-                inst.instantiatedVnfInfo.obj_attr_is_set('vnfcResourceInfo')):
-            used_zones |= {vnfc.metadata.get('zone') for vnfc
-                           in inst.instantiatedVnfInfo.vnfcResourceInfo
-                           if vnfc.metadata.get('zone') is not None}
+        failed_zones = set()
+        failed_zones.add(failed_zone)
 
-        available_zones = zones - used_zones
-        used_zones.discard(failed_zone)
         retry_count = (CONF.v2_vnfm.placement_az_select_retry
                        if CONF.v2_vnfm.placement_az_select_retry
                        else len(zones))
         while retry_count > 0:
-            if available_zones:
-                new_zone = available_zones.pop()
-            elif used_zones:
-                new_zone = used_zones.pop()
+            exclude_zones = self._get_exclude_zone(
+                inst, anti_rules, failed_vdu_id, vdu_ids, vdu_dict)
+            if zones - exclude_zones - failed_zones:
+                new_zone = list(zones - exclude_zones - failed_zones)[0]
+            elif exclude_zones - failed_zones:
+                # If there is no zone that matches the Anti-Affinity rules,
+                # selected zone does not comply with the Anti-Affinity
+                # rules.
+                new_zone = list(exclude_zones - failed_zones)[0]
             else:
                 message = ("Availability Zone reselection failed. "
                            "No Availability Zone available.")
@@ -721,10 +723,11 @@ class Openstack(object):
                 heat_client.update_stack(stack_name, fields)
                 return
             except sol_ex.StackOperationFailed as ex:
-                failed_zone = self._check_and_get_failed_zone(
+                failed_vdu_id, failed_zone = self._check_and_get_failed_zone(
                     ex.detail, vdu_dict)
                 if failed_zone is None:
                     raise ex
+                failed_zones.add(failed_zone)
                 retry_count -= 1
                 error_ex = ex
         else:
@@ -734,14 +737,19 @@ class Openstack(object):
             raise error_ex
 
     def _check_and_get_failed_zone(self, ex_detail, vdu_dict):
-        if re.match(CONF.v2_vnfm.placement_az_resource_error, ex_detail):
-            match_result = re.search(r'resources\.((.*)-([0-9]+))', ex_detail)
-            if match_result is None:
-                LOG.warning("CONF v2_vnfm.placement_az_resource_error is "
-                            "invalid. Please check.")
-                return None
-            vdu_id = match_result.group(1)
-            return vdu_dict.get(vdu_id, {}).get('locationConstraints')
+        if not re.match(CONF.v2_vnfm.placement_az_resource_error, ex_detail):
+            return None, None
+
+        match_result = re.search(r'resources\.((.*)-([0-9]+))', ex_detail)
+        if match_result is None:
+            LOG.warning(
+                "CONF v2_vnfm.placement_az_resource_error is invalid. "
+                "'{}' is not match. Please check it.".format(ex_detail))
+            return None, None
+
+        vdu_id = match_result.group(1)
+        return (vdu_id,
+                vdu_dict.get(vdu_id, {}).get('locationConstraints'))
 
     def _get_vdu_id_from_fields(self, fields):
         vdu_dict = fields['parameters']['nfv']['VDU']
@@ -755,6 +763,44 @@ class Openstack(object):
                    for vnfc in inst.instantiatedVnfInfo.vnfcResourceInfo
                    if vnfc.computeResource.resourceId in vnfc_res_ids}
         return vdu_ids
+
+    def _get_anti_vdus(self, anti_rules, target_vdu):
+        anti_vdus = set()
+        for (targets, scope) in anti_rules:
+            if scope == 'zone' and target_vdu in targets:
+                if len(targets) == 1:
+                    anti_vdus.add(target_vdu)
+                else:
+                    anti_vdus |= {vdu for vdu in targets if vdu != target_vdu}
+        return anti_vdus
+
+    def _get_exclude_zone(self, inst, anti_rules, failed_vdu_id, vdu_ids,
+            vdu_dict):
+        # return zones which are used by VDUs (in inst and vdu_dict[vdu_ids])
+        # that are Anti-Affinity relation(anti_rules) of re-selection target
+        # VDU(failed_vdu_id).
+        def _get_vdu_from_vdu_with_idx(vdu_with_idx):
+            part = vdu_with_idx.rpartition('-')
+            if part[1] == '':
+                return None
+            return part[0]
+
+        target_vdu = _get_vdu_from_vdu_with_idx(failed_vdu_id)
+        anti_vdus = self._get_anti_vdus(anti_rules, target_vdu)
+
+        exclude_zones = {vdu_dict[vdu_id].get('locationConstraints')
+                         for vdu_id in vdu_ids
+                         if (_get_vdu_from_vdu_with_idx(vdu_id) in anti_vdus
+                             and vdu_dict.get(vdu_id, {}).get(
+                                 'locationConstraints') is not None)}
+
+        if (inst.obj_attr_is_set('instantiatedVnfInfo') and
+                inst.instantiatedVnfInfo.obj_attr_is_set('vnfcResourceInfo')):
+            exclude_zones |= {vnfc.metadata.get('zone') for vnfc
+                              in inst.instantiatedVnfInfo.vnfcResourceInfo
+                              if (vnfc.vduId in anti_vdus and
+                                  vnfc.metadata.get('zone') is not None)}
+        return exclude_zones
 
     def _make_hot(self, req, inst, grant_req, grant, vnfd, is_rollback=False):
         if grant_req.operation == v2fields.LcmOperationType.INSTANTIATE:
