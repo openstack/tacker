@@ -707,7 +707,13 @@ class TestVnflcmV2(db_base.SqlTestCase):
             "vnfdId": vnfd_id,
             "vnfInstanceName": "test",
             "vnfInstanceDescription": "test",
-            "metadata": {"key": "value"}
+            "metadata": {
+                "key": "value",
+                "VDU_VNFc_mapping": {
+                    "VDU1": ["a-001", "a-002", "a-003"],
+                    "VDU2": ["b-001"]
+                }
+            }
         }
         result = self.controller.create(request=self.request, body=body)
         self.assertEqual(201, result.status)

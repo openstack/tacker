@@ -768,16 +768,30 @@ class VnfLcmDriverV2(object):
 
     def _modify_from_vnfd_prop(self, inst, vnfd_prop, attr):
         if vnfd_prop.get(attr):
-            setattr(inst, attr, vnfd_prop[attr])
-        elif inst.obj_attr_is_set(attr):
-            # set {} since attribute deletion is not supported.
-            setattr(inst, attr, {})
+            base = getattr(inst, attr) if inst.obj_attr_is_set(attr) else {}
+            setattr(inst, attr, inst_utils.json_merge_patch(
+                base, vnfd_prop[attr]))
 
     def _modify_from_req(self, inst, req, attr):
         if req.obj_attr_is_set(attr):
             base = getattr(inst, attr) if inst.obj_attr_is_set(attr) else {}
             setattr(inst, attr, inst_utils.json_merge_patch(
                 base, getattr(req, attr)))
+
+    def _modify_inst_vnfd_id(self, context, inst, vnfd):
+        pkg_info = self.nfvo_client.get_vnf_package_info_vnfd(
+            context, inst.vnfdId)
+
+        vnfd_prop = vnfd.get_vnfd_properties()
+
+        inst.vnfProvider = pkg_info.vnfProvider
+        inst.vnfProductName = pkg_info.vnfProductName
+        inst.vnfSoftwareVersion = pkg_info.vnfSoftwareVersion
+        inst.vnfdVersion = pkg_info.vnfdVersion
+
+        attrs = ['vnfConfigurableProperties', 'metadata', 'extensions']
+        for attr in attrs:
+            self._modify_from_vnfd_prop(inst, vnfd_prop, attr)
 
     def _merge_vim_connection_info(self, inst, req):
         # used by MODIFY_INFO and CHANGE_EXT_CONN
@@ -804,25 +818,15 @@ class VnfLcmDriverV2(object):
             # NOTE: When vnfdId is changed, the values of attributes
             # in the VnfInstance needs update from new VNFD.
             inst.vnfdId = req.vnfdId
-
-            pkg_info = self.nfvo_client.get_vnf_package_info_vnfd(
-                context, inst.vnfdId)
-
             new_vnfd = self.nfvo_client.get_vnfd(context, inst.vnfdId)
-            new_vnfd_prop = new_vnfd.get_vnfd_properties()
-
-            inst.vnfProvider = pkg_info.vnfProvider
-            inst.vnfProductName = pkg_info.vnfProductName
-            inst.vnfSoftwareVersion = pkg_info.vnfSoftwareVersion
-            inst.vnfdVersion = pkg_info.vnfdVersion
-
-            attrs = ['vnfConfigurableProperties', 'metadata', 'extensions']
-            for attr in attrs:
-                self._modify_from_vnfd_prop(inst, new_vnfd_prop, attr)
+            self._modify_inst_vnfd_id(context, inst, new_vnfd)
 
         attrs = ['vnfConfigurableProperties', 'metadata', 'extensions']
         for attr in attrs:
             self._modify_from_req(inst, req, attr)
+
+        if inst.obj_attr_is_set('metadata'):
+            inst_utils.check_metadata_format(inst.metadata)
 
         if req.obj_attr_is_set('vimConnectionInfo'):
             self._merge_vim_connection_info(inst, req)
@@ -1127,6 +1131,11 @@ class VnfLcmDriverV2(object):
             raise sol_ex.SolException(sol_detail='not support vim type')
 
         inst.vnfdId = grant_req.dstVnfdId
+        self._modify_inst_vnfd_id(context, inst, vnfd)
+
+        attrs = ['vnfConfigurableProperties', 'extensions']
+        for attr in attrs:
+            self._modify_from_req(inst, req, attr)
 
     def change_vnfpkg_rollback(
             self, context, lcmocc, inst, grant_req, grant, vnfd):

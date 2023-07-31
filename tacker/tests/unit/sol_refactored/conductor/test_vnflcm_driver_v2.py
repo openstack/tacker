@@ -694,6 +694,10 @@ _modify_inst_example = {
     },
     "metadata": {
         "metadata": "example",
+        "VDU_VNFc_mapping": {
+            "VDU1": ["a-001", "a-002", "a-003"],
+            "VDU2": ["b-001"]
+        }
     },
     "vimConnectionInfo": {
         "vim1": {
@@ -1251,7 +1255,10 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
                 },
                 "metadata": {
                     "metadata_1": "example_1",
-                    "metadata_2": None
+                    "metadata_2": None,
+                    "VDU_VNFc_mapping": {
+                        "VDU2": ["b-010"]
+                    }
                 },
                 "extensions": {
                     "extensions": "example_1"
@@ -1293,7 +1300,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
                 ]
             }
         )
-        inst = objects.VnfInstanceV2.from_dict(_modify_inst_example)
+        inst_example = copy.deepcopy(_modify_inst_example)
+        inst = objects.VnfInstanceV2.from_dict(inst_example)
         vnfc_info = objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
             _modify_vnfc_info_example)
         inst.instantiatedVnfInfo = vnfc_info
@@ -1327,7 +1335,11 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             },
             "metadata": {
                 "metadata": "example",
-                "metadata_1": "example_1"
+                "metadata_1": "example_1",
+                "VDU_VNFc_mapping": {
+                    "VDU1": ["a-001", "a-002", "a-003"],
+                    "VDU2": ["b-010"]
+                }
             },
             "extensions": {
                 "extensions": "example_1"
@@ -1389,7 +1401,11 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             vnfdVersion="vnfd version",
             operationalState="ENABLED"
         )
-        new_vnfd_prop = {}
+        new_vnfd_prop = {
+            'vnfConfigurableProperties': {},
+            'extensions': {},
+            'metadata': {}
+        }
 
         mocked_get_vnf_package_info_vnfd.return_value = pkg_info
         mocked_get_vnfd.return_value = vnfd_utils.Vnfd(new_vnfd_id)
@@ -1418,7 +1434,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
                 }
             }
         )
-        inst = objects.VnfInstanceV2.from_dict(_modify_inst_example)
+        inst_example = copy.deepcopy(_modify_inst_example)
+        inst = objects.VnfInstanceV2.from_dict(inst_example)
         lcmocc = objects.VnfLcmOpOccV2(
             # required fields
             id=uuidutils.generate_uuid(),
@@ -1443,8 +1460,16 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             "vnfProductName": "product_1",
             "vnfSoftwareVersion": "software version",
             "vnfdVersion": "vnfd version",
-            "vnfConfigurableProperties": {},
-            "metadata": {},
+            "vnfConfigurableProperties": {
+                "vnfproperties": "example"
+            },
+            "metadata": {
+                "metadata": "example",
+                "VDU_VNFc_mapping": {
+                    "VDU1": ["a-001", "a-002", "a-003"],
+                    "VDU2": ["b-001"]
+                }
+            },
             "vimConnectionInfo": {
                 "vim1": {
                     "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3",
@@ -2092,8 +2117,10 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
                 self.assertEqual(expected_res_ids[key][name], ids)
 
     @mock.patch.object(kubernetes.Kubernetes, 'change_vnfpkg')
-    @mock.patch.object(nfvo_client.NfvoClient, 'get_vnfd')
-    def test_cnf_change_vnfpkg(self, mock_vnfd, mock_change_vnfpkg):
+    @mock.patch.object(nfvo_client.NfvoClient, 'get_vnf_package_info_vnfd')
+    @mock.patch.object(vnfd_utils.Vnfd, 'get_vnfd_properties')
+    def test_cnf_change_vnfpkg(self, mock_get_vnfd_properties,
+            mock_get_vnf_package_info_vnfd, mock_change_vnfpkg):
         # prepare
         req_inst = objects.InstantiateVnfRequest.from_dict(
             _inst_cnf_req_example)
@@ -2132,7 +2159,21 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             isAutomaticInvocation=False,
             isCancelPending=False,
             operationParams=req)
-        mock_vnfd.return_value = self.vnfd_2
+        pkg_info = objects.VnfPkgInfoV2(
+            id=uuidutils.generate_uuid(),
+            vnfProvider="provider",
+            vnfProductName="product name",
+            vnfSoftwareVersion="software version",
+            vnfdVersion="vnfd version",
+            operationalState="ENABLED"
+        )
+        vnfd_prop = {
+            "vnfConfigurableProperties": {},
+            "metadata": {},
+            "extensions": {}
+        }
+        mock_get_vnf_package_info_vnfd.return_value = pkg_info
+        mock_get_vnfd_properties.return_value = vnfd_prop
         self.driver.change_vnfpkg_process(
             self.context, lcmocc, inst, grant_req, grant, self.vnfd_3)
 
@@ -3102,8 +3143,11 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
         self.assertEqual(2, len(grant_req.addResources))
         self.assertEqual(2, len(grant_req.removeResources))
 
+    @mock.patch.object(nfvo_client.NfvoClient, 'get_vnf_package_info_vnfd')
+    @mock.patch.object(vnfd_utils.Vnfd, 'get_vnfd_properties')
     @mock.patch.object(openstack.Openstack, 'change_vnfpkg')
-    def test_change_vnfpkg_process(self, mock_change_vnfpkg):
+    def test_change_vnfpkg_process(self, mock_change_vnfpkg,
+            mock_get_vnfd_properties, mock_get_vnf_package_info_vnfd):
         # openstack
         req_inst = objects.InstantiateVnfRequest.from_dict(_inst_req_example)
         req = objects.ChangeCurrentVnfPkgRequest.from_dict(
@@ -3120,10 +3164,20 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             vimConnectionInfo=req_inst.vimConnectionInfo,
             instantiatedVnfInfo=(
                 objects.VnfInstanceV2_InstantiatedVnfInfo.from_dict(
-                    _inst_info_example))
+                    _inst_info_example)),
+            vnfConfigurableProperties={
+                "vnf_config_prop_key": "vnf_config_prop_value"
+            },
+            metadata={
+                'VDU_VNFc_mapping': {
+                    'VDU1': ['a-001', 'a-010', 'a-011'],
+                    'VDU2': ['b-0']
+                }
+            }
         )
+        NEW_VNFD_ID = "8557e855-09e3-4f4c-9e4f-bfe5e2025700"
         grant_req = objects.GrantRequestV1(
-            dstVnfdId=SAMPLE_VNFD_ID,
+            dstVnfdId=NEW_VNFD_ID,
             operation=fields.LcmOperationType.CHANGE_VNFPKG
         )
         grant = objects.GrantV1()
@@ -3138,8 +3192,50 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             isAutomaticInvocation=False,
             isCancelPending=False,
             operationParams=req)
+        pkg_info = objects.VnfPkgInfoV2(
+            id=uuidutils.generate_uuid(),
+            vnfProvider="provider",
+            vnfProductName="product name",
+            vnfSoftwareVersion="software version",
+            vnfdVersion="vnfd version",
+            operationalState="ENABLED"
+        )
+        vnfd_prop = {
+            'vnfConfigurableProperties': {},
+            'extensions': {
+                'extensions_key': 'extensions_value'
+            },
+            'metadata': {
+                'VDU_VNFc_mapping': {
+                    'VDU3': ['c-0']
+                }
+            }
+        }
+        mock_get_vnf_package_info_vnfd.return_value = pkg_info
+        mock_get_vnfd_properties.return_value = vnfd_prop
+
         self.driver.change_vnfpkg_process(
             self.context, lcmocc, inst, grant_req, grant, self.vnfd_1)
+
+        inst = inst.to_dict()
+        expected_vnfconfigurableproperties_result = {
+            'vnf_config_prop_key': 'vnf_config_prop_value'
+        }
+        expected_extensions_result = {
+            'extensions_key': 'extensions_value'
+        }
+        expected_metadata_result = {
+            'VDU_VNFc_mapping': {
+                'VDU1': ['a-001', 'a-010', 'a-011'],
+                'VDU2': ['b-0'],
+                'VDU3': ['c-0']
+            }
+        }
+
+        self.assertEqual(expected_vnfconfigurableproperties_result,
+                         inst['vnfConfigurableProperties'])
+        self.assertEqual(expected_extensions_result, inst['extensions'])
+        self.assertEqual(expected_metadata_result, inst['metadata'])
 
         # error
         inst = objects.VnfInstanceV2(

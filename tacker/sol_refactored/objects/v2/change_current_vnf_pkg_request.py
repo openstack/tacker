@@ -35,10 +35,6 @@ class ChangeCurrentVnfPkgRequest(base.TackerObject,
         'vimConnectionInfo': fields.DictOfObjectsField(
             'VimConnectionInfo', nullable=True),
         'additionalParams': fields.KeyValuePairsField(nullable=True),
-        # NOTE: 'extensions' is not supported.
-        # It can be specified but make no effect at all.
         'extensions': fields.KeyValuePairsField(nullable=True),
-        # NOTE: 'vnfConfigurableProperties' is not supported.
-        # It can be specified but make no effect at all.
         'vnfConfigurableProperties': fields.KeyValuePairsField(nullable=True),
     }

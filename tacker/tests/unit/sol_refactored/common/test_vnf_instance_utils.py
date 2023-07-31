@@ -135,3 +135,33 @@ class TestVnfInstanceUtils(base.BaseTestCase):
         self.assertEqual(
             'ETSINFV.HELM.V_3', inst.vimConnectionInfo['vim1'].vimType)
         self.assertEqual('ETSINFV.HELM.V_3', result.vimType)
+
+    def test_check_metadata(self):
+        # VDU_VNFc_mapping is not dict
+        metadata = {
+            "VDU_VNFc_mapping": "a-001"
+        }
+        self.assertRaises(sol_ex.SolValidationError,
+                          inst_utils.check_metadata_format, metadata)
+
+        # VDU_VNFc_mapping dict value is not list.
+        metadata = {
+            "VDU_VNFc_mapping": {
+                "VDU1": "a-001"
+            }
+        }
+        self.assertRaises(sol_ex.SolValidationError,
+                          inst_utils.check_metadata_format, metadata)
+
+        # Duplicate vnfcInfo id.
+        metadata = {
+            "VDU_VNFc_mapping": {
+                "VDU1": ["a-001", "a-002", "a-003"],
+                "VDU2": ["a-002"]
+            }
+        }
+        ex = self.assertRaises(sol_ex.SolValidationError,
+                               inst_utils.check_metadata_format, metadata)
+        expected_detail = ("Duplicated vnfcInfo ids found in "
+                           "metadata['VDU_VNFc_mapping'].")
+        self.assertEqual(expected_detail, ex.detail)
