@@ -33,7 +33,7 @@ from tacker.sol_refactored.objects.v2 import fields as v2fields
 #  and the creation of lcmocc and the call to start_lcm_op are
 #  all executed by the controller, notification driver, etc.
 @coordinate.lock_vnf_instance('{vnf_instance_id}')
-def heal(context, vnf_instance_id, body, inst=None):
+def heal(context, vnf_instance_id, body, inst=None, auto_invocation=False):
     if not inst:
         inst = inst_utils.get_inst(context, vnf_instance_id)
 
@@ -59,7 +59,8 @@ def heal(context, vnf_instance_id, body, inst=None):
                     detail="vnfcInstanceId(%s) does not exist."
                            % req_vnfc_id)
 
-    lcmocc = new_lcmocc(vnf_instance_id, v2fields.LcmOperationType.HEAL, body)
+    lcmocc = new_lcmocc(vnf_instance_id, v2fields.LcmOperationType.HEAL, body,
+                        auto_invocation=auto_invocation)
     lcmocc.create(context)
 
     rpc = conductor_rpc_v2.VnfLcmRpcApiV2()
@@ -74,7 +75,7 @@ def heal(context, vnf_instance_id, body, inst=None):
 #  and the creation of lcmocc and the call to start_lcm_op are
 #  all executed by the controller, notification driver, etc.
 @coordinate.lock_vnf_instance('{vnf_instance_id}')
-def scale(context, vnf_instance_id, body, inst=None):
+def scale(context, vnf_instance_id, body, inst=None, auto_invocation=False):
     if not inst:
         inst = inst_utils.get_inst(context, vnf_instance_id)
 
@@ -103,7 +104,8 @@ def scale(context, vnf_instance_id, body, inst=None):
         raise sol_ex.InvalidScaleNumberOfSteps(
             num_steps=body['numberOfSteps'])
 
-    lcmocc = new_lcmocc(vnf_instance_id, v2fields.LcmOperationType.SCALE, body)
+    lcmocc = new_lcmocc(vnf_instance_id, v2fields.LcmOperationType.SCALE, body,
+                        auto_invocation=auto_invocation)
     lcmocc.create(context)
 
     rpc = conductor_rpc_v2.VnfLcmRpcApiV2()
@@ -128,7 +130,8 @@ def _get_max_scale_level(inst, aspect_id):
 
 
 def new_lcmocc(inst_id, operation, req_body,
-               op_state=v2fields.LcmOperationStateType.STARTING):
+               op_state=v2fields.LcmOperationStateType.STARTING,
+               auto_invocation=False):
     now = datetime.utcnow()
     lcmocc = objects.VnfLcmOpOccV2(
         id=uuidutils.generate_uuid(),
@@ -137,7 +140,7 @@ def new_lcmocc(inst_id, operation, req_body,
         startTime=now,
         vnfInstanceId=inst_id,
         operation=operation,
-        isAutomaticInvocation=False,
+        isAutomaticInvocation=auto_invocation,
         isCancelPending=False,
         operationParams=req_body)
 

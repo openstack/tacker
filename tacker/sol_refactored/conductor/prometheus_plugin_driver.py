@@ -116,7 +116,7 @@ class PrometheusPluginDriver():
         body = heal_req.to_dict()
         LOG.info(f"VNFM AutoHealing is triggered. vnf: {vnf_instance_id}, "
                  f"vnfcInstanceId: {vnfc_info_ids}")
-        vnflcm_utils.heal(context, vnf_instance_id, body)
+        vnflcm_utils.heal(context, vnf_instance_id, body, auto_invocation=True)
 
     def _timer_expired(self, context, vnf_instance_id, vnfc_info_ids):
         self.dequeue_heal(vnf_instance_id)
@@ -126,4 +126,5 @@ class PrometheusPluginDriver():
         LOG.info(f"VNFM AutoScaling is triggered. vnf: {vnf_instance_id}, "
                  f"type: {scale_req['type']}, aspectId: "
                  f"{scale_req['aspectId']}")
-        vnflcm_utils.scale(context, vnf_instance_id, scale_req)
+        vnflcm_utils.scale(context, vnf_instance_id, scale_req,
+                           auto_invocation=True)
