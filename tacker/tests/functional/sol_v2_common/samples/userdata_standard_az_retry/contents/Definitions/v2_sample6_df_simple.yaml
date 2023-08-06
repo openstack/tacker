@@ -84,17 +84,6 @@ topology_template:
           # in other zones in the test_update_stack_retry.
           # If there is a change in the Zuul environment in the future,
           # it must be reviewed along with the flavor.
-        sw_image_data:
-          name: cirros-0.5.2-x86_64-disk
-          version: '0.5.2'
-          checksum:
-            algorithm: sha-256
-            hash: 932fcae93574e242dc3d772d5235061747dfe537668443a1f0567d893614b464
-          container_format: bare
-          disk_format: qcow2
-          min_disk: 0 GB
-          min_ram: 256 MB
-          size: 12 GB
       capabilities:
         virtual_compute:
           properties:
@@ -110,6 +99,30 @@ topology_template:
               num_virtual_cpu: 2
             virtual_local_storage:
               - size_of_storage: 4 GB
+      requirements:
+        - virtual_storage: VDU1-VirtualStorage
+
+    VDU1-VirtualStorage:
+      type: tosca.nodes.nfv.Vdu.VirtualBlockStorage
+      properties:
+        virtual_block_storage_data:
+          size_of_storage: 1 GB
+          rdma_enabled: true
+        sw_image_data:
+          name: VDU1-VirtualStorage-image
+          version: '0.5.2'
+          checksum:
+            algorithm: sha-256
+            hash: 932fcae93574e242dc3d772d5235061747dfe537668443a1f0567d893614b464
+          container_format: bare
+          disk_format: qcow2
+          min_disk: 0 GB
+          min_ram: 256 MB
+          size: 12 GB
+      artifacts:
+        sw_image:
+          type: tosca.artifacts.nfv.SwImage
+          file: ../Files/images/cirros-0.5.2-x86_64-disk.img
 
     VDU1_CP1:
       type: tosca.nodes.nfv.VduCp
@@ -188,7 +201,7 @@ topology_template:
             VDU1_scale:
               name: VDU1_scale
               description: VDU1 scaling aspect
-              max_scale_level: 2
+              max_scale_level: 4
               step_deltas:
                 - delta_1
 
