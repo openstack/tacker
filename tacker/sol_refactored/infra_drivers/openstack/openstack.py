@@ -1387,8 +1387,7 @@ class Openstack(object):
             server_res = server_reses[vnfc_res_info.id]
             storage_ids = [storage_id
                 for storage_id, storage_res in storage_reses.items()
-                if (vdu_name in storage_res.get('required_by', []) and
-                    server_res.get('parent_resource') ==
+                if (server_res.get('parent_resource') ==
                     storage_res.get('parent_resource'))
             ]
             if storage_ids:

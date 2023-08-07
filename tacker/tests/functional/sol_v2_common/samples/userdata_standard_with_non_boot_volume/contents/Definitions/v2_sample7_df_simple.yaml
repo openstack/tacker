@@ -5,7 +5,7 @@ description: Simple deployment flavour for Sample VNF
 imports:
   - etsi_nfv_sol001_common_types.yaml
   - etsi_nfv_sol001_vnfd_types.yaml
-  - v2_sample3_types.yaml
+  - v2_sample7_types.yaml
 
 topology_template:
   inputs:
@@ -117,54 +117,6 @@ topology_template:
           size_of_storage: 1 GB
           rdma_enabled: true
 
-    VDU2:
-      type: tosca.nodes.nfv.Vdu.Compute
-      properties:
-        name: VDU2
-        description: VDU2 compute node
-        vdu_profile:
-          min_number_of_instances: 1
-          max_number_of_instances: 1
-      capabilities:
-        virtual_compute:
-          properties:
-            requested_additional_capabilities:
-              properties:
-                requested_additional_capability_name: m1.tiny
-                support_mandatory: true
-                target_performance_parameters:
-                  entry_schema: test
-            virtual_memory:
-              virtual_mem_size: 512 MB
-            virtual_cpu:
-              num_virtual_cpu: 1
-            virtual_local_storage:
-              - size_of_storage: 3 GB
-      requirements:
-        - virtual_storage: VDU2-VirtualStorage
-
-    VDU2-VirtualStorage:
-      type: tosca.nodes.nfv.Vdu.VirtualBlockStorage
-      properties:
-        virtual_block_storage_data:
-          size_of_storage: 1 GB
-          rdma_enabled: true
-        sw_image_data:
-          name: VDU2-VirtualStorage-image
-          version: '0.5.2'
-          checksum:
-            algorithm: sha-256
-            hash: 932fcae93574e242dc3d772d5235061747dfe537668443a1f0567d893614b464
-          container_format: bare
-          disk_format: qcow2
-          min_disk: 0 GB
-          min_ram: 256 MB
-          size: 12 GB
-      artifacts:
-        sw_image:
-          type: tosca.artifacts.nfv.SwImage
-          file: ../Files/images/cirros-0.5.2-x86_64-disk.img
-
     VDU1_CP1:
       type: tosca.nodes.nfv.VduCp
       properties:
@@ -189,32 +141,6 @@ topology_template:
         order: 2
       requirements:
         - virtual_binding: VDU1
-        - virtual_link: internalVL2
-
-    VDU2_CP1:
-      type: tosca.nodes.nfv.VduCp
-      properties:
-        layer_protocols: [ ipv4 ]
-        order: 0
-      requirements:
-        - virtual_binding: VDU2
-
-    VDU2_CP2:
-      type: tosca.nodes.nfv.VduCp
-      properties:
-        layer_protocols: [ ipv4 ]
-        order: 1
-      requirements:
-        - virtual_binding: VDU2
-        - virtual_link: internalVL1
-
-    VDU2_CP3:
-      type: tosca.nodes.nfv.VduCp
-      properties:
-        layer_protocols: [ ipv4 ]
-        order: 2
-      requirements:
-        - virtual_binding: VDU2
         - virtual_link: internalVL2
 
     internalVL1:
@@ -258,7 +184,7 @@ topology_template:
   groups:
     affinityOrAntiAffinityGroup1:
       type: tosca.groups.nfv.PlacementGroup
-      members: [ VDU1, VDU2 ]
+      members: [ VDU1 ]
 
   policies:
     - scaling_aspects:
@@ -278,13 +204,6 @@ topology_template:
           initial_delta:
             number_of_instances: 1
         targets: [ VDU1 ]
-
-    - VDU2_initial_delta:
-        type: tosca.policies.nfv.VduInitialDelta
-        properties:
-          initial_delta:
-            number_of_instances: 1
-        targets: [ VDU2 ]
 
     - VDU1_scaling_aspect_deltas:
         type: tosca.policies.nfv.VduScalingAspectDeltas
@@ -320,16 +239,6 @@ topology_template:
             instantiation_level_2:
               number_of_instances: 2
         targets: [ VDU1 ]
-
-    - VDU2_instantiation_levels:
-        type: tosca.policies.nfv.VduInstantiationLevels
-        properties:
-          levels:
-            instantiation_level_1:
-              number_of_instances: 1
-            instantiation_level_2:
-              number_of_instances: 1
-        targets: [ VDU2 ]
 
     - internalVL1_instantiation_levels:
         type: tosca.policies.nfv.VirtualLinkInstantiationLevels
