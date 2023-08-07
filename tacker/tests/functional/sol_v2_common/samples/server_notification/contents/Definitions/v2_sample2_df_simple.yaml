@@ -60,6 +60,10 @@ topology_template:
             implementation: sample-script
           modify_information_start:
             implementation: sample-script
+          instantiate_rollback_start:
+            implementation: sample-script
+          scale_rollback_start:
+            implementation: sample-script
       artifacts:
         sample-script:
           description: Sample script

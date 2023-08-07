@@ -13,6 +13,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import copy
+import functools
 import os
 import pickle
 import sys
@@ -32,20 +34,88 @@ CONF = cfg.CONF
 
 class ServerNotificationMgmtDriver(object):
 
-    def __init__(self, req, inst, grant_req, grant, csar_dir):
+    def __init__(self, req, inst, grant_req, grant, csar_dir,
+                 user_script_err_handling_data):
         self.req = req
         self.inst = inst
         self.grant_req = grant_req
         self.grant = grant
         self.csar_dir = csar_dir
+        self.user_script_err_handling_data = user_script_err_handling_data
         auth_handle = http_client.NoAuthHandle()
         self.client = http_client.HttpClient(auth_handle)
         CONF(project='tacker')
         rpc.init(CONF)
         self.rpc = conductor_rpc_v2.VnfLcmRpcApiV2()
 
+    def _fail(self, method):
+        if os.path.exists(f'/tmp/{method}'):
+            raise Exception(f'test {method} error')
+
+    def __getattr__(self, name):
+        return functools.partial(self._fail, name)
+
+    def _merge_recent_register(self):
+        """Merge alarms information
+
+        This method will compare the information in vnf_instance
+        and user_script_err_handling_data, merging the state of
+        user_script_err_handling_data with the state of vnf_instance
+        to make them consistent.
+        """
+
+        if self.user_script_err_handling_data.get('serverNotification'):
+            tmp_data = copy.deepcopy(self.user_script_err_handling_data)
+            rm_server_id = []
+            for server_notify in tmp_data.get('serverNotification'):
+                server_id = server_notify.get('serverId')
+                res = [res for res in self.inst['instantiatedVnfInfo'][
+                    'vnfcResourceInfo'] if res['computeResource'][
+                    'resourceId'] == server_id]
+                if res:
+                    alarm_id = server_notify.get('alarmId')
+                    if alarm_id:
+                        # Since there is registered alarm on the
+                        # monitoring server side, add it to vnfcResourceInfo.
+                        if 'metadata' not in res[0]:
+                            res[0]['metadata'] = {}
+                        res[0]['metadata']['server_notification'] = {
+                            "alarmId": alarm_id}
+                    else:
+                        # Since there is no registered alarm on the
+                        # monitoring server side, delete it from
+                        # vnfcResourceInfo.
+                        if res[0]['metadata'].get('server_notification'):
+                            del res[0]['metadata']['server_notification']
+                else:
+                    # Since the alarm registration remains only on the
+                    # monitoring server side, unregister it.
+                    server_notifier_uri, _, tenant = self.get_params()
+                    if server_notify.get('alarmId'):
+                        self._request_unregister(
+                            server_notifier_uri, tenant, server_id,
+                            server_notify.get('alarmId'))
+                    rm_server_id.append(server_id)
+            self.user_script_err_handling_data['serverNotification'] = [
+                data for data in self.user_script_err_handling_data[
+                    'serverNotification']
+                if data['serverId'] not in rm_server_id
+            ]
+
+    def _instantiate_scale_rollback(self):
+        if self.user_script_err_handling_data.get('serverNotification'):
+            tmp_data = copy.deepcopy(self.user_script_err_handling_data)
+            server_notifier_uri, _, tenant = self.get_params()
+            for server_notify in tmp_data.get('serverNotification'):
+                server_id = server_notify.get('serverId')
+                alarm_id = server_notify.get('alarmId')
+                if server_id and alarm_id:
+                    self._request_unregister(
+                        server_notifier_uri, tenant, server_id, alarm_id)
+
     def make_output_dict(self):
-        return {'vnf_instance': self.inst}
+        return {'vnf_instance': self.inst, 'user_script_err_handling_data':
+            self.user_script_err_handling_data}
 
     def request_remove_timer(self, vnf_instance_id):
         self.rpc.server_notification_remove_timer(
@@ -66,6 +136,22 @@ class ServerNotificationMgmtDriver(object):
                 LOG.debug(
                     "server_notification unregistration is processed: %d.",
                     resp.status_code)
+
+                if ('serverNotification' not in
+                        self.user_script_err_handling_data):
+                    self.user_script_err_handling_data[
+                        'serverNotification'] = []
+                rm_target = [data for data in
+                             self.user_script_err_handling_data[
+                                 'serverNotification']
+                             if data.get('serverId')
+                             and data['serverId'] == server_id]
+                if rm_target and rm_target[0].get('alarmId'):
+                    del rm_target[0]['alarmId']
+                else:
+                    self.user_script_err_handling_data[
+                        'serverNotification'].append({"serverId": server_id})
+
         except sol_ex.SolException as e:
             # Even if unregistration is failed for a single alarm_id,
             # Unregistration should be done for remaining alarm_ids.
@@ -125,6 +211,20 @@ class ServerNotificationMgmtDriver(object):
         LOG.debug(
             "server_notification registration is processed: %d. "
             "alarm_id: %s", resp.status_code, res_body['alarm_id'])
+
+        if 'serverNotification' not in self.user_script_err_handling_data:
+            self.user_script_err_handling_data['serverNotification'] = []
+        add_target = [
+            data for data in self.user_script_err_handling_data[
+                'serverNotification']
+            if data.get('serverId') and data['serverId'] == server_id
+        ]
+        if add_target:
+            add_target[0]['alarmId'] = res_body['alarm_id']
+        else:
+            self.user_script_err_handling_data['serverNotification'].append(
+                {'serverId': server_id, 'alarmId': res_body['alarm_id']})
+
         return {'alarmId': res_body['alarm_id'], 'serverId': server_id}
 
     def request_register(self):
@@ -147,9 +247,7 @@ class ServerNotificationMgmtDriver(object):
         fault_id = None
         tenant = None
         additional_params = self.req.get('additionalParams', None)
-        if 'instantiatedVnfInfo' not in self.inst:
-            return (None, None, None)
-        vnf_info = self.inst['instantiatedVnfInfo']
+        vnf_info = self.inst.get('instantiatedVnfInfo')
 
         if (additional_params and
                 'ServerNotifierUri' in additional_params and
@@ -172,6 +270,7 @@ class ServerNotificationMgmtDriver(object):
         return (None, None, None)
 
     def terminate_start(self):
+        self._merge_recent_register()
         at_least_one_id_unregistered = self.request_unregister()
         if at_least_one_id_unregistered:
             self.request_remove_timer(self.inst['id'])
@@ -179,19 +278,25 @@ class ServerNotificationMgmtDriver(object):
             if ('metadata' in self.inst['instantiatedVnfInfo'] and
                     key in self.inst['instantiatedVnfInfo']['metadata']):
                 del self.inst['instantiatedVnfInfo']['metadata'][key]
+        if os.path.exists('/tmp/terminate_start'):
+            raise Exception('test terminate_start error')
         return self.make_output_dict()
 
     def scale_start(self):
         if self.req['type'] != 'SCALE_IN':
             return
+        self._merge_recent_register()
         vnfc_res_ids = [res_def['resource']['resourceId']
                         for res_def in self.grant_req['removeResources']
                         if res_def.get('type', None) == 'COMPUTE']
         self.request_unregister(
             isall=False, vnfc_res_ids=vnfc_res_ids)
+        if os.path.exists('/tmp/scale_start'):
+            raise Exception('test scale_start error')
         return self.make_output_dict()
 
     def heal_start(self):
+        self._merge_recent_register()
         isall = ('additionalParams' in self.req and
             self.req['additionalParams'].get('all', False) and
             'vnfcInstanceId' not in self.req)
@@ -200,9 +305,12 @@ class ServerNotificationMgmtDriver(object):
                         if res_def.get('type', None) == 'COMPUTE']
         self.request_unregister(
             isall=isall, vnfc_res_ids=vnfc_res_ids)
+        if os.path.exists('/tmp/heal_start'):
+            raise Exception('test heal_start error')
         return self.make_output_dict()
 
     def instantiate_end(self):
+        self._merge_recent_register()
         self.request_register()
         server_notifier_uri, fault_id, _ = self.get_params()
         vnf_info = self.inst['instantiatedVnfInfo']
@@ -210,16 +318,23 @@ class ServerNotificationMgmtDriver(object):
             vnf_info['metadata'] = {}
         vnf_info['metadata']['ServerNotifierUri'] = server_notifier_uri
         vnf_info['metadata']['ServerNotifierFaultID'] = fault_id
+        if os.path.exists('/tmp/instantiate_end'):
+            raise Exception('test instantiate_end error')
         return self.make_output_dict()
 
     def scale_end(self):
         if self.req['type'] != 'SCALE_OUT':
             return
+        self._merge_recent_register()
         self.request_register()
+        if os.path.exists('/tmp/scale_end'):
+            raise Exception('test scale_end error')
         return self.make_output_dict()
 
     def heal_end(self):
         self.request_register()
+        if os.path.exists('/tmp/heal_end'):
+            raise Exception('test heal_end error')
         return self.make_output_dict()
 
     def instantiate_start(self):
@@ -227,6 +342,18 @@ class ServerNotificationMgmtDriver(object):
 
     def terminate_end(self):
         pass
+
+    def instantiate_rollback_start(self):
+        self._instantiate_scale_rollback()
+        if os.path.exists('/tmp/instantiate_rollback_start'):
+            raise Exception('test instantiate_rollback_start error')
+        return self.make_output_dict()
+
+    def scale_rollback_start(self):
+        self._instantiate_scale_rollback()
+        if os.path.exists('/tmp/scale_rollback_start'):
+            raise Exception('test scale_rollback_start error')
+        return self.make_output_dict()
 
 
 def main():
@@ -238,12 +365,23 @@ def main():
     grant_req = script_dict['grant_request']
     grant = script_dict['grant_response']
     csar_dir = script_dict['tmp_csar_dir']
+    user_script_err_handling_data = script_dict[
+        'user_script_err_handling_data']
 
-    script = ServerNotificationMgmtDriver(
-        req, inst, grant_req, grant, csar_dir)
-    output_dict = getattr(script, operation)()
-    sys.stdout.buffer.write(pickle.dumps(output_dict))
-    sys.stdout.flush()
+    try:
+        script = ServerNotificationMgmtDriver(
+            req, inst, grant_req, grant, csar_dir,
+            user_script_err_handling_data)
+        output_dict = getattr(script, operation)()
+        sys.stdout.buffer.write(pickle.dumps(output_dict))
+        sys.stdout.flush()
+    except Exception as mgmt_ex:
+        output_dict = {
+            "user_script_err_handling_data": user_script_err_handling_data
+        }
+        sys.stdout.buffer.write(pickle.dumps(output_dict))
+        sys.stdout.flush()
+        raise common_ex.MgmtDriverOtherError(error_message=str(mgmt_ex))
 
 
 if __name__ == "__main__":

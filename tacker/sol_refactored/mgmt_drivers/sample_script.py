@@ -20,12 +20,14 @@ import sys
 
 class SampleScript(object):
 
-    def __init__(self, req, inst, grant_req, grant, csar_dir):
+    def __init__(self, req, inst, grant_req, grant, csar_dir,
+                 user_script_err_handling_data):
         self.req = req
         self.inst = inst
         self.grant_req = grant_req
         self.grant = grant
         self.csar_dir = csar_dir
+        self.user_script_err_handling_data = user_script_err_handling_data
 
     def instantiate_start(self):
         pass
@@ -49,12 +51,22 @@ def main():
     grant_req = script_dict['grant_request']
     grant = script_dict['grant_response']
     csar_dir = script_dict['tmp_csar_dir']
+    user_script_err_handling_data = script_dict[
+        'user_script_err_handling_data']
 
-    script = SampleScript(req, inst, grant_req, grant, csar_dir)
+    script = SampleScript(req, inst, grant_req, grant, csar_dir,
+                          user_script_err_handling_data)
     try:
         getattr(script, operation)()
     except AttributeError:
+        output_dict = {}
+        sys.stdout.buffer.write(pickle.dumps(output_dict))
+        sys.stdout.flush()
         raise Exception("{} is not included in the script.".format(operation))
+
+    output_dict = {}
+    sys.stdout.buffer.write(pickle.dumps(output_dict))
+    sys.stdout.flush()
 
 
 if __name__ == "__main__":

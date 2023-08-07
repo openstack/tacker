@@ -21,6 +21,7 @@ from tacker.objects import fields
 from tacker.tests.functional.sol_v2_common import paramgen
 from tacker.tests.functional.sol_v2_common import test_vnflcm_basic_common
 
+NUM = 0
 TEST_COUNT = 0
 RETRY_LIMIT = 10
 RETRY_TIMEOUT = 3
@@ -31,6 +32,13 @@ SERVER_NOTIFICATION_INTERVAL = 1
 def _make_alarm_id(header, body):
     from tacker.tests.functional.sol_v2 import test_server_notification
     id = f"alarm_id_{test_server_notification.TEST_COUNT}"
+    return {'alarm_id': id}
+
+
+def _return_alarm_id(header, body):
+    global NUM
+    NUM += 1
+    id = f"alarm_id_{NUM}"
     return {'alarm_id': id}
 
 
@@ -524,3 +532,1392 @@ class ServerNotificationTest(test_vnflcm_basic_common.CommonVnfLcmTest):
 
     def test_fault_notification_disabled(self):
         self.fault_notification_autoheal_disabled_test()
+
+    def test_retry_instantiate(self):
+        """Test retry instantiate when error occurred after instantiate_end
+
+        * About Test operations:
+          This test includes the following operations.
+          - 1. LCM-CreateV2
+          - 2. LCM-InstantiateV2(error)
+          - 3. LCM-ShowV2
+          - 4. LCM-Show-OpOccV2
+          - 5. LCM-RetryV2
+          - 6. LCM-ShowV2
+          - 7. LCM-Show-OpOccV2
+          - 8. LCM-RollbackV2
+          - 9. LCM-DeleteV2
+        """
+
+        # 1. LCM-CreateV2
+        expected_inst_attrs = [
+            'id', 'vnfdId', 'vnfProvider', 'vnfProductName',
+            'vnfSoftwareVersion', 'vnfdVersion',
+            'instantiationState', '_links'
+        ]
+        create_req = paramgen.create_vnf_min(self.svn_id)
+        resp, body = self.create_vnf_instance(create_req)
+        self.assertEqual(201, resp.status_code)
+        self.check_resp_headers_in_create(resp)
+        self.check_resp_body(body, expected_inst_attrs)
+        inst_id = body['id']
+
+        # check usageState of VNF Package
+        self.check_package_usage(self.svn_pkg, 'IN_USE')
+
+        # 2. LCM-InstantiateV2(error)
+        server_notification_uri = (
+            f'http://localhost:{self.get_server_port()}/server_notification')
+        self.set_server_callback(
+            'POST', '/server_notification', status_code=200,
+            response_headers={"Content-Type": "application/json"},
+            callback=_return_alarm_id)
+        global NUM
+        NUM = 0
+
+        instantiate_req = paramgen.instantiate_vnf_min()
+        instantiate_req['additionalParams'] = {
+            'ServerNotifierUri': server_notification_uri,
+            'ServerNotifierFaultID': ['1111', '1234']
+        }
+        instantiate_req['vnfConfigurableProperties'] = {
+            'isAutohealEnabled': False
+        }
+
+        self.put_fail_file('instantiate_end')
+        resp, body = self.instantiate_vnf_instance(inst_id, instantiate_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_failed_temp(lcmocc_id)
+
+        # 3. LCM-ShowV2
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+        self.assertEqual('NOT_INSTANTIATED', body['instantiationState'])
+
+        self.assertEqual(None, body.get('instantiatedVnfInfo'))
+
+        # 4. LCM-Show-OpOccV2
+        resp, body = self.show_lcmocc(lcmocc_id)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual('FAILED_TEMP', body['operationState'])
+        self.assertEqual('INSTANTIATE', body['operation'])
+
+        vm_infos = self.get_server_details(None)
+        vm_ids = {vm_info.get('id') for vm_info in vm_infos
+                  if vm_info['name'] in ['VDU1', 'VDU2']}
+        alarm_ids = {'alarm_id_1', 'alarm_id_2'}
+        for data in (body['error']['userScriptErrHandlingData']
+                         ['serverNotification']):
+            self.assertIn(data['serverId'], vm_ids)
+            self.assertIn(data['alarmId'], alarm_ids)
+        self.assertEqual(2, len(
+            body['error']['userScriptErrHandlingData']['serverNotification']))
+
+        # 5. LCM-RetryV2
+        resp, body = self.retry_lcmocc(lcmocc_id)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_delete(resp)
+        self.wait_lcmocc_failed_temp(lcmocc_id)
+        self.rm_fail_file('instantiate_end')
+
+        # 6. LCM-ShowV2
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+        self.assertEqual('NOT_INSTANTIATED', body['instantiationState'])
+
+        self.assertEqual(None, body.get('instantiatedVnfInfo'))
+
+        # 7. LCM-Show-OpOccV2
+        resp, body = self.show_lcmocc(lcmocc_id)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual('FAILED_TEMP', body['operationState'])
+        self.assertEqual('INSTANTIATE', body['operation'])
+
+        vm_infos = self.get_server_details(None)
+        vm_ids = {vm_info.get('id') for vm_info in vm_infos
+                  if vm_info['name'] in ['VDU1', 'VDU2']}
+        alarm_ids = {'alarm_id_1', 'alarm_id_2'}
+        for data in (body['error']['userScriptErrHandlingData']
+                         ['serverNotification']):
+            self.assertIn(data['serverId'], vm_ids)
+            self.assertIn(data['alarmId'], alarm_ids)
+        self.assertEqual(2, len(
+            body['error']['userScriptErrHandlingData']['serverNotification']))
+
+        # 8. LCM-RollbackV2
+        resp, body = self.rollback_lcmocc(lcmocc_id)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_delete(resp)
+        self.wait_lcmocc_rolled_back(lcmocc_id)
+
+        # 9. LCM-DeleteV2
+        resp, body = self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
+        self.assertEqual(204, resp.status_code)
+
+    def test_retry_scale_in(self):
+        """Test retry scale-in when error occurred after scale_start
+
+        * About Test operations:
+          This test includes the following operations.
+          - 1. LCM-CreateV2
+          - 2. LCM-InstantiateV2
+          - 3. LCM-ShowV2
+          - 4. LCM-ScaleV2(in)(error)
+          - 5. LCM-ShowV2
+          - 6. LCM-Show-OpOccV2
+          - 7. LCM-RetryV2
+          - 8. LCM-ShowV2
+          - 9. LCM-Show-OpOccV2
+          - 10. LCM-FailV2
+          - 11. LCM-Show-OpOccV2
+          - 12. LCM-TerminateV2
+          - 13. LCM-DeleteV2
+        """
+
+        # 1. LCM-CreateV2
+        expected_inst_attrs = [
+            'id', 'vnfdId', 'vnfProvider', 'vnfProductName',
+            'vnfSoftwareVersion', 'vnfdVersion',
+            'instantiationState', '_links'
+        ]
+        create_req = paramgen.create_vnf_min(self.svn_id)
+        resp, body = self.create_vnf_instance(create_req)
+        self.assertEqual(201, resp.status_code)
+        self.check_resp_headers_in_create(resp)
+        self.check_resp_body(body, expected_inst_attrs)
+        inst_id = body['id']
+
+        # check usageState of VNF Package
+        self.check_package_usage(self.svn_pkg, 'IN_USE')
+
+        # 2. LCM-InstantiateV2
+        server_notification_uri = (
+            f'http://localhost:{self.get_server_port()}/server_notification')
+        self.set_server_callback(
+            'POST', '/server_notification', status_code=200,
+            response_headers={"Content-Type": "application/json"},
+            callback=_return_alarm_id)
+        global NUM
+        NUM = 0
+
+        instantiate_req = paramgen.instantiate_vnf_min()
+        instantiate_req['instantiationLevelId'] = "instantiation_level_2"
+        instantiate_req['additionalParams'] = {
+            'ServerNotifierUri': server_notification_uri,
+            'ServerNotifierFaultID': ['1111', '1234']
+        }
+        instantiate_req['vnfConfigurableProperties'] = {
+            'isAutohealEnabled': False
+        }
+
+        resp, body = self.instantiate_vnf_instance(inst_id, instantiate_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # 3. LCM-ShowV2
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+        self.assertEqual('INSTANTIATED', body['instantiationState'])
+
+        metadata_infos = [{'serverId': res['computeResource']['resourceId'],
+                           'alarmId': res['metadata']['server_notification'][
+                               'alarmId']} for res in
+                          body['instantiatedVnfInfo']['vnfcResourceInfo']]
+        alarm_ids = {data['alarmId'] for data in metadata_infos}
+        expect_alarm_ids = {'alarm_id_1', 'alarm_id_2',
+                            'alarm_id_3', 'alarm_id_4'}
+        self.assertSetEqual(alarm_ids, expect_alarm_ids)
+
+        # 4. LCM-ScaleV2(in)(error)
+        self.put_fail_file('scale_start')
+        scale_req = paramgen.scalein_vnf_min()
+        resp, body = self.scale_vnf_instance(inst_id, scale_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_failed_temp(lcmocc_id)
+
+        # 5. LCM-ShowV2
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+        self.assertEqual('INSTANTIATED', body['instantiationState'])
+
+        metadata_infos = [{'serverId': res['computeResource']['resourceId'],
+                           'alarmId': res['metadata']['server_notification'][
+                               'alarmId']} for res in
+                          body['instantiatedVnfInfo']['vnfcResourceInfo']]
+        alarm_ids = {data['alarmId'] for data in metadata_infos}
+        expect_alarm_ids = {'alarm_id_1', 'alarm_id_2',
+                            'alarm_id_3', 'alarm_id_4'}
+        self.assertSetEqual(alarm_ids, expect_alarm_ids)
+
+        # 6. LCM-Show-OpOccV2
+        resp, body = self.show_lcmocc(lcmocc_id)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual('FAILED_TEMP', body['operationState'])
+        self.assertEqual('SCALE', body['operation'])
+
+        vm_infos = self.get_server_details(None)
+        vm_ids = {vm_info.get('id') for vm_info in vm_infos
+                  if vm_info['name'] == 'VDU1'}
+        for data in (body['error']['userScriptErrHandlingData']
+                         ['serverNotification']):
+            self.assertIn(data['serverId'], vm_ids)
+            self.assertIsNone(data.get('alarmId'))
+        self.assertEqual(1, len(
+            body['error']['userScriptErrHandlingData']['serverNotification']))
+
+        # 7. LCM-RetryV2
+        resp, body = self.retry_lcmocc(lcmocc_id)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_delete(resp)
+        self.wait_lcmocc_failed_temp(lcmocc_id)
+        self.rm_fail_file('scale_start')
+
+        # 8. LCM-ShowV2
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+        self.assertEqual('INSTANTIATED', body['instantiationState'])
+
+        metadata_infos = [{'serverId': res['computeResource']['resourceId'],
+                           'alarmId': res['metadata']['server_notification'][
+                               'alarmId']} for res in
+                          body['instantiatedVnfInfo']['vnfcResourceInfo']]
+        alarm_ids = {data['alarmId'] for data in metadata_infos}
+        expect_alarm_ids = {'alarm_id_1', 'alarm_id_2',
+                            'alarm_id_3', 'alarm_id_4'}
+        self.assertSetEqual(alarm_ids, expect_alarm_ids)
+
+        # 9. LCM-Show-OpOccV2
+        resp, body = self.show_lcmocc(lcmocc_id)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual('FAILED_TEMP', body['operationState'])
+        self.assertEqual('SCALE', body['operation'])
+
+        vm_infos = self.get_server_details(None)
+        vm_ids = {vm_info.get('id') for vm_info in vm_infos
+                  if vm_info['name'] == 'VDU1'}
+        for data in (body['error']['userScriptErrHandlingData']
+                         ['serverNotification']):
+            self.assertIn(data['serverId'], vm_ids)
+            self.assertIsNone(data.get('alarmId'))
+        self.assertEqual(1, len(
+            body['error']['userScriptErrHandlingData']['serverNotification']))
+
+        # 10. LCM-FailV2
+        resp, body = self.fail_lcmocc(lcmocc_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+
+        # 11. LCM-Show-OpOccV2
+        resp, body = self.show_lcmocc(lcmocc_id)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual('FAILED', body['operationState'])
+        self.assertEqual('SCALE', body['operation'])
+
+        vm_infos = self.get_server_details(None)
+        vm_ids = {vm_info.get('id') for vm_info in vm_infos
+                  if vm_info['name'] == 'VDU1'}
+        for data in (body['error']['userScriptErrHandlingData']
+                         ['serverNotification']):
+            self.assertIn(data['serverId'], vm_ids)
+            self.assertIsNone(data.get('alarmId'))
+        self.assertEqual(1, len(
+            body['error']['userScriptErrHandlingData']['serverNotification']))
+
+        # 12. LCM-TerminateV2
+        terminate_req = paramgen.terminate_vnf_min()
+        resp, body = self.terminate_vnf_instance(inst_id, terminate_req)
+        self.assertEqual(202, resp.status_code)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # 10. LCM-Show-OpOccV2
+        resp, body = self.show_lcmocc(lcmocc_id)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual('COMPLETED', body['operationState'])
+        self.assertEqual('TERMINATE', body['operation'])
+
+        # 13. LCM-DeleteV2
+        resp, body = self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
+        self.assertEqual(204, resp.status_code)
+
+    def test_retry_scale_out(self):
+        """Test retry scale-out when error occurred after scale_end
+
+        * About Test operations:
+          This test includes the following operations.
+          - 1. LCM-CreateV2
+          - 2. LCM-InstantiateV2
+          - 3. LCM-ShowV2
+          - 4. LCM-ScaleV2(out)(error)
+          - 5. LCM-ShowV2
+          - 6. LCM-Show-OpOccV2
+          - 7. LCM-RetryV2
+          - 8. LCM-ShowV2
+          - 9. LCM-Show-OpOccV2
+          - 10. LCM-FailV2
+          - 11. LCM-Show-OpOccV2
+          - 12. LCM-TerminateV2
+          - 13. LCM-DeleteV2
+        """
+
+        # 1. LCM-CreateV2
+        expected_inst_attrs = [
+            'id', 'vnfdId', 'vnfProvider', 'vnfProductName',
+            'vnfSoftwareVersion', 'vnfdVersion',
+            'instantiationState', '_links'
+        ]
+        create_req = paramgen.create_vnf_min(self.svn_id)
+        resp, body = self.create_vnf_instance(create_req)
+        self.assertEqual(201, resp.status_code)
+        self.check_resp_headers_in_create(resp)
+        self.check_resp_body(body, expected_inst_attrs)
+        inst_id = body['id']
+
+        # check usageState of VNF Package
+        self.check_package_usage(self.svn_pkg, 'IN_USE')
+
+        # 2. LCM-InstantiateV2
+        server_notification_uri = (
+            f'http://localhost:{self.get_server_port()}/server_notification')
+        self.set_server_callback(
+            'POST', '/server_notification', status_code=200,
+            response_headers={"Content-Type": "application/json"},
+            callback=_return_alarm_id)
+        global NUM
+        NUM = 0
+
+        instantiate_req = paramgen.instantiate_vnf_min()
+        instantiate_req['additionalParams'] = {
+            'ServerNotifierUri': server_notification_uri,
+            'ServerNotifierFaultID': ['1111', '1234']
+        }
+        instantiate_req['vnfConfigurableProperties'] = {
+            'isAutohealEnabled': False
+        }
+
+        resp, body = self.instantiate_vnf_instance(inst_id, instantiate_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # 3. LCM-ShowV2
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+        self.assertEqual('INSTANTIATED', body['instantiationState'])
+
+        metadata_infos = [{'serverId': res['computeResource']['resourceId'],
+                           'alarmId': res['metadata']['server_notification'][
+                               'alarmId']} for res in
+                          body['instantiatedVnfInfo']['vnfcResourceInfo']]
+        alarm_ids = {data['alarmId'] for data in metadata_infos}
+        expect_alarm_ids = {'alarm_id_1', 'alarm_id_2'}
+        self.assertSetEqual(alarm_ids, expect_alarm_ids)
+
+        # 4. LCM-ScaleV2(out)(error)
+        self.put_fail_file('scale_end')
+        scale_req = paramgen.scaleout_vnf_min()
+        resp, body = self.scale_vnf_instance(inst_id, scale_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_failed_temp(lcmocc_id)
+
+        # 5. LCM-ShowV2
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+        self.assertEqual('INSTANTIATED', body['instantiationState'])
+
+        metadata_infos = [{'serverId': res['computeResource']['resourceId'],
+                           'alarmId': res['metadata']['server_notification'][
+                               'alarmId']} for res in
+                          body['instantiatedVnfInfo']['vnfcResourceInfo']]
+        alarm_ids = {data['alarmId'] for data in metadata_infos}
+        server_ids = {data['serverId'] for data in metadata_infos}
+        expect_alarm_ids = {'alarm_id_1', 'alarm_id_2'}
+        self.assertSetEqual(alarm_ids, expect_alarm_ids)
+
+        # 6. LCM-Show-OpOccV2
+        resp, body = self.show_lcmocc(lcmocc_id)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual('FAILED_TEMP', body['operationState'])
+        self.assertEqual('SCALE', body['operation'])
+
+        vm_infos = self.get_server_details(None)
+        vm_ids = {vm_info.get('id') for vm_info in vm_infos
+                  if vm_info['name'] == 'VDU1'}
+        for data in (body['error']['userScriptErrHandlingData']
+                         ['serverNotification']):
+            self.assertIn(data['serverId'], vm_ids)
+            self.assertNotIn(data['serverId'], server_ids)
+            self.assertEqual('alarm_id_3', data['alarmId'])
+        self.assertEqual(1, len(
+            body['error']['userScriptErrHandlingData']['serverNotification']))
+
+        # 7. LCM-RetryV2
+        resp, body = self.retry_lcmocc(lcmocc_id)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_delete(resp)
+        self.wait_lcmocc_failed_temp(lcmocc_id)
+        self.rm_fail_file('scale_end')
+
+        # 8. LCM-ShowV2
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+        self.assertEqual('INSTANTIATED', body['instantiationState'])
+
+        metadata_infos = [{'serverId': res['computeResource']['resourceId'],
+                           'alarmId': res['metadata']['server_notification'][
+                               'alarmId']} for res in
+                          body['instantiatedVnfInfo']['vnfcResourceInfo']]
+        alarm_ids = {data['alarmId'] for data in metadata_infos}
+        server_ids = {data['serverId'] for data in metadata_infos}
+        expect_alarm_ids = {'alarm_id_1', 'alarm_id_2'}
+        self.assertSetEqual(alarm_ids, expect_alarm_ids)
+
+        # 9. LCM-Show-OpOccV2
+        resp, body = self.show_lcmocc(lcmocc_id)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual('FAILED_TEMP', body['operationState'])
+        self.assertEqual('SCALE', body['operation'])
+
+        vm_infos = self.get_server_details(None)
+        vm_ids = {vm_info.get('id') for vm_info in vm_infos
+                  if vm_info['name'] == 'VDU1'}
+        for data in (body['error']['userScriptErrHandlingData']
+                         ['serverNotification']):
+            self.assertIn(data['serverId'], vm_ids)
+            self.assertNotIn(data['serverId'], server_ids)
+            self.assertEqual('alarm_id_3', data['alarmId'])
+        self.assertEqual(1, len(
+            body['error']['userScriptErrHandlingData']['serverNotification']))
+
+        # 10. LCM-FailV2
+        resp, body = self.fail_lcmocc(lcmocc_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+
+        # 11. LCM-Show-OpOccV2
+        resp, body = self.show_lcmocc(lcmocc_id)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual('FAILED', body['operationState'])
+        self.assertEqual('SCALE', body['operation'])
+
+        vm_infos = self.get_server_details(None)
+        vm_ids = {vm_info.get('id') for vm_info in vm_infos
+                  if vm_info['name'] == 'VDU1'}
+        for data in (body['error']['userScriptErrHandlingData']
+                         ['serverNotification']):
+            self.assertIn(data['serverId'], vm_ids)
+            self.assertNotIn(data['serverId'], server_ids)
+            self.assertEqual('alarm_id_3', data['alarmId'])
+        self.assertEqual(1, len(
+            body['error']['userScriptErrHandlingData']['serverNotification']))
+
+        # 12. LCM-TerminateV2
+        terminate_req = paramgen.terminate_vnf_min()
+        resp, body = self.terminate_vnf_instance(inst_id, terminate_req)
+        self.assertEqual(202, resp.status_code)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # 10. LCM-Show-OpOccV2
+        resp, body = self.show_lcmocc(lcmocc_id)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual('COMPLETED', body['operationState'])
+        self.assertEqual('TERMINATE', body['operation'])
+
+        # 13. LCM-DeleteV2
+        resp, body = self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
+        self.assertEqual(204, resp.status_code)
+
+    def test_retry_heal_all(self):
+        """Test retry heal(all) when error occurred after heal_end
+
+        * About Test operations:
+          This test includes the following operations.
+          - 1. LCM-CreateV2
+          - 2. LCM-InstantiateV2
+          - 3. LCM-ShowV2
+          - 4. LCM-HealV2(all, all=True)(error)
+          - 5. LCM-ShowV2
+          - 6. LCM-Show-OpOccV2
+          - 7. LCM-RetryV2
+          - 8. LCM-ShowV2
+          - 9. LCM-Show-OpOccV2
+          - 10. LCM-FailV2
+          - 11. LCM-Show-OpOccV2
+          - 12. LCM-TerminateV2
+          - 13. LCM-DeleteV2
+        """
+
+        # 1. LCM-CreateV2
+        expected_inst_attrs = [
+            'id', 'vnfdId', 'vnfProvider', 'vnfProductName',
+            'vnfSoftwareVersion', 'vnfdVersion',
+            'instantiationState', '_links'
+        ]
+        create_req = paramgen.create_vnf_min(self.svn_id)
+        resp, body = self.create_vnf_instance(create_req)
+        self.assertEqual(201, resp.status_code)
+        self.check_resp_headers_in_create(resp)
+        self.check_resp_body(body, expected_inst_attrs)
+        inst_id = body['id']
+
+        # check usageState of VNF Package
+        self.check_package_usage(self.svn_pkg, 'IN_USE')
+
+        # 2. LCM-InstantiateV2
+        server_notification_uri = (
+            f'http://localhost:{self.get_server_port()}/server_notification')
+        self.set_server_callback(
+            'POST', '/server_notification', status_code=200,
+            response_headers={"Content-Type": "application/json"},
+            callback=_return_alarm_id)
+        global NUM
+        NUM = 0
+
+        instantiate_req = paramgen.instantiate_vnf_min()
+        instantiate_req['additionalParams'] = {
+            'ServerNotifierUri': server_notification_uri,
+            'ServerNotifierFaultID': ['1111', '1234']
+        }
+        instantiate_req['vnfConfigurableProperties'] = {
+            'isAutohealEnabled': False
+        }
+
+        resp, body = self.instantiate_vnf_instance(inst_id, instantiate_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # 3. LCM-ShowV2
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+        self.assertEqual('INSTANTIATED', body['instantiationState'])
+
+        metadata_infos = [{'serverId': res['computeResource']['resourceId'],
+                           'alarmId': res['metadata']['server_notification'][
+                               'alarmId']} for res in
+                          body['instantiatedVnfInfo']['vnfcResourceInfo']]
+        alarm_ids = {data['alarmId'] for data in metadata_infos}
+        expect_alarm_ids = {'alarm_id_1', 'alarm_id_2'}
+        self.assertSetEqual(alarm_ids, expect_alarm_ids)
+
+        # 4. LCM-HealV2(all)(error)
+        self.put_fail_file('heal_end')
+        heal_req = paramgen.heal_vnf_all_max_with_parameter(True)
+        resp, body = self.heal_vnf_instance(inst_id, heal_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_failed_temp(lcmocc_id)
+
+        # 5. LCM-ShowV2
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+        self.assertEqual('INSTANTIATED', body['instantiationState'])
+
+        metadata_infos = [{'serverId': res['computeResource']['resourceId'],
+                           'alarmId': res['metadata']['server_notification'][
+                               'alarmId']} for res in
+                          body['instantiatedVnfInfo']['vnfcResourceInfo']]
+        alarm_ids = {data['alarmId'] for data in metadata_infos}
+        server_ids = {data['serverId'] for data in metadata_infos}
+        expect_alarm_ids = {'alarm_id_1', 'alarm_id_2'}
+        self.assertSetEqual(alarm_ids, expect_alarm_ids)
+
+        # 6. LCM-Show-OpOccV2
+        resp, body = self.show_lcmocc(lcmocc_id)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual('FAILED_TEMP', body['operationState'])
+        self.assertEqual('HEAL', body['operation'])
+
+        vm_infos = self.get_server_details(None)
+        vm_ids = {vm_info.get('id') for vm_info in vm_infos
+                  if vm_info['name'] in ['VDU1', 'VDU2']}
+        expect_alarm_ids = {'alarm_id_3', 'alarm_id_4'}
+        for data in (body['error']['userScriptErrHandlingData']
+                         ['serverNotification']):
+            if data['serverId'] in server_ids:
+                self.assertIsNone(data.get('alarmId'))
+                server_ids.remove(data['serverId'])
+            else:
+                self.assertIn(data['serverId'], vm_ids)
+                self.assertIn(data['alarmId'], expect_alarm_ids)
+        self.assertEqual(4, len(
+            body['error']['userScriptErrHandlingData']['serverNotification']))
+
+        # 7. LCM-RetryV2
+        resp, body = self.retry_lcmocc(lcmocc_id)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_delete(resp)
+        self.wait_lcmocc_failed_temp(lcmocc_id)
+        self.rm_fail_file('heal_end')
+
+        # 8. LCM-ShowV2
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+        self.assertEqual('INSTANTIATED', body['instantiationState'])
+
+        metadata_infos = [{'serverId': res['computeResource']['resourceId'],
+                           'alarmId': res['metadata']['server_notification'][
+                               'alarmId']} for res in
+                          body['instantiatedVnfInfo']['vnfcResourceInfo']]
+        alarm_ids = {data['alarmId'] for data in metadata_infos}
+        server_ids = {data['serverId'] for data in metadata_infos}
+        expect_alarm_ids = {'alarm_id_1', 'alarm_id_2'}
+        self.assertSetEqual(alarm_ids, expect_alarm_ids)
+
+        # 9. LCM-Show-OpOccV2
+        resp, body = self.show_lcmocc(lcmocc_id)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual('FAILED_TEMP', body['operationState'])
+        self.assertEqual('HEAL', body['operation'])
+
+        vm_infos = self.get_server_details(None)
+        vm_ids = {vm_info.get('id') for vm_info in vm_infos
+                  if vm_info['name'] in ['VDU1', 'VDU2']}
+        expect_alarm_ids = {'alarm_id_5', 'alarm_id_6'}
+        for data in (body['error']['userScriptErrHandlingData']
+                         ['serverNotification']):
+            if data['serverId'] in server_ids:
+                self.assertIsNone(data.get('alarmId'))
+                server_ids.remove(data['serverId'])
+            else:
+                self.assertIn(data['serverId'], vm_ids)
+                self.assertIn(data['alarmId'], expect_alarm_ids)
+        self.assertEqual(4, len(
+            body['error']['userScriptErrHandlingData']['serverNotification']))
+
+        # 10. LCM-FailV2
+        resp, body = self.fail_lcmocc(lcmocc_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+
+        # 11. LCM-Show-OpOccV2
+        resp, body = self.show_lcmocc(lcmocc_id)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual('FAILED', body['operationState'])
+        self.assertEqual('HEAL', body['operation'])
+
+        server_ids = {data['serverId'] for data in metadata_infos}
+        vm_infos = self.get_server_details(None)
+        vm_ids = {vm_info.get('id') for vm_info in vm_infos
+                  if vm_info['name'] in ['VDU1', 'VDU2']}
+        expect_alarm_ids = {'alarm_id_5', 'alarm_id_6'}
+        for data in (body['error']['userScriptErrHandlingData']
+                         ['serverNotification']):
+            if data['serverId'] in server_ids:
+                self.assertIsNone(data.get('alarmId'))
+                server_ids.remove(data['serverId'])
+            else:
+                self.assertIn(data['serverId'], vm_ids)
+                self.assertIn(data['alarmId'], expect_alarm_ids)
+        self.assertEqual(4, len(
+            body['error']['userScriptErrHandlingData']['serverNotification']))
+
+        # 12. LCM-TerminateV2
+        terminate_req = paramgen.terminate_vnf_min()
+        resp, body = self.terminate_vnf_instance(inst_id, terminate_req)
+        self.assertEqual(202, resp.status_code)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # 10. LCM-Show-OpOccV2
+        resp, body = self.show_lcmocc(lcmocc_id)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual('COMPLETED', body['operationState'])
+        self.assertEqual('TERMINATE', body['operation'])
+
+        # 13. LCM-DeleteV2
+        resp, body = self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
+        self.assertEqual(204, resp.status_code)
+
+    def test_retry_heal_vnfc(self):
+        """Test retry terminate when error occurred after terminate_start
+
+        * About Test operations:
+          This test includes the following operations.
+          - 1. LCM-CreateV2
+          - 2. LCM-InstantiateV2
+          - 3. LCM-ShowV2
+          - 4. LCM-HealV2(vnfc)(error)
+          - 5. LCM-ShowV2
+          - 6. LCM-Show-OpOccV2
+          - 7. LCM-RetryV2
+          - 8. LCM-ShowV2
+          - 9. LCM-Show-OpOccV2
+          - 10. LCM-FailV2
+          - 11. LCM-Show-OpOccV2
+          - 12. LCM-TerminateV2
+          - 13. LCM-DeleteV2
+        """
+
+        # 1. LCM-CreateV2
+        expected_inst_attrs = [
+            'id', 'vnfdId', 'vnfProvider', 'vnfProductName',
+            'vnfSoftwareVersion', 'vnfdVersion',
+            'instantiationState', '_links'
+        ]
+        create_req = paramgen.create_vnf_min(self.svn_id)
+        resp, body = self.create_vnf_instance(create_req)
+        self.assertEqual(201, resp.status_code)
+        self.check_resp_headers_in_create(resp)
+        self.check_resp_body(body, expected_inst_attrs)
+        inst_id = body['id']
+
+        # check usageState of VNF Package
+        self.check_package_usage(self.svn_pkg, 'IN_USE')
+
+        # 2. LCM-InstantiateV2
+        server_notification_uri = (
+            f'http://localhost:{self.get_server_port()}/server_notification')
+        self.set_server_callback(
+            'POST', '/server_notification', status_code=200,
+            response_headers={"Content-Type": "application/json"},
+            callback=_return_alarm_id)
+        global NUM
+        NUM = 0
+
+        instantiate_req = paramgen.instantiate_vnf_min()
+        instantiate_req['additionalParams'] = {
+            'ServerNotifierUri': server_notification_uri,
+            'ServerNotifierFaultID': ['1111', '1234']
+        }
+        instantiate_req['vnfConfigurableProperties'] = {
+            'isAutohealEnabled': False
+        }
+
+        resp, body = self.instantiate_vnf_instance(inst_id, instantiate_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # 3. LCM-ShowV2
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+        self.assertEqual('INSTANTIATED', body['instantiationState'])
+
+        metadata_infos = [{'serverId': res['computeResource']['resourceId'],
+                           'alarmId': res['metadata']['server_notification'][
+                               'alarmId']} for res in
+                          body['instantiatedVnfInfo']['vnfcResourceInfo']]
+        alarm_ids = {data['alarmId'] for data in metadata_infos}
+        expect_alarm_ids = {'alarm_id_1', 'alarm_id_2'}
+        self.assertSetEqual(alarm_ids, expect_alarm_ids)
+
+        # 4. LCM-HealV2(vnfc)(error)
+        self.put_fail_file('heal_end')
+        vnfc_id = [data['id'] for data in body['instantiatedVnfInfo'][
+            'vnfcResourceInfo'] if data['vduId'] == 'VDU1'][0]
+        heal_req = paramgen.heal_vnf_vnfc_min('VDU1-' + vnfc_id)
+        resp, body = self.heal_vnf_instance(inst_id, heal_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_failed_temp(lcmocc_id)
+
+        # 5. LCM-ShowV2
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+        self.assertEqual('INSTANTIATED', body['instantiationState'])
+
+        metadata_infos = [{'serverId': res['computeResource']['resourceId'],
+                           'alarmId': res['metadata']['server_notification'][
+                               'alarmId']} for res in
+                          body['instantiatedVnfInfo']['vnfcResourceInfo']]
+        alarm_ids = {data['alarmId'] for data in metadata_infos}
+        server_ids = {data['serverId'] for data in metadata_infos}
+        expect_alarm_ids = {'alarm_id_1', 'alarm_id_2'}
+        self.assertSetEqual(alarm_ids, expect_alarm_ids)
+
+        # 6. LCM-Show-OpOccV2
+        resp, body = self.show_lcmocc(lcmocc_id)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual('FAILED_TEMP', body['operationState'])
+        self.assertEqual('HEAL', body['operation'])
+
+        vm_infos = self.get_server_details(None)
+        vm_ids = {vm_info.get('id') for vm_info in vm_infos
+                  if vm_info['name'] == 'VDU1'}
+        expect_alarm_ids = {'alarm_id_3'}
+        for data in (body['error']['userScriptErrHandlingData']
+                         ['serverNotification']):
+            if data['serverId'] in server_ids:
+                self.assertIsNone(data.get('alarmId'))
+                server_ids.remove(data['serverId'])
+            else:
+                self.assertIn(data['serverId'], vm_ids)
+                self.assertIn(data['alarmId'], expect_alarm_ids)
+        self.assertEqual(2, len(
+            body['error']['userScriptErrHandlingData']['serverNotification']))
+
+        # 7. LCM-RetryV2
+        resp, body = self.retry_lcmocc(lcmocc_id)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_delete(resp)
+        self.wait_lcmocc_failed_temp(lcmocc_id)
+        self.rm_fail_file('heal_end')
+
+        # 8. LCM-ShowV2
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+        self.assertEqual('INSTANTIATED', body['instantiationState'])
+
+        metadata_infos = [{'serverId': res['computeResource']['resourceId'],
+                           'alarmId': res['metadata']['server_notification'][
+                               'alarmId']} for res in
+                          body['instantiatedVnfInfo']['vnfcResourceInfo']]
+        alarm_ids = {data['alarmId'] for data in metadata_infos}
+        server_ids = {data['serverId'] for data in metadata_infos}
+        expect_alarm_ids = {'alarm_id_1', 'alarm_id_2'}
+        self.assertSetEqual(alarm_ids, expect_alarm_ids)
+
+        # 9. LCM-Show-OpOccV2
+        resp, body = self.show_lcmocc(lcmocc_id)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual('FAILED_TEMP', body['operationState'])
+        self.assertEqual('HEAL', body['operation'])
+
+        vm_infos = self.get_server_details(None)
+        vm_ids = {vm_info.get('id') for vm_info in vm_infos
+                  if vm_info['name'] == 'VDU1'}
+        expect_alarm_ids = {'alarm_id_4'}
+        for data in (body['error']['userScriptErrHandlingData']
+                         ['serverNotification']):
+            if data['serverId'] in server_ids:
+                self.assertIsNone(data.get('alarmId'))
+                server_ids.remove(data['serverId'])
+            else:
+                self.assertIn(data['serverId'], vm_ids)
+                self.assertIn(data['alarmId'], expect_alarm_ids)
+        self.assertEqual(2, len(
+            body['error']['userScriptErrHandlingData']['serverNotification']))
+
+        # 10. LCM-FailV2
+        resp, body = self.fail_lcmocc(lcmocc_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+
+        # 11. LCM-Show-OpOccV2
+        resp, body = self.show_lcmocc(lcmocc_id)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual('FAILED', body['operationState'])
+        self.assertEqual('HEAL', body['operation'])
+
+        server_ids = {data['serverId'] for data in metadata_infos}
+        vm_infos = self.get_server_details(None)
+        vm_ids = {vm_info.get('id') for vm_info in vm_infos
+                  if vm_info['name'] == 'VDU1'}
+        expect_alarm_ids = {'alarm_id_4'}
+        for data in (body['error']['userScriptErrHandlingData']
+                         ['serverNotification']):
+            if data['serverId'] in server_ids:
+                self.assertIsNone(data.get('alarmId'))
+                server_ids.remove(data['serverId'])
+            else:
+                self.assertIn(data['serverId'], vm_ids)
+                self.assertIn(data['alarmId'], expect_alarm_ids)
+        self.assertEqual(2, len(
+            body['error']['userScriptErrHandlingData']['serverNotification']))
+
+        # 12. LCM-TerminateV2
+        terminate_req = paramgen.terminate_vnf_min()
+        resp, body = self.terminate_vnf_instance(inst_id, terminate_req)
+        self.assertEqual(202, resp.status_code)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # 10. LCM-Show-OpOccV2
+        resp, body = self.show_lcmocc(lcmocc_id)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual('COMPLETED', body['operationState'])
+        self.assertEqual('TERMINATE', body['operation'])
+
+        # 13. LCM-DeleteV2
+        resp, body = self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
+        self.assertEqual(204, resp.status_code)
+
+    def test_retry_terminate(self):
+        """Test retry terminate when error occurred after terminate_start
+
+        * About Test operations:
+          This test includes the following operations.
+          - 1. LCM-CreateV2
+          - 2. LCM-InstantiateV2
+          - 3. LCM-ShowV2
+          - 4. LCM-TerminateV2(error)
+          - 5. LCM-ShowV2
+          - 6. LCM-Show-OpOccV2
+          - 7. LCM-RetryV2
+          - 8. LCM-ShowV2
+          - 9. LCM-Show-OpOccV2
+          - 10. LCM-FailV2
+          - 11. LCM-Show-OpOccV2
+          - 12. LCM-TerminateV2
+          - 13. LCM-DeleteV2
+        """
+
+        # 1. LCM-CreateV2
+        expected_inst_attrs = [
+            'id', 'vnfdId', 'vnfProvider', 'vnfProductName',
+            'vnfSoftwareVersion', 'vnfdVersion',
+            'instantiationState', '_links'
+        ]
+        create_req = paramgen.create_vnf_min(self.svn_id)
+        resp, body = self.create_vnf_instance(create_req)
+        self.assertEqual(201, resp.status_code)
+        self.check_resp_headers_in_create(resp)
+        self.check_resp_body(body, expected_inst_attrs)
+        inst_id = body['id']
+
+        # check usageState of VNF Package
+        self.check_package_usage(self.svn_pkg, 'IN_USE')
+
+        # 2. LCM-InstantiateV2
+        server_notification_uri = (
+            f'http://localhost:{self.get_server_port()}/server_notification')
+        self.set_server_callback(
+            'POST', '/server_notification', status_code=200,
+            response_headers={"Content-Type": "application/json"},
+            callback=_return_alarm_id)
+        global NUM
+        NUM = 0
+
+        instantiate_req = paramgen.instantiate_vnf_min()
+        instantiate_req['additionalParams'] = {
+            'ServerNotifierUri': server_notification_uri,
+            'ServerNotifierFaultID': ['1111', '1234']
+        }
+        instantiate_req['vnfConfigurableProperties'] = {
+            'isAutohealEnabled': False
+        }
+
+        resp, body = self.instantiate_vnf_instance(inst_id, instantiate_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # 3. LCM-ShowV2
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+        self.assertEqual('INSTANTIATED', body['instantiationState'])
+
+        metadata_infos = [{'serverId': res['computeResource']['resourceId'],
+                           'alarmId': res['metadata']['server_notification'][
+                               'alarmId']} for res in
+                          body['instantiatedVnfInfo']['vnfcResourceInfo']]
+        alarm_ids = {data['alarmId'] for data in metadata_infos}
+        expect_alarm_ids = {'alarm_id_1', 'alarm_id_2'}
+        self.assertSetEqual(alarm_ids, expect_alarm_ids)
+
+        # 4. LCM-TerminateV2(error)
+        self.put_fail_file('terminate_start')
+        terminate_req = paramgen.terminate_vnf_min()
+        resp, body = self.terminate_vnf_instance(inst_id, terminate_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_failed_temp(lcmocc_id)
+
+        # 5. LCM-ShowV2
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+        self.assertEqual('INSTANTIATED', body['instantiationState'])
+
+        metadata_infos = [{'serverId': res['computeResource']['resourceId'],
+                           'alarmId': res['metadata']['server_notification'][
+                               'alarmId']} for res in
+                          body['instantiatedVnfInfo']['vnfcResourceInfo']]
+        alarm_ids = {data['alarmId'] for data in metadata_infos}
+        server_ids = {data['serverId'] for data in metadata_infos}
+        expect_alarm_ids = {'alarm_id_1', 'alarm_id_2'}
+        self.assertSetEqual(alarm_ids, expect_alarm_ids)
+
+        # 6. LCM-Show-OpOccV2
+        resp, body = self.show_lcmocc(lcmocc_id)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual('FAILED_TEMP', body['operationState'])
+        self.assertEqual('TERMINATE', body['operation'])
+
+        for data in (body['error']['userScriptErrHandlingData']
+                         ['serverNotification']):
+            self.assertIn(data['serverId'], server_ids)
+            server_ids.remove(data['serverId'])
+            self.assertIsNone(data.get('alarmId'))
+        self.assertEqual(2, len(
+            body['error']['userScriptErrHandlingData']['serverNotification']))
+
+        # 7. LCM-RetryV2
+        resp, body = self.retry_lcmocc(lcmocc_id)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_delete(resp)
+        self.wait_lcmocc_failed_temp(lcmocc_id)
+        self.rm_fail_file('terminate_start')
+
+        # 8. LCM-ShowV2
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+        self.assertEqual('INSTANTIATED', body['instantiationState'])
+
+        metadata_infos = [{'serverId': res['computeResource']['resourceId'],
+                           'alarmId': res['metadata']['server_notification'][
+                               'alarmId']} for res in
+                          body['instantiatedVnfInfo']['vnfcResourceInfo']]
+        alarm_ids = {data['alarmId'] for data in metadata_infos}
+        server_ids = {data['serverId'] for data in metadata_infos}
+        expect_alarm_ids = {'alarm_id_1', 'alarm_id_2'}
+        self.assertSetEqual(alarm_ids, expect_alarm_ids)
+
+        # 9. LCM-Show-OpOccV2
+        resp, body = self.show_lcmocc(lcmocc_id)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual('FAILED_TEMP', body['operationState'])
+        self.assertEqual('TERMINATE', body['operation'])
+
+        for data in (body['error']['userScriptErrHandlingData']
+                         ['serverNotification']):
+            self.assertIn(data['serverId'], server_ids)
+            server_ids.remove(data['serverId'])
+            self.assertIsNone(data.get('alarmId'))
+        self.assertEqual(2, len(
+            body['error']['userScriptErrHandlingData']['serverNotification']))
+
+        # 10. LCM-FailV2
+        resp, body = self.fail_lcmocc(lcmocc_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+
+        # 11. LCM-Show-OpOccV2
+        resp, body = self.show_lcmocc(lcmocc_id)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual('FAILED', body['operationState'])
+        self.assertEqual('TERMINATE', body['operation'])
+
+        server_ids = {data['serverId'] for data in metadata_infos}
+        for data in (body['error']['userScriptErrHandlingData']
+                         ['serverNotification']):
+            self.assertIn(data['serverId'], server_ids)
+            server_ids.remove(data['serverId'])
+            self.assertIsNone(data.get('alarmId'))
+        self.assertEqual(2, len(
+            body['error']['userScriptErrHandlingData']['serverNotification']))
+
+        # 12. LCM-TerminateV2
+        terminate_req = paramgen.terminate_vnf_min()
+        resp, body = self.terminate_vnf_instance(inst_id, terminate_req)
+        self.assertEqual(202, resp.status_code)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # 10. LCM-Show-OpOccV2
+        resp, body = self.show_lcmocc(lcmocc_id)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual('COMPLETED', body['operationState'])
+        self.assertEqual('TERMINATE', body['operation'])
+
+        # 13. LCM-DeleteV2
+        resp, body = self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
+        self.assertEqual(204, resp.status_code)
+
+    def test_rollback_instantiate(self):
+        """Test rollback instantiate when error occurred after instantiate_end
+
+        * About Test operations:
+          This test includes the following operations.
+          - 1. LCM-CreateV2
+          - 2. LCM-InstantiateV2(error)
+          - 3. LCM-ShowV2
+          - 4. LCM-Show-OpOccV2
+          - 5. LCM-RollbackV2
+          - 6. LCM-ShowV2
+          - 7. LCM-Show-OpOccV2
+          - 8. LCM-DeleteV2
+        """
+
+        # 1. LCM-CreateV2
+        expected_inst_attrs = [
+            'id', 'vnfdId', 'vnfProvider', 'vnfProductName',
+            'vnfSoftwareVersion', 'vnfdVersion',
+            'instantiationState', '_links'
+        ]
+        create_req = paramgen.create_vnf_min(self.svn_id)
+        resp, body = self.create_vnf_instance(create_req)
+        self.assertEqual(201, resp.status_code)
+        self.check_resp_headers_in_create(resp)
+        self.check_resp_body(body, expected_inst_attrs)
+        inst_id = body['id']
+
+        # check usageState of VNF Package
+        self.check_package_usage(self.svn_pkg, 'IN_USE')
+
+        # 2. LCM-InstantiateV2(error)
+        server_notification_uri = (
+            f'http://localhost:{self.get_server_port()}/server_notification')
+        self.set_server_callback(
+            'POST', '/server_notification', status_code=200,
+            response_headers={"Content-Type": "application/json"},
+            callback=_return_alarm_id)
+        global NUM
+        NUM = 0
+
+        instantiate_req = paramgen.instantiate_vnf_min()
+        instantiate_req['additionalParams'] = {
+            'ServerNotifierUri': server_notification_uri,
+            'ServerNotifierFaultID': ['1111', '1234']
+        }
+        instantiate_req['vnfConfigurableProperties'] = {
+            'isAutohealEnabled': False
+        }
+
+        self.put_fail_file('instantiate_end')
+        resp, body = self.instantiate_vnf_instance(inst_id, instantiate_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_failed_temp(lcmocc_id)
+        self.rm_fail_file('instantiate_end')
+
+        # 3. LCM-ShowV2
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+        self.assertEqual('NOT_INSTANTIATED', body['instantiationState'])
+        self.assertEqual(None, body.get('instantiatedVnfInfo'))
+
+        # 4. LCM-Show-OpOccV2
+        resp, body = self.show_lcmocc(lcmocc_id)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual('FAILED_TEMP', body['operationState'])
+        self.assertEqual('INSTANTIATE', body['operation'])
+
+        vm_infos = self.get_server_details(None)
+        vm_ids = {vm_info.get('id') for vm_info in vm_infos
+                  if vm_info['name'] in ['VDU1', 'VDU2']}
+        alarm_ids = {'alarm_id_1', 'alarm_id_2'}
+        for data in (body['error']['userScriptErrHandlingData']
+                         ['serverNotification']):
+            self.assertIn(data['serverId'], vm_ids)
+            self.assertIn(data['alarmId'], alarm_ids)
+        self.assertEqual(2, len(
+            body['error']['userScriptErrHandlingData']['serverNotification']))
+
+        # 5. LCM-RollbackV2
+        resp, body = self.rollback_lcmocc(lcmocc_id)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_delete(resp)
+        self.wait_lcmocc_rolled_back(lcmocc_id)
+
+        # 6. LCM-ShowV2
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+        self.assertEqual('NOT_INSTANTIATED', body['instantiationState'])
+        self.assertEqual(None, body.get('instantiatedVnfInfo'))
+
+        # 7. LCM-Show-OpOccV2
+        resp, body = self.show_lcmocc(lcmocc_id)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual('ROLLED_BACK', body['operationState'])
+        self.assertEqual('INSTANTIATE', body['operation'])
+
+        self.assertIsNone(body['error'].get('userScriptErrHandlingData'))
+
+        # 8. LCM-DeleteV2
+        resp, body = self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
+        self.assertEqual(204, resp.status_code)
+
+    def test_rollback_scale_out(self):
+        """Test rollback scale out when error occurred after scale_end
+
+        * About Test operations:
+          This test includes the following operations.
+          - 1. LCM-CreateV2
+          - 2. LCM-InstantiateV2
+          - 3. LCM-ShowV2
+          - 4. LCM-ScaleV2(out)(error)
+          - 5. LCM-ShowV2
+          - 6. LCM-Show-OpOccV2
+          - 7. LCM-RollbackV2
+          - 8. LCM-ShowV2
+          - 9. LCM-Show-OpOccV2
+          - 10. LCM-TerminateV2
+          - 11. LCM-DeleteV2
+        """
+
+        # 1. LCM-CreateV2
+        expected_inst_attrs = [
+            'id', 'vnfdId', 'vnfProvider', 'vnfProductName',
+            'vnfSoftwareVersion', 'vnfdVersion',
+            'instantiationState', '_links'
+        ]
+        create_req = paramgen.create_vnf_min(self.svn_id)
+        resp, body = self.create_vnf_instance(create_req)
+        self.assertEqual(201, resp.status_code)
+        self.check_resp_headers_in_create(resp)
+        self.check_resp_body(body, expected_inst_attrs)
+        inst_id = body['id']
+
+        # check usageState of VNF Package
+        self.check_package_usage(self.svn_pkg, 'IN_USE')
+
+        # 2. LCM-InstantiateV2
+        server_notification_uri = (
+            f'http://localhost:{self.get_server_port()}/server_notification')
+        self.set_server_callback(
+            'POST', '/server_notification', status_code=200,
+            response_headers={"Content-Type": "application/json"},
+            callback=_return_alarm_id)
+        global NUM
+        NUM = 0
+
+        instantiate_req = paramgen.instantiate_vnf_min()
+        instantiate_req['additionalParams'] = {
+            'ServerNotifierUri': server_notification_uri,
+            'ServerNotifierFaultID': ['1111', '1234']
+        }
+        instantiate_req['vnfConfigurableProperties'] = {
+            'isAutohealEnabled': False
+        }
+
+        resp, body = self.instantiate_vnf_instance(inst_id, instantiate_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # 3. LCM-ShowV2
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+        self.assertEqual('INSTANTIATED', body['instantiationState'])
+
+        metadata_infos = [{'serverId': res['computeResource']['resourceId'],
+                           'alarmId': res['metadata']['server_notification'][
+                               'alarmId']} for res in
+                          body['instantiatedVnfInfo']['vnfcResourceInfo']]
+        alarm_ids = {data['alarmId'] for data in metadata_infos}
+        expect_alarm_ids = {'alarm_id_1', 'alarm_id_2'}
+        self.assertSetEqual(alarm_ids, expect_alarm_ids)
+
+        # 4. LCM-ScaleV2(out)(error)
+        self.put_fail_file('scale_end')
+        scale_req = paramgen.scaleout_vnf_min()
+        resp, body = self.scale_vnf_instance(inst_id, scale_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_failed_temp(lcmocc_id)
+        self.rm_fail_file('scale_end')
+
+        # 5. LCM-ShowV2
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+        self.assertEqual('INSTANTIATED', body['instantiationState'])
+
+        metadata_infos = [{'serverId': res['computeResource']['resourceId'],
+                           'alarmId': res['metadata']['server_notification'][
+                               'alarmId']} for res in
+                          body['instantiatedVnfInfo']['vnfcResourceInfo']]
+        alarm_ids = {data['alarmId'] for data in metadata_infos}
+        server_ids = {data['serverId'] for data in metadata_infos}
+        expect_alarm_ids = {'alarm_id_1', 'alarm_id_2'}
+        self.assertSetEqual(alarm_ids, expect_alarm_ids)
+
+        # 6. LCM-Show-OpOccV2
+        resp, body = self.show_lcmocc(lcmocc_id)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual('FAILED_TEMP', body['operationState'])
+        self.assertEqual('SCALE', body['operation'])
+
+        vm_infos = self.get_server_details(None)
+        vm_ids = {vm_info.get('id') for vm_info in vm_infos
+                  if vm_info['name'] == 'VDU1'}
+        for data in (body['error']['userScriptErrHandlingData']
+                         ['serverNotification']):
+            self.assertIn(data['serverId'], vm_ids)
+            self.assertNotIn(data['serverId'], server_ids)
+            self.assertEqual('alarm_id_3', data['alarmId'])
+        self.assertEqual(1, len(
+            body['error']['userScriptErrHandlingData']['serverNotification']))
+
+        # 7. LCM-RollbackV2
+        resp, body = self.rollback_lcmocc(lcmocc_id)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_delete(resp)
+        self.wait_lcmocc_rolled_back(lcmocc_id)
+
+        # 8. LCM-ShowV2
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+        self.assertEqual('INSTANTIATED', body['instantiationState'])
+
+        metadata_infos = [{'serverId': res['computeResource']['resourceId'],
+                           'alarmId': res['metadata']['server_notification'][
+                               'alarmId']} for res in
+                          body['instantiatedVnfInfo']['vnfcResourceInfo']]
+        alarm_ids = {data['alarmId'] for data in metadata_infos}
+        expect_alarm_ids = {'alarm_id_1', 'alarm_id_2'}
+        self.assertSetEqual(alarm_ids, expect_alarm_ids)
+
+        # 9. LCM-Show-OpOccV2
+        resp, body = self.show_lcmocc(lcmocc_id)
+        self.assertEqual(200, resp.status_code)
+        self.assertEqual('ROLLED_BACK', body['operationState'])
+        self.assertEqual('SCALE', body['operation'])
+
+        self.assertIsNone(body['error'].get('userScriptErrHandlingData'))
+
+        # 10. LCM-TerminateV2
+        terminate_req = paramgen.terminate_vnf_min()
+        resp, body = self.terminate_vnf_instance(inst_id, terminate_req)
+        self.assertEqual(202, resp.status_code)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_complete(lcmocc_id)
+
+        # 11. LCM-DeleteV2
+        resp, body = self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
+        self.assertEqual(204, resp.status_code)

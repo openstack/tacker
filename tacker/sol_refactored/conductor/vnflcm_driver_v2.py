@@ -94,7 +94,8 @@ class VnfLcmDriverV2(object):
             method(context, lcmocc, inst, grant_req, grant, vnfd)
 
     def _exec_mgmt_driver_script(self, operation, flavour_id, req, inst,
-            grant_req, grant, vnfd, new_vnfd=None):
+                                 grant_req, grant, vnfd,
+                                 user_script_err_handling_data, new_vnfd=None):
         script = vnfd.get_interface_script(flavour_id, operation)
         if script is None:
             return
@@ -108,7 +109,8 @@ class VnfLcmDriverV2(object):
                               if grant_req is not None else None),
             'grant_response': (grant.to_dict()
                                if grant is not None else None),
-            'tmp_csar_dir': tmp_csar_dir
+            'tmp_csar_dir': tmp_csar_dir,
+            'user_script_err_handling_data': user_script_err_handling_data
         }
         if new_vnfd:
             new_csar_dir = new_vnfd.make_tmp_csar_dir()
@@ -122,21 +124,25 @@ class VnfLcmDriverV2(object):
 
         vnfd.remove_tmp_csar_dir(tmp_csar_dir)
 
+        try:
+            output = pickle.loads(out.stdout)
+            if isinstance(output, dict):
+                if 'vnf_instance' in output:
+                    _inst = objects.VnfInstanceV2.from_dict(
+                        output['vnf_instance'])
+                    inst.__dict__.update(_inst.__dict__)
+                if 'user_script_err_handling_data' in output:
+                    user_script_err_handling_data.update(output[
+                        'user_script_err_handling_data'])
+        except EOFError:
+            pass
+        except pickle.UnpicklingError:
+            pass
+
         if out.returncode != 0:
             LOG.debug("execute %s failed: %s", operation, out.stderr)
             msg = "{} failed: {}".format(operation, out.stderr)
             raise sol_ex.MgmtDriverExecutionFailed(sol_detail=msg)
-        else:
-            try:
-                output = pickle.loads(out.stdout)
-                if isinstance(output, dict) and 'vnf_instance' in output:
-                    _inst = objects.VnfInstanceV2.from_dict(
-                        output['vnf_instance'])
-                    inst.__dict__.update(_inst.__dict__)
-            except EOFError:
-                pass
-            except pickle.UnpicklingError:
-                pass
 
         LOG.debug("execute %s of %s success.", operation, script)
 
@@ -218,7 +224,8 @@ class VnfLcmDriverV2(object):
         else:
             return operation.lower()
 
-    def process(self, context, lcmocc, inst, grant_req, grant, vnfd):
+    def process(self, context, lcmocc, inst, grant_req, grant, vnfd,
+                user_script_err_handling_data):
         # save inst to use updating lcmocc after process done
         inst_saved = inst.obj_clone()
 
@@ -234,8 +241,9 @@ class VnfLcmDriverV2(object):
             # NOTE: This is only the case that operation is MODIFY_INFO
             # and vnf instance is never instantiated after creation.
             flavour_id = None
-        self._exec_mgmt_driver_script(operation,
-            flavour_id, req, inst, grant_req, grant, vnfd)
+        self._exec_mgmt_driver_script(
+            operation, flavour_id, req, inst, grant_req, grant, vnfd,
+            user_script_err_handling_data)
 
         # main process
         method = getattr(self, "%s_%s" % (lcmocc.operation.lower(), 'process'))
@@ -249,20 +257,43 @@ class VnfLcmDriverV2(object):
                 context, req.vnfdId, all_contents=True)
         operation = "{}_end".format(self._script_method_name(lcmocc.operation))
         self._exec_mgmt_driver_script(
-            operation, flavour_id, req, inst,
-            grant_req, grant, vnfd, new_vnfd=new_vnfd)
+            operation, flavour_id, req, inst, grant_req, grant, vnfd,
+            user_script_err_handling_data, new_vnfd=new_vnfd)
 
         self._make_inst_info_common(lcmocc, inst_saved, inst, vnfd)
         lcmocc_utils.update_lcmocc(lcmocc, inst_saved, inst)
 
-    def rollback(self, context, lcmocc, inst, grant_req, grant, vnfd):
+    def rollback(self, context, lcmocc, inst, grant_req, grant, vnfd,
+                 user_script_err_handling_data):
         method = getattr(self,
                          "%s_%s" % (lcmocc.operation.lower(), 'rollback'),
                          None)
-        if method:
-            method(context, lcmocc, inst, grant_req, grant, vnfd)
-        else:
+        if not method:
             raise sol_ex.RollbackNotSupported(op=lcmocc.operation)
+
+        # perform preamble LCM script
+        req = lcmocc.operationParams
+        operation_name = self._script_method_name(lcmocc.operation)
+        operation = f"{operation_name}_rollback_start"
+        if lcmocc.operation == v2fields.LcmOperationType.INSTANTIATE:
+            flavour_id = req.flavourId
+        elif inst.obj_attr_is_set('instantiatedVnfInfo'):
+            flavour_id = inst.instantiatedVnfInfo.flavourId
+        else:
+            # NOTE: This is only the case that operation is MODIFY_INFO
+            # and vnf instance is never instantiated after creation.
+            flavour_id = None
+        self._exec_mgmt_driver_script(
+            operation, flavour_id, req, inst, grant_req,
+            grant, vnfd, user_script_err_handling_data)
+
+        method(context, lcmocc, inst, grant_req, grant, vnfd)
+
+        # perform postamble LCM script
+        operation = f"{operation_name}_rollback_end"
+        self._exec_mgmt_driver_script(
+            operation, flavour_id, req, inst, grant_req,
+            grant, vnfd, user_script_err_handling_data)
 
     def _get_link_ports(self, inst_req):
         names = set()

@@ -216,3 +216,103 @@ def fake_replica_set(
                 name, image, conf_key, conf_name, sec_key, sec_name)
         )
     )
+
+
+fault_notif_inst_example = {
+    "id": "c80f7afa-65f3-4be6-94ae-fdf438ac2d61",
+    "vnfInstanceName": "FaultNotification",
+    "vnfdId": "16ca1a07-2453-47f1-9f00-7ca2dce0a5ea",
+    "vnfProvider": "Company",
+    "vnfProductName": "Sample VNF",
+    "vnfSoftwareVersion": "1.0",
+    "vnfdVersion": "1.0",
+    "vimConnectionInfo": {
+        "vim1": {
+            "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3",
+            "vimId": 'vim id',
+            "interfaceInfo": {"endpoint": "http://localhost/identity/v3"},
+            "accessInfo": {
+                "username": "nfv_user",
+                "region": "RegionOne",
+                "password": "devstack",
+                "project": "nfv",
+                "projectDomain": "Default",
+                "userDomain": "Default"
+            }
+        }
+    },
+    "instantiationState": "INSTANTIATED",
+    "instantiatedVnfInfo": {
+        "flavourId": "simple",
+        "vnfState": "STARTED",
+        "vnfcResourceInfo": [{
+            "id": "daemonset-vdu5-wh824",
+            "vduId": "VDU5",
+            "computeResource": {
+                "resourceId": "s0",
+                "vimLevelResourceType": "DaemonSet"
+            },
+            "metadata": {
+                "server_notification": {
+                    "alarmId": "xxx"
+                }
+            }
+        }, {
+            "id": "deployment2-vdu6-6f8c5c5ddb-9ptn9",
+            "vduId": "VDU6",
+            "computeResource": {
+                "resourceId": "s1",
+                "vimLevelResourceType": "Deployment"
+            }
+        }, {
+            "id": "env-test",
+            "vduId": "VDU3",
+            "computeResource": {
+                "resourceId": "s2",
+                "vimLevelResourceType": "Pod"
+            },
+            "metadata": {
+                "server_notification": {
+                    "alarmId": "a2"
+                }
+            }
+        }, {
+            "id": "env-test2",
+            "vduId": "VDU7",
+            "computeResource": {
+                "resourceId": "env-test2",
+                "vimLevelResourceType": "Pod"
+            },
+            "metadata": {}
+        }],
+        "metadata": {
+            "ServerNotifierUri": "http://192.168.10.147:55555",
+            "ServerNotifierFaultID": ["1234"]
+        }
+    }
+}
+
+
+fault_notif_inst_req_example = {
+    "flavourId": "simple",
+    "instantiationLevelId": "instantiation_level_2",
+    "additionalParams": {
+        "ServerNotifierUri": "http://server_notifier:1234",
+        "ServerNotifierFaultID": ["1234"]
+    },
+    "vimConnectionInfo": {
+        "vim1": {
+            "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3",
+            "vimId": 'vim id',
+            "interfaceInfo": {"endpoint": "http://localhost/identity/v3"},
+            "accessInfo": {
+                "username": "nfv_user",
+                "region": "RegionOne",
+                "password": "devstack",
+                "project": "nfv",
+                "projectDomain": "Default",
+                "userDomain": "Default"
+            }
+        }
+    }
+}

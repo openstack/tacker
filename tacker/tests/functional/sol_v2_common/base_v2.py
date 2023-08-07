@@ -161,6 +161,8 @@ class BaseSolV2Test(base_v2.BaseTackerTestV2):
     def get_server_details(self, server_name):
         path = "/servers/detail"
         resp, resp_body = self.nova_client.do_request(path, "GET")
+        if server_name is None:
+            return resp_body.get('servers')
 
         server_details = None
         for server in resp_body.get('servers'):

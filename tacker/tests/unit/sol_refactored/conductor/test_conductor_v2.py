@@ -312,6 +312,8 @@ class TestConductorV2(db_base.SqlTestCase):
         # prepare
         lcmocc = self._create_inst_and_lcmocc(
             op_state=fields.LcmOperationStateType.FAILED_TEMP)
+        problem_details = {'userScriptErrHandlingData': {"key": "value"}}
+        lcmocc.error = objects.ProblemDetails.from_dict(problem_details)
         self._create_grant_req_and_grant(lcmocc)
         mocked_get_vnfd.return_value = mock.Mock()
         ex = sol_ex.StackOperationFailed(sol_detail="unit test",
@@ -337,6 +339,7 @@ class TestConductorV2(db_base.SqlTestCase):
         # get lcmocc from DB to be sure lcmocc saved to DB
         lcmocc = lcmocc_utils.get_lcmocc(self.context, lcmocc.id)
         expected = ex.make_problem_details()
+        expected['userScriptErrHandlingData'] = {"key": "value"}
         self.assertEqual(expected, lcmocc.error.to_dict())
 
         # check grant_req and grant remain
@@ -353,6 +356,8 @@ class TestConductorV2(db_base.SqlTestCase):
         # prepare
         lcmocc = self._create_inst_and_lcmocc(
             op_state=fields.LcmOperationStateType.FAILED_TEMP)
+        problem_details = {'userScriptErrHandlingData': {"key": "value"}}
+        lcmocc.error = objects.ProblemDetails.from_dict(problem_details)
         self._create_grant_req_and_grant(lcmocc)
         mocked_get_vnfd.return_value = mock.Mock()
 
@@ -386,6 +391,8 @@ class TestConductorV2(db_base.SqlTestCase):
         # prepare
         lcmocc = self._create_inst_and_lcmocc(
             op_state=fields.LcmOperationStateType.FAILED_TEMP)
+        problem_details = {'userScriptErrHandlingData': {"key": "value"}}
+        lcmocc.error = objects.ProblemDetails.from_dict(problem_details)
         self._create_grant_req_and_grant(lcmocc)
         mocked_get_vnfd.return_value = mock.Mock()
         ex = sol_ex.StackOperationFailed(sol_detail="unit test",
@@ -412,6 +419,7 @@ class TestConductorV2(db_base.SqlTestCase):
         # get lcmocc from DB to be sure lcmocc saved to DB
         lcmocc = lcmocc_utils.get_lcmocc(self.context, lcmocc.id)
         expected = ex.make_problem_details()
+        expected['userScriptErrHandlingData'] = {"key": "value"}
         self.assertEqual(expected, lcmocc.error.to_dict())
 
         # check grant_req and grant remain

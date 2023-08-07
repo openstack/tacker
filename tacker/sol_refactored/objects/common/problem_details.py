@@ -31,4 +31,7 @@ class ProblemDetails(base.TackerObject, base.TackerObjectDictCompat):
         'status': fields.IntegerField(nullable=False),
         'detail': fields.StringField(nullable=False),
         'instance': fields.UriField(nullable=True),
+        # NOTE: userScriptErrHandlingData is not defined in SOL003.
+        # It is original definition of Tacker.
+        'userScriptErrHandlingData': fields.KeyValuePairsField(nullable=True),
     }

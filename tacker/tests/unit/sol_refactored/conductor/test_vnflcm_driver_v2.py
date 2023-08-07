@@ -15,6 +15,8 @@
 import copy
 from datetime import datetime
 import os
+import pickle
+import subprocess
 from unittest import mock
 
 from kubernetes import client
@@ -2264,7 +2266,7 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             isCancelPending=False,
             operationParams=req_inst)
         self.driver.process(
-            self.context, lcmocc, inst, grant_req, grant, self.vnfd_1)
+            self.context, lcmocc, inst, grant_req, grant, self.vnfd_1, {})
 
         # other operation
         inst = objects.VnfInstanceV2(
@@ -2293,7 +2295,7 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             operationParams=objects.TerminateVnfRequest(
                 terminationType='FORCEFUL'))
         self.driver.process(
-            self.context, lcmocc, inst, grant_req, grant, self.vnfd_1)
+            self.context, lcmocc, inst, grant_req, grant, self.vnfd_1, {})
 
         # no flavour_id
         inst = objects.VnfInstanceV2(
@@ -2319,10 +2321,11 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             operationParams=objects.VnfInfoModificationRequest()
         )
         self.driver.process(
-            self.context, lcmocc, inst, grant_req, grant, self.vnfd_1)
+            self.context, lcmocc, inst, grant_req, grant, self.vnfd_1, {})
 
+    @mock.patch.object(vnflcm_driver_v2.VnfLcmDriverV2, 'scale_rollback')
     @mock.patch.object(vnflcm_driver_v2.VnfLcmDriverV2, 'instantiate_rollback')
-    def test_rollback(self, mock_inst_rollback):
+    def test_rollback(self, mock_inst_rollback, mock_scale_rollback):
         # instantiate
         req_inst = objects.InstantiateVnfRequest.from_dict(
             _inst_req_example)
@@ -2353,7 +2356,7 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             isCancelPending=False,
             operationParams=req_inst)
         self.driver.rollback(
-            self.context, lcmocc, inst, grant_req, grant, self.vnfd_1)
+            self.context, lcmocc, inst, grant_req, grant, self.vnfd_1, {})
 
         # no rollback
         lcmocc = objects.VnfLcmOpOccV2(
@@ -2370,7 +2373,74 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
                 terminationType='FORCEFUL'))
         self.assertRaises(
             sol_ex.RollbackNotSupported, self.driver.rollback,
-            self.context, lcmocc, inst, grant_req, grant, self.vnfd_1)
+            self.context, lcmocc, inst, grant_req, grant, self.vnfd_1, {})
+
+        # mgmt rollback
+        req_scale = objects.ScaleVnfRequest(
+            type='SCALE_OUT', aspectId='aspect_id', numberOfSteps=1)
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.STARTING,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.SCALE,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req_scale)
+        self.driver.rollback(
+            self.context, lcmocc, inst, grant_req, grant, self.vnfd_1, {})
+        inst.instantiatedVnfInfo = objects.VnfInstanceV2_InstantiatedVnfInfo(
+            flavourId='flavour_id')
+        self.driver.rollback(
+            self.context, lcmocc, inst, grant_req, grant, self.vnfd_1, {})
+
+    @mock.patch.object(pickle, 'loads')
+    @mock.patch.object(vnfd_utils.Vnfd, 'remove_tmp_csar_dir')
+    @mock.patch.object(subprocess, 'run')
+    @mock.patch.object(os.path, 'join')
+    @mock.patch.object(vnfd_utils.Vnfd, 'make_tmp_csar_dir')
+    @mock.patch.object(vnfd_utils.Vnfd, 'get_interface_script')
+    def test_exec_mgmt_driver_script_eof_error(
+            self, mock_script, mock_dir, mock_script_path, mock_out,
+            mock_remove, mock_output):
+        # instantiate
+        req_inst = objects.InstantiateVnfRequest.from_dict(
+            _inst_req_example)
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='NOT_INSTANTIATED',
+            vimConnectionInfo=req_inst.vimConnectionInfo
+        )
+        grant_req = objects.GrantRequestV1(
+            operation=fields.LcmOperationType.INSTANTIATE
+        )
+        grant = objects.GrantV1()
+
+        mock_script.return_value = 'sample_script.py'
+        mock_dir.return_value = 'path'
+        mock_script_path.return_value = '../mgmt_drivers/sample_script.py'
+        mock_output.return_value = {
+            'vnf_instance': {
+                'id': 'id', 'vnfdId': 'vnfdId', 'vnfProvider': 'vnfProvider',
+                'vnfProductName': 'vnfProductName',
+                'vnfSoftwareVersion': 'vnfSoftwareVersion',
+                'vnfdVersion': 'vnfdVersion',
+                'instantiationState': 'INSTANTIATED'},
+            'user_script_err_handling_data': {'key': 'value'}}
+        user_script_err_handling_data = {}
+        self.assertRaises(
+            sol_ex.MgmtDriverExecutionFailed,
+            self.driver._exec_mgmt_driver_script, 'INSTANTIATE', 'flavour_id',
+            req_inst, inst, grant_req, grant, self.vnfd_1,
+            user_script_err_handling_data)
 
     def test_instantiate_grant_error(self):
         # instantiate

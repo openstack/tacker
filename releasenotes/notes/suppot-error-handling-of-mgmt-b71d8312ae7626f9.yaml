@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Support error handling for LCM using MgmtDriver in V2 API. We added the
+    ``user_script_err_handling_data`` variable to hold the data that needs
+    to be preserved when the LCM fails.
+
+    At the same time, we updated the MgmtDriver of the FaultNotification
+    function to support error handling.

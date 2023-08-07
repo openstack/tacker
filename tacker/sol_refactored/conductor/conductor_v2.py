@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import copy
 import threading
 
 from oslo_log import log as logging
@@ -99,13 +100,19 @@ class ConductorV2(object):
                 self.nfvo_client.send_lcmocc_notification(context, lcmocc,
                                                           inst, self.endpoint)
 
-    def _set_lcmocc_error(self, lcmocc, ex):
+    def _set_lcmocc_error(
+            self, lcmocc, ex, user_script_err_handling_data={}):
         if isinstance(ex, sol_ex.SolException):
             problem_details = ex.make_problem_details()
         else:
             # program bug. it occurs only under development.
             problem_details = {'status': 500,
                                'detail': str(ex)}
+
+        if user_script_err_handling_data:
+            problem_details[
+                'userScriptErrHandlingData'] = user_script_err_handling_data
+
         lcmocc.error = objects.ProblemDetails.from_dict(problem_details)
 
     @log.log
@@ -122,6 +129,8 @@ class ConductorV2(object):
             return
 
         inst = inst_utils.get_inst(context, lcmocc.vnfInstanceId)
+
+        user_script_err_handling_data = {}
 
         # NOTE: error cannot happen to here basically.
         # if an error occurred lcmocc.operationState remains STARTING.
@@ -177,7 +186,8 @@ class ConductorV2(object):
 
         try:
             self.vnflcm_driver.process(context, lcmocc, inst, grant_req,
-                                       grant, vnfd)
+                                       grant, vnfd,
+                                       user_script_err_handling_data)
 
             lcmocc.operationState = fields.LcmOperationStateType.COMPLETED
             # update inst and lcmocc at the same time
@@ -190,7 +200,7 @@ class ConductorV2(object):
         except Exception as ex:
             LOG.exception("PROCESSING %s failed", lcmocc.operation)
             lcmocc.operationState = fields.LcmOperationStateType.FAILED_TEMP
-            self._set_lcmocc_error(lcmocc, ex)
+            self._set_lcmocc_error(lcmocc, ex, user_script_err_handling_data)
             lcmocc.update(context)
 
         # send notification COMPLETED or FAILED_TEMP
@@ -212,6 +222,13 @@ class ConductorV2(object):
 
         inst = inst_utils.get_inst(context, lcmocc.vnfInstanceId)
 
+        if (lcmocc.obj_attr_is_set('error') and
+                lcmocc.error.obj_attr_is_set('userScriptErrHandlingData')):
+            user_script_err_handling_data = copy.deepcopy(
+                lcmocc.error.userScriptErrHandlingData)
+        else:
+            user_script_err_handling_data = {}
+
         lcmocc.operationState = fields.LcmOperationStateType.PROCESSING
         lcmocc.update(context)
         # send notification PROCESSING
@@ -230,7 +247,8 @@ class ConductorV2(object):
             self.vnflcm_driver.post_grant(context, lcmocc, inst, grant_req,
                                           grant, vnfd)
             self.vnflcm_driver.process(context, lcmocc, inst, grant_req,
-                                       grant, vnfd)
+                                       grant, vnfd,
+                                       user_script_err_handling_data)
 
             lcmocc.operationState = fields.LcmOperationStateType.COMPLETED
             lcmocc.error = None  # clear error
@@ -245,7 +263,7 @@ class ConductorV2(object):
         except Exception as ex:
             LOG.exception("PROCESSING %s failed", lcmocc.operation)
             lcmocc.operationState = fields.LcmOperationStateType.FAILED_TEMP
-            self._set_lcmocc_error(lcmocc, ex)
+            self._set_lcmocc_error(lcmocc, ex, user_script_err_handling_data)
             lcmocc.update(context)
             # grant_req and grant are already saved. they are not deleted
             # while operationState is FAILED_TEMP.
@@ -269,6 +287,13 @@ class ConductorV2(object):
 
         inst = inst_utils.get_inst(context, lcmocc.vnfInstanceId)
 
+        if (lcmocc.obj_attr_is_set('error') and
+                lcmocc.error.obj_attr_is_set('userScriptErrHandlingData')):
+            user_script_err_handling_data = copy.deepcopy(
+                lcmocc.error.userScriptErrHandlingData)
+        else:
+            user_script_err_handling_data = {}
+
         lcmocc.operationState = fields.LcmOperationStateType.ROLLING_BACK
         lcmocc.update(context)
         # send notification ROLLING_BACK
@@ -283,9 +308,13 @@ class ConductorV2(object):
             self.vnflcm_driver.post_grant(context, lcmocc, inst, grant_req,
                                           grant, vnfd)
             self.vnflcm_driver.rollback(context, lcmocc, inst, grant_req,
-                                        grant, vnfd)
+                                        grant, vnfd,
+                                        user_script_err_handling_data)
 
             lcmocc.operationState = fields.LcmOperationStateType.ROLLED_BACK
+            if (lcmocc.obj_attr_is_set('error') and
+                    lcmocc.error.obj_attr_is_set('userScriptErrHandlingData')):
+                del lcmocc.error.userScriptErrHandlingData
             with context.session.begin(subtransactions=True):
                 lcmocc.update(context)
                 # NOTE: Basically inst is not changed. But there is a case
@@ -302,7 +331,7 @@ class ConductorV2(object):
         except Exception as ex:
             LOG.exception("ROLLING_BACK %s failed", lcmocc.operation)
             lcmocc.operationState = fields.LcmOperationStateType.FAILED_TEMP
-            self._set_lcmocc_error(lcmocc, ex)
+            self._set_lcmocc_error(lcmocc, ex, user_script_err_handling_data)
             lcmocc.update(context)
             # grant_req and grant are already saved. they are not deleted
             # while operationState is FAILED_TEMP.
@@ -325,13 +354,17 @@ class ConductorV2(object):
             return
 
         inst = inst_utils.get_inst(context, lcmocc.vnfInstanceId)
+
+        user_script_err_handling_data = {}
+
         # send notification PROCESSING
         self.nfvo_client.send_lcmocc_notification(context, lcmocc, inst,
                                                   self.endpoint)
 
         try:
             vnfd = self.nfvo_client.get_vnfd(context, inst.vnfdId)
-            self.vnflcm_driver.process(context, lcmocc, inst, None, None, vnfd)
+            self.vnflcm_driver.process(context, lcmocc, inst, None, None, vnfd,
+                                       user_script_err_handling_data)
             lcmocc.operationState = fields.LcmOperationStateType.COMPLETED
             # update inst and lcmocc at the same time
             with context.session.begin(subtransactions=True):
@@ -340,7 +373,7 @@ class ConductorV2(object):
         except Exception as ex:
             LOG.exception("PROCESSING %s failed", lcmocc.operation)
             lcmocc.operationState = fields.LcmOperationStateType.FAILED_TEMP
-            self._set_lcmocc_error(lcmocc, ex)
+            self._set_lcmocc_error(lcmocc, ex, user_script_err_handling_data)
             lcmocc.update(context)
 
         # send notification COMPLETED or FAILED_TEMP

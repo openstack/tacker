@@ -6,6 +6,34 @@ imports:
   - etsi_nfv_sol001_common_types.yaml
   - etsi_nfv_sol001_vnfd_types.yaml
 
+interface_types:
+  sample.test.Vnflcm:
+    derived_from: tosca.interfaces.nfv.Vnflcm
+    instantiate_start:
+      description: Invoked before instantiate
+    instantiate_end:
+      description: Invoked after instantiate
+    heal_start:
+      description: Invoked before heal
+    heal_end:
+      description: Invoked after heal
+    scale_start:
+      description: Invoked before scale
+    scale_end:
+      description: Invoked after scale
+    terminate_start:
+      description: Invoked before terminate
+    terminate_end:
+      description: Invoked after terminate
+    change_external_connectivity_start:
+      description: Invoked before change_external_connectivity
+    modify_information_start:
+      description: Invoked before modify_information
+    instantiate_rollback_start:
+      description: Invoked before instantiate_rollback
+    scale_rollback_start:
+      description: Invoked before scale_rollback
+
 node_types:
   company.provider.VNF:
     derived_from: tosca.nodes.nfv.VNF
@@ -52,4 +80,4 @@ node_types:
           capability: tosca.capabilities.nfv.VirtualLinkable
     interfaces:
       Vnflcm:
-        type: tosca.interfaces.nfv.Vnflcm
+        type: sample.test.Vnflcm
