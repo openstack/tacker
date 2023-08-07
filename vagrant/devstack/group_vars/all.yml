@@ -16,10 +16,13 @@ fixed_range: 10.4.128.0/20
 
 # 2. Configure optional tools on controller node
 
+# Use the latest stable Neovim.
+use_neovim: true
+
 # Use the latest vim on `ppa:jonathonf/vim`, and use plugins with
 # vim-plug.
-use_vim_latest: true
-use_vim_extra_plugins: true
+use_vim_latest: false
+use_vim_extra_plugins: false
 
 # Clone tacker in addition to devstack.
 use_tacker: true

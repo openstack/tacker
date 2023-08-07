@@ -100,3 +100,12 @@ $ ./stack.sh
 
 See instruction how to configure `local.conf` described in
 [DevStack Quick Start](https://docs.openstack.org/devstack/latest/).
+
+### Editor support
+
+Although you can use any editors on the setup VM, it provides `vim` and
+`neovim` with minimal configurations for LSP.
+You can choose the editor by configuring parameters related vim
+in `group_vars/all.yml`, so turn it `false` if you don't use the
+support.
+
