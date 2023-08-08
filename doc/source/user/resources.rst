@@ -50,6 +50,14 @@ UserData
    userdata_script
 
 
+Grant
+"""""
+
+.. toctree::
+   :maxdepth: 1
+
+   granting_interface
+
 
 Legacy Tacker Resources
 -----------------------
