@@ -3579,7 +3579,7 @@ class TestOpenstack(base.BaseTestCase):
         self.driver = openstack.Openstack()
         self.context = context.get_admin_context()
         CONF.v2_vnfm.default_graceful_termination_timeout = 0
-        CONF.v2_vnfm.use_oauth2_mtls_for_heat = True
+        CONF.v2_vnfm.use_oauth2_mtls_for_heat = False
 
         cur_dir = os.path.dirname(__file__)
         sample_dir = os.path.join(cur_dir, "../..", "samples")
@@ -4432,7 +4432,7 @@ class TestOpenstack(base.BaseTestCase):
         mock_stack_id.return_value = None
 
         # execute
-        CONF.v2_vnfm.use_oauth2_mtls_for_heat = True
+        CONF.v2_vnfm.use_oauth2_mtls_for_heat = False
         CONF.v2_vnfm.heat_verify_cert = True
 
         self.driver.instantiate(req, inst, grant_req, grant, self.vnfd_1)
@@ -4466,6 +4466,10 @@ class TestOpenstack(base.BaseTestCase):
             instantiationState='INSTANTIATED',
             vimConnectionInfo=req.vimConnectionInfo
         )
+        inst.vimConnectionInfo['vim1'].interfaceInfo = {
+            'tokenEndpoint': 'https://host/identity/v3/OS-OAUTH2/token',
+            'heatEndpoint': 'https://host/heat-api/v1/test_tenant_a'}
+
         grant_req = objects.GrantRequestV1(
             operation=fields.LcmOperationType.INSTANTIATE
         )
@@ -4475,7 +4479,7 @@ class TestOpenstack(base.BaseTestCase):
         mock_template.return_value = _heat_get_template_example
         mock_stack_id.return_value = None
 
-        CONF.v2_vnfm.use_oauth2_mtls_for_heat = False
+        CONF.v2_vnfm.use_oauth2_mtls_for_heat = True
         CONF.v2_vnfm.heat_verify_cert = True
         CONF.v2_vnfm.heat_mtls_ca_cert_file = '/path/to/cacert'
         CONF.v2_vnfm.heat_mtls_client_cert_file = '/path/to/clientcert'
