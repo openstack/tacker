@@ -32,7 +32,7 @@ SAMPLE_FLAVOUR_ID = "simple"
 
 _vim_connection_info_example = {
     "vimId": "terraform_provider_aws_v4_tokyo",
-    "vimType": "ETSINFV.TERRAFORM.V_1",
+    "vimType": "TERRAFORM.V1",
     "interfaceInfo": {
         "providerType": "aws",
         "providerVersion": "4.0"
@@ -53,6 +53,17 @@ _instantiate_req_example = {
     "additionalParams": {
         "tf_dir_path": "Files/terraform",
         "tf_var_path": "Files/terraform/variables.tf"
+    }
+}
+
+# ChangeCurrentVnfPkgRequest example
+_change_vnfpkg_req_example = {
+    "vnfdId": SAMPLE_VNFD_ID,
+    "additionalParams": {
+        "upgrade_type": "RollingUpdate",
+        "vdu_params": [{
+            "vdu_id": "VDU1"
+        }]
     }
 }
 
@@ -114,10 +125,195 @@ class TestTerraform(base.BaseTestCase):
             f"/var/lib/tacker/terraform/{inst.id}",
             req.additionalParams.get('tf_var_path'))
 
+    @mock.patch.object(terraform.Terraform, '_terminate')
+    def test_terminate(self, mock_terminate):
+        '''Verifies terminate is called once'''
+
+        req_inst = objects.InstantiateVnfRequest.from_dict(
+            _instantiate_req_example)
+
+        req = objects.TerminateVnfRequest(
+            terminationType='GRACEFUL')
+
+        inst = objects.VnfInstanceV2(
+            # Required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED',
+            vimConnectionInfo=req_inst.vimConnectionInfo,
+            instantiatedVnfInfo=objects.VnfInstanceV2_InstantiatedVnfInfo(
+                metadata={
+                    "tf_var_path": "None"
+                }
+            )
+        )
+
+        grant_req = objects.GrantRequestV1(
+            operation=fields.LcmOperationType.TERMINATE
+        )
+
+        grant = objects.GrantV1()
+
+        # Execute
+        self.driver.terminate(req, inst, grant_req, grant, self.vnfd_2)
+        # Verify _instantiate is called once
+        mock_terminate.assert_called_once_with(
+            req_inst.vimConnectionInfo["vim1"],
+            f"/var/lib/tacker/terraform/{inst.id}",
+            inst.instantiatedVnfInfo.metadata['tf_var_path'])
+
+    @mock.patch.object(terraform.Terraform, '_terminate')
+    def test_instantiate_rollback(self, mock_instantiate_rollback):
+        '''Verifies instantiate_rollback is called once'''
+
+        req = objects.InstantiateVnfRequest.from_dict(_instantiate_req_example)
+
+        inst = objects.VnfInstanceV2(
+            # Required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED',
+            vimConnectionInfo=req.vimConnectionInfo,
+            instantiatedVnfInfo=objects.VnfInstanceV2_InstantiatedVnfInfo(
+                metadata={
+                    "tf_var_path": "None"
+                }
+            )
+        )
+
+        grant_req = objects.GrantRequestV1(
+            operation=fields.LcmOperationType.INSTANTIATE
+        )
+
+        grant = objects.GrantV1()
+
+        # Execute
+        self.driver.instantiate_rollback(req, inst, grant_req,
+                                         grant, self.vnfd_2)
+        # Verify _terminate is called once
+        mock_instantiate_rollback.assert_called_once_with(
+            req.vimConnectionInfo["vim1"],
+            f"/var/lib/tacker/terraform/{inst.id}",
+            inst.instantiatedVnfInfo.metadata['tf_var_path'])
+
+    @mock.patch.object(terraform.Terraform, '_get_tf_vnfpkg')
+    @mock.patch.object(terraform.Terraform, '_generate_provider_tf')
+    @mock.patch.object(terraform.Terraform, '_make_instantiated_vnf_info')
+    @mock.patch.object(terraform.Terraform, '_change_vnfpkg_rolling_update')
+    def test_change_vnfpkg(self, mock_change_vnfpkg,
+                           mock_make_instantiated_vnf_info,
+                           mock_generate_provider_tf,
+                           mock_tf_files):
+        '''Verifies change_vnfpkg is called once'''
+
+        req_inst = objects.InstantiateVnfRequest.from_dict(
+            _instantiate_req_example)
+
+        req = objects.ChangeCurrentVnfPkgRequest.from_dict(
+            _change_vnfpkg_req_example)
+
+        inst = objects.VnfInstanceV2(
+            # Required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED',
+            vimConnectionInfo=req_inst.vimConnectionInfo
+        )
+
+        grant_req = objects.GrantRequestV1(
+            operation=fields.LcmOperationType.INSTANTIATE,
+            vnfdId=SAMPLE_VNFD_ID
+        )
+
+        grant = objects.GrantV1()
+
+        # Set the desired return value for _get_tf_vnfpkg
+        mock_tf_files.return_value = f"/var/lib/tacker/terraform/{inst.id}"
+
+        # Execute
+        self.driver.change_vnfpkg(req, inst, grant_req,
+                                  grant, self.vnfd_2)
+
+        mock_change_vnfpkg.assert_called_once_with(
+            req_inst.vimConnectionInfo["vim1"],
+            f"/var/lib/tacker/terraform/{inst.id}",
+            inst.vnfdId,
+            req.additionalParams.get('tf_dir_path'),
+            req.additionalParams.get('tf_var_path'))
+
+    @mock.patch.object(terraform.Terraform, '_get_tf_vnfpkg')
+    @mock.patch.object(terraform.Terraform, '_generate_provider_tf')
+    @mock.patch.object(terraform.Terraform, '_make_instantiated_vnf_info')
+    @mock.patch.object(terraform.Terraform, '_change_vnfpkg_rolling_update')
+    def test_change_vnfpkg_rollback(self, mock_change_vnfpkg,
+                           mock_make_instantiated_vnf_info,
+                           mock_generate_provider_tf,
+                           mock_tf_files):
+        '''Verifies change_vnfpkg_rollback is called once'''
+
+        req_inst = objects.InstantiateVnfRequest.from_dict(
+            _instantiate_req_example)
+
+        req = objects.ChangeCurrentVnfPkgRequest.from_dict(
+            _change_vnfpkg_req_example)
+
+        inst = objects.VnfInstanceV2(
+            # Required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED',
+            vimConnectionInfo=req_inst.vimConnectionInfo,
+            instantiatedVnfInfo=objects.VnfInstanceV2_InstantiatedVnfInfo(
+                metadata={
+                    "tf_dir_path": "Files/terraform",
+                    "tf_var_path": "Files/terraform/variables.tf"
+                }
+            )
+        )
+
+        grant_req = objects.GrantRequestV1(
+            operation=fields.LcmOperationType.INSTANTIATE,
+            vnfdId=SAMPLE_VNFD_ID
+        )
+
+        grant = objects.GrantV1()
+
+        # Set the desired return value for _get_tf_vnfpkg
+        mock_tf_files.return_value = f"/var/lib/tacker/terraform/{inst.id}"
+
+        # Execute
+        self.driver.change_vnfpkg_rollback(req, inst, grant_req,
+                                           grant, self.vnfd_2)
+
+        mock_change_vnfpkg.assert_called_once_with(
+            req_inst.vimConnectionInfo["vim1"],
+            f"/var/lib/tacker/terraform/{inst.id}",
+            inst.vnfdId,
+            inst.instantiatedVnfInfo.metadata['tf_dir_path'],
+            inst.instantiatedVnfInfo.metadata['tf_var_path'])
+
     def test_make_instantiated_vnf_info(self):
         '''Verifies instantiated vnf info is correct'''
 
         req = objects.InstantiateVnfRequest.from_dict(_instantiate_req_example)
+        tf_dir_path = req.additionalParams.get('tf_dir_path')
+        tf_var_path = req.additionalParams.get('tf_var_path')
 
         inst = objects.VnfInstanceV2(
             # Required fields
@@ -174,7 +370,11 @@ class TestTerraform(base.BaseTestCase):
                     "vnfcResourceInfoId": "vdu2",
                     "vnfcState": "STARTED"
                 }
-            ]
+            ],
+            "metadata": {
+                "tf_dir_path": "Files/terraform",
+                "tf_var_path": "Files/terraform/variables.tf"
+            }
         }
 
         # Create a temporary directory
@@ -215,12 +415,10 @@ class TestTerraform(base.BaseTestCase):
                 json.dump(tfstate_content, tfstate_file)
 
             # Execute the test with the temporary tfstate_file
-            self.driver._make_instantiated_vnf_info(req, inst,
-                                                    grant_req, grant,
-                                                    self.vnfd_2, temp_dir,
-                                                    req.additionalParams.get(
-                                                        'tf_var_path')
-                                                    )
+            self.driver._make_instantiated_vnf_info(req, inst, grant_req,
+                                                    grant, self.vnfd_2,
+                                                    temp_dir, tf_dir_path,
+                                                    tf_var_path)
 
             # check
             result = inst.to_dict()["instantiatedVnfInfo"]
@@ -234,3 +432,7 @@ class TestTerraform(base.BaseTestCase):
             # order of vnfcInfo is same as vnfcResourceInfo
             self.assertIn("vnfcInfo", result)
             self.assertEqual(expected["vnfcInfo"], result["vnfcInfo"])
+
+            # check instantiatedVnfInfo.metadata
+            self.assertIn("metadata", result)
+            self.assertEqual(expected["metadata"], result["metadata"])

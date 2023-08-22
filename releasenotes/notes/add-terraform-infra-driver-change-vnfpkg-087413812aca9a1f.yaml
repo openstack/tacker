@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Add Change Current VNF Package API for Terraform infra-driver.
+    Using this API, Tacker updates virtual resources deployed by
+    Terraform infra-driver instantiation operations. Currently,
+    it only supports "RollingUpdate" out of several methods for a update.

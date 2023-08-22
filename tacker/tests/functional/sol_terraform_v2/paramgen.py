@@ -77,3 +77,30 @@ def terminate_req():
         "gracefulTerminationTimeout": 5,
         "additionalParams": {"dummy-key": "dummy-val"}
     }
+
+
+def change_vnfpkg_req(vnfd_id):
+    return {
+        "vnfdId": vnfd_id,
+        "additionalParams": {
+            "upgrade_type": "RollingUpdate",
+            "tf_dir_path": "Files/terraform",
+            "vdu_params": [{
+                "vdu_id": "VDU1"
+            }]
+        }
+    }
+
+
+def change_vnfpkg_fail_req(vnfd_id):
+    return {
+        "vnfdId": vnfd_id,
+        "additionalParams": {
+            "upgrade_type": "RollingUpdate",
+            "tf_dir_path": "Files/terraform",
+            "tf_var_path": "Files/terraform/test-tf-fail.tfvars",
+            "vdu_params": [{
+                "vdu_id": "VDU1"
+            }]
+        }
+    }
