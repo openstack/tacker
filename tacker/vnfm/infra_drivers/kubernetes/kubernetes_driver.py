@@ -340,6 +340,10 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
             for i in range(0, stateful_set.spec.replicas):
                 volume_claim_templates = stateful_set.spec.\
                     volume_claim_templates
+                if volume_claim_templates is None:
+                    k8s_obj['status'] = 'Create_complete'
+                    k8s_obj['message'] = 'StatefulSet is created'
+                    break
                 for volume_claim_template in volume_claim_templates:
                     pvc_name = "-".join(
                         [volume_claim_template.metadata.name, name, str(i)])
@@ -376,7 +380,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         service = k8s_client_dict[api_version].read_namespaced_service(
             namespace=namespace, name=name)
         status_flag = False
-        if service.spec.cluster_ip in ['', None] or \
+        if service.spec.cluster_ip == "None" or \
                 self._check_is_ip(service.spec.cluster_ip):
             try:
                 endpoint = k8s_client_dict['v1'].\

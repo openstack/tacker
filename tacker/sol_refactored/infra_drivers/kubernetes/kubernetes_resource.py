@@ -309,8 +309,8 @@ class Service(NamespacedResource):
                 return False
 
         service_info = self.read()
-        if service_info.spec.cluster_ip in ['', None] or _check_is_ip(
-                service_info.spec.cluster_ip):
+        if (service_info.spec.cluster_ip == "None"
+                or _check_is_ip(service_info.spec.cluster_ip)):
             try:
                 endpoint_info = self.k8s_client.read_namespaced_endpoints(
                     namespace=self.namespace, name=self.name)
@@ -463,9 +463,11 @@ class StatefulSet(NamespacedResource):
         statefulset_info = self.read()
         replicas = statefulset_info.status.replicas
         if replicas == statefulset_info.status.ready_replicas:
+            volume_claim_templates = (
+                statefulset_info.spec.volume_claim_templates)
+            if volume_claim_templates is None:
+                return True
             for i in range(0, statefulset_info.spec.replicas):
-                volume_claim_templates = (
-                    statefulset_info.spec.volume_claim_templates)
                 for volume_claim_template in volume_claim_templates:
                     pvc_name = "-".join(
                         [volume_claim_template.metadata.name,

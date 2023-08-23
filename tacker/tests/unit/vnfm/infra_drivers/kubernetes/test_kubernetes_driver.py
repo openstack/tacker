@@ -257,6 +257,24 @@ class TestKubernetes(base.TestCase):
 
         self.assertEqual(flag, True)
 
+    @mock.patch.object(client.AppsV1Api, 'read_namespaced_stateful_set')
+    def test_create_wait_k8s_stateful_set_no_volume_claim_templates(
+            self, mock_read_namespaced_stateful_set):
+        k8s_objs = fakes.fake_k8s_objs_stateful_set_no_volume_claim_templates()
+        k8s_client_dict = self.k8s_client_dict
+        stateful_set_obj = fakes. \
+            fake_v1_stateful_set_no_volume_claim_templates()
+        mock_read_namespaced_stateful_set.return_value = stateful_set_obj
+        checked_objs = self.kubernetes. \
+            create_wait_k8s(k8s_objs, k8s_client_dict,
+                            self.vnf_instance)
+        flag = True
+        for obj in checked_objs:
+            if obj.get('status') != 'Create_complete':
+                flag = False
+
+        self.assertEqual(flag, True)
+
     @mock.patch.object(client.CoreV1Api,
                        'read_namespaced_persistent_volume_claim')
     @mock.patch.object(client.AppsV1Api, 'read_namespaced_stateful_set')

@@ -316,7 +316,7 @@ def fake_service():
             namespace='default'
         ),
         spec=client.V1ServiceSpec(
-            cluster_ip=''
+            cluster_ip='None'
         )
     )
 
@@ -414,6 +414,18 @@ def fake_k8s_objs_stateful_set():
             'namespace': 'test',
             'status': 'Creating',
             'object': fake_v1_stateful_set()
+        }
+    ]
+
+    return obj
+
+
+def fake_k8s_objs_stateful_set_no_volume_claim_templates():
+    obj = [
+        {
+            'namespace': 'test',
+            'status': 'Creating',
+            'object': fake_v1_stateful_set_no_volume_claim_templates()
         }
     ]
 
@@ -677,6 +689,37 @@ def fake_v1_stateful_set():
                     )
                 )
             ],
+            selector=client.V1LabelSelector(
+                match_labels={'app': 'nginx'}
+            ),
+            template=client.V1PodTemplateSpec(
+                metadata=client.V1ObjectMeta(
+                    name='curry-test001',
+                    namespace='curryns'
+                )
+            ),
+            service_name='nginx'
+        ),
+        status=client.V1StatefulSetStatus(
+            replicas=1,
+            ready_replicas=1,
+            local_vars_configuration=client_config
+        ),
+    )
+
+
+def fake_v1_stateful_set_no_volume_claim_templates():
+    client_config = client.Configuration.get_default_copy()
+    client_config.client_side_validation = False
+    return client.V1StatefulSet(
+        api_version='apps/v1',
+        kind='StatefulSet',
+        metadata=client.V1ObjectMeta(
+            name='curry-test001',
+            namespace='curryns'
+        ),
+        spec=client.V1StatefulSetSpec(
+            replicas=1,
             selector=client.V1LabelSelector(
                 match_labels={'app': 'nginx'}
             ),
