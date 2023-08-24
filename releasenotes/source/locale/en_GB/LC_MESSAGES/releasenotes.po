@@ -1,15 +1,16 @@
 # Andi Chandler <andi@gowling.com>, 2018. #zanata
 # Andi Chandler <andi@gowling.com>, 2020. #zanata
 # Andi Chandler <andi@gowling.com>, 2022. #zanata
+# Andi Chandler <andi@gowling.com>, 2023. #zanata
 msgid ""
 msgstr ""
 "Project-Id-Version: tacker\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-11-10 02:46+0000\n"
+"POT-Creation-Date: 2023-08-23 06:14+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"PO-Revision-Date: 2022-11-04 10:54+0000\n"
+"PO-Revision-Date: 2023-07-20 11:29+0000\n"
 "Last-Translator: Andi Chandler <andi@gowling.com>\n"
 "Language-Team: English (United Kingdom)\n"
 "Language: en_GB\n"
@@ -46,6 +47,9 @@ msgstr "1.0.0"
 msgid "2.0.0"
 msgstr "2.0.0"
 
+msgid "2023.1 Series Release Notes"
+msgstr "2023.1 Series Release Notes"
+
 msgid "3.0.0"
 msgstr "3.0.0"
 
@@ -66,6 +70,9 @@ msgstr "7.0.0"
 
 msgid "8.0.0"
 msgstr "8.0.0"
+
+msgid "9.0.0"
+msgstr "9.0.0"
 
 msgid "A non admin user can not instantiate VNFs."
 msgstr "A non-admin user can not instantiate VNFs."
@@ -491,6 +498,9 @@ msgstr ""
 msgid "Bug Fixes"
 msgstr "Bug Fixes"
 
+msgid "CNF auto scale via performance management threshold interface."
+msgstr "CNF auto scale via performance management threshold interface."
+
 msgid "Change cirros image from 0.3.5 to 0.4.0."
 msgstr "Change cirros image from 0.3.5 to 0.4.0."
 
@@ -595,6 +605,9 @@ msgstr ""
 "filters a little, but it can be replaced with original code in tacker as an "
 "alternative. We can catch up with a change in SQLAlchemy without waiting for "
 "an update sqlalchemy-filters after then, update our code instead quickly."
+
+msgid "ETSI NFV V2 APIs for CNF Heal, Scale and Rollback operation."
+msgstr "ETSI NFV V2 APIs for CNF Heal, Scale and Rollback operation."
 
 msgid ""
 "ETSI NFV-SOL003 v2.6.1: VNF Lifecycle Management(Scale VNF, Update VNF and "
@@ -957,6 +970,9 @@ msgstr "Revised `Installation Guide`_."
 msgid "Revised `User Guide`_."
 msgstr "Revised `User Guide`_."
 
+msgid "Robot framework for ETSI NFV based auto testing."
+msgstr "Robot framework for ETSI NFV based auto testing."
+
 msgid "Rocky Series Release Notes"
 msgstr "Rocky Series Release Notes"
 
@@ -1268,6 +1284,9 @@ msgstr ""
 msgid "Update cirros image from 0.4.0 to 0.5.2."
 msgstr "Update Cirros image from 0.4.0 to 0.5.2."
 
+msgid "Update network configuration via Change Current VNF Package API."
+msgstr "Update network configuration via Change Current VNF Package API."
+
 msgid "Upgrade Notes"
 msgstr "Upgrade Notes"
 
@@ -1389,6 +1408,9 @@ msgstr "Xena Series Release Notes"
 
 msgid "Yoga Series Release Notes"
 msgstr "Yoga Series Release Notes"
+
+msgid "Zed Series Release Notes"
+msgstr "Zed Series Release Notes"
 
 msgid ""
 "`Error handling of VNF instance`__ is enhanced to support Retry, Rollback, "
