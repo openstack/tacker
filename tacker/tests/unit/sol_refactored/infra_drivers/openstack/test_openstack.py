@@ -4064,8 +4064,9 @@ class TestOpenstack(base.BaseTestCase):
             req, inst, grant_req, grant, self.vnfd_1)
         mock_delete_stack.assert_called_once()
 
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'get_status')
     @mock.patch.object(openstack.heat_utils.HeatClient, 'delete_stack')
-    def test_terminate(self, mock_delete_stack):
+    def test_terminate(self, mock_delete_stack, mock_get_status):
         # prepare
         req_inst = objects.InstantiateVnfRequest.from_dict(
             _instantiate_req_example)
@@ -4089,6 +4090,7 @@ class TestOpenstack(base.BaseTestCase):
             operation=fields.LcmOperationType.TERMINATE
         )
         grant = objects.GrantV1()
+        mock_get_status.return_value = ["DELETE_COMPLETE", None]
         # graceful
         self.driver.terminate(req, inst, grant_req, grant, self.vnfd_1)
         self.assertEqual(1, mock_delete_stack.call_count)
@@ -4289,6 +4291,7 @@ class TestOpenstack(base.BaseTestCase):
         result = inst.to_dict()["instantiatedVnfInfo"]
         self._check_inst_info(_expected_inst_info_change_ext_conn, result)
 
+    @mock.patch.object(openstack.heat_utils.HeatClient, 'get_status')
     @mock.patch.object(openstack.heat_utils.HeatClient, 'update_stack')
     @mock.patch.object(openstack.heat_utils.HeatClient, 'mark_unhealthy')
     @mock.patch.object(openstack.heat_utils.HeatClient, 'get_resources')
@@ -4299,7 +4302,8 @@ class TestOpenstack(base.BaseTestCase):
     @mock.patch.object(openstack.heat_utils.HeatClient, 'get_files')
     def test_heal(self, mock_files, mock_template,
                   mock_parameters, mock_create, mock_delete,
-                  mock_reses, mock_unhealthy, mock_update):
+                  mock_reses, mock_unhealthy, mock_update, mock_get_status):
+        mock_get_status.return_value = ["DELETE_COMPLETE", None]
         req_inst = objects.InstantiateVnfRequest.from_dict(
             _instantiate_req_example)
         inst = objects.VnfInstanceV2(

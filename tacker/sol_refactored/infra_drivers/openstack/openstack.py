@@ -141,6 +141,21 @@ class Openstack(object):
         vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
         heat_client = heat_utils.HeatClient(vim_info)
         stack_name = heat_utils.get_stack_name(inst)
+
+        status, _ = heat_client.get_status(stack_name)
+        if status == "DELETE_COMPLETE":
+            # NOTE: After heal all (all=true) recreates the stack, if it
+            # fails before saving the vnf_instance data.
+            # The fail operation in error-handling is performed on the heal
+            # operation. Then directly terminate, the result will fail,
+            # because the stack id does not exist on VIM.
+            # When calling the heat API, the stack id is not used here,
+            # but the stack name is used instead.
+            LOG.debug("Since heal all (all=true) was executed before, "
+                      f"stack: {stack_name} does not exist in VIM, and now "
+                      f"stack: {stack_name.split('/')[0]} is used instead.")
+            stack_name = stack_name.split('/')[0]
+
         heat_client.delete_stack(stack_name)
 
     def _is_full_fields(self, fields):
@@ -289,11 +304,6 @@ class Openstack(object):
         # current heat parameters as is.
         fields = self._make_hot(req, inst, grant_req, grant, vnfd)
 
-        vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
-        heat_client = heat_utils.HeatClient(vim_info)
-        stack_name = heat_utils.get_stack_name(inst)
-        fields = self._update_fields(heat_client, stack_name, fields)
-
         # "re_create" is set to True only when SOL003 heal(without
         # vnfcInstanceId) and "all=True" in additionalParams.
         re_create = False
@@ -301,6 +311,26 @@ class Openstack(object):
                 req.additionalParams.get('all', False) and
                 not req.obj_attr_is_set('vnfcInstanceId')):
             re_create = True
+
+        vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
+        heat_client = heat_utils.HeatClient(vim_info)
+        stack_name = heat_utils.get_stack_name(inst)
+
+        if re_create:
+            status, _ = heat_client.get_status(stack_name)
+            if status == "DELETE_COMPLETE":
+                # NOTE: After heal all (all=true) recreates the stack,
+                # if it fails before saving the vnf_instance data,
+                # and then performs a retry operation, the stack_id
+                # contained in the stack_name variable does not exist on VIM.
+                # When calling Heat-API, only the stack name is used.
+                LOG.debug("Since heal all (all=true) was executed before, "
+                          f"stack: {stack_name} does not exist in VIM, and "
+                          f"now stack: {stack_name.split('/')[0]} is used "
+                          "instead.")
+                stack_name = stack_name.split('/')[0]
+
+        fields = self._update_fields(heat_client, stack_name, fields)
 
         if re_create:
             # NOTE: DefaultUserData::heal() don't care about "template" and
