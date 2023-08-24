@@ -751,7 +751,7 @@ and are reflected in the representation of this resource.
 
 According to the ETSI NFV SOL document, there is no API request/response
 specification for Etag yet, and transactions using Etag are not defined
-by standardization. Therefore, the Yoga release does not support
+by standardization. Therefore, the Bobcat release does not support
 `Error Code: 412 Precondition Failed`. Once a standard specification
 for this is established, it will be installed on the tacker.
 
@@ -1106,6 +1106,15 @@ Response Parameters
   - minAddress: min_address
   - maxAddress: max_address
   - subnetId: subnet_id
+  - modificationsTriggeredByVnfPkgChange: modifications_triggered_by_vnf_pkg_change
+  - vnfConfigurableProperties: changed_info_vnf_configurable_properties
+  - metadata: changed_info_metadata
+  - extensions: changed_info_extensions
+  - vnfdId: modifications_triggered_by_vnf_pkg_change_vnfd_id
+  - vnfProvider: modifications_triggered_by_vnf_pkg_change_vnf_provider
+  - vnfProductName: modifications_triggered_by_vnf_pkg_change_vnf_product_name
+  - vnfSoftwareVersion: modifications_triggered_by_vnf_pkg_change_vnf_software_version
+  - vnfdVersion: modifications_triggered_by_vnf_pkg_change_vnfd_version
   - _links: vnf_instance_links
 
 Response Example
@@ -1270,6 +1279,15 @@ Response Parameters
   - minAddress: min_address
   - maxAddress: max_address
   - subnetId: subnet_id
+  - modificationsTriggeredByVnfPkgChange: modifications_triggered_by_vnf_pkg_change
+  - vnfConfigurableProperties: changed_info_vnf_configurable_properties
+  - metadata: changed_info_metadata
+  - extensions: changed_info_extensions
+  - vnfdId: modifications_triggered_by_vnf_pkg_change_vnfd_id
+  - vnfProvider: modifications_triggered_by_vnf_pkg_change_vnf_provider
+  - vnfProductName: modifications_triggered_by_vnf_pkg_change_vnf_product_name
+  - vnfSoftwareVersion: modifications_triggered_by_vnf_pkg_change_vnf_software_version
+  - vnfdVersion: modifications_triggered_by_vnf_pkg_change_vnfd_version
   - _links: vnf_instance_links
 
 Response Example

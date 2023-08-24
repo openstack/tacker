@@ -52,8 +52,8 @@ If you want to know how to use `the Coordinate VNF script`,
 please see the following documents of
 ChangeCurrentVNFPackage API.
 
-* `ETSI NFV-SOL VNF Change Current VNF Package`_.
-* `ETSI NFV-SOL VNF Change Current VNF Package for StandardUserData`_.
+* `ETSI NFV-SOL VNF Change Current VNF Package`_
+* `ETSI NFV-SOL VNF Change Current VNF Package for StandardUserData`_
 
 
 
@@ -192,6 +192,10 @@ the VNF LCM Coordination API.
              token, obtained using the client credentials
              grant type after authenticating using client
              identifier and client password.
+           * ``OAUTH2_CLIENT_CERT``:  use an OAuth 2.0 token,
+             obtained using the client credentials grant type
+             after mutually authenticating using client
+             identifier and X.509 certificates.
        * - \>>> paramsBasic
          - 0..1
          - Parameters for authentication/authorization
@@ -220,10 +224,39 @@ the VNF LCM Coordination API.
          - 0..1
          - The token endpoint from which the access token
            can be obtained.
+       * - \>>> paramsOauth2ClientCert
+         - 0..1
+         - Parameters for authentication/authorization using
+           authType ``OAUTH2_CLIENT_CERT``.
+       * - >>>> clientId
+         - 1
+         - Client identifier to be used in the access token
+           request of the OAuth 2.0 client credentials
+           grant type.
+       * - >>>> certificateRef
+         - 1
+         - Fingerprint of the client certificate.
+           The hash function shall use SHA256 or higher.
+       * - >>>>> type
+         - 1
+         - The type of the fingerprint. Permitted values:
+
+           * ``x5t#S256``: The SHA-256 thumbprint of the X.509 certificate
+             as defined in section 4.1.8 of IETF RFC 7515.
+       * - >>>>> value
+         - 1
+         - The fingerprint value as defined by the type.
+       * - >>>> tokenEndpoint
+         - 1
+         - The token endpoint from which the access token
+           can be obtained.
        * - >> coordination_server_param
          - 0..1
          - Information to access coordination server.
            It is required when using coordinateVNF script which calling Coordination API.
+       * - >> timeout
+         - 0..1
+         - Timeout seconds for resending requests to Coordination API.
        * - > new_vnfc_param
          - 0..1
          - New VNFC connection information.
@@ -256,6 +289,10 @@ the VNF LCM Coordination API.
              token, obtained using the client credentials
              grant type after authenticating using client
              identifier and client password.
+           * ``OAUTH2_CLIENT_CERT``:  use an OAuth 2.0 token,
+             obtained using the client credentials grant type
+             after mutually authenticating using client
+             identifier and X.509 certificates.
        * - \>>> paramsBasic
          - 0..1
          - Parameters for authentication/authorization
@@ -284,10 +321,39 @@ the VNF LCM Coordination API.
          - 0..1
          - The token endpoint from which the access token
            can be obtained.
+       * - \>>> paramsOauth2ClientCert
+         - 0..1
+         - Parameters for authentication/authorization using
+           authType ``OAUTH2_CLIENT_CERT``.
+       * - >>>> clientId
+         - 1
+         - Client identifier to be used in the access token
+           request of the OAuth 2.0 client credentials
+           grant type.
+       * - >>>> certificateRef
+         - 1
+         - Fingerprint of the client certificate.
+           The hash function shall use SHA256 or higher.
+       * - >>>>> type
+         - 1
+         - The type of the fingerprint. Permitted values:
+
+           * ``x5t#S256``: The SHA-256 thumbprint of the X.509 certificate
+             as defined in section 4.1.8 of IETF RFC 7515.
+       * - >>>>> value
+         - 1
+         - The fingerprint value as defined by the type.
+       * - >>>> tokenEndpoint
+         - 1
+         - The token endpoint from which the access token
+           can be obtained.
        * - >> coordination_server_param
          - 0..1
          - Information to access coordination server.
            It is required when using coordinateVNF script which calling Coordination API.
+       * - >> timeout
+         - 0..1
+         - Timeout seconds for resending requests to Coordination API.
        * - external_lb_param
          - 0..1
          - Load balancer information that requires configuration changes.
@@ -306,71 +372,75 @@ the VNF LCM Coordination API.
 
    .. code-block:: json
 
-         {
-             "additionalParams": {
-                 "upgrade_type": "RollingUpdate",
-                 "lcm-operation-coordinate-new-vnf": "./Scripts/coordinate_vnf.py",
-                 "lcm-operation-coordinate-old-vnf": "./Scripts/coordinate_vnf.py",
-                 "vdu_params": [{
-                     "vdu_id": "VDU1",
-                     "old_vnfc_param": {
-                         "cp_name": "VDU1_CP1",
-                         "username": "ubuntu",
-                         "password": "ubuntu",
-                         "endpoint": "http://127.0.0.1:6789",
-                         "authentication": {
-                             "authType": ["BASIC"],
-                             "paramsBasic": {
-                                 "userName": "tacker",
-                                 "password": "tacker"
-                             }
-                         }
-                     },
-                     "new_vnfc_param": {
-                         "cp_name": "VDU1_CP1",
-                         "username": "ubuntu",
-                         "password": "ubuntu",
-                         "endpoint": "http://127.0.0.1:6789",
-                         "authentication": {
-                             "authType": ["BASIC"],
-                             "paramsBasic": {
-                                 "userName": "tacker",
-                                 "password": "tacker"
-                             }
-                         }
-                     }
-                 },
-                 {
-                     "vdu_id": "VDU2",
-                     "old_vnfc_param": {
-                         "cp_name": "VDU2_CP1",
-                         "username": "ubuntu",
-                         "password": "ubuntu",
-                         "endpoint": "http://127.0.0.1:6789",
-                         "authentication": {
-                             "authType": ["BASIC"],
-                             "paramsBasic": {
-                                 "userName": "tacker",
-                                 "password": "tacker"
-                             }
-                         }
-                     },
-                     "new_vnfc_param": {
-                         "cp_name": "VDU2_CP1",
-                         "username": "ubuntu",
-                         "password": "ubuntu",
-                         "endpoint": "http://127.0.0.1:6789",
-                         "authentication": {
-                             "authType": ["BASIC"],
-                             "paramsBasic": {
-                                 "userName": "tacker",
-                                 "password": "tacker"
-                             }
-                         }
-                     }
-                 }]
-             }
-         }
+        "additionalParams": {
+              "upgrade_type": "RollingUpdate",
+              "lcm-operation-coordinate-new-vnf": "./Scripts/coordinate_vnf.py",
+              "lcm-operation-coordinate-old-vnf": "./Scripts/coordinate_vnf.py",
+              "vdu_params": [
+                  {
+                      "vdu_id": "VDU1",
+                      "old_vnfc_param": {
+                          "cp_name": "VDU1_CP1",
+                          "username": "ubuntu",
+                          "password": "ubuntu",
+                          "endpoint": "http://127.0.0.1:6789",
+                          "authentication": {
+                              "authType": ["BASIC"],
+                              "paramsBasic": {
+                                  "userName": "tacker",
+                                  "password": "tacker"
+                              }
+                          },
+                          "timeout": 30
+                      },
+                      "new_vnfc_param": {
+                          "cp_name": "VDU1_CP1",
+                          "username": "ubuntu",
+                          "password": "ubuntu",
+                          "endpoint": "http://127.0.0.1:6789",
+                          "authentication": {
+                              "authType": ["BASIC"],
+                              "paramsBasic": {
+                                  "userName": "tacker",
+                                  "password": "tacker"
+                              }
+                          },
+                          "timeout": 30
+                      }
+                  },
+                  {
+                      "vdu_id": "VDU2",
+                      "old_vnfc_param": {
+                          "cp_name": "VDU2_CP1",
+                          "username": "ubuntu",
+                          "password": "ubuntu",
+                          "endpoint": "http://127.0.0.1:6789",
+                          "authentication": {
+                              "authType": ["BASIC"],
+                              "paramsBasic": {
+                                  "userName": "tacker",
+                                  "password": "tacker"
+                              }
+                          },
+                          "timeout": 30
+                      },
+                      "new_vnfc_param": {
+                          "cp_name": "VDU2_CP1",
+                          "username": "ubuntu",
+                          "password": "ubuntu",
+                          "endpoint": "http://127.0.0.1:6789",
+                          "authentication": {
+                              "authType": ["BASIC"],
+                              "paramsBasic": {
+                                  "userName": "tacker",
+                                  "password": "tacker"
+                              }
+                          },
+                          "timeout": 30
+                      }
+                  }
+              ]
+          }
 
 2. Request Change current VNF Package Process to InfraDriver
 
@@ -396,38 +466,45 @@ the VNF LCM Coordination API.
 
    .. code-block:: console
 
-       class CoordScript(object):
-           def __init__(self, vnfc_param):
-               self.vnfc_param = vnfc_param
+      class CoordScript(object):
+          def __init__(self, vnfc_param):
+              self.vnfc_param = vnfc_param
 
-           def run(self):
-               if not os.path.exists('/tmp/change_vnfpkg_coordination'):
-                   return
+          def run(self):
+              if not os.path.exists('/tmp/change_vnfpkg_coordination'):
+                  return
 
-               coord_req = self.vnfc_param['LcmCoordRequest']
-               coord_req['coordinationActionName'] = (
-                   "prv.tacker_organization.coordination_test")
-               endpoint = self.vnfc_param.get('endpoint')
-               authentication = self.vnfc_param.get('authentication')
+              coord_req = self.vnfc_param['LcmCoordRequest']
+              coord_req['coordinationActionName'] = (
+                  "prv.tacker_organization.coordination_test")
+              endpoint = self.vnfc_param.get('endpoint')
+              authentication = self.vnfc_param.get('authentication')
+              timeout = self.vnfc_param.get('timeout')
 
-               input_params = self.vnfc_param.get('inputParams')
-               if input_params is not None:
-                   coord_req['inputParams'] = input_params
+              input_params = self.vnfc_param.get('inputParams')
+              if input_params is not None:
+                  coord_req['inputParams'] = input_params
 
-               if endpoint is None:
-                   raise Exception('endpoint must be specified.')
-               if authentication is None:
-                   raise Exception('authentication must be specified.')
+              if endpoint is None:
+                  raise Exception('endpoint must be specified.')
+              if authentication is None:
+                  raise Exception('authentication must be specified.')
 
-               coord = coord_client.create_coordination(endpoint, authentication,
-                                                        coord_req)
-               if coord['coordinationResult'] != "CONTINUE":
-                   raise Exception(
-                       f"coordinationResult is {coord['coordinationResult']}")
+              # Reload "tacker.conf" when using OAUTH2_CLIENT_CERT
+              # for authentication.
+              args = ["--config-file", "/etc/tacker/tacker.conf"]
+              config.init(args)
 
-       def main():
-           script = CoordScript(vnfc_param)
-           script.run()
+              coord = coord_client.create_coordination(
+                  endpoint, authentication, coord_req, timeout)
+              if coord['coordinationResult'] != "CONTINUE":
+                  raise Exception(
+                      f"coordinationResult is {coord['coordinationResult']}")
+
+      def main():
+          vnfc_param = pickle.load(sys.stdin.buffer)
+          script = CoordScript(vnfc_param)
+          script.run()
 
    .. note::
        According to ETSI-NFV SOL 002 v3.6.1, the coordination
@@ -472,6 +549,8 @@ the VNF LCM Coordination API.
        Synchronous and Asynchronous modes.
        API server decides the mode, and API client can know it by the API response.
        Thus, since VNFM cannot control the mode, Tacker will support both modes.
+       In both modes, the timeout seconds for resending requests can be specified
+       with "timeout" in additionalParams.
        The following shows the Coordination processes of VNFM.
      |
      | Synchronous mode: The EM returns to the Tacker a "201 Created" response
@@ -507,5 +586,3 @@ the VNF LCM Coordination API.
 .. _ETSI NFV-SOL 002 v3.6.1: https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/002/03.06.01_60/gs_nfv-sol002v030601p.pdf
 .. _ETSI NFV-SOL VNF Change Current VNF Package: https://docs.openstack.org/tacker/latest/user/etsi_vnf_change_current_vnf_package.html
 .. _ETSI NFV-SOL VNF Change Current VNF Package for StandardUserData: https://docs.openstack.org/tacker/latest/user/etsi_vnf_change_current_vnf_package_with_standard_user_data.html
-.. _VNF Package for Common instantiate: https://opendev.org/openstack/tacker/src/branch/master/tacker/tests/functional/sol_v2/samples/test_instantiate_vnf_with_old_image_or_volume/contents
-.. _change from image to image: https://opendev.org/openstack/tacker/src/branch/master/tacker/tests/functional/sol_v2/samples/test_change_vnf_pkg_with_new_image/contents

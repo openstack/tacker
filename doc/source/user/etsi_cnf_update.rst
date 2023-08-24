@@ -1,8 +1,10 @@
 =======================
-ETSI NFV-SOL VNF Update
+ETSI NFV-SOL CNF Update
 =======================
 
-This document describes how to update VNF in Tacker.
+This document describes how to update CNF in Tacker.
+Please refer to the :doc:`./mgmt_driver_for_container_update`
+for how to update CNF with Mgmt Driver in Tacker.
 
 Prerequisites
 -------------
@@ -12,20 +14,17 @@ The following packages should be installed:
 * tacker
 * python-tackerclient
 
-A default VIM should be registered according to
-:doc:`../cli/cli-legacy-vim`.
+The procedure of prepare for scaling operation that from "register VIM" to
+"Instantiate VNF", basically refer to
+:doc:`./etsi_containerized_vnf_usage_guide`.
 
-The VNF Package(sample_vnf_pkg.zip) used below is prepared
-by referring to :doc:`./vnf-package`.
-
-Execute before "Instantiate VNF" in the procedure of
-:doc:`./etsi_vnf_deployment_as_vm_with_tosca`.
+This procedure uses an example using the sample VNF package.
 
 
-VNF Update Procedures
+CNF Update Procedures
 ---------------------
 
-As mentioned in Prerequisites, the VNF must be created
+As mentioned in Prerequisites, the CNF must be created
 before performing update.
 
 Details of CLI commands are described in
@@ -59,13 +58,12 @@ For update VNF instance, you need to prepare a JSON-formatted definition file.
   It is not possible to delete the key of registered ``vimConnectionInfo``.
 
 
-How to Update VNF
+How to Update CNF
 ~~~~~~~~~~~~~~~~~
 
 Execute Update CLI command and check the name of VNF instance before
 and after update. This is to confirm that the name of VNF instance has
 changed after update.
-See `Heat CLI reference`_. for details on Heat CLI commands.
 
 VNF instance name before update:
 
@@ -145,5 +143,9 @@ new vnfdId.
 * vnfSoftwareVersion
 * vnfdVersion
 
-
-.. _Heat CLI reference : https://docs.openstack.org/python-openstackclient/latest/cli/plugin-commands/heat.html
+.. note::
+  In the v2 update operation for CNF, if "Scale" or "Heal" is performed
+  after updating ``vnfdId``, the VNF package associated with the
+  ``vnfdId before the update`` shall be used.
+  Therefore, in order to maintain the update of ``vnfdId``, it is necessary to
+  execute "Terminate VNF" once and then "Instantiate VNF".

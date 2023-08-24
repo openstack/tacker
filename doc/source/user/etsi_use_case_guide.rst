@@ -76,6 +76,14 @@ VM
 
    etsi_vnf_update
 
+Container
+~~~~~~~~~
+
+.. toctree::
+   :maxdepth: 1
+
+   etsi_cnf_update
+
 Change External VNF Connectivity
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

@@ -72,7 +72,7 @@ before performing change current VNF package.
   Currently, this operation only supports some functions of
   ``Change Current VNF Package``.
 
-  * There are several ways to update VDUs, but in the Antelope version
+  * There are several ways to update VDUs, but in the Bobcat version
     Tacker only supports ``RollingUpdate`` type.
     You can set it via ``upgrade_type`` param.
 
@@ -212,11 +212,21 @@ definition file before running command.
         "vimId": "defb2f96-5670-4bef-8036-27bf61267fc1",
         "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3"
       }
+    },
+    "vnfConfigurableProperties": {
+      "key": "value"
+    },
+    "extensions": {
+      "key": "value"
     }
   }
 
 .. note::
-  * ``vnfdId`` is the vnfd id of the new VNF package you uploaded.
+  * ``vnfdId`` is the VNFD id of the new VNF package you uploaded.
+  * ``extManagedVirtualLinks`` is an optional parameter.
+    Note that if the VNF Instance uses ``extManagedVirtualLinkInfo``,
+    ``extManagedVirtualLinks`` needs to be set in the request
+    parameters regardless of whether it is changed.
   * ``lcm-operation-coordinate-old-vnf`` and
     ``lcm-operation-coordinate-new-vnf`` are unique implementations of
     Tacker to simulate the coordination interface in
@@ -232,6 +242,12 @@ definition file before running command.
     life cycle management operations.
     It is not possible to delete the key of registered
     ``vimConnectionInfo``.
+  * ``vnfConfigurableProperties`` and ``extensions`` are optional
+    parameter.
+    As with the update operation, these values are updated by performing
+    JSON Merge Patch with the values set in the request parameter to the
+    current values.
+    For ``metadata``, the value set before this operation is maintained.
 
 You can set following parameter in additionalParams:
 
@@ -247,17 +263,16 @@ You can set following parameter in additionalParams:
     - Type of file update operation method. Specify Blue-Green or
       Rolling update.
   * - lcm-operation-coordinate-old-vnf
-    - 1
+    - 0..1
     - The file path of the script that simulates the behavior of
       CoordinateVNF for old VNF.
   * - lcm-operation-coordinate-new-vnf
-    - 1
+    - 0..1
     - The file path of the script that simulates the behavior of
       CoordinateVNF for new VNF.
   * - vdu_params
-    - 0..N
-    - VDU information of target VDU to update. Specifying a vdu_params
-      is required for OpenStack VIM and not required for Kubernetes VIM.
+    - 1..N
+    - VDU information of target VDU to update.
   * - > vdu_id
     - 1
     - VDU name of target VDU to update.
@@ -265,7 +280,7 @@ You can set following parameter in additionalParams:
     - 0..1
     - Old VNFC connection information. Required for ssh connection in
       CoordinateVNF operation for application configuration to VNFC.
-  * - >> cp-name
+  * - >> cp_name
     - 1
     - Connection point name of old VNFC to update.
   * - >> username
@@ -278,7 +293,7 @@ You can set following parameter in additionalParams:
     - 0..1
     - New VNFC connection information. Required for ssh connection in
       CoordinateVNF operation for application configuration to VNFC.
-  * - >> cp-name
+  * - >> cp_name
     - 1
     - Connection point name of new VNFC to update.
   * - >> username
@@ -302,10 +317,10 @@ You can set following parameter in additionalParams:
     - 1
     - Password of load balancer server.
   * - lcm-operation-user-data
-    - 0..1
+    - 1
     - File name of UserData to use.
   * - lcm-operation-user-data-class
-    - 0..1
+    - 1
     - Class name of UserData to use.
 
 .. note::
