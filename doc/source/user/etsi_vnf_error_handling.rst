@@ -539,7 +539,187 @@ Result:
 If "Retry VNF lifecycle management operation" is successful,
 then another LCM can be operational.
 
+Error-handling of MgmtDriver
+----------------------------
+
+This section only applies to the `VNF LCM v2 API`_.
+Error-handling includes Retry, Rollback and Fail operations.
+
+* For the fail operation, it will not perform LCM when it is executed,
+  so there is no need to use MgmtDriver.
+
+* For the retry operation, it will perform the LCM again when it is executed,
+  so as long as the LCM is configured with MgmtDriver, the MgmtDriver will
+  also be called during the retry operation, and no additional configuration
+  is required.
+
+* For the rollback operation,
+  because there is no definition of ``rollback_start`` and ``rollback_end`` in
+  ``6.7 Interface Types`` of `NFV-SOL001 v3.3.1`_, so when the rollback
+  operation is performed, MgmtDriver will not be called.
+
+The VNFD in the VNF Package must be modified before calling MgmtDriver in the
+rollback operation.
+
+.. note::
+
+    In the MgmtDriver, the user saves the data that needs to be kept
+    when the LCM fails in the ``user_script_err_handling_data`` variable.
+    It is saved in the corresponding VNF_LCM_OP_OCC, and can be viewed through
+    `Show VNF LCM OP OCC`_.
+
+    During error-handling (retry or rollback), use the data in the
+    ``user_script_err_handling_data`` variable to perform corresponding
+    processing.
+
+Modifications of VNF Package
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Users need to make the following modifications when creating a `VNF Package`_.
+
+The rollback operation currently supports multiple `LCM operations`_.
+The following takes the rollback operations of instantiate and scale-out
+as examples to demonstrate how to modify VNFD.
+
+.. note::
+
+    The following provides the sample files ``v2_sample2_df_simple.yaml`` and
+    ``v2_sample2_types.yaml`` that need to be modified, which are stored in
+    the Definitions directory of the VNF Package.
+
+    * ``v2_sample2_df_simple.yaml`` corresponds to
+      `Topology Template Files`_ in VNFD.
+
+    * ``v2_sample2_types.yaml`` corresponds to
+      `User defined types definition file`_ in VNFD.
+
+* In ``v2_sample2_df_simple.yaml``, ``xxx_rollback_start`` and
+  ``xxx_rollback_end`` need to be added under
+  ``topology_template.node_templates.VNF.interfaces.Vnflcm``.
+
+  The following is the content of ``v2_sample2_df_simple.yaml``, the unmodified
+  part is replaced by "``...``" :
+
+  .. code-block:: yaml
+
+    topology_template:
+      ...
+      node_templates:
+        VNF:
+          type: company.provider.VNF
+          properties:
+            flavour_description: A simple flavour
+          interfaces:
+            Vnflcm:
+              instantiate_start:
+                implementation: mgmt-driver-script
+              instantiate_end:
+                implementation: mgmt-driver-script
+              heal_start:
+                implementation: mgmt-driver-script
+              heal_end:
+                implementation: mgmt-driver-script
+              scale_start:
+                implementation: mgmt-driver-script
+              scale_end:
+                implementation: mgmt-driver-script
+              terminate_start:
+                implementation: mgmt-driver-script
+              terminate_end:
+                implementation: mgmt-driver-script
+              change_external_connectivity_start:
+                implementation: mgmt-driver-script
+              change_external_connectivity_end:
+                implementation: mgmt-driver-script
+              modify_information_start:
+                implementation: mgmt-driver-script
+              modify_information_end:
+                implementation: mgmt-driver-script
+              instantiate_rollback_start:
+                implementation: mgmt-driver-script
+              instantiate_rollback_end:
+                implementation: mgmt-driver-script
+              scale_rollback_start:
+                implementation: mgmt-driver-script
+              scale_rollback_end:
+                implementation: mgmt-driver-script
+          artifacts:
+            mgmt-driver-script:
+              description: Sample MgmtDriver Script
+              type: tosca.artifacts.Implementation.Python
+              file: ../Scripts/mgmt_driver_script.py
+
+  .. note::
+
+      If some definitions of ``xxx_start`` and ``xxx_end`` are added in VNFD,
+      corresponding ``xxx_start`` and ``xxx_end`` functions must also be
+      added in MgmtDriver.
+
+* In ``v2_sample2_types.yaml``, the definition of ``interface_types`` needs to
+  be added, and the definition of ``type`` needs to be modified under
+  ``node_types.company.provider.VNF.interfaces.Vnflcm``.
+
+  The following is the content of ``v2_sample2_types.yaml``, the unmodified
+  part is replaced by "``...``" :
+
+  .. code-block:: yaml
+
+    interface_types:
+      sample.test.Vnflcm:
+        derived_from: tosca.interfaces.nfv.Vnflcm
+        instantiate_start:
+          description: Invoked before instantiate
+        instantiate_end:
+          description: Invoked after instantiate
+        heal_start:
+          description: Invoked before heal
+        heal_end:
+          description: Invoked after heal
+        scale_start:
+          description: Invoked before scale
+        scale_end:
+          description: Invoked after scale
+        terminate_start:
+          description: Invoked before terminate
+        terminate_end:
+          description: Invoked after terminate
+        change_external_connectivity_start:
+          description: Invoked before change_external_connectivity
+        change_external_connectivity_end:
+          description: Invoked after change_external_connectivity
+        modify_information_start:
+          description: Invoked before modify_information
+        modify_information_end:
+          description: Invoked after modify_information
+        instantiate_rollback_start:
+          description: Invoked before instantiate_rollback
+        instantiate_rollback_end:
+          description: Invoked after instantiate_rollback
+        scale_rollback_start:
+          description: Invoked before scale_rollback
+        scale_rollback_end:
+          description: Invoked after scale_rollback
+
+    node_types:
+      company.provider.VNF:
+        ...
+        interfaces:
+          Vnflcm:
+            type: sample.test.Vnflcm
+
+After the above modification, MgmtDriver can also be called in error-handling.
+
+.. note::
+
+    In the process of error-handling, the specific action of MgmtDriver
+    needs to be customized by the user or provider.
+
 .. _VNF LCM v1 API : https://docs.openstack.org/api-ref/nfv-orchestration/v1/vnflcm.html
 .. _VNF LCM v2 API : https://docs.openstack.org/api-ref/nfv-orchestration/v2/vnflcm.html
 .. _Keystone API reference : https://docs.openstack.org/api-ref/identity/v3/#password-authentication-with-scoped-authorization
-
+.. _NFV-SOL001 v3.3.1 : https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/001/03.03.01_60/gs_nfv-sol001v030301p.pdf
+.. _Show VNF LCM OP OCC : https://docs.openstack.org/api-ref/nfv-orchestration/v2/vnflcm.html#show-vnf-lcm-operation-occurrence-v2
+.. _VNF Package : https://docs.openstack.org/tacker/latest/user/vnf-package.html
+.. _LCM operations : https://docs.openstack.org/tacker/latest/user/etsi_vnf_error_handling.html#rollback-vnf-lcm-operation
+.. _User defined types definition file : https://docs.openstack.org/tacker/latest/user/vnfd-sol001.html#user-defined-types-definition-file
+.. _Topology Template Files : https://docs.openstack.org/tacker/latest/user/vnfd-sol001.html#topology-template-file-with-deployment-flavour
