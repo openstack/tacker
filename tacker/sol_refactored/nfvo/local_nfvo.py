@@ -404,3 +404,12 @@ class LocalNfvo(object):
                         fields.PackageUsageStateType.NOT_IN_USE)
                     self._update_vnf_pkg_usage_state(context, inst.vnfdId,
                         fields.PackageUsageStateType.IN_USE)
+        elif lcmocc.operation == v2_fields.LcmOperationType.INSTANTIATE:
+            if (lcmocc.operationState ==
+                    v2_fields.LcmOperationStateType.ROLLED_BACK):
+                vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
+                if vim_info is None:
+                    # never happen. just for code consistency.
+                    return
+                if vim_info.vimType == 'ETSINFV.OPENSTACK_KEYSTONE.V_3':
+                    self._glance_delete_images(vim_info, inst.id)

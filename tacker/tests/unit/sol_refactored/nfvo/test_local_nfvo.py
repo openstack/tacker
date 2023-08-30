@@ -690,7 +690,7 @@ class TestLocalNfvo(base.BaseTestCase):
 
     @mock.patch.object(local_nfvo.LocalNfvo, '_glance_delete_images')
     @mock.patch.object(local_nfvo.LocalNfvo, '_update_vnf_pkg_usage_state')
-    def test_recv_lcmocc_notification(self, mock_delete_image, mock_update):
+    def test_recv_lcmocc_notification(self, mock_update, mock_delete_image):
         # terminate-processing
 
         req_inst = objects.InstantiateVnfRequest.from_dict(_inst_req_example)
@@ -729,6 +729,7 @@ class TestLocalNfvo(base.BaseTestCase):
         }
         lcmocc.operationState = fields.LcmOperationStateType.COMPLETED
         self.local_nfvo.recv_lcmocc_notification(self.context, lcmocc, inst)
+        self.assertEqual(1, mock_delete_image.call_count)
 
         # change_vnfpkg-processing
         req = objects.ChangeCurrentVnfPkgRequest.from_dict(
@@ -754,3 +755,32 @@ class TestLocalNfvo(base.BaseTestCase):
         self.local_nfvo.inst_vnfd_id = {inst.id: req.vnfdId}
         lcmocc.operationState = fields.LcmOperationStateType.COMPLETED
         self.local_nfvo.recv_lcmocc_notification(self.context, lcmocc, inst)
+
+        # instantiate-rolled_back
+        req_inst = objects.InstantiateVnfRequest.from_dict(_inst_req_example)
+        inst = objects.VnfInstanceV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            vnfdId=SAMPLE_VNFD_ID,
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='NOT_INSTANTIATED',
+            vimConnectionInfo=req_inst.vimConnectionInfo,
+        )
+        lcmocc = objects.VnfLcmOpOccV2(
+            # required fields
+            id=uuidutils.generate_uuid(),
+            operationState=fields.LcmOperationStateType.ROLLED_BACK,
+            stateEnteredTime=datetime.utcnow(),
+            startTime=datetime.utcnow(),
+            vnfInstanceId=inst.id,
+            operation=fields.LcmOperationType.INSTANTIATE,
+            isAutomaticInvocation=False,
+            isCancelPending=False,
+            operationParams=req_inst)
+
+        mock_delete_image.reset_mock()
+        self.local_nfvo.recv_lcmocc_notification(self.context, lcmocc, inst)
+        self.assertEqual(1, mock_delete_image.call_count)

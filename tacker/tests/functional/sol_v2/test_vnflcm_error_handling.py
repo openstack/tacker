@@ -230,7 +230,7 @@ class VnfLcmErrorHandlingTest(test_vnflcm_basic_common.CommonVnfLcmTest):
             self.check_resp_body(lcmocc, expected_attrs)
 
         # 9. Delete VNF instance
-        resp, body = self.delete_vnf_instance(inst_id)
+        resp, body = self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
         self.assertEqual(204, resp.status_code)
         self.check_resp_headers_in_delete(resp)
 
