@@ -1,38 +1,4 @@
 - nodeset:
-    name: openstack-4-nodes-focal
-    nodes:
-      - name: controller
-        label: ubuntu-focal
-      - name: controller-tacker
-        label: ubuntu-focal
-      - name: compute1
-        label: ubuntu-focal
-      - name: compute2
-        label: ubuntu-focal
-    groups:
-      # Nodes running the compute service
-      - name: compute
-        nodes:
-          - compute1
-          - compute2
-      # Nodes that are not the controller
-      - name: subnode
-        nodes:
-          - controller-tacker
-          - compute1
-          - compute2
-      # Switch node for multinode networking setup
-      - name: switch
-        nodes:
-          - controller
-      # Peer nodes for multinode networking setup
-      - name: peers
-        nodes:
-          - controller-tacker
-          - compute1
-          - compute2
-
-- nodeset:
     name: openstack-4-nodes-jammy
     nodes:
       - name: controller
@@ -354,19 +320,6 @@
                 client_password: devstack
                 use_client_secret_basic: True
         tox_envlist: dsvm-functional-sol-separated-nfvo-v2
-
-# TODO(manpreetk): As per the 2023.1 testing runtime, we need to run atleast
-# one job on Focal. This job can be removed as per the future testing
-# runtime (whenever we drop the Ubuntu Focal testing).
-- job:
-    name: tacker-functional-devstack-multinode-sol-v2-ubuntu-focal
-    parent: tacker-functional-devstack-multinode-sol-v2
-    description: |
-      Multinode job for SOL V2 devstack-based functional tests on Ubuntu focal
-    nodeset: openstack-4-nodes-focal
-    host-vars:
-      controller-tacker:
-        tox_envlist: dsvm-functional-sol-v2-ubuntu-focal
 
 - job:
     name: tacker-functional-devstack-multinode-sol-v2-individual-vnfc-mgmt
@@ -772,7 +725,6 @@
             voting: false
         - tacker-functional-devstack-multinode-sol-v2
         - tacker-functional-devstack-multinode-sol-separated-nfvo-v2
-        - tacker-functional-devstack-multinode-sol-v2-ubuntu-focal
         - tacker-functional-devstack-multinode-sol-v2-individual-vnfc-mgmt
         - tacker-functional-devstack-multinode-sol-kubernetes-v2
         - tacker-functional-devstack-multinode-sol-multi-tenant
