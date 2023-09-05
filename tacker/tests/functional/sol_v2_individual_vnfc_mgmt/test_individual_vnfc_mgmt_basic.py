@@ -14,10 +14,18 @@
 #    under the License.
 
 import os
+import string
 
 from tacker.objects import fields
 from tacker.tests.functional.sol_v2_common import base_v2
 from tacker.tests.functional.sol_v2_common import paramgen
+
+SUPPORT_STRING_FOR_VNFD_ID = f"{string.ascii_letters}{string.digits}-._ "
+MAX_VNFD_ID = f"{SUPPORT_STRING_FOR_VNFD_ID}max_vnfd_id"
+MIN_VNFD_ID = f"{SUPPORT_STRING_FOR_VNFD_ID}min_vnfd_id"
+UPD_MAX_VNFD_ID = f"{SUPPORT_STRING_FOR_VNFD_ID}upd_max_vnfd_id"
+NEW_MAX_VNFD_ID = f"{SUPPORT_STRING_FOR_VNFD_ID}new_max_vnfd_id"
+UPD_NEW_MIN_VNFD_ID = f"{SUPPORT_STRING_FOR_VNFD_ID}upd_new_min_vnfd_id"
 
 
 class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
@@ -46,26 +54,28 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
             "../sol_v2_common/samples/basic_lcms_max_individual_vnfc")
         cls.max_pkg, cls.max_vnfd_id = cls.create_vnf_package(
             pkg_path_1, image_path=image_path,
-            userdata_path=userdata_path)
+            userdata_path=userdata_path, vnfd_id=MAX_VNFD_ID)
 
         # vnf package for basic lcms tests min pattern
         pkg_path_2 = os.path.join(cur_dir,
             "../sol_v2_common/samples/basic_lcms_min_individual_vnfc")
         cls.min_pkg, cls.min_vnfd_id = cls.create_vnf_package(
-            pkg_path_2, userdata_path=userdata_path)
+            pkg_path_2, userdata_path=userdata_path,
+            vnfd_id=MIN_VNFD_ID)
 
         # vnf package for update vnf max pattern
         pkg_path_3 = os.path.join(cur_dir,
             "../sol_v2_common/samples/update_vnf_max_individual_vnfc")
         cls.upd_max_pkg, cls.upd_max_vnfd_id = cls.create_vnf_package(
             pkg_path_3, image_path=image_path,
-            userdata_path=userdata_path)
+            userdata_path=userdata_path, vnfd_id=UPD_MAX_VNFD_ID)
 
         # vnf package for change vnf package max pattern
         pkg_path_4 = os.path.join(cur_dir,
             "../sol_v2_common/samples/change_vnfpkg_max_individual_vnfc")
         cls.new_max_pkg, cls.new_max_vnfd_id = cls.create_vnf_package(
-            pkg_path_4, userdata_path=userdata_path)
+            pkg_path_4, userdata_path=userdata_path,
+            vnfd_id=NEW_MAX_VNFD_ID)
 
         # vnf package for change vnf package or update min pattern
         pkg_path_5 = os.path.join(
@@ -73,7 +83,8 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
             "../sol_v2_common/samples/"
             "change_vnfpkg_or_update_min_individual_vnfc")
         cls.upd_new_min_pkg, cls.upd_new_min_vnfd_id = cls.create_vnf_package(
-            pkg_path_5, image_path=image_path, userdata_path=userdata_path)
+            pkg_path_5, image_path=image_path, userdata_path=userdata_path,
+            vnfd_id=UPD_NEW_MIN_VNFD_ID)
 
         cls.expected_list_attrs = [
             'id',

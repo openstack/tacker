@@ -137,7 +137,7 @@ class VnfPackageVnfd(model_base.BASE, VnfPackageVnfdSoftDeleteMixin,
     package_uuid = sa.Column(sa.String(36),
                              sa.ForeignKey('vnf_packages.id'),
                              nullable=False)
-    vnfd_id = sa.Column(types.Uuid, nullable=False)
+    vnfd_id = sa.Column(sa.String(255), nullable=False)
     vnf_provider = sa.Column(sa.String(255), nullable=False)
     vnf_product_name = sa.Column(sa.String(255), nullable=False)
     vnf_software_version = sa.Column(sa.String(255), nullable=False)
@@ -212,7 +212,7 @@ class VnfInstance(model_base.BASE, models.SoftDeleteMixin,
     vnf_product_name = sa.Column(sa.String(255), nullable=False)
     vnf_software_version = sa.Column(sa.String(255), nullable=False)
     vnfd_version = sa.Column(sa.String(255), nullable=False)
-    vnfd_id = sa.Column(types.Uuid, nullable=False)
+    vnfd_id = sa.Column(sa.String(255), nullable=False)
     instantiation_state = sa.Column(sa.String(255), nullable=False)
     task_state = sa.Column(sa.String(255), nullable=True)
     vim_connection_info = sa.Column(sa.JSON(), nullable=True)

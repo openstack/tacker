@@ -171,7 +171,7 @@ class VnfPackageVnfd(base.TackerObject, base.TackerObjectDictCompat,
     fields = {
         'id': fields.UUIDField(nullable=False),
         'package_uuid': fields.UUIDField(nullable=False),
-        'vnfd_id': fields.UUIDField(nullable=False),
+        'vnfd_id': fields.StringField(nullable=False),
         'vnf_provider': fields.StringField(nullable=False),
         'vnf_product_name': fields.StringField(nullable=False),
         'vnf_software_version': fields.StringField(nullable=False),
