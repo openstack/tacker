@@ -3,10 +3,10 @@
 
 gettext [test]
 
-mysql-client [platform:dpkg]
-mysql-server [platform:dpkg]
+mysql-client [platform:dpkg !platform:debian]
+mysql-server [platform:dpkg !platform:debian]
 postgresql
 postgresql-client [platform:dpkg]
 postgresql-server [platform:rpm]
 mariadb [platform:rpm]
-mariadb-server [platform:rpm]
+mariadb-server [platform:rpm platform:debian]

@@ -728,7 +728,7 @@ class TestController(base.TestCase):
             % constants.UUID)
         req.headers['Content-Type'] = 'application/zip'
         req.method = 'PUT'
-        req.body = jsonutils.dump_as_bytes(mock.mock_open())
+        req.body = jsonutils.dump_as_bytes({'dummy': {'val': 'foo'}})
         resp = req.get_response(self.app)
         mock_glance_store.assert_called()
         self.assertEqual(http_client.ACCEPTED, resp.status_code)
@@ -739,7 +739,7 @@ class TestController(base.TestCase):
             % constants.INVALID_UUID)
         req.headers['Content-Type'] = 'application/zip'
         req.method = 'PUT'
-        req.body = jsonutils.dump_as_bytes(mock.mock_open())
+        req.body = jsonutils.dump_as_bytes({'dummy': {'val': 'foo'}})
 
         msg = _("Can not find requested vnf package: %s") \
             % constants.INVALID_UUID
@@ -757,7 +757,7 @@ class TestController(base.TestCase):
             '/vnf_packages/%s/package_content' % constants.UUID)
         req.headers['Content-Type'] = 'application/zip'
         req.method = 'PUT'
-        req.body = jsonutils.dump_as_bytes(mock.mock_open())
+        req.body = jsonutils.dump_as_bytes({'dummy': {'val': 'foo'}})
 
         msg = _("Can not find requested vnf package: %s") % constants.UUID
         res = self._make_problem_detail('Not Found', msg, 404)
@@ -774,7 +774,7 @@ class TestController(base.TestCase):
             '/vnf_packages/%s/package_content' % constants.UUID)
         req.headers['Content-Type'] = 'application/zip'
         req.method = 'PUT'
-        req.body = jsonutils.dump_as_bytes(mock.mock_open())
+        req.body = jsonutils.dump_as_bytes({'dummy': {'val': 'foo'}})
 
         msg = _("VNF Package %s onboarding state is not CREATED") \
             % constants.UUID
@@ -1415,7 +1415,7 @@ class TestControllerEnhancedPolicy(TestController):
             % constants.UUID)
         req.headers['Content-Type'] = 'application/zip'
         req.method = 'PUT'
-        req.body = jsonutils.dump_as_bytes(mock.mock_open())
+        req.body = jsonutils.dump_as_bytes({'dummy': {'val': 'foo'}})
         resp = req.get_response(self.app)
         mock_glance_store.assert_called()
         self.assertEqual(http_client.ACCEPTED, resp.status_code)
@@ -1459,7 +1459,7 @@ class TestControllerEnhancedPolicy(TestController):
             % constants.UUID)
         req.headers['Content-Type'] = 'application/zip'
         req.method = 'PUT'
-        req.body = jsonutils.dump_as_bytes(mock.mock_open())
+        req.body = jsonutils.dump_as_bytes({'dummy': {'val': 'foo'}})
         resp = req.get_response(fakes.wsgi_app_v1(fake_auth_context=ctx))
         mock_glance_store.assert_called()
         self.assertEqual(expected_status_code, resp.status_code)
