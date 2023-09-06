@@ -26,6 +26,7 @@ from oslo_utils import excutils
 from oslo_utils import strutils
 from oslo_utils import uuidutils
 from tempfile import mkstemp
+from toscaparser import tosca_template
 from toscaparser.tosca_template import ToscaTemplate
 
 from tacker._i18n import _
@@ -42,11 +43,10 @@ from tacker.extensions import nfvo
 from tacker.keymgr import API as KEYMGR_API
 from tacker import manager
 from tacker.plugins.common import constants
+from tacker.tosca import utils as toscautils
 from tacker.vnfm import keystone
 from tacker.vnfm import vim_client
 
-from tacker.tosca import utils as toscautils
-from toscaparser import tosca_template
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
@@ -256,7 +256,8 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
 
         try:
             tosca_template.ToscaTemplate(
-                a_file=False, yaml_dict_tpl=template)
+                a_file=False, yaml_dict_tpl=template,
+                local_defs=toscautils.tosca_tmpl_local_defs())
         except Exception as e:
             LOG.exception("tosca-parser error: %s", str(e))
             raise nfvo.ToscaParserFailed(error_msg_details=str(e))
@@ -666,7 +667,8 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
 
         try:
             ToscaTemplate(a_file=False,
-                          yaml_dict_tpl=inner_nsd_dict)
+                          yaml_dict_tpl=inner_nsd_dict,
+                          local_defs=toscautils.tosca_tmpl_local_defs())
         except Exception as e:
             LOG.exception("tosca-parser error: %s", str(e))
             raise nfvo.ToscaParserFailed(error_msg_details=str(e))

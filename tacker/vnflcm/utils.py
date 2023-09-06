@@ -1128,8 +1128,9 @@ def _convert_desired_capacity(inst_level_id, vnfd_dict, vdu):
     aspect_max_level_dict = {}
     desired_capacity = 1
 
-    tosca = tosca_template.ToscaTemplate(parsed_params={}, a_file=False,
-                                         yaml_dict_tpl=vnfd_dict)
+    tosca = tosca_template.ToscaTemplate(
+        parsed_params={}, a_file=False, yaml_dict_tpl=vnfd_dict,
+        local_defs=toscautils.tosca_tmpl_local_defs())
     tosca_policies = tosca.topology_template.policies
     default_inst_level_id = toscautils._extract_policy_info(
         tosca_policies, inst_level_dict,
@@ -1252,8 +1253,9 @@ def get_default_scale_status(context, vnf_instance, vnfd_dict):
     vnfd_dict = _get_vnfd_dict(context,
         vnf_instance.vnfd_id,
         vnf_instance.instantiated_vnf_info.flavour_id)
-    tosca = tosca_template.ToscaTemplate(parsed_params={}, a_file=False,
-                                         yaml_dict_tpl=vnfd_dict)
+    tosca = tosca_template.ToscaTemplate(
+        parsed_params={}, a_file=False, yaml_dict_tpl=vnfd_dict,
+        local_defs=toscautils.tosca_tmpl_local_defs())
     extract_policy_infos = get_extract_policy_infos(tosca)
 
     if extract_policy_infos['inst_level_dict'] is None:

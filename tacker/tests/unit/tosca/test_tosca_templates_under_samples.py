@@ -19,7 +19,7 @@ from toscaparser import tosca_template
 from toscaparser.utils import yamlparser
 from translator.hot import tosca_translator
 
-from tacker.tosca import utils
+from tacker.tosca import utils as toscautils
 
 
 class TestSamples(testtools.TestCase):
@@ -54,20 +54,20 @@ class TestSamples(testtools.TestCase):
                         yaml_dict,
                         "Yaml parser failed to parse %s" % f)
 
-                    utils.updateimports(yaml_dict)
+                    toscautils.updateimports(yaml_dict)
 
                     tosca = None
                     try:
                         tosca = tosca_template.ToscaTemplate(
-                            a_file=False,
-                            yaml_dict_tpl=yaml_dict)
+                            a_file=False, yaml_dict_tpl=yaml_dict,
+                            local_defs=toscautils.tosca_tmpl_local_defs())
                     except:  # noqa
                         pass
 
                     self.assertIsNotNone(
                         tosca,
                         "Tosca parser failed to parse %s" % f)
-                    utils.post_process_template(tosca)
+                    toscautils.post_process_template(tosca)
                     hot = None
                     try:
                         hot = tosca_translator.TOSCATranslator(tosca,

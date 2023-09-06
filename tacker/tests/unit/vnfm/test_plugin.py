@@ -39,6 +39,7 @@ from tacker.tests.unit.conductor import fakes
 from tacker.tests.unit.db import base as db_base
 from tacker.tests.unit.db import utils
 from tacker.tests.unit.vnflcm import fakes as vnflcm_fakes
+from tacker.tosca import utils as toscautils
 from tacker.vnfm import monitor
 from tacker.vnfm import plugin
 
@@ -388,7 +389,8 @@ class TestVNFMPlugin(db_base.SqlTestCase):
         self.assertIn('template_source', result)
         yaml_dict = yaml.safe_load(utils.tosca_vnfd_openwrt)
         mock_tosca_template.assert_called_once_with(
-            a_file=False, yaml_dict_tpl=yaml_dict)
+            a_file=False, yaml_dict_tpl=yaml_dict,
+            local_defs=toscautils.tosca_tmpl_local_defs())
         mock_get_mgmt_driver.assert_called_once_with(mock.ANY)
         mock_update_imports.assert_called_once_with(yaml_dict)
         self._cos_db_plugin.create_event.assert_called_once_with(

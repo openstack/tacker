@@ -41,6 +41,7 @@ from tacker.objects.fields import ErrorPoint as EP
 from tacker.objects import vnf_package as vnf_package_obj
 from tacker.objects import vnf_package_vnfd as vnfd_obj
 from tacker.objects import vnf_resources as vnf_resource_obj
+from tacker.tosca import utils as toscautils  # TODO(yasufum)
 from tacker.vnflcm import utils as vnflcm_utils
 from tacker.vnfm.infra_drivers import abstract_driver
 from tacker.vnfm.infra_drivers.kubernetes.helm import helm_client
@@ -1660,8 +1661,9 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         # check parameters for scale operation
         vnfd = vnflcm_utils.get_vnfd_dict(context, vnf_instance.vnfd_id,
                                           instantiate_vnf_req.flavour_id)
-        tosca = tosca_template.ToscaTemplate(parsed_params={}, a_file=False,
-                                             yaml_dict_tpl=vnfd)
+        tosca = tosca_template.ToscaTemplate(
+            parsed_params={}, a_file=False, yaml_dict_tpl=vnfd,
+            local_defs=toscautils.tosca_tmpl_local_defs())
         extract_policy_infos = vnflcm_utils.get_extract_policy_infos(tosca)
         helm_replica_values = additional_params.get('helm_replica_values', {})
         for aspect_id in extract_policy_infos['aspect_id_dict'].keys():
@@ -1988,7 +1990,8 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                     context, vnf_instance.vnfd_id,
                     vnf_instance.instantiated_vnf_info.flavour_id)
                 tosca = tosca_template.ToscaTemplate(
-                    parsed_params={}, a_file=False, yaml_dict_tpl=vnfd_dict)
+                    parsed_params={}, a_file=False, yaml_dict_tpl=vnfd_dict,
+                    local_defs=toscautils.tosca_tmpl_local_defs())
                 tosca_node_tpls = tosca.topology_template.nodetemplates
                 # get vdu_ids dict {vdu_name: vdu_id} from VNFD
                 vdu_ids = {}
@@ -2512,9 +2515,9 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
             vnfd_dict = vnflcm_utils._get_vnfd_dict(context,
                 vnf_instance.vnfd_id,
                 inst_vnf_info.flavour_id)
-            tosca = tosca_template.ToscaTemplate(parsed_params={},
-                                                 a_file=False,
-                                                 yaml_dict_tpl=vnfd_dict)
+            tosca = tosca_template.ToscaTemplate(
+                parsed_params={}, a_file=False, yaml_dict_tpl=vnfd_dict,
+                local_defs=toscautils.tosca_tmpl_local_defs())
             extract_policy_infos = vnflcm_utils.get_extract_policy_infos(tosca)
             aspect_id = scale_vnf_request.aspect_id
             vdu_defs = vnflcm_utils.get_target_vdu_def_dict(
@@ -2592,8 +2595,9 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         vnfd_dict = vnflcm_utils._get_vnfd_dict(context,
             vnf_instance.vnfd_id,
             vnf_instance.instantiated_vnf_info.flavour_id)
-        tosca = tosca_template.ToscaTemplate(parsed_params={}, a_file=False,
-                                             yaml_dict_tpl=vnfd_dict)
+        tosca = tosca_template.ToscaTemplate(
+            parsed_params={}, a_file=False, yaml_dict_tpl=vnfd_dict,
+            local_defs=toscautils.tosca_tmpl_local_defs())
         extract_policy_infos = vnflcm_utils.get_extract_policy_infos(tosca)
 
         policy = dict()
@@ -2635,8 +2639,9 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         vnfd_dict = vnflcm_utils._get_vnfd_dict(context,
             vnf_instance.vnfd_id,
             vnf_instance.instantiated_vnf_info.flavour_id)
-        tosca = tosca_template.ToscaTemplate(parsed_params={}, a_file=False,
-                                             yaml_dict_tpl=vnfd_dict)
+        tosca = tosca_template.ToscaTemplate(
+            parsed_params={}, a_file=False, yaml_dict_tpl=vnfd_dict,
+            local_defs=toscautils.tosca_tmpl_local_defs())
         extract_policy_infos = vnflcm_utils.get_extract_policy_infos(tosca)
 
         policy = dict()

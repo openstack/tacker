@@ -279,9 +279,10 @@ class TOSCAToHOT(object):
             )
 
         try:
-            tosca = tosca_template.ToscaTemplate(parsed_params=parsed_params,
-                                                 a_file=False,
-                                                 yaml_dict_tpl=vnfd_dict)
+            tosca = tosca_template.ToscaTemplate(
+                parsed_params=parsed_params, a_file=False,
+                yaml_dict_tpl=vnfd_dict,
+                local_defs=toscautils.tosca_tmpl_local_defs())
 
         except Exception as e:
             LOG.error("tosca-parser error: %s", str(e))

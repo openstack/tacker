@@ -42,6 +42,7 @@ from tacker import manager
 from tacker import objects
 from tacker.objects import fields
 from tacker.objects.fields import ErrorPoint as EP
+from tacker.tosca import utils as toscautils
 from tacker.vnflcm import abstract_driver
 from tacker.vnflcm import utils as vnflcm_utils
 
@@ -1420,7 +1421,8 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                 vnf_instance.vnfd_id,
                 vnf_instance.instantiated_vnf_info.flavour_id)
             tosca = tosca_template.ToscaTemplate(
-                parsed_params={}, a_file=False, yaml_dict_tpl=vnfd_dict)
+                parsed_params={}, a_file=False, yaml_dict_tpl=vnfd_dict,
+                local_defs=toscautils.tosca_tmpl_local_defs())
             extract_policy_infos = vnflcm_utils.get_extract_policy_infos(tosca)
             policy['vdu_defs'] = vnflcm_utils.get_target_vdu_def_dict(
                 extract_policy_infos=extract_policy_infos,

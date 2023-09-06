@@ -32,8 +32,9 @@ from toscaparser import properties
 from toscaparser.utils import yamlparser
 
 
-FAILURE = 'tosca.policies.tacker.Failure'
 LOG = logging.getLogger(__name__)
+
+FAILURE = 'tosca.policies.tacker.Failure'
 MONITORING = 'tosca.policies.Monitoring'
 SCALING = 'tosca.policies.Scaling'
 RESERVATION = 'tosca.policies.Reservation'
@@ -1388,3 +1389,58 @@ def get_scale_group(vnf_dict, vnfd_dict, inst_req_info):
         scaling_group_dict.update({'scaleGroupDict': data_dict})
 
     return scaling_group_dict
+
+
+def tosca_tmpl_local_defs():
+    """Return local defs for ToscaTemplate
+
+    It's a remedy to avoid a failure for a busy access while importing remote
+    definition in a TOSCA template. While instantiating a ToscaTemplate obj
+    with given local_defs arg, it uses a local file instead of remote one by
+    referring the local defs returned from this function. The returned value
+    is a dict consists of entries of url and local path such as below.
+
+    .. code-block:: python
+
+        {
+            "https://forge.etsi.org/.../aaa.yaml": "/path/to/aaa.yaml",
+            "https://forge.etsi.org/.../bbb.yaml": "/path/to/bbb.yaml"
+        }
+
+    :return: A set of url and local file path as a dict
+    """
+
+    def sol001_url(ver, fname):
+        baseurl = "https://forge.etsi.org/rep/nfv/SOL001"
+        return os.path.join(baseurl, "raw", "v" + ver, fname)
+
+    def path_sol001_def(ver, fname):
+        """Return a path of specified ETSI's def file.
+
+        The name of file given with `fname` follows the original repo
+        https://forge.etsi.org/rep/nfv/SOL001.
+        """
+
+        fpath = os.path.join(utils.proj_root(), "etc", "etsi-nfv", "sol001",
+                ver, fname)
+        try:
+            if os.path.isfile(fpath) is not True:
+                raise FileNotFoundError
+        except FileNotFoundError:
+            LOG.error("No SOL001 def file found '%'", fpath)
+        return fpath
+
+    ldefs = {}
+    # NOTE(yasufum): There are several updates made for each definitions under
+    #     SOL001, but no all of versions are required for tests in tacker
+    #     currently.
+    # TODO(yasufum): Add all required defs for supporting several usecases
+    #     although tacker uses just a few defs as below. We can find all the
+    #     version in commits of SOL001's repo.
+    fname = "etsi_nfv_sol001_common_types.yaml"
+    def_ver = "2.6.1"
+    k = sol001_url(def_ver, fname)
+    v = path_sol001_def(def_ver, fname)
+    ldefs[k] = v
+
+    return ldefs

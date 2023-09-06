@@ -87,6 +87,17 @@ else:
     getargspec = inspect.getargspec
 
 
+def proj_root():
+    """Return tacker's project root dir.
+
+    It's assumed `abspath(__file__)` is equals to ${PROJ_ROOT}/tacker/common.
+    The result is like as "/opt/stack/tacker".
+    """
+
+    dir_to_common = os.path.dirname(os.path.abspath(__file__))
+    return "/".join(dir_to_common.split('/')[:-2])
+
+
 def find_config_file(options, config_file):
     """Return the first config file found.
 
