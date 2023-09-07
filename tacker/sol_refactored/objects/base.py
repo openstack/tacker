@@ -460,4 +460,9 @@ class TackerPersistentObject(TackerObject):
         return obj
 
 
-TackerObjectDictCompat = ovoo_base.VersionedObjectDictCompat
+class TackerObjectDictCompat(ovoo_base.VersionedObjectDictCompat):
+    def get(self, key, value=None):
+        # NOTE: VersionedObjectDictCompat requires default value if
+        # obj_attr is not set. This makes get return None if obj_attr is
+        # not set and default value is not specified.
+        return super().get(key, value)

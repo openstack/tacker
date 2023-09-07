@@ -18,12 +18,12 @@ from unittest import mock
 
 from tacker import context
 from tacker.sol_refactored.api import api_version
-from tacker.sol_refactored.common import common_script_utils
 from tacker.sol_refactored.common import config
 from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import pm_job_utils
 from tacker.sol_refactored.common.prometheus_plugin import (
     PrometheusPluginThreshold)
+from tacker.sol_refactored.common import subscription_utils as subsc_utils
 from tacker.sol_refactored.controller.vnflcm_view import BaseViewBuilder
 from tacker.sol_refactored.controller.vnflcm_view import Pager
 from tacker.sol_refactored.controller import vnfpm_v2
@@ -247,7 +247,7 @@ class TestVnfpmV2(base.BaseTestCase):
             self.controller.create, request=self.request, body=body)
 
     @mock.patch.object(objects.base.TackerPersistentObject, 'create')
-    @mock.patch.object(common_script_utils, 'test_notification')
+    @mock.patch.object(subsc_utils, 'test_notification')
     @mock.patch.object(objects.base.TackerPersistentObject, 'get_by_id')
     def test_create_201(self, mock_inst, mock_notifi, mock_create):
         mock_inst.return_value = objects.VnfInstanceV2(
@@ -335,7 +335,7 @@ class TestVnfpmV2(base.BaseTestCase):
 
     @mock.patch.object(objects.base.TackerPersistentObject, 'update')
     @mock.patch.object(objects.base.TackerPersistentObject, 'get_by_id')
-    @mock.patch.object(common_script_utils, 'test_notification')
+    @mock.patch.object(subsc_utils, 'test_notification')
     def test_update(self, mock_notifi, mock_pm, mock_update):
         mock_notifi.return_value = None
         mock_pm.return_value = objects.PmJobV2(id='pm_job_1')
@@ -486,7 +486,7 @@ class TestVnfpmV2(base.BaseTestCase):
 
     @mock.patch.object(objects.base.TackerPersistentObject, 'create')
     @mock.patch.object(PrometheusPluginThreshold, 'create_threshold')
-    @mock.patch.object(common_script_utils, 'test_notification')
+    @mock.patch.object(subsc_utils, 'test_notification')
     @mock.patch.object(objects.base.TackerPersistentObject, 'get_by_id')
     def test_create_pm_threshold(
             self, mock_inst, mock_notifi, mock_create_threshold, mock_create):
@@ -584,7 +584,7 @@ class TestVnfpmV2(base.BaseTestCase):
 
     @mock.patch.object(objects.base.TackerPersistentObject, 'update')
     @mock.patch.object(objects.base.TackerPersistentObject, 'get_by_id')
-    @mock.patch.object(common_script_utils, 'test_notification')
+    @mock.patch.object(subsc_utils, 'test_notification')
     def test_pm_threshold_update(self, mock_notifi, mock_pm, mock_update):
         mock_notifi.return_value = None
         mock_pm.return_value = objects.ThresholdV2(

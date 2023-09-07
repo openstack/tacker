@@ -21,7 +21,6 @@ import zipfile
 
 from oslo_log import log as logging
 
-from tacker.sol_refactored.common import common_script_utils
 from tacker.sol_refactored.common import config
 from tacker.sol_refactored.common import fm_alarm_utils as alarm_utils
 from tacker.sol_refactored.common import fm_subscription_utils as fm_utils
@@ -186,7 +185,7 @@ class NfvoClient(object):
         for subsc in subscs:
             notif_data = subsc_utils.make_create_inst_notif_data(
                 subsc, inst, endpoint)
-            common_script_utils.send_notification(subsc, notif_data)
+            subsc_utils.send_notification(subsc, notif_data)
 
         if self.is_local:
             self.nfvo.recv_inst_create_notification(context, inst)
@@ -196,7 +195,7 @@ class NfvoClient(object):
         for subsc in subscs:
             notif_data = subsc_utils.make_delete_inst_notif_data(
                 subsc, inst, endpoint)
-            common_script_utils.send_notification(subsc, notif_data)
+            subsc_utils.send_notification(subsc, notif_data)
 
         if self.is_local:
             self.nfvo.recv_inst_delete_notification(context, inst)
@@ -209,7 +208,7 @@ class NfvoClient(object):
         for subsc in subscs:
             notif_data = lcmocc_utils.make_lcmocc_notif_data(
                 subsc, lcmocc, endpoint)
-            common_script_utils.send_notification(subsc, notif_data)
+            subsc_utils.send_notification(subsc, notif_data)
 
         if self.is_local:
             self.nfvo.recv_lcmocc_notification(context, lcmocc, inst)
@@ -219,8 +218,8 @@ class NfvoClient(object):
         for subsc in subscs:
             notif_data = alarm_utils.make_alarm_notif_data(
                 subsc, alarm, endpoint)
-            common_script_utils.send_notification(
-                subsc, notif_data, common_script_utils.NOTIFY_TYPE_FM)
+            subsc_utils.send_notification(
+                subsc, notif_data, subsc_utils.NOTIFY_TYPE_FM)
 
     def send_pm_job_notification(self, report, pm_job, timestamp, endpoint):
         report_object_instance_id = {entry.objectInstanceId
@@ -234,5 +233,5 @@ class NfvoClient(object):
             notif_data = pm_job_utils.make_pm_notif_data(
                 instance_id, sub_instance_ids, report.id,
                 pm_job, timestamp, endpoint)
-            common_script_utils.send_notification(
-                pm_job, notif_data, common_script_utils.NOTIFY_TYPE_PM)
+            subsc_utils.send_notification(
+                pm_job, notif_data, subsc_utils.NOTIFY_TYPE_PM)

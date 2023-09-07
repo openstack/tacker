@@ -14,15 +14,18 @@
 #    under the License.
 
 
+import os
 import requests
 from unittest import mock
 
 from tacker import context
 from tacker.sol_refactored.api import api_version
-from tacker.sol_refactored.common import common_script_utils
+from tacker.sol_refactored.common import config
 from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import fm_alarm_utils as alarm_utils
-from tacker.sol_refactored.common import fm_subscription_utils as subsc_utils
+from tacker.sol_refactored.common import fm_subscription_utils\
+    as fm_subsc_utils
+from tacker.sol_refactored.common import subscription_utils as subsc_utils
 from tacker.sol_refactored.controller import vnffm_v1
 from tacker.sol_refactored import objects
 from tacker.tests import base
@@ -31,6 +34,8 @@ from tacker.tests.unit.sol_refactored.samples import fakes_for_fm
 SAMPLE_INST_ID = 'c61314d0-f583-4ab3-a457-46426bce02d3'
 SAMPLE_ALARM_ID = '78a39661-60a8-4824-b989-88c1b0c3534a'
 SAMPLE_SUBSC_ID = '78a39661-60a8-4824-b989-88c1b0c3534a'
+
+CONF = config.CONF
 
 
 class TestVnffmV1(base.BaseTestCase):
@@ -110,8 +115,12 @@ class TestVnffmV1(base.BaseTestCase):
                           request=self.request, id=SAMPLE_ALARM_ID, body=body)
 
     @mock.patch.object(objects.base.TackerPersistentObject, 'create')
-    @mock.patch.object(common_script_utils, 'test_notification')
+    @mock.patch.object(subsc_utils, 'test_notification')
     def test_subscription_create(self, mock_test, mock_create):
+        cur_dir = os.path.dirname(__file__)
+        sample_cert = os.path.join(
+            cur_dir, "../samples/sample_cert", "notification_client_cert.pem")
+        CONF.v2_vnfm.notification_mtls_client_cert_file = sample_cert
         body_1 = {
             "callbackUri": "http://127.0.0.1:6789/notification",
             "authentication": {
@@ -129,9 +138,8 @@ class TestVnffmV1(base.BaseTestCase):
                 "paramsOauth2ClientCert": {
                     "clientId": "test",
                     "certificateRef": {
-                        "type": "x5t#256",
-                        "value": "03c6e188d1fe5d3da8c9bc9a8dc531a2"
-                                 "b3ecf812b03aede9bec7ba1b410b6b64"
+                        "type": "x5t#S256",
+                        "value": "8Shbulz8zlFdKG-iMCUz5CCv0A7q0k6X7wL3NcZpshM"
                     },
                     "tokenEndpoint": "https://127.0.0.1/token"
                 }
@@ -189,9 +197,8 @@ class TestVnffmV1(base.BaseTestCase):
                 "paramsOauth2ClientCert": {
                     "clientId": "test",
                     "certificateRef": {
-                        "type": "x5t#256",
-                        "value": "03c6e188d1fe5d3da8c9bc9a8dc531a2"
-                                 "b3ecf812b03aede9bec7ba1b410b6b64"
+                        "type": "x5t#S256",
+                        "value": "8Shbulz8zlFdKG-iMCUz5CCv0A7q0k6X7wL3NcZpshM"
                     },
                     "tokenEndpoint": "https://127.0.0.1/token"
                 }
@@ -215,7 +222,7 @@ class TestVnffmV1(base.BaseTestCase):
         ex = self.assertRaises(sol_ex.InvalidSubscription,
             self.controller.subscription_create, request=self.request,
             body=body)
-        self.assertEqual("ParamsBasic must be specified.", ex.detail)
+        self.assertEqual("paramsBasic must be specified.", ex.detail)
 
         body = {
             "callbackUri": "http://127.0.0.1:6789/notification",
@@ -241,7 +248,7 @@ class TestVnffmV1(base.BaseTestCase):
         self.assertEqual("paramsOauth2ClientCert must be specified.",
                          ex.detail)
 
-    @mock.patch.object(subsc_utils, 'get_subsc_all')
+    @mock.patch.object(fm_subsc_utils, 'get_subsc_all')
     def test_subscription_list(self, mock_subsc):
         request = requests.Request()
         request.context = self.context
@@ -258,7 +265,7 @@ class TestVnffmV1(base.BaseTestCase):
         result = self.controller.subscription_list(request)
         self.assertEqual(200, result.status)
 
-    @mock.patch.object(subsc_utils, 'get_subsc')
+    @mock.patch.object(fm_subsc_utils, 'get_subsc')
     def test_subscription_show(self, mock_subsc):
         mock_subsc.return_value = objects.FmSubscriptionV1.from_dict(
             fakes_for_fm.fm_subsc_example)
@@ -266,7 +273,7 @@ class TestVnffmV1(base.BaseTestCase):
             request=self.request, id=SAMPLE_SUBSC_ID)
         self.assertEqual(200, result.status)
 
-    @mock.patch.object(subsc_utils, 'get_subsc')
+    @mock.patch.object(fm_subsc_utils, 'get_subsc')
     @mock.patch.object(objects.base.TackerPersistentObject, 'delete')
     def test_subscription_delete(self, mock_delete, mock_subsc):
         mock_subsc.return_value = objects.FmSubscriptionV1.from_dict(

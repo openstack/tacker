@@ -16,6 +16,7 @@ import copy
 from datetime import datetime
 import ddt
 from http import client as http_client
+import os
 import requests
 from unittest import mock
 
@@ -27,7 +28,6 @@ from tacker import context
 from tacker import policy
 from tacker.sol_refactored.api import api_version
 from tacker.sol_refactored.api.policies.vnflcm_v2 import POLICY_NAME
-from tacker.sol_refactored.common import common_script_utils
 from tacker.sol_refactored.common import config
 from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import lcm_op_occ_utils as lcmocc_utils
@@ -1054,7 +1054,7 @@ class TestVnflcmV2(db_base.SqlTestCase):
         ex = self.assertRaises(sol_ex.InvalidSubscription,
             self.controller.subscription_create, request=self.request,
             body=body_1)
-        self.assertEqual("ParamsBasic must be specified.", ex.detail)
+        self.assertEqual("paramsBasic must be specified.", ex.detail)
 
         body_2 = {
             "callbackUri": "http://127.0.0.1:6789/notification",
@@ -1080,8 +1080,12 @@ class TestVnflcmV2(db_base.SqlTestCase):
         self.assertEqual("paramsOauth2ClientCert must be specified.",
                          ex.detail)
 
-    @mock.patch.object(common_script_utils, 'test_notification')
+    @mock.patch.object(subsc_utils, 'test_notification')
     def test_subscription_create_201(self, mock_test):
+        cur_dir = os.path.dirname(__file__)
+        sample_cert = os.path.join(
+            cur_dir, "../samples/sample_cert", "notification_client_cert.pem")
+        CONF.v2_vnfm.notification_mtls_client_cert_file = sample_cert
         body_1 = {
             "callbackUri": "http://127.0.0.1:6789/notification",
             "authentication": {
@@ -1099,9 +1103,8 @@ class TestVnflcmV2(db_base.SqlTestCase):
                 "paramsOauth2ClientCert": {
                     "clientId": "test",
                     "certificateRef": {
-                        "type": "x5t#256",
-                        "value": "03c6e188d1fe5d3da8c9bc9a8dc531a2"
-                                 "b3ecf812b03aede9bec7ba1b410b6b64"
+                        "type": "x5t#S256",
+                        "value": "8Shbulz8zlFdKG-iMCUz5CCv0A7q0k6X7wL3NcZpshM"
                     },
                     "tokenEndpoint": "https://127.0.0.1/token"
                 }
@@ -1156,9 +1159,8 @@ class TestVnflcmV2(db_base.SqlTestCase):
                 "paramsOauth2ClientCert": {
                     "clientId": "test",
                     "certificateRef": {
-                        "type": "x5t#256",
-                        "value": "03c6e188d1fe5d3da8c9bc9a8dc531a2"
-                                 "b3ecf812b03aede9bec7ba1b410b6b64"
+                        "type": "x5t#S256",
+                        "value": "8Shbulz8zlFdKG-iMCUz5CCv0A7q0k6X7wL3NcZpshM"
                     },
                     "tokenEndpoint": "https://127.0.0.1/token"
                 }

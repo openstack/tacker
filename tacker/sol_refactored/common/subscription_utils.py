@@ -13,11 +13,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import threading
 
 from oslo_log import log as logging
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
 
+from tacker.sol_refactored.api import api_version
 from tacker.sol_refactored.common import common_script_utils
 from tacker.sol_refactored.common import config
 from tacker.sol_refactored.common import exceptions as sol_ex
@@ -29,6 +31,15 @@ from tacker.sol_refactored import objects
 LOG = logging.getLogger(__name__)
 
 CONF = config.CONF
+
+TEST_NOTIFICATION_TIMEOUT = 20  # seconds
+NOTIFY_TYPE_PM = 'PM'
+NOTIFY_TYPE_FM = 'FM'
+
+# NOTE: The methods of first half are for LCM subscription only
+# since this file was for LCM subscription originally.
+# The methods of later half are common for LCM, PM and FM
+# subscription.
 
 
 def get_subsc(context, subsc_id):
@@ -44,16 +55,6 @@ def get_subsc_all(context, marker=None):
 
 def subsc_href(subsc_id, endpoint):
     return "{}/vnflcm/v2/subscriptions/{}".format(endpoint, subsc_id)
-
-
-def get_notification_auth_handle(subsc):
-    auth_req = subsc.get('authentication', None)
-    if auth_req:
-        return common_script_utils.get_notification_auth_handle(subsc)
-    else:
-        return http_client.NoAuthHandle()
-
-    # not reach here
 
 
 def match_version(version, inst):
@@ -220,27 +221,31 @@ def make_delete_inst_notif_data(subsc, inst, endpoint):
     return notif_data
 
 
-def check_http_client_auth(auth_req):
+# common methods for LCM, PM and FM subscription
+
+
+def get_subsc_auth(auth_req):
+    # NOTE: assume auth_req already validated.
+    common_script_utils.check_subsc_auth(auth_req, validation=False)
+
     auth = objects.SubscriptionAuthentication(
         authType=auth_req['authType']
     )
     if 'OAUTH2_CLIENT_CERT' in auth.authType:
-        oauth2_mtls_req = auth_req.get('paramsOauth2ClientCert')
-        if oauth2_mtls_req is None:
-            msg = "paramsOauth2ClientCert must be specified."
-            raise sol_ex.InvalidSubscription(sol_detail=msg)
+        oauth2_mtls_req = auth_req['paramsOauth2ClientCert']
         auth.paramsOauth2ClientCert = (
             objects.SubscriptionAuthentication_ParamsOauth2ClientCert(
                 clientId=oauth2_mtls_req.get('clientId'),
-                certificateRef=oauth2_mtls_req.get('certificateRef'),
+                certificateRef=objects.ParamsOauth2ClientCert_CertificateRef(
+                    type=oauth2_mtls_req['certificateRef']['type'],
+                    value=oauth2_mtls_req['certificateRef']['value']
+                ),
                 tokenEndpoint=oauth2_mtls_req.get('tokenEndpoint')
             )
         )
-    elif 'OAUTH2_CLIENT_CREDENTIALS' in auth.authType:
-        oauth2_req = auth_req.get('paramsOauth2ClientCredentials')
-        if oauth2_req is None:
-            msg = "paramsOauth2ClientCredentials must be specified."
-            raise sol_ex.InvalidSubscription(sol_detail=msg)
+
+    if 'OAUTH2_CLIENT_CREDENTIALS' in auth.authType:
+        oauth2_req = auth_req['paramsOauth2ClientCredentials']
         auth.paramsOauth2ClientCredentials = (
             objects.SubscriptionAuthentication_ParamsOauth2(
                 clientId=oauth2_req.get('clientId'),
@@ -248,17 +253,66 @@ def check_http_client_auth(auth_req):
                 tokenEndpoint=oauth2_req.get('tokenEndpoint')
             )
         )
-    elif 'BASIC' in auth.authType:
-        basic_req = auth_req.get('paramsBasic')
-        if basic_req is None:
-            msg = "ParamsBasic must be specified."
-            raise sol_ex.InvalidSubscription(sol_detail=msg)
+
+    if 'BASIC' in auth.authType:
+        basic_req = auth_req['paramsBasic']
         auth.paramsBasic = (
             objects.SubscriptionAuthentication_ParamsBasic(
                 userName=basic_req.get('userName'),
                 password=basic_req.get('password')
             )
         )
-    else:
-        raise sol_ex.AuthTypeNotFound(auth.authType)
+
     return auth
+
+
+def async_call(func):
+    def inner(*args, **kwargs):
+        th = threading.Thread(target=func, args=args,
+                              kwargs=kwargs, daemon=True)
+        th.start()
+    return inner
+
+
+@async_call
+def send_notification(obj_data, notif_data, notify_type=None):
+    version = api_version.CURRENT_VERSION
+    if notify_type == NOTIFY_TYPE_PM:
+        version = api_version.CURRENT_PM_VERSION
+    elif notify_type == NOTIFY_TYPE_FM:
+        version = api_version.CURRENT_FM_VERSION
+
+    auth_handle = common_script_utils.get_http_auth_handle(
+        obj_data.get('authentication'))
+    connect_retries = (CONF.v2_vnfm.notify_connect_retries
+                       if CONF.v2_vnfm.notify_connect_retries else None)
+    client = http_client.HttpClient(auth_handle,
+                                    version=version,
+                                    connect_retries=connect_retries)
+    url = obj_data.callbackUri
+    try:
+        resp, _ = client.do_request(
+            url, "POST", expected_status=[204], body=notif_data)
+    except sol_ex.SolException as ex:
+        # it may occur if test_notification was not executed.
+        LOG.exception(f"send_notification failed: {ex}")
+
+
+def test_notification(obj_data, notify_type=None):
+    version = api_version.CURRENT_VERSION
+    if notify_type == NOTIFY_TYPE_PM:
+        version = api_version.CURRENT_PM_VERSION
+    elif notify_type == NOTIFY_TYPE_FM:
+        version = api_version.CURRENT_FM_VERSION
+
+    auth_handle = common_script_utils.get_http_auth_handle(
+        obj_data.get('authentication'))
+    client = http_client.HttpClient(auth_handle,
+                                    version=version,
+                                    timeout=TEST_NOTIFICATION_TIMEOUT)
+    url = obj_data.callbackUri
+    try:
+        resp, _ = client.do_request(url, "GET", expected_status=[204])
+    except sol_ex.SolException as e:
+        # any notify_type of error is considered. avoid 500 error.
+        raise sol_ex.TestNotificationFailed() from e
