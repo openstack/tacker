@@ -31,14 +31,16 @@ CHECK_INTERVAL = 5
 class HeatClient(object):
 
     def __init__(self, vim_info):
+        base_url = None
         if CONF.v2_vnfm.use_oauth2_mtls_for_heat:
             auth = http_client.OAuth2MtlsAuthHandle(
                 endpoint=None,
-                token_endpoint=vim_info.interfaceInfo['endpoint'],
+                token_endpoint=vim_info.interfaceInfo['tokenEndpoint'],
                 client_id=vim_info.accessInfo['username'],
                 ca_cert=CONF.v2_vnfm.heat_mtls_ca_cert_file,
                 client_cert=CONF.v2_vnfm.heat_mtls_client_cert_file
             )
+            base_url = vim_info.interfaceInfo['heatEndpoint']
         else:
             verify = CONF.v2_vnfm.heat_verify_cert
             if verify and CONF.v2_vnfm.heat_ca_cert_file:
@@ -54,7 +56,8 @@ class HeatClient(object):
             )
 
         self.client = http_client.HttpClient(auth,
-                                             service_type='orchestration')
+                                             service_type='orchestration',
+                                             base_url=base_url)
 
     def create_stack(self, fields, wait=True):
         path = "stacks"

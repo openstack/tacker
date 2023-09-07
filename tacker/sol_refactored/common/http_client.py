@@ -37,7 +37,7 @@ class HttpClient(object):
 
     def __init__(self, auth_handle, version=None,
             service_type='nfv-orchestration', connect_retries=None,
-            timeout=None):
+            timeout=None, base_url=None):
         self.auth_handle = auth_handle
         self.version = version
         self.service_type = service_type
@@ -45,6 +45,7 @@ class HttpClient(object):
         # if a HttpClient user want to use these.
         self.connect_retries = connect_retries
         self.timeout = timeout
+        self.base_url = base_url
 
     def do_request(self, url, method, context=None, expected_status=[],
                    **kwargs):
@@ -70,6 +71,8 @@ class HttpClient(object):
             kwargs.setdefault('connect_retries', self.connect_retries)
         if self.timeout is not None:
             kwargs.setdefault('timeout', self.timeout)
+        if self.base_url is not None:
+            kwargs.setdefault('endpoint_override', self.base_url)
 
         session = self.auth_handle.get_session(
             self.auth_handle.get_auth(context), self.service_type)
