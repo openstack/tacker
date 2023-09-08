@@ -1178,7 +1178,8 @@ def sample4_change_vnfpkg(vnfd_id, net_ids, subnet_ids):
                                 "userName": "tacker",
                                 "password": "tacker"
                             }
-                        }
+                        },
+                        "timeout": 30
                     },
                     "new_vnfc_param": {
                         "cp_name": "VDU1_CP1",
@@ -1191,7 +1192,8 @@ def sample4_change_vnfpkg(vnfd_id, net_ids, subnet_ids):
                                 "userName": "tacker",
                                 "password": "tacker"
                             }
-                        }
+                        },
+                        "timeout": 30
                     }
                 },
                 {
@@ -1207,7 +1209,8 @@ def sample4_change_vnfpkg(vnfd_id, net_ids, subnet_ids):
                                 "userName": "tacker",
                                 "password": "tacker"
                             }
-                        }
+                        },
+                        "timeout": 30
                     },
                     "new_vnfc_param": {
                         "cp_name": "VDU2_CP1",
@@ -1220,7 +1223,8 @@ def sample4_change_vnfpkg(vnfd_id, net_ids, subnet_ids):
                                 "userName": "tacker",
                                 "password": "tacker"
                             }
-                        }
+                        },
+                        "timeout": 30
                     }
                 }
             ],

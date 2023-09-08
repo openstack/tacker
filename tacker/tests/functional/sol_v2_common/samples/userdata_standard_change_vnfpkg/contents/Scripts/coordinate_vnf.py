@@ -17,6 +17,7 @@ import os
 import pickle
 import sys
 
+from tacker.common import config
 from tacker.sol_refactored.common import coord_client
 
 
@@ -45,6 +46,7 @@ class CoordScript(object):
             "prv.tacker_organization.coordination_test")
         endpoint = self.vnfc_param.get('endpoint')
         authentication = self.vnfc_param.get('authentication')
+        timeout = self.vnfc_param.get('timeout')
 
         input_params = self.vnfc_param.get('inputParams')
         if input_params is not None:
@@ -55,8 +57,13 @@ class CoordScript(object):
         if authentication is None:
             raise Exception('authentication must be specified.')
 
-        coord = coord_client.create_coordination(endpoint, authentication,
-                                                 coord_req)
+        # Reload "tacker.conf" when using OAUTH2_CLIENT_CERT
+        # for authentication.
+        args = ["--config-file", "/etc/tacker/tacker.conf"]
+        config.init(args)
+
+        coord = coord_client.create_coordination(
+            endpoint, authentication, coord_req, timeout)
         if coord['coordinationResult'] != "CONTINUE":
             raise Exception(
                 f"coordinationResult is {coord['coordinationResult']}")

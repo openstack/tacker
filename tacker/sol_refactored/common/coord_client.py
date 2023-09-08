@@ -18,12 +18,15 @@ import time
 
 from oslo_log import log as logging
 
+from tacker.sol_refactored.common import common_script_utils
 from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import http_client
 
 
 LOG = logging.getLogger(__name__)
+
 DEFAULT_INTERVAL = 5
+DEFAULT_TIMEOUT = 3600
 
 
 class CoordinationApiClient(object):
@@ -50,31 +53,20 @@ class CoordinationApiClient(object):
 # - "cancel" function is not implemented.
 # - Only calling from "change_vnfpkg" is assumed via the coordinationVNF
 #   script.
-def create_coordination(endpoint, authentication, coord_request):
-    # TODO(fuji): auth_handle creation process should create
-    # a common auth_handle creation process and use it.
-    if 'OAUTH2_CLIENT_CREDENTIALS' in authentication['authType']:
-        oauth2_req = authentication.get('paramsOauth2ClientCredentials')
-        if oauth2_req is None:
-            msg = "paramsOauth2ClientCredentials must be specified."
-            raise sol_ex.InvalidSubscription(sol_detail=msg)
-        auth_handle = http_client.OAuth2AuthHandle(
-            endpoint, oauth2_req.get('tokenEndpoint'),
-            oauth2_req.get('clientId'), oauth2_req.get('clientPassword'))
-    elif 'BASIC' in authentication['authType']:
-        basic_req = authentication.get('paramsBasic')
-        if basic_req is None:
-            msg = "paramsBasic must be specified."
-            raise sol_ex.InvalidSubscription(sol_detail=msg)
-
-        auth_handle = http_client.BasicAuthHandle(
-            basic_req.get('userName'), basic_req.get('password'))
-    # TODO(fuji): mTLS will be supported in the future.
-    else:
-        msg = "authType is incorrect or not specified."
-        raise sol_ex.InvalidSubscription(sol_detail=msg)
+def create_coordination(endpoint, authentication, coord_request, timeout=None):
+    # create auth_handle
+    common_script_utils.check_subsc_auth(authentication)
+    auth_handle = common_script_utils.get_http_auth_handle(authentication)
 
     client = CoordinationApiClient(endpoint, auth_handle)
+
+    # check timeout value
+    try:
+        timeout = int(timeout)
+    except Exception:
+        # If the timeout value cannot be converted to a number,
+        # use DEFAULT_TIMEOUT.
+        timeout = DEFAULT_TIMEOUT
 
     def _get_retry_after(resp):
         if resp.headers.get('Retry-After') is None:
@@ -82,6 +74,11 @@ def create_coordination(endpoint, authentication, coord_request):
                       "Use DEFAULT_INTERVAL.")
             return DEFAULT_INTERVAL
         try:
+            # The value of "delay-seconds" in Retry-After does not return
+            # a negative number, but if a negative number is returned,
+            # use DEFAULT_INTERVAL.
+            if int(resp.headers.get('Retry-After')) < 0:
+                return DEFAULT_INTERVAL
             return int(resp.headers.get('Retry-After'))
         except ValueError:
             # may be HTTP-date format. it is not supported.
@@ -91,8 +88,14 @@ def create_coordination(endpoint, authentication, coord_request):
                         "use DEFAULT_INTERVAL.")
             return DEFAULT_INTERVAL
 
+    def _execute_sleep(timeout, interval):
+        if timeout < interval:
+            msg = ("coordinationVNF script did not complete within "
+                   "the timeout period.")
+            raise sol_ex.SolException(sol_detail=msg)
+        return time.sleep(interval)
+
     while (1):
-        # TODO(fuji): set a timeout for repeated HTTP 503 responses.
         resp, body = client.create_coordination(coord_request)
         if resp.status_code == 201:
             # synchronous mode. done.
@@ -101,7 +104,9 @@ def create_coordination(endpoint, authentication, coord_request):
             # asynchronous mode.
             break
         # else: 503
-        time.sleep(_get_retry_after(resp))
+        interval = _get_retry_after(resp)
+        _execute_sleep(timeout, interval)
+        timeout -= interval
 
     # asynchronous mode.
     location = resp.headers.get('Location')
@@ -111,8 +116,9 @@ def create_coordination(endpoint, authentication, coord_request):
 
     coord_id = location.split('/')[-1]
     while (1):
-        # TODO(fuji): set a timeout for repeated HTTP 503 responses.
-        time.sleep(_get_retry_after(resp))
+        interval = _get_retry_after(resp)
+        _execute_sleep(timeout, interval)
+        timeout -= interval
 
         resp, body = client.get_coordination(coord_id)
 
