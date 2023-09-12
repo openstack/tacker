@@ -76,7 +76,7 @@ definition file before running command for changing the VNF package.
       "upgrade_type": "RollingUpdate",
       "lcm-kubernetes-def-files": ["Files/new_kubernetes/new_deployment.yaml"],
       "vdu_params": [{
-        "vdu_id": "VDU1"
+        "vdu_id": "VDU2"
       }]
     },
     "vimConnectionInfo": {
@@ -93,25 +93,20 @@ definition file before running command for changing the VNF package.
           "dummy-key": "dummy-val"
         }
       }
-    }
-  }
-
-``sample_param_file_without_specified_resources.json:``
-
-.. code-block:: json
-
-  {
-    "vnfdId": "c6595341-a5bb-8246-53c4-7aeb843d60c5",
-    "additionalParams": {
-      "upgrade_type": "RollingUpdate",
+    },
+    "vnfConfigurableProperties": {
+      "key": "value"
+    },
+    "extensions": {
+      "key": "value"
     }
   }
 
 .. note::
-   Unlike Change Current Vnf Package for VNF,
-   coordination scripts are not supported for CNF.
-   Therefore, lcm-operation-coordinate files need not be
-   specified by `additionalParams`.
+  Unlike Change Current Vnf Package for VNF,
+  coordination scripts are not supported for CNF.
+  Therefore, lcm-operation-coordinate files need not be
+  specified by ``additionalParams``.
 
 You can set following parameter in additionalParams:
 
@@ -125,6 +120,9 @@ You can set following parameter in additionalParams:
   * - upgrade_type
     - 1
     - Type of file update operation method. Specify Blue-Green or Rolling update.
+  * - lcm-kubernetes-def-files
+    - 0..N
+    - File path of the manifest file of the deployment resource.
   * - vdu_params
     - 1..N
     - VDU information of target VDU to update.
@@ -132,41 +130,48 @@ You can set following parameter in additionalParams:
     - 1
     - VDU name of target VDU to update.
 
-.. note:: ``sample_param_file_for_specified_resources.json`` contains
-   all optional parameters.
+.. note::
+  ``sample_param_file_for_specified_resources.json`` contains
+  all optional parameters.
 
-   * ``vnfdId`` is the vnfd id of the new VNF package you uploaded.
-   * ``lcm-kubernetes-def-files`` is only used in Kubernetes VIM, not
-     OpenStack VIM. And you only need to set this parameter when you need to
-     update the path of the manifest file of the deployment resource.
-   * ``vdu_params`` is VDU information of target VDU to update.
-   * ``vimConnectionInfo`` is an optional parameter.
-     This operation can specify the ``vimConnectionInfo`` for
-     the VNF instance.
-     Even if this operation specify multiple ``vimConnectionInfo``
-     associated with one VNF instance, only one of them will be used
-     for life cycle management operations.
-     It is not possible to delete the key of registered ``vimConnectionInfo``.
+  * ``vnfdId`` is the VNFD id of the new VNF package you uploaded.
+  * ``lcm-kubernetes-def-files`` is only used in Kubernetes VIM, not
+    OpenStack VIM. And you only need to set this parameter when you need to
+    update the path of the manifest file of the deployment resource.
+  * ``vimConnectionInfo`` is an optional parameter.
+    This operation can specify the ``vimConnectionInfo`` for
+    the VNF instance.
+    Even if this operation specify multiple ``vimConnectionInfo``
+    associated with one VNF instance, only one of them will be used
+    for life cycle management operations.
+    It is not possible to delete the key of registered ``vimConnectionInfo``.
+  * ``vnfConfigurableProperties`` and ``extensions`` are optional
+    parameter.
+    As with the update operation, these values are updated by performing
+    JSON Merge Patch with the values set in the request parameter to the
+    current values.
+    For ``metadata``, the value set before this operation is maintained.
 
-.. note:: Currently, this operation only supports some functions of
-   ``Change Current VNF Package``.
+.. note::
+  Currently, this operation only supports some functions of
+  ``Change Current VNF Package``.
 
-   * There are several ways to update deployment, but Yoga version Tacker only
-     supports ``RollingUpdate`` type. You can set it via ``upgrade_type``
-     param.
+  * There are several ways to update deployment, but Bobcat version Tacker only
+    supports ``RollingUpdate`` type. You can set it via ``upgrade_type``
+    param.
 
-   * Currently only support update images of deployment.
+  * Currently only support update images of deployment.
 
-   * Currently unsupported updates:
+  * Currently unsupported updates:
 
-     * This API currently does not support increasing or decreasing the number
-       of Pods according to the VNF package.
-     * The add and delete operations of the entire deployment are not
-       supported.
-     * In the definition of ETSI, external networks (e.g. extVirtualLinks,
-       extManagedVirtualLinks) can be modified. This API currently does not
-       support the operations of modifying, adding, and deleting these
-       networks.
+    * This API currently does not support increasing or decreasing the number
+      of Pods according to the VNF package.
+    * The add and delete operations of the entire deployment are not
+      supported.
+    * In the definition of ETSI, external networks (e.g. extVirtualLinks,
+      extManagedVirtualLinks) can be modified. This API currently does not
+      support the operations of modifying, adding, and deleting these
+      networks.
 
 
 How to Change Current VNF Package with specified resource
@@ -264,7 +269,7 @@ Result:
 
   NAME                    READY   STATUS    RESTARTS   AGE   IP             NODE    NOMINATED NODE   READINESS GATES
   vdu2-674d7d8766-8mcb6   1/1     Running   0          72s   10.233.96.15   node2   <none>           <none>
-  vdu2-674d7d8766-tmlhd   1/1     Running   0          72s   10.233.96.14   node2   <none>           <none
+  vdu2-674d7d8766-tmlhd   1/1     Running   0          72s   10.233.96.14   node2   <none>           <none>
 
 Change Current VNF Package execution of the entire VNF:
 
@@ -344,9 +349,10 @@ Result:
     Normal  ScalingReplicaSet  67s    deployment-controller  Scaled up replica set vdu2-6696c74f5c to 2
     Normal  ScalingReplicaSet  55s    deployment-controller  Scaled down replica set vdu2-674d7d8766 to 0
 
-.. note:: ``image`` has changed from ``nginx`` to ``nginx:alpine``.
-   The age of deployment ``vdu2`` has not been reset, so deployment ``vdu2``
-   has not redeployed.
+.. note::
+  ``image`` has changed from ``nginx`` to ``nginx:alpine``.
+  The age of deployment ``vdu2`` has not been reset, so deployment ``vdu2``
+  has not redeployed.
 
 Pods information after operation:
 
@@ -362,205 +368,10 @@ Result:
   vdu2-6696c74f5c-9xwvv   1/1     Running   0          114s   10.233.96.17   node2   <none>           <none>
   vdu2-6696c74f5c-kgtjt   1/1     Running   0          2m5s   10.233.96.16   node2   <none>           <none>
 
-.. note:: ``name`` of pods has changed before and after operation.
-   The age of pods under deployment has been reset, so pods under
-   this deployment has redeployed before and after operation.
-
-How to Change Current VNF Package without specified resource
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-We can update all kubernetes deployment resources by not
-specifying the file path of the kubernetes definition file in the
-``lcm-kubernetes-def-files`` and vdu information in ``vdu_params``
-of the ``change current VNF package`` request parameter file
-(e.g. sample_param_file_without_specified_resources.json).
-
-Execute Change Current VNF Package CLI command. After complete this change
-operation you should check resource status by Kubernetes CLI commands.
-
-1. check all deployments' image information. This is to confirm that
-all deployments' images have changed before and after operation.
-
-2. check the ages of deployments and pods under each deployment. This is to
-confirm that the deployments have not redeployed before and after operation,
-and the pods under each deployment have redeployed.
-
-3. check the status and name of pods under this deployment. This is to confirm
-that the status of pods under deployments are running, the names of pods
-under deployments have changed before and after operation.
-
-Deployments information before operation:
-
-.. code-block:: console
-
-  $ kubectl get deployment -o wide
-
-
-Result:
-
-.. code-block:: console
-
-  NAME   READY   UP-TO-DATE   AVAILABLE   AGE    CONTAINERS   IMAGES   SELECTOR
-  vdu2   2/2     2            2           14s    nginx        nginx    app=webserver
-
-Deployment detailed information before operation:
-
-.. code-block:: console
-
-  $ kubectl describe deployment vdu2
-
-Result:
-
-.. code-block:: console
-
-  Name:                   vdu2
-  Namespace:              default
-  CreationTimestamp:      Tue, 22 Mar 2022 05:38:12 +0000
-  Labels:                 <none>
-  Annotations:            deployment.kubernetes.io/revision: 1
-  Selector:               app=webserver
-  Replicas:               2 desired | 2 updated | 2 total | 2 available | 0 unavailable
-  StrategyType:           RollingUpdate
-  MinReadySeconds:        0
-  RollingUpdateStrategy:  25% max unavailable, 25% max surge
-  Pod Template:
-    Labels:  app=webserver
-    Containers:
-     nginx:
-      Image:      nginx
-      Port:       80/TCP
-      Host Port:  0/TCP
-      Limits:
-        memory:  200Mi
-      Requests:
-        memory:     100Mi
-      Environment:  <none>
-      Mounts:       <none>
-    Volumes:        <none>
-  Conditions:
-    Type           Status  Reason
-    ----           ------  ------
-    Available      True    MinimumReplicasAvailable
-    Progressing    True    NewReplicaSetAvailable
-  OldReplicaSets:  <none>
-  NewReplicaSet:   vdu2-674d7d8766 (2/2 replicas created)
-  Events:
-    Type    Reason             Age   From                   Message
-    ----    ------             ----  ----                   -------
-    Normal  ScalingReplicaSet  73s   deployment-controller  Scaled up replica set vdu2-674d7d8766 to 2
-
-Pods information before operation:
-
-.. code-block:: console
-
-  $ kubectl get pods -o wide
-
-Result:
-
-.. code-block:: console
-
-  NAME                    READY   STATUS    RESTARTS   AGE     IP             NODE    NOMINATED NODE   READINESS GATES
-  vdu2-674d7d8766-9bbnp   1/1     Running   0          2m13s   10.233.96.19   node2   <none>           <none>
-  vdu2-674d7d8766-r9wz5   1/1     Running   0          2m13s   10.233.96.18   node2   <none>           <none>
-
-Change Current VNF Package execution of the entire VNF:
-
-.. code-block:: console
-
-  $ openstack vnflcm change-vnfpkg VNF_INSTANCE_ID \
-       ./sample_param_file_without_specified_resources.json \
-       --os-tacker-api-version 2
-
-Result:
-
-.. code-block:: console
-
-  Change Current VNF Package for VNF Instance 51dc9635-aaf0-4acf-b069-86017a39e2f4 has been accepted.
-
-Deployments information after operation:
-
-.. code-block:: console
-
-  $ kubectl get deployment -o wide
-
-Result:
-
-.. code-block:: console
-
-  NAME   READY   UP-TO-DATE   AVAILABLE   AGE    CONTAINERS   IMAGES         SELECTOR
-  vdu2   2/2     2            2           19m    nginx        nginx:alpine   app=webserver
-
-Deployment detailed information after operation:
-
-.. code-block:: console
-
-  $ kubectl describe deployment vdu2
-
-Result:
-
-.. code-block:: console
-
-  Name:                   vdu2
-  Namespace:              default
-  CreationTimestamp:      Tue, 22 Mar 2022 05:38:12 +0000
-  Labels:                 <none>
-  Annotations:            deployment.kubernetes.io/revision: 2
-  Selector:               app=webserver
-  Replicas:               2 desired | 2 updated | 2 total | 2 available | 0 unavailable
-  StrategyType:           RollingUpdate
-  MinReadySeconds:        0
-  RollingUpdateStrategy:  25% max unavailable, 25% max surge
-  Pod Template:
-    Labels:  app=webserver
-    Containers:
-     nginx:
-      Image:      nginx:alpine
-      Port:       80/TCP
-      Host Port:  0/TCP
-      Limits:
-        memory:  200Mi
-      Requests:
-        memory:     100Mi
-      Environment:  <none>
-      Mounts:       <none>
-    Volumes:        <none>
-  Conditions:
-    Type           Status  Reason
-    ----           ------  ------
-    Available      True    MinimumReplicasAvailable
-    Progressing    True    NewReplicaSetAvailable
-  OldReplicaSets:  <none>
-  NewReplicaSet:   vdu2-6696c74f5c (2/2 replicas created)
-  Events:
-    Type    Reason             Age   From                   Message
-    ----    ------             ----  ----                   -------
-    Normal  ScalingReplicaSet  20m   deployment-controller  Scaled up replica set vdu2-674d7d8766 to 2
-    Normal  ScalingReplicaSet  15m   deployment-controller  Scaled up replica set vdu2-6696c74f5c to 1
-    Normal  ScalingReplicaSet  14m   deployment-controller  Scaled down replica set vdu2-674d7d8766 to 1
-    Normal  ScalingReplicaSet  14m   deployment-controller  Scaled up replica set vdu2-6696c74f5c to 2
-    Normal  ScalingReplicaSet  14m   deployment-controller  Scaled down replica set vdu2-674d7d8766 to 0
-
-.. note:: ``image`` has changed from ``nginx`` to ``nginx:alpine``.
-   The age of deployment ``vdu2`` has not been reset, so deployment ``vdu2``
-   has not redeployed.
-
-Pods information after operation:
-
-.. code-block:: console
-
-  $ kubectl get pods -o wide
-
-Result:
-
-.. code-block:: console
-
-  NAME                    READY   STATUS    RESTARTS   AGE     IP             NODE    NOMINATED NODE   READINESS GATES
-  vdu2-6696c74f5c-cjdh8   1/1     Running   0          15m     10.233.96.21   node2   <none>           <none>
-  vdu2-6696c74f5c-ssztd   1/1     Running   0          15m     10.233.96.20   node2   <none>           <none>
-
-.. note:: ``name`` of pods has changed before and after operation.
-   The age of pods under deployment has been reset, so pods under
-   this deployment has redeployed before and after operation.
+.. note::
+  ``name`` of pods has changed before and after operation.
+  The age of pods under deployment has been reset, so pods under
+  this deployment has redeployed before and after operation.
 
 .. _VNF Package for Common instantiate: https://opendev.org/openstack/tacker/src/branch/master/tacker/tests/functional/sol_kubernetes_v2/samples/test_instantiate_cnf_resources/contents
 .. _VNF Package for Change Current VNF Package: https://opendev.org/openstack/tacker/src/branch/master/tacker/tests/functional/sol_kubernetes_v2/samples/test_change_vnf_pkg_with_deployment/contents

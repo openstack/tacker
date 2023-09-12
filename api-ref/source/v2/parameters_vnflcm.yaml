@@ -1062,6 +1062,48 @@ min_address:
   in: body
   required: true
   type: string
+modifications_triggered_by_vnf_pkg_change:
+  description: |
+    Information about performed changes of "VnfInstance" attributes
+    triggered by changing the current VNF package.
+  in: body
+  required: false
+  type: object
+modifications_triggered_by_vnf_pkg_change_vnf_product_name:
+  description: |
+    If present, this attribute signals the new value of the
+    "vnfProductName" attribute in "VnfInstance".
+  in: body
+  required: false
+  type: string
+modifications_triggered_by_vnf_pkg_change_vnf_provider:
+  description: |
+    If present, this attribute signals the new value of the
+    "vnfProvider" attribute in "VnfInstance".
+  in: body
+  required: false
+  type: string
+modifications_triggered_by_vnf_pkg_change_vnf_software_version:
+  description: |
+    If present, this attribute signals the new value of the
+    "vnfSoftwareVersion" attribute in "VnfInstance".
+  in: body
+  required: false
+  type: string
+modifications_triggered_by_vnf_pkg_change_vnfd_id:
+  description: |
+    If present, this attribute signals the new value of the
+    "vnfdId" attribute in "VnfInstance".
+  in: body
+  required: false
+  type: string
+modifications_triggered_by_vnf_pkg_change_vnfd_version:
+  description: |
+    If present, this attribute signals the new value of the
+    "vnfdVersion" attribute in "VnfInstance".
+  in: body
+  required: false
+  type: string
 monitoring_parameters:
   description: |
     Active monitoring parameters.

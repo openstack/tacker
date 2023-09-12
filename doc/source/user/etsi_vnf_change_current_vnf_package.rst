@@ -46,18 +46,18 @@ VNF package.
 
 
 .. note::
-   You can deploy a VM directly by image or volume.
-   Therefore, when updating the
-   image of the VM, there will be two cases.
+  You can deploy a VM directly by image or volume.
+  Therefore, when updating the
+  image of the VM, there will be two cases.
 
-   Use the common VNF package and the flavor_id to instantiate,
-   and then use the VNF package in the corresponding link to
-   execute ``change current vnf package`` operation,
-   you can update the image of the VM in the following two ways.
+  Use the common VNF package and the flavor_id to instantiate,
+  and then use the VNF package in the corresponding link to
+  execute ``change current vnf package`` operation,
+  you can update the image of the VM in the following two ways.
 
-   1. change VM created by image to VM created by new image
+  1. change VM created by image to VM created by new image
 
-   2. change VM created by volume to VM created by new volume
+  2. change VM created by volume to VM created by new volume
 
 Change Current VNF Package
 --------------------------
@@ -129,6 +129,12 @@ definition file before running command for changing the VNF package.
         "vimId": "defb2f96-5670-4bef-8036-27bf61267fc1",
         "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3"
       }
+    },
+    "vnfConfigurableProperties": {
+      "key": "value"
+    },
+    "extensions": {
+      "key": "value"
     }
   }
 
@@ -171,21 +177,21 @@ You can set following parameter in additionalParams:
     - 1
     - Type of file update operation method. Specify Blue-Green or Rolling update.
   * - lcm-operation-coordinate-old-vnf
-    - 1
+    - 0..1
     - The file path of the script that simulates the behavior of CoordinateVNF for old VNF.
   * - lcm-operation-coordinate-new-vnf
-    - 1
+    - 0..1
     - The file path of the script that simulates the behavior of CoordinateVNF for new VNF.
   * - vdu_params
-    - 0..N
-    - VDU information of target VDU to update. Specifying a vdu_params is required for OpenStack VIM and not required for Kubernetes VIM.
+    - 1..N
+    - VDU information of target VDU to update.
   * - > vdu_id
     - 1
     - VDU name of target VDU to update.
   * - > old_vnfc_param
     - 0..1
     - Old VNFC connection information. Required for ssh connection in CoordinateVNF operation for application configuration to VNFC.
-  * - >> cp-name
+  * - >> cp_name
     - 1
     - Connection point name of old VNFC to update.
   * - >> username
@@ -197,7 +203,7 @@ You can set following parameter in additionalParams:
   * - > new_vnfc_param
     - 0..1
     - New VNFC connection information. Required for ssh connection in CoordinateVNF operation for application configuration to VNFC.
-  * - >> cp-name
+  * - >> cp_name
     - 1
     - Connection point name of new VNFC to update.
   * - >> username
@@ -218,48 +224,62 @@ You can set following parameter in additionalParams:
   * - > password
     - 1
     - Password of load balancer server.
+  * - lcm-operation-user-data
+    - 0..1
+    - File name of UserData to use.
+  * - lcm-operation-user-data-class
+    - 0..1
+    - Class name of UserData to use.
 
-.. note:: ``sample_param_file_for_multi_resources.json`` contains all optional
-   parameters. It can be used to change image for both VDU created by
-   ``OS::Heat::AutoScalingGroup`` and single VDU.
-   ``sample_param_file_for_single_resource.json`` only used to change image for
-   single VDU.
+.. note::
+  ``sample_param_file_for_multi_resources.json`` contains all optional
+  parameters. It can be used to change image for both VDU created by
+  ``OS::Heat::AutoScalingGroup`` and single VDU.
+  ``sample_param_file_for_single_resource.json`` only used to change image for
+  single VDU.
 
-   * ``vnfdId`` is the vnfd id of the new VNF package you uploaded.
-   * ``lcm-operation-coordinate-old-vnf`` and
-     ``lcm-operation-coordinate-new-vnf`` are unique implementations of Tacker
-     to simulate the coordination interface in `ETSI SOL002 v3.5.1`_. Mainly a
-     script that can communicate with the VM after the VM is created, perform
-     special customization of the VM or confirm the status of the VM.
-   * ``vimConnectionInfo`` is an optional parameter.
-     This operation can specify the ``vimConnectionInfo`` for
-     the VNF instance.
-     Even if this operation specify multiple ``vimConnectionInfo``
-     associated with one VNF instance, only one of them will be used
-     for life cycle management operations.
-     It is not possible to delete the key of registered ``vimConnectionInfo``.
+  * ``vnfdId`` is the VNFD id of the new VNF package you uploaded.
+  * ``lcm-operation-coordinate-old-vnf`` and
+    ``lcm-operation-coordinate-new-vnf`` are unique implementations of Tacker
+    to simulate the coordination interface in `ETSI SOL002 v3.5.1`_. Mainly a
+    script that can communicate with the VM after the VM is created, perform
+    special customization of the VM or confirm the status of the VM.
+  * ``vimConnectionInfo`` is an optional parameter.
+    This operation can specify the ``vimConnectionInfo`` for
+    the VNF instance.
+    Even if this operation specify multiple ``vimConnectionInfo``
+    associated with one VNF instance, only one of them will be used
+    for life cycle management operations.
+    It is not possible to delete the key of registered ``vimConnectionInfo``.
+  * ``vnfConfigurableProperties`` and ``extensions`` are optional
+    parameter.
+    As with the update operation, these values are updated by performing
+    JSON Merge Patch with the values set in the request parameter to the
+    current values.
+    For ``metadata``, the value set before this operation is maintained.
 
-.. note:: Currently, this operation only supports some functions of
-   ``Change Current VNF Package``.
+.. note::
+  Currently, this operation only supports some functions of
+  ``Change Current VNF Package``.
 
-   * There are several ways to update VDUs, but Yoga version Tacker only
-     supports ``RollingUpdate`` type. You can set it via ``upgrade_type``
-     param.
+  * There are several ways to update VDUs, but Bobcat version Tacker only
+    supports ``RollingUpdate`` type. You can set it via ``upgrade_type``
+    param.
 
-   * Currently only support update images of VMs and modify external networks..
+  * Currently only support update images of VMs and modify external networks.
 
-   * Currently unsupported updates:
+  * Currently unsupported updates:
 
-     * This API currently does not support increasing or decreasing the number
-       of VNFcs according to the VNF package.
-     * The add and delete operations of the entire VDU are not supported.
-     * In the definition of ETSI, external and internal networks
-       (e.g. extVirtualLinks, extManagedVirtualLinks) can be modified.
-       This current API supports the operations of modifying external
-       networks only and does not support the following operations.
+    * This API currently does not support increasing or decreasing the number
+      of VNFcs according to the VNF package.
+    * The add and delete operations of the entire VDU are not supported.
+    * In the definition of ETSI, external and internal networks
+      (e.g. extVirtualLinks, extManagedVirtualLinks) can be modified.
+      This current API supports the operations of modifying external
+      networks only and does not support the following operations.
 
-       * Adding and deleting external networks.
-       * Modifying, adding, and deleting internal networks.
+      * Adding and deleting external networks.
+      * Modifying, adding, and deleting internal networks.
 
 How to Change VM created by image to VM created by new image
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -281,10 +301,10 @@ confirm that VDU's has changed successfully.
 See `Heat CLI reference`_. for details on Heat CLI commands.
 
 .. note::
-   Both single VM and VM created by ``OS::Heat::AutoScalingGroup`` support
-   change from image to image.
-   The single VM is created directly by ``OS::Nova::Server`` defined in the
-   top heat template.
+  Both single VM and VM created by ``OS::Heat::AutoScalingGroup`` support
+  change from image to image.
+  The single VM is created directly by ``OS::Nova::Server`` defined in the
+  top heat template.
 
 * Check point 1 before operation
 
@@ -465,7 +485,7 @@ See `Heat CLI reference`_. for details on Heat CLI commands.
     | 5330ea82-0fd6-4a29-a796-0646e7c6815f | vnf-7f8e5afa-101e-4e0b-a936-62fe01ef1b25 | UPDATE_COMPLETE |
     +--------------------------------------+------------------------------------------+-----------------+
   .. note::
-         'Stack Status' transitions to UPDATE_COMPLETE.
+    'Stack Status' transitions to UPDATE_COMPLETE.
 
 * Check point 2 after operation
 
@@ -503,7 +523,7 @@ See `Heat CLI reference`_. for details on Heat CLI commands.
     | xgaeg5oul435  | f96d0234-1486-47e4-8fd5-ec986e46c01e | base_hot_nested_VDU1.yaml | UPDATE_COMPLETE | 2022-03-16T07:14:19Z |
     +---------------+--------------------------------------+---------------------------+-----------------+----------------------+
   .. note::
-         'resource_status' transitions to UPDATE_COMPLETE.
+    'resource_status' transitions to UPDATE_COMPLETE.
 
   VDU(created by ``OS::Heat::AutoScalingGroup``) information after operation:
 
@@ -521,8 +541,9 @@ See `Heat CLI reference`_. for details on Heat CLI commands.
     | VDU1          | 0810da4d-3466-4852-aa92-60ad05027b5a | OS::Nova::Server  | UPDATE_COMPLETE | 2022-03-16T07:13:32Z |
     | VDU1_CP1      | 0bb0a091-b53f-484c-8050-77a44c2537f6 | OS::Neutron::Port | CREATE_COMPLETE | 2022-03-16T07:02:52Z |
     +---------------+--------------------------------------+-------------------+-----------------+----------------------+
+
   .. note::
-         'resource_status' transitions to UPDATE_COMPLETE.
+    'resource_status' transitions to UPDATE_COMPLETE.
 
   VDU(single) information after operation:
 
@@ -568,7 +589,8 @@ See `Heat CLI reference`_. for details on Heat CLI commands.
     |                        | ATTR:ramdisk_id': '', 'OS-EXT-SRV-ATTR:root_device_name': '/dev/vda', 'OS-EXT-SRV-ATTR:user_data': '...'                                                                                                                         |
     +------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-  .. note:: You can check 'image'->'id' has changed from
+  .. note::
+    You can check 'image'->'id' has changed from
     '3f87132d-0c98-42a6-aa7b-b7db1f25e4fa' to
     '68da152a-13af-43f6-aaaa-a7b88123d654'.
 
@@ -597,7 +619,8 @@ See `Heat CLI reference`_. for details on Heat CLI commands.
     |                        | ATTR:kernel_id': '', 'OS-EXT-SRV-ATTR:ramdisk_id': '', 'OS-EXT-SRV-ATTR:root_device_name': '/dev/vda', 'OS-EXT-SRV-ATTR:user_data': '...'                                                                                        |
     +------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-  .. note:: You can check 'image'->'id' has changed from
+  .. note::
+    You can check 'image'->'id' has changed from
     '3f87132d-0c98-42a6-aa7b-b7db1f25e4fa' to
     '18fd7e66-c81f-48bb-bf18-d523996ce59c'.
 
@@ -621,8 +644,9 @@ VDU's parent resource has been updated successfully,
 3. check 'volume' information of VDU before and after operation. This is to
 confirm that VDU's has changed successfully.
 
-.. note:: Both single VM and VM created by ``OS::Heat::AutoScalingGroup`` support
-   change from image to image.
+.. note::
+  Both single VM and VM created by ``OS::Heat::AutoScalingGroup`` support
+  change from image to image.
 
 * Check point 1 before operation
 
@@ -809,7 +833,7 @@ confirm that VDU's has changed successfully.
     +--------------------------------------+------------------------------------------+-----------------+
 
   .. note::
-         'Stack Status' transitions to UPDATE_COMPLETE.
+    'Stack Status' transitions to UPDATE_COMPLETE.
 
 * Check point 2 after operation
 
@@ -848,7 +872,7 @@ confirm that VDU's has changed successfully.
     +---------------+--------------------------------------+---------------------------+-----------------+----------------------+
 
   .. note::
-         'resource_status' transitions to UPDATE_COMPLETE.
+    'resource_status' transitions to UPDATE_COMPLETE.
 
   VDU(created by ``OS::Heat::AutoScalingGroup``) information after operation:
 
@@ -870,10 +894,10 @@ confirm that VDU's has changed successfully.
     +---------------------+--------------------------------------+------------------------+-----------------+----------------------+
 
   .. note::
-         'resource_status' transitions to CREATE_COMPLETE.
-         'physical_resource_id' changes from
-         '3f3fa0d8-b948-45fe-bd86-41d5d3e28974' to
-         '7d19f797-eb11-4af5-ba3b-d35349136786'.
+    'resource_status' transitions to CREATE_COMPLETE.
+    'physical_resource_id' changes from
+    '3f3fa0d8-b948-45fe-bd86-41d5d3e28974' to
+    '7d19f797-eb11-4af5-ba3b-d35349136786'.
 
   VDU(single) information after operation:
 
@@ -898,10 +922,10 @@ confirm that VDU's has changed successfully.
     +---------------------+--------------------------------------+----------------------------+-----------------+----------------------+
 
   .. note::
-         'resource_status' transitions to CREATE_COMPLETE.
-         'physical_resource_id' changes from
-         '23122c2d-d51d-422a-8ad6-6c3625c761b6' to
-         '9aeae773-0f5b-4809-a83b-dee09214db90'.
+    'resource_status' transitions to CREATE_COMPLETE.
+    'physical_resource_id' changes from
+    '23122c2d-d51d-422a-8ad6-6c3625c761b6' to
+    '9aeae773-0f5b-4809-a83b-dee09214db90'.
 
 * Check point 3 after operation
 
@@ -932,7 +956,8 @@ confirm that VDU's has changed successfully.
     |                        | 'locked_reason': None, 'description': None, 'tags': [], 'trusted_image_certificates': None, 'server_groups': [], 'os_collect_config': {}}                                                                                        |
     +------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-  .. note:: You can check 'os-extended-volumes:volumes_attached'->'id'
+  .. note::
+    You can check 'os-extended-volumes:volumes_attached'->'id'
     has changed from '68a53b24-83eb-4e88-a605-1e9d922e3ec0' to
     '21f9aa89-4456-42a6-8888-f08c8f70933f'.
 
@@ -961,7 +986,8 @@ confirm that VDU's has changed successfully.
     |                        | 'host_status': 'UP', 'locked': False, 'locked_reason': None, 'description': None, 'tags': [], 'trusted_image_certificates': None, 'server_groups': [], 'os_collect_config': {}}                                                  |
     +------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-  .. note:: You can check 'os-extended-volumes:volumes_attached'->'id' has
+  .. note::
+    You can check 'os-extended-volumes:volumes_attached'->'id' has
     changed from '68a53b24-83eb-4e88-a605-1e9d922e3ec0' to
     'fc0e0fcf-8eb9-4ddc-8194-2df6c1b43a7b'.
 

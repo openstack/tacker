@@ -24,12 +24,12 @@ CLI Reference for VNF Lifecycle Management
     Commands with **\-\-os-tacker-api-version 2** call version 2 VNF LCM APIs.
 
 .. note::
-    In Antelope release, version 2 VNF LCM APIs of Update
-    and Change External VNF Connectivity only support VNF, not CNF.
+    In Bobcat release, version 2 VNF LCM APIs of Change External VNF
+    Connectivity only support VNF, not CNF.
 
 .. note::
    Change Current VNF Package only support version 2 VNF LCM APIs.
-   In Antelope release, it only support ``RollingUpdate`` upgrade type,
+   In Bobcat release, it only support ``RollingUpdate`` upgrade type,
    ``BlueGreen`` will be supported in future releases.
 
 1. Create VNF Identifier
