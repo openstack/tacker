@@ -60,6 +60,8 @@ class HeatClient(object):
                                              base_url=base_url)
 
     def create_stack(self, fields, wait=True):
+        if CONF.v2_vnfm.enable_rollback_stack:
+            fields['disable_rollback'] = False
         path = "stacks"
         resp, body = self.client.do_request(path, "POST",
                 expected_status=[201], body=fields)
@@ -71,6 +73,8 @@ class HeatClient(object):
         return body['stack']['id']
 
     def update_stack(self, stack_name, fields, wait=True):
+        if CONF.v2_vnfm.enable_rollback_stack:
+            fields['disable_rollback'] = False
         path = f"stacks/{stack_name}"
         # It was assumed that PATCH is used and therefore 'fields'
         # contains only update parts and 'existing' is not used.
@@ -132,6 +136,9 @@ class HeatClient(object):
                 LOG.info("%s %s done.", operation, stack_name.split('/')[0])
                 raise loopingcall.LoopingCallDone()
             elif status in failed_status:
+                if (status == "ROLLBACK_COMPLETE"
+                        or status == "ROLLBACK_FAILED"):
+                    status_reason = self.get_original_failed_reason(stack_name)
                 LOG.error("%s %s failed.", operation, stack_name.split('/')[0])
                 sol_title = "%s failed" % operation
                 raise sol_ex.StackOperationFailed(sol_title=sol_title,
@@ -149,12 +156,28 @@ class HeatClient(object):
         timer.start(interval=CHECK_INTERVAL).wait()
 
     def wait_stack_create(self, stack_name):
-        self._wait_completion(stack_name, "Stack create",
-            ["CREATE_COMPLETE"], ["CREATE_IN_PROGRESS"], ["CREATE_FAILED"])
+        if CONF.v2_vnfm.enable_rollback_stack:
+            self._wait_completion(stack_name, "Stack create",
+                ["CREATE_COMPLETE"],
+                ["CREATE_IN_PROGRESS", "CREATE_FAILED",
+                 "ROLLBACK_IN_PROGRESS"],
+                ["ROLLBACK_COMPLETE", "ROLLBACK_FAILED"])
+        else:
+            self._wait_completion(stack_name, "Stack create",
+                ["CREATE_COMPLETE"], ["CREATE_IN_PROGRESS"],
+                ["CREATE_FAILED"])
 
     def wait_stack_update(self, stack_name):
-        self._wait_completion(stack_name, "Stack update",
-            ["UPDATE_COMPLETE"], ["UPDATE_IN_PROGRESS"], ["UPDATE_FAILED"])
+        if CONF.v2_vnfm.enable_rollback_stack:
+            self._wait_completion(stack_name, "Stack update",
+                ["UPDATE_COMPLETE"],
+                ["UPDATE_IN_PROGRESS", "UPDATE_FAILED",
+                 "ROLLBACK_IN_PROGRESS"],
+                ["ROLLBACK_COMPLETE", "ROLLBACK_FAILED"])
+        else:
+            self._wait_completion(stack_name, "Stack update",
+                ["UPDATE_COMPLETE"], ["UPDATE_IN_PROGRESS"],
+                ["UPDATE_FAILED"])
 
     def wait_stack_delete(self, stack_name):
         # NOTE: wait until stack is deleted in the DB since it is necessary
@@ -202,6 +225,21 @@ class HeatClient(object):
                 expected_status=[200])
 
         return body
+
+    def get_original_failed_reason(self, stack_name):
+        # This method gets the reason for stack failure from the stack event
+        # if the rollback option is enabled.
+        resource_name = stack_name.split('/')[0]
+        path = (f"stacks/{stack_name}/resources/{resource_name}/"
+                "events?resource_action=CREATE&resource_action=UPDATE"
+                "&resource_status=FAILED&sort_dir=desc&limit=1")
+        resp, body = self.client.do_request(path, "GET",
+                expected_status=[200, 404])
+
+        if resp.status_code == 404:
+            return None
+
+        return body["events"][0]["resource_status_reason"]
 
 
 def get_reses_by_types(heat_reses, types):

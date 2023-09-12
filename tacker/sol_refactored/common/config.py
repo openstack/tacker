@@ -93,6 +93,10 @@ VNFM_OPTS = [
                help=_('Error message for Availability Zone reselection. '
                       'These configs are regular expressions to detect '
                       'error messages from OpenStack Heat.')),
+    cfg.BoolOpt('enable_rollback_stack',
+                default=False,
+                help=_('If True, enable rollback stack on resource create '
+                       'failure.')),
     # NOTE: This is for test use since it is convenient to be able to delete
     # under development.
     cfg.BoolOpt('test_enable_lcm_op_occ_delete',
