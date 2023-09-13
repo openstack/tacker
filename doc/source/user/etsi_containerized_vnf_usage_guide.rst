@@ -974,6 +974,10 @@ Tacker Antelope release
 
 - Kubernetes: 1.25
 
+Tacker Bobcat release
+
+- Kubernetes: 1.26
+
 References
 ==========
 .. [#first] https://docs.openstack.org/tacker/latest/install/kubernetes_vim_installation.html
