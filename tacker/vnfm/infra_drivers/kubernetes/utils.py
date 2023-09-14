@@ -66,6 +66,7 @@ def check_and_save_namespace(
     if not vnf_instance.vnf_metadata:
         vnf_instance.vnf_metadata = {}
     vnf_instance.vnf_metadata['namespace'] = namespace
+    vnf_instance.vnf_metadata['tenant'] = namespace
     vnf_instance.save()
 
 

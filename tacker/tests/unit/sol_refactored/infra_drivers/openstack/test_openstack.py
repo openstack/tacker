@@ -1658,7 +1658,8 @@ _inst_info_example = {
         }
     ],
     "metadata": {
-        "stack_id": STACK_ID
+        "stack_id": STACK_ID,
+        "tenant": "nfv"
     }
     # "vnfcInfo": omitted
 }
@@ -2239,7 +2240,8 @@ _expected_inst_info = {
                 "VDU2": {"computeFlavourId": "m1.small",
                          "vcImageId": "image-VDU2"}
             }
-        }
+        },
+        "tenant": "nfv"
     }
 }
 
@@ -2304,7 +2306,8 @@ _expected_inst_info_vnfc_updated["metadata"] = {
                 "fixed_ips": []
             }
         }
-    }
+    },
+    "tenant": "nfv"
 }
 
 
@@ -2764,7 +2767,8 @@ _expected_inst_info_change_ext_conn = {
                     "fixed_ips": []
                 }
             }
-        }
+        },
+        "tenant": "nfv"
     }
 }
 
@@ -3184,7 +3188,8 @@ _expected_inst_info_S = {
                 "VDU2-0": {"computeFlavourId": "m1.small"},
                 "VDU2-VirtualStorage-0": {"vcImageId": "image-VDU2"}
             }
-        }
+        },
+        "tenant": "nfv"
     }
 }
 

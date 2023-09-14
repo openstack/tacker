@@ -29,7 +29,6 @@ from oslo_config import cfg
 from oslo_policy import policy as oslo_policy
 from oslo_serialization import jsonutils
 
-from tacker._i18n import _
 from tacker.api.views import vnf_subscriptions as vnf_subscription_view
 from tacker.api.vnflcm.v1 import controller
 from tacker.api.vnflcm.v1 import sync_resource
@@ -5303,8 +5302,7 @@ class TestControllerEnhancedPolicy(TestController):
         resp = req.get_response(fakes.wsgi_app_v1(fake_auth_context=ctx))
         self.assertEqual(expected_status_code, resp.status_code)
 
-    @ddt.data(*fakes.get_test_data_policy_vnf_instantiated(
-        'delete', http_client.NO_CONTENT))
+    @ddt.data(*fakes.get_test_data_policy_delete())
     @ddt.unpack
     @mock.patch('tacker.api.vnflcm.v1.controller.'
                 'VnfLcmController._delete')

@@ -24,31 +24,56 @@ from tacker.tests.functional.sol_enhanced_policy.base import (
 
 class VnflcmAPIsV1Test(VnflcmAPIsV1Base):
 
+    user_role_map = {
+        'user_a': ['VENDOR_company_A', 'AREA_area_A@region_A',
+                   'TENANT_tenant_A', 'manager'],
+        'user_a_1': ['VENDOR_company_A', 'manager'],
+        'user_b': ['VENDOR_company_B', 'AREA_area_B@region_B',
+                   'TENANT_tenant_B', 'manager'],
+        'user_c': ['VENDOR_company_C', 'AREA_area_C@region_C',
+                   'TENANT_tenant_C', 'manager'],
+        'user_all': ['VENDOR_all', 'AREA_all@all',
+                     'TENANT_all', 'manager'],
+        'user_admin': ['admin']
+    }
+    vim_user_project_map = {
+        'user_a': 'tenant_A',
+        'user_b': 'tenant_B',
+        'user_c': 'tenant_C'
+    }
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        cls.create_vim_user()
 
         vim_type = 'openstack'
 
         local_vim = 'local-vim.yaml'
 
         cls.vim_a = cls._step_vim_register(
-            'user_a', vim_type, local_vim, 'vim_a', 'area_A@region_A')
+            'user_a', vim_type, local_vim, 'vim_a', 'area_A@region_A',
+            tenant='tenant_A')
 
         cls.vim_a_1 = cls._step_vim_register(
-            'user_a', vim_type, local_vim, 'vim_a_1', 'area_A@region_A')
+            'user_a', vim_type, local_vim, 'vim_a_1', 'area_A@region_A',
+            tenant='tenant_A')
 
         cls.vim_b = cls._step_vim_register(
-            'user_b', vim_type, local_vim, 'vim_b', 'area_B@region_B')
+            'user_b', vim_type, local_vim, 'vim_b', 'area_B@region_B',
+            tenant='tenant_B')
 
         cls.vim_b_1 = cls._step_vim_register(
-            'user_b', vim_type, local_vim, 'vim_b_1', 'area_B@region_B')
+            'user_b', vim_type, local_vim, 'vim_b_1', 'area_B@region_B',
+            tenant='tenant_B')
 
         cls.vim_c = cls._step_vim_register(
-            'user_b', vim_type, local_vim, 'vim_c', None)
+            'user_c', vim_type, local_vim, 'vim_c', None,
+            tenant='tenant_C')
 
         cls.vim_c_1 = cls._step_vim_register(
-            'user_b', vim_type, local_vim, 'vim_c_1', None)
+            'user_c', vim_type, local_vim, 'vim_c_1', None,
+            tenant='tenant_C')
 
         cls.pkg_a = cls._step_pkg_create('user_a')
 
@@ -130,6 +155,7 @@ class VnflcmAPIsV1Test(VnflcmAPIsV1Base):
         port_uuid = self.create_port(neutron_client, network_uuid)
         ext_vl = get_external_virtual_links(net0_id, net_mgmt_id,
                                             port_uuid)
+        self.create_image()
         request_body = self._instantiate_vnf_request(
             "simple", vim_id=vim_id, ext_vl=ext_vl)
 

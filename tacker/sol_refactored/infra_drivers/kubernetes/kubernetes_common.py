@@ -108,6 +108,7 @@ class KubernetesCommon(object):
             vdu_reses, namespace):
         metadata = {
             'namespace': namespace,
+            'tenant': namespace,
             'vdu_reses': {vdu_name: vdu_res.body
                           for vdu_name, vdu_res in vdu_reses.items()}
         }

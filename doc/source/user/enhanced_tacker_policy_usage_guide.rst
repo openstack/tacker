@@ -25,9 +25,8 @@ area, vendor, and tenant.
   where VIM or VNF is located.
 * vendor: Vendor attribute is the name of the vendor. It is defined in the
   definition file of VNF package. VNF obtains this attribute from VNF package.
-* tenant: Tenant attribute is the name of the tenant. Tacker Antelope version
-  only supports the namespace of CNF. The tenant of VNF will be supported in
-  future releases.
+* tenant: Tenant attribute is the name of the tenant. This attribute describes
+  the namespace of CNF, and the project name of VNF.
 
 Enable Enhanced Tacker Policy
 -----------------------------
@@ -141,7 +140,7 @@ following rules:
         - vendor
         - VENDOR_company-a -> {"vendor": ["company-a"]}
       * - TENANT
-        - tenant value
+        - tenant
         - TENANT_default -> {"tenant": ["default"]}
 
 #.  For special value in Enhanced Tacker Policy, the corresponding attribute
@@ -179,7 +178,7 @@ following rules:
         - all
         - {"vendor": "vendor_company-a"} -> {"vendor": ["company-a"]}
       * - TENANT
-        - tenant value
+        - tenant
         - all
         - {"tenant": "default"} -> {"tenant": ["default"]}
 
@@ -309,18 +308,18 @@ Create roles
     | options     | {}                               |
     +-------------+----------------------------------+
 
-#. Create the ``TENANT_curry`` role:
+#. Create the ``TENANT_tenant-a`` role:
 
    .. code-block:: console
 
-    $ openstack role create TENANT_curry
+    $ openstack role create TENANT_tenant-a
     +-------------+----------------------------------+
     | Field       | Value                            |
     +-------------+----------------------------------+
     | description | None                             |
     | domain_id   | None                             |
     | id          | cb98edb048ad49399701d4397708f397 |
-    | name        | TENANT_curry                     |
+    | name        | TENANT_tenant-a                  |
     | options     | {}                               |
     +-------------+----------------------------------+
 
@@ -357,14 +356,14 @@ Create roles
 Assign roles to user-project pairs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-#. Assign ``AREA_tokyo@japan``, ``VENDOR_company-a`` and ``TENANT_curry``
+#. Assign ``AREA_tokyo@japan``, ``VENDOR_company-a`` and ``TENANT_tenant-a``
    to ``user-a``:
 
    .. code-block:: console
 
     $ openstack role add --user user-a --project nfv AREA_tokyo@japan
     $ openstack role add --user user-a --project nfv VENDOR_company-a
-    $ openstack role add --user user-a --project nfv TENANT_curry
+    $ openstack role add --user user-a --project nfv TENANT_tenant-a
 
    Verify the role assignment of ``user-a``:
 
@@ -376,7 +375,7 @@ Assign roles to user-project pairs
     +------------------+----------------+-------+-------------+--------+--------+-----------+
     | VENDOR_company-a | user-a@Default |       | nfv@Default |        |        | False     |
     | AREA_tokyo@japan | user-a@Default |       | nfv@Default |        |        | False     |
-    | TENANT_curry     | user-a@Default |       | nfv@Default |        |        | False     |
+    | TENANT_tenant-a  | user-a@Default |       | nfv@Default |        |        | False     |
     +------------------+----------------+-------+-------------+--------+--------+-----------+
 
 #. Assign reader to ``user-b``:
@@ -433,6 +432,8 @@ When registering a vim, users can specify area attribute for the vim. This is
 achieved by putting the area attribute into the extra field of the vim
 configuration file. Please refer to VIM Management [#VIM_Management]_ for how
 to register a vim.
+And the project_name of the vim configuration file is used as tenant attribute
+of instantiated VNF.
 
 .. warning::
     It is highly recommended that users who performs the VIM registration is
@@ -446,14 +447,25 @@ to register a vim.
    .. code-block:: yaml
 
     auth_url: 'http://192.168.10.115/identity/v3'
-    username: 'nfv_user'
+    username: 'vim-user'
     password: 'devstack'
-    project_name: 'nfv'
+    project_name: 'tenant-a'
     project_domain_name: 'default'
     user_domain_name: 'default'
     cert_verify: 'True'
     extra:
         area: tokyo@japan
+
+   .. note::
+
+    The project and VIM user which specified in the vim configuration file must
+    be created previously and assign the member role to VIM user.
+
+    .. code-block:: console
+
+     $ openstack project create tenant-a --domain default
+     $ openstack user create --project tenant-a --password devstack vim-user
+     $ openstack role add --user vim-user --project tenant-a member
 
    Register OpenStack VIM:
 
@@ -466,11 +478,11 @@ to register a vim.
     | Field          | Value                                                |
     +----------------+------------------------------------------------------+
     | auth_cred      | {                                                    |
-    |                |     "username": "nfv_user",                          |
+    |                |     "username": "vim-user",                          |
     |                |     "user_domain_name": "default",                   |
     |                |     "cert_verify": "True",                           |
     |                |     "project_id": null,                              |
-    |                |     "project_name": "nfv",                           |
+    |                |     "project_name": "tenant-a"                       |
     |                |     "project_domain_name": "default",                |
     |                |     "auth_url": "http://192.168.10.115/identity/v3", |
     |                |     "key_type": "barbican_key",                      |
@@ -494,7 +506,7 @@ to register a vim.
     | type           | openstack                                            |
     | updated_at     | None                                                 |
     | vim_project    | {                                                    |
-    |                |     "name": "nfv",                                   |
+    |                |     "name": "tenant-a",                              |
     |                |     "project_domain_name": "default"                 |
     |                | }                                                    |
     +----------------+------------------------------------------------------+
@@ -506,9 +518,9 @@ to register a vim.
    .. code-block:: yaml
 
     auth_url: 'http://192.168.10.115/identity/v3'
-    username: 'nfv_user'
+    username: 'vim-user'
     password: 'devstack'
-    project_name: 'nfv'
+    project_name: 'tenant-a'
     project_domain_name: 'default'
     user_domain_name: 'default'
     cert_verify: 'True'
@@ -526,11 +538,11 @@ to register a vim.
     | Field          | Value                                                |
     +----------------+------------------------------------------------------+
     | auth_cred      | {                                                    |
-    |                |     "username": "nfv_user",                          |
+    |                |     "username": "vim-user",                          |
     |                |     "user_domain_name": "default",                   |
     |                |     "cert_verify": "True",                           |
     |                |     "project_id": null,                              |
-    |                |     "project_name": "nfv",                           |
+    |                |     "project_name": "tenant-a",                      |
     |                |     "project_domain_name": "default",                |
     |                |     "auth_url": "http://192.168.10.115/identity/v3", |
     |                |     "key_type": "barbican_key",                      |
@@ -554,7 +566,7 @@ to register a vim.
     | type           | openstack                                            |
     | updated_at     | None                                                 |
     | vim_project    | {                                                    |
-    |                |     "name": "nfv",                                   |
+    |                |     "name": "tenant-a",                              |
     |                |     "project_domain_name": "default"                 |
     |                | }                                                    |
     +----------------+------------------------------------------------------+
@@ -716,7 +728,7 @@ configuration files that need to be modified in VNF package.
           ...
 
 Create & Instantiate VNF with vendor, area and tenant attributes
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Create VNF with vendor attribute
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -734,18 +746,18 @@ Create a VNF with vnfd_id:
 
     $ openstack vnflcm create <vnfd_id>
 
-Instantiate VNF on VIM with area attributes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Instantiate VNF on VIM with area and tenant attributes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The area attribute of the VNF comes from the used vim. In other
-words, you need to specify a VIM in the area where you want to
+The area and tenant attribute of the VNF comes from the used vim. In other
+words, you need to specify a VIM in the area and tenant where you want to
 instantiate a VNF.
 
 For VNF LCM API version 1, please refer to [#VNF_Lifecycle_Management]_ to
 instantiate VNF. Below are two samples of <param-file>.
 
 #. If <param-file> contains the ``vimConnectionInfo`` parameter, the area
-   attribute comes from vim in it.
+   and tenant attributes come from vim in it.
 
    .. code-block:: json
 
@@ -795,7 +807,7 @@ instantiate VNF. Below are two samples of <param-file>.
 
 
 #. If <param-file> doesn't contains the ``vimConnectionInfo`` parameter, the
-   default vim is used and area attribute comes from it.
+   default vim is used and area and tenant attributes come from it.
 
    .. code-block:: json
 
@@ -807,8 +819,8 @@ For VNF LCM API version 2, please refer to [#VNF_Lifecycle_Management]_ to
 instantiate VNF. Below are two samples of <param-file>.
 
 #. If the vim in the ``vimConnectionInfo`` parameter of <param-file> is an
-   existing vim in the DB, the vendor attribute of the instantiated VNF
-   comes from this vim.
+   existing vim in the DB, the area and tenant attribute of the instantiated
+   VNF comes from this vim.
 
    .. code-block:: json
 
@@ -932,9 +944,9 @@ instantiate VNF. Below are two samples of <param-file>.
     }
 
 #. If the vim in the ``vimConnectionInfo`` parameter of <param-file> is not
-   existed in the DB, the vendor attribute of the instantiated VNF comes from
-   this vim. Users need to specify the area attribute in the
-   ``vimConnectionInfo`` parameter.
+   existed in the DB, users need to specify the area and tenant attributes in
+   the ``vimConnectionInfo`` parameter. The tenant attribute uses the
+   ``project`` in the ``accessInfo`` of the ``vimConnectionInfo``.
 
    .. code-block:: json
 
@@ -1052,11 +1064,11 @@ instantiate VNF. Below are two samples of <param-file>.
             "vim1": {
                 "accessInfo": {
                     "password": "devstack",
-                    "project": "nfv",
+                    "project": "tenant-a",
                     "projectDomain": "Default",
                     "region": "RegionOne",
                     "userDomain": "Default",
-                    "username": "nfv_user"
+                    "username": "vim-user"
                 },
                 "interfaceInfo": {
                     "endpoint": "http://localhost/identity/v3"
@@ -1071,9 +1083,8 @@ instantiate VNF. Below are two samples of <param-file>.
 Instantiate CNF with tenant attribute
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In Tacker Antelope verison, only CNF has the tenant attribute. When
-instantiating CNF, the tenant attribute of CNF is specified by the namespace in
-the additionalParams field of <param-file>.
+When instantiating CNF, the tenant attribute of CNF is specified by the
+namespace in the additionalParams field of <param-file>.
 
 .. code-block:: json
 
@@ -1091,7 +1102,7 @@ the additionalParams field of <param-file>.
                 "Files/kubernetes/deployment.yaml",
                 "Files/kubernetes/namespace.yaml"
             ],
-            "namespace": "curry"
+            "namespace": "tenant-a"
         }
     }
 
@@ -1122,11 +1133,11 @@ an example.
     | Field          | Value                                                |
     +----------------+------------------------------------------------------+
     | auth_cred      | {                                                    |
-    |                |     "username": "nfv_user",                          |
+    |                |     "username": "vim-user",                          |
     |                |     "user_domain_name": "default",                   |
     |                |     "cert_verify": "True",                           |
     |                |     "project_id": null,                              |
-    |                |     "project_name": "nfv",                           |
+    |                |     "project_name": "tenant-a",                      |
     |                |     "project_domain_name": "default",                |
     |                |     "auth_url": "http://192.168.10.115/identity/v3", |
     |                |     "key_type": "barbican_key",                      |
@@ -1150,7 +1161,7 @@ an example.
     | type           | openstack                                            |
     | updated_at     | 2023-02-14 07:05:28                                  |
     | vim_project    | {                                                    |
-    |                |     "name": "nfv",                                   |
+    |                |     "name": "tenant-a",                              |
     |                |     "project_domain_name": "default"                 |
     |                | }                                                    |
     +----------------+------------------------------------------------------+
@@ -1313,9 +1324,9 @@ enhanced tacker attributes supported by each API.
     - No
   * - LCM-List
     - **GET** /vnflcm/v1/vnf_instances
-    - Yes(3)
-    - Yes
     - Yes(2)
+    - Yes
+    - Yes(3)
   * - LCM-Create
     - **POST** /vnflcm/v1/vnf_instances
     - No
@@ -1323,14 +1334,14 @@ enhanced tacker attributes supported by each API.
     - No
   * - LCM-Show
     - **GET** /vnflcm/v1/vnf_instances/{vnfInstanceId}
-    - Yes(3)
-    - Yes
     - Yes(2)
+    - Yes
+    - Yes(3)
   * - LCM-Update
     - **PATCH** /vnflcm/v1/vnf_instances/{vnfInstanceId}
     - Yes
     - Yes
-    - Yes(2)
+    - Yes
   * - LCM-Delete
     - **DELETE** /vnflcm/v1/vnf_instances/{vnfInstanceId}
     - No
@@ -1338,34 +1349,34 @@ enhanced tacker attributes supported by each API.
     - No
   * - LCM-Instantiate
     - **POST** /vnflcm/v1/vnf_instances/{vnfInstanceId}/instantiate
+    - No
     - Yes
-    - Yes
-    - Yes(2)
+    - No
   * - LCM-Scale
     - **POST** /vnflcm/v1/vnf_instances/{vnfInstanceId}/scale
     - Yes
     - Yes
-    - Yes(2)
+    - Yes
   * - LCM-Terminate
     - **POST** /vnflcm/v1/vnf_instances/{vnfInstanceId}/terminate
     - Yes
     - Yes
-    - Yes(2)
+    - Yes
   * - LCM-Heal
     - **POST** /vnflcm/v1/vnf_instances/{vnfInstanceId}/heal
     - Yes
     - Yes
-    - Yes(2)
+    - Yes
   * - LCM-Change-Connectivity
     - **POST** /vnflcm/v1/vnf_instances/{vnfInstanceId}/change_ext_conn
     - Yes
     - Yes
-    - Yes(2)
+    - Yes
   * - LCM-ListV2
     - **GET** /vnflcm/v2/vnf_instances
-    - Yes(4)
+    - Yes(3)
     - Yes
-    - Yes(2)
+    - Yes(3)
   * - LCM-CreateV2
     - **POST** /vnflcm/v2/vnf_instances
     - No
@@ -1373,14 +1384,14 @@ enhanced tacker attributes supported by each API.
     - No
   * - LCM-ShowV2
     - **GET** /vnflcm/v2/vnf_instances/{vnfInstanceId}
-    - Yes(4)
+    - Yes(3)
     - Yes
-    - Yes(2)
+    - Yes(3)
   * - LCM-UpdateV2
     - **PATCH** /vnflcm/v2/vnf_instances/{vnfInstanceId}
     - Yes
     - Yes
-    - Yes(2)
+    - Yes
   * - LCM-DeleteV2
     - **DELETE** /vnflcm/v2/vnf_instances/{vnfInstanceId}
     - No
@@ -1388,39 +1399,38 @@ enhanced tacker attributes supported by each API.
     - No
   * - LCM-InstantiateV2
     - **POST** /vnflcm/v2/vnf_instances/{vnfInstanceId}/instantiate
+    - No
     - Yes
-    - Yes
-    - Yes(2)
+    - No
   * - LCM-ScaleV2
     - **POST** /vnflcm/v2/vnf_instances/{vnfInstanceId}/scale
     - Yes
     - Yes
-    - Yes(2)
+    - Yes
   * - LCM-TerminateV2
     - **POST** /vnflcm/v2/vnf_instances/{vnfInstanceId}/terminate
     - Yes
     - Yes
-    - Yes(2)
+    - Yes
   * - LCM-HealV2
     - **POST** /vnflcm/v2/vnf_instances/{vnfInstanceId}/heal
     - Yes
     - Yes
-    - Yes(2)
+    - Yes
   * - LCM-Change-ConnectivityV2
     - **POST** /vnflcm/v2/vnf_instances/{vnfInstanceId}/change_ext_conn
     - Yes
     - Yes
-    - Yes(2)
+    - Yes
   * - LCM-Change-VnfPkgV2
     - **POST** /vnflcm/v2/vnf_instances/{vnfInstanceId}/change_vnfpkg
     - Yes
     - Yes
-    - Yes(2)
+    - Yes
 
 (1) This is ignored when the state is not `ONBOARDED`.
-(2) This is ignored when the instance is vnf(not cnf).
-(3) Default vim is used when the state is `NOT_INSTANTIATED`.
-(4) This is ignored when the state is not `NOT_INSTANTIATED`.
+(2) Default vim is used when the state is `NOT_INSTANTIATED`.
+(3) This is ignored when the state is `NOT_INSTANTIATED`.
 
 Sample policy.yaml file
 ~~~~~~~~~~~~~~~~~~~~~~~

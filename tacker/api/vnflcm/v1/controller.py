@@ -590,15 +590,7 @@ class VnfLcmController(wsgi.Controller):
         if (vnf_instance.instantiation_state ==
                 fields.VnfInstanceState.INSTANTIATED):
             if vnf_instance.vnf_metadata:
-                tenant = vnf_instance.vnf_metadata.get('namespace')
-
-            # TODO(kexuesheng): Add steps to get tenant of VNFs deployed
-            #  in OpenStack VIM. This is a temporary workaround until that
-            #  information is available.
-            if vnf_instance.vim_connection_info:
-                vim_type = vnf_instance.vim_connection_info[0].vim_type
-                if vim_type in ["openstack", "ETSINFV.OPENSTACK_KEYSTONE.v_2"]:
-                    tenant = '*'
+                tenant = vnf_instance.vnf_metadata.get('tenant')
         else:
             tenant = '*'
 

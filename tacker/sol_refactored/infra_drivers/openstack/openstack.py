@@ -1579,5 +1579,7 @@ class Openstack(object):
         # store stack_id and nfv parameters into metadata
         inst_vnf_info.metadata['stack_id'] = stack_id
         inst_vnf_info.metadata['nfv'] = nfv_dict
+        # store tenant name for enhanced policy
+        inst_vnf_info.metadata['tenant'] = vim_info.accessInfo.get('project')
 
         inst.instantiatedVnfInfo = inst_vnf_info

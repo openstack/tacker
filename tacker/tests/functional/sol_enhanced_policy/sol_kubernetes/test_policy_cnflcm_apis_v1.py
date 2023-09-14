@@ -20,6 +20,18 @@ from tacker.tests.functional.sol_enhanced_policy.base import (
 
 class VnflcmAPIsV1CNFTest(VnflcmAPIsV1Base):
 
+    user_role_map = {
+        'user_a': ['VENDOR_company_A', 'AREA_area_A@region_A',
+                   'TENANT_namespace-a', 'manager'],
+        'user_a_1': ['VENDOR_company_A', 'manager'],
+        'user_b': ['VENDOR_company_B', 'AREA_area_B@region_B',
+                   'TENANT_namespace-b', 'manager'],
+        'user_c': ['VENDOR_company_C', 'AREA_area_C@region_C',
+                   'TENANT_namespace-c', 'manager'],
+        'user_all': ['VENDOR_all', 'AREA_all@all', 'TENANT_all', 'manager'],
+        'user_admin': ['admin']
+    }
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()

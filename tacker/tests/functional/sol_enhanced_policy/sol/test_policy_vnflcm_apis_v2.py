@@ -33,20 +33,29 @@ class VnflcmAPIsV2VNFBase(CommonVnfLcmTest, BaseEnhancedPolicyTest):
 
     user_role_map = {
         'user_a': ['VENDOR_company_A', 'AREA_area_A@region_A',
-                   'TENANT_namespace_A', 'manager'],
+                   'TENANT_tenant_A', 'manager'],
         'user_a_1': ['VENDOR_company_A', 'manager'],
         'user_b': ['VENDOR_company_B', 'AREA_area_B@region_B',
-                   'TENANT_namespace_B', 'manager'],
+                   'TENANT_tenant_B', 'manager'],
         'user_c': ['VENDOR_company_C', 'AREA_area_C@region_C',
-                   'TENANT_namespace-c', 'manager'],
-        'user_all': ['VENDOR_all', 'AREA_all@all', 'TENANT_all', 'manager'],
+                   'TENANT_tenant_C', 'manager'],
+        'user_all': ['VENDOR_all', 'AREA_all@all',
+                     'TENANT_all', 'manager'],
         'user_admin': ['admin']
+    }
+    vim_user_project_map = {
+        'user_a': 'tenant_A',
+        'user_b': 'tenant_B',
+        'user_c': 'tenant_C',
+        'user_all': 'tenant_B',
+        'user_admin': 'tenant_C'
     }
 
     @classmethod
     def setUpClass(cls):
         CommonVnfLcmTest.setUpClass()
         BaseEnhancedPolicyTest.setUpClass(cls)
+        cls.create_vim_user()
 
         for user in cls.users:
             client = cls.get_local_tacker_http_client(user.name)
@@ -153,7 +162,8 @@ class VnflcmAPIsV2VNFBase(CommonVnfLcmTest, BaseEnhancedPolicyTest):
         )
         return http_client.HttpClient(auth)
 
-    def change_ext_conn_max(self, net_ids, subnets, auth_url, area):
+    def change_ext_conn_max(self, net_ids, subnets, auth_url, area,
+                            username=None, tenant=None):
         vim_id_1 = uuidutils.generate_uuid()
         vim_id_2 = uuidutils.generate_uuid()
 
@@ -219,10 +229,10 @@ class VnflcmAPIsV2VNFBase(CommonVnfLcmTest, BaseEnhancedPolicyTest):
             "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3",
             "interfaceInfo": {"endpoint": auth_url},
             "accessInfo": {
-                "username": "nfv_user",
+                "username": f'vim_{username}' if username else "nfv_user",
                 "region": "RegionOne",
                 "password": "devstack",
-                "project": "nfv",
+                "project": tenant if tenant else "nfv",
                 "projectDomain": "Default",
                 "userDomain": "Default"
             },
@@ -266,7 +276,8 @@ class VnflcmAPIsV2VNFBase(CommonVnfLcmTest, BaseEnhancedPolicyTest):
         else:
             return None
 
-    def instantiate_vnf(self, area=None, vim_id=None):
+    def instantiate_vnf(self, area=None, vim_id=None, username=None,
+                        tenant=None):
         # Omit except for required attributes
         # NOTE: Only the following cardinality attributes are set.
         #  - 1
@@ -279,10 +290,10 @@ class VnflcmAPIsV2VNFBase(CommonVnfLcmTest, BaseEnhancedPolicyTest):
                 "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3",
                 "interfaceInfo": {"endpoint": self.auth_url},
                 "accessInfo": {
-                    "username": "nfv_user",
+                    "username": f'vim_{username}' if username else "nfv_user",
                     "region": "RegionOne",
                     "password": "devstack",
-                    "project": "nfv",
+                    "project": tenant if tenant else "nfv",
                     "projectDomain": "Default",
                     "userDomain": "Default"
                 },
@@ -320,14 +331,16 @@ class VnflcmAPIsV2VNFBase(CommonVnfLcmTest, BaseEnhancedPolicyTest):
             }
         }
 
-    def _step_lcm_instantiate(self, username, inst_id, glance_image,
+    def _step_lcm_instantiate(self, username, inst_id, tenant, glance_image,
             flavour_vdu_dict, zone_name_list, expected_status_code,
-                              area=None, vim_id=None):
+            area=None, vim_id=None):
+        self.create_image()
         self.tacker_client = self.get_tk_http_client_by_user(username)
         self._set_grant_response(
             False, 'INSTANTIATE', glance_image=glance_image,
             flavour_vdu_dict=flavour_vdu_dict, zone_name_list=zone_name_list)
-        instantiate_req = self.instantiate_vnf(area, vim_id)
+        instantiate_req = self.instantiate_vnf(area, vim_id, username=username,
+                                               tenant=tenant)
         resp, body = self.instantiate_vnf_instance(inst_id, instantiate_req)
         self.assertEqual(expected_status_code, resp.status_code)
         if expected_status_code == 202:
@@ -427,7 +440,7 @@ class VnflcmAPIsV2VNFBase(CommonVnfLcmTest, BaseEnhancedPolicyTest):
             # update and change_vnfpkg completion.
             time.sleep(WAIT_LCMOCC_UPDATE_TIME)
 
-    def _step_lcm_change_ext_conn(self, username, inst_id, area,
+    def _step_lcm_change_ext_conn(self, username, inst_id, tenant, area,
                                   zone_name_list, expected_status_code):
         self.tacker_client = self.get_tk_http_client_by_user(username)
         self._set_grant_response(
@@ -485,7 +498,8 @@ class VnflcmAPIsV2VNFBase(CommonVnfLcmTest, BaseEnhancedPolicyTest):
             self.addCleanup(self.delete_port, port_id)
 
         change_ext_conn_req = self.change_ext_conn_max(
-            net_ids, subnet_ids, self.auth_url, area)
+            net_ids, subnet_ids, self.auth_url, area, username=username,
+            tenant=tenant)
         resp, body = self.change_ext_conn(inst_id, change_ext_conn_req)
         self.assertEqual(expected_status_code, resp.status_code)
         if expected_status_code == 202:
@@ -639,16 +653,16 @@ class VnflcmAPIsV2VNFBase(CommonVnfLcmTest, BaseEnhancedPolicyTest):
         self._step_lcm_update('user_all', inst_id_b, self.vnfd_id_b_1, 202)
 
         # step 35 LCM-Change-ConnectivityV2, Resource Group A / User Group A
-        self._step_lcm_change_ext_conn(
-            'user_a', inst_id_a, 'area_A@region_A', zone_name_list, 202)
+        self._step_lcm_change_ext_conn('user_a', inst_id_a, 'tenant_A',
+                                       'area_A@region_A', zone_name_list, 202)
 
         # step 36 LCM-Change-ConnectivityV2, Resource Group B / User Group A
-        self._step_lcm_change_ext_conn(
-            'user_a', inst_id_b, 'area_B@region_B', zone_name_list, 403)
+        self._step_lcm_change_ext_conn('user_a', inst_id_b, 'tenant_B',
+                                       'area_B@region_B', zone_name_list, 403)
 
         # step 37 LCM-Change-ConnectivityV2, Resource Group B / User Group all
-        self._step_lcm_change_ext_conn(
-            'user_all', inst_id_b, 'area_B@region_B', zone_name_list, 202)
+        self._step_lcm_change_ext_conn('user_all', inst_id_b, 'tenant_B',
+                                       'area_B@region_B', zone_name_list, 202)
 
         # step 38 LCM-Change-VnfPkgV2, Resource Group A / User Group A
         self._step_lcm_update('user_a', inst_id_a, self.vnfd_id_a, 202)
@@ -703,18 +717,87 @@ class VnflcmAPIsV2VNFInstantiateWithArea(VnflcmAPIsV2VNFBase):
             self.vnflcm_apis_v2_vnf_test_before_instantiate())
 
         # step 12 LCM-InstantiateV2, Resource Group A / User Group A
-        self._step_lcm_instantiate('user_a', inst_id_a, glance_image,
-                flavour_vdu_dict, zone_name_list, 202, area='area_A@region_A')
+        self._step_lcm_instantiate('user_a', inst_id_a, 'tenant_A',
+                                   glance_image, flavour_vdu_dict,
+                                   zone_name_list, 202, area='area_A@region_A')
 
         # step 13 LCM-InstantiateV2, Resource Group B / User Group A
-        self._step_lcm_instantiate('user_a', inst_id_b, glance_image,
-                                   flavour_vdu_dict, zone_name_list, 403,
-                                   area='area_B@region_B')
+        self._step_lcm_instantiate('user_a', inst_id_b, 'tenant_B',
+                                   glance_image, flavour_vdu_dict,
+                                   zone_name_list, 403, area='area_B@region_B')
 
         # step 14 LCM-InstantiateV2, Resource Group B / User Group all
-        self._step_lcm_instantiate('user_all', inst_id_b, glance_image,
+        self._step_lcm_instantiate('user_all', inst_id_b, 'tenant_B',
+                                   glance_image, flavour_vdu_dict,
+                                   zone_name_list, 202, area='area_B@region_B')
+
+        self.vnflcm_apis_v2_vnf_test_after_instantiate(
+            sub_id, inst_id_a, inst_id_b, zone_name_list, glance_image,
+            flavour_vdu_dict)
+
+
+class VnflcmAPIsV2VNFInstantiateWithAreaInRegisteredVim(VnflcmAPIsV2VNFBase):
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+
+        vim_type = 'openstack'
+
+        local_vim = 'local-vim.yaml'
+
+        cls.vim_a = cls._step_vim_register(
+            'user_a', vim_type, local_vim, 'vim_a', 'area_A@region_A',
+            tenant='tenant_A')
+
+        cls.vim_a_1 = cls._step_vim_register(
+            'user_a', vim_type, local_vim, 'vim_a_1', 'area_A@region_A',
+            tenant='tenant_A')
+
+        cls.vim_b = cls._step_vim_register(
+            'user_b', vim_type, local_vim, 'vim_b', 'area_B@region_B',
+            tenant='tenant_B')
+
+        cls.vim_b_1 = cls._step_vim_register(
+            'user_b', vim_type, local_vim, 'vim_b_1', 'area_B@region_B',
+            tenant='tenant_B')
+
+    @classmethod
+    def tearDownClass(cls):
+
+        cls._step_vim_delete('user_a', cls.vim_a)
+        cls._step_vim_delete('user_a', cls.vim_a_1)
+        cls._step_vim_delete('user_b', cls.vim_b)
+        cls._step_vim_delete('user_b', cls.vim_b_1)
+
+        super().tearDownClass()
+
+    def test_vnflcm_apis_v2_vnf_with_area_in_registered_vim(self):
+
+        glance_image = None
+        flavour_vdu_dict = None
+        zone_name_list = None
+
+        sub_id, inst_id_a, inst_id_b = (
+            self.vnflcm_apis_v2_vnf_test_before_instantiate())
+
+        # step 12 LCM-InstantiateV2, Resource Group A / User Group A
+        self._step_lcm_instantiate('user_a', inst_id_a, 'tenant_A',
+                                   glance_image,
                                    flavour_vdu_dict, zone_name_list, 202,
-                                   area='area_B@region_B')
+                                   vim_id=self.vim_a['id'])
+
+        # step 13 LCM-InstantiateV2, Resource Group B / User Group A
+        self._step_lcm_instantiate('user_a', inst_id_b, 'tenant_B',
+                                   glance_image,
+                                   flavour_vdu_dict, zone_name_list, 403,
+                                   vim_id=self.vim_b['id'])
+
+        # step 14 LCM-InstantiateV2, Resource Group B / User Group all
+        self._step_lcm_instantiate('user_all', inst_id_b, 'tenant_B',
+                                   glance_image,
+                                   flavour_vdu_dict, zone_name_list, 202,
+                                   vim_id=self.vim_b['id'])
 
         self.vnflcm_apis_v2_vnf_test_after_instantiate(
             sub_id, inst_id_a, inst_id_b, zone_name_list, glance_image,
@@ -731,75 +814,13 @@ class VnflcmAPIsV2VNFInstantiateWithoutArea(VnflcmAPIsV2VNFBase):
 
         local_vim = 'local-vim.yaml'
 
-        cls.vim_a = cls._step_vim_register(
-            'user_a', vim_type, local_vim, 'vim_a', 'area_A@region_A')
-
-        cls.vim_a_1 = cls._step_vim_register(
-            'user_a', vim_type, local_vim, 'vim_a_1', 'area_A@region_A')
-
-        cls.vim_b = cls._step_vim_register(
-            'user_b', vim_type, local_vim, 'vim_b', 'area_B@region_B')
-
-        cls.vim_b_1 = cls._step_vim_register(
-            'user_b', vim_type, local_vim, 'vim_b_1', 'area_B@region_B')
-
-    @classmethod
-    def tearDownClass(cls):
-
-        cls._step_vim_delete('user_a', cls.vim_a)
-        cls._step_vim_delete('user_a', cls.vim_a_1)
-        cls._step_vim_delete('user_b', cls.vim_b)
-        cls._step_vim_delete('user_b', cls.vim_b_1)
-
-        super().tearDownClass()
-
-    def test_vnflcm_apis_v2_vnf_without_area_in_vim_conn_info(self):
-
-        glance_image = None
-        flavour_vdu_dict = None
-        zone_name_list = None
-
-        sub_id, inst_id_a, inst_id_b = (
-            self.vnflcm_apis_v2_vnf_test_before_instantiate())
-
-        # step 12 LCM-InstantiateV2, Resource Group A / User Group A
-        self._step_lcm_instantiate('user_a', inst_id_a,
-                                   glance_image,
-                                   flavour_vdu_dict, zone_name_list, 202,
-                                   vim_id=self.vim_a['id'])
-
-        # step 13 LCM-InstantiateV2, Resource Group B / User Group A
-        self._step_lcm_instantiate('user_a', inst_id_b,
-                                   glance_image,
-                                   flavour_vdu_dict, zone_name_list, 403,
-                                   vim_id=self.vim_b['id'])
-
-        # step 14 LCM-InstantiateV2, Resource Group B / User Group all
-        self._step_lcm_instantiate('user_all', inst_id_b,
-                                   glance_image,
-                                   flavour_vdu_dict, zone_name_list, 202,
-                                   vim_id=self.vim_b['id'])
-
-        self.vnflcm_apis_v2_vnf_test_after_instantiate(
-            sub_id, inst_id_a, inst_id_b, zone_name_list, glance_image,
-            flavour_vdu_dict)
-
-
-class VnflcmAPIsV2VNFInstanceWithoutArea(VnflcmAPIsV2VNFBase):
-
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-
-        vim_type = 'openstack'
-
-        local_vim = 'local-vim.yaml'
-
         cls.vim_c = cls._step_vim_register(
-            'user_c', vim_type, local_vim, 'vim_c', None)
+            'user_c', vim_type, local_vim, 'vim_c', None,
+            tenant='tenant_C')
 
         cls.vim_c_1 = cls._step_vim_register(
-            'user_c', vim_type, local_vim, 'vim_c_1', None)
+            'user_c', vim_type, local_vim, 'vim_c_1', None,
+            tenant='tenant_C')
 
     @classmethod
     def tearDownClass(cls):
@@ -809,7 +830,7 @@ class VnflcmAPIsV2VNFInstanceWithoutArea(VnflcmAPIsV2VNFBase):
 
         super().tearDownClass()
 
-    def test_vnflcm_apis_v2_vnf_instance_without_area(self):
+    def test_vnflcm_apis_v2_vnf_without_area(self):
 
         glance_image = None
         flavour_vdu_dict = None
@@ -857,7 +878,7 @@ class VnflcmAPIsV2VNFInstanceWithoutArea(VnflcmAPIsV2VNFBase):
         self._step_lcm_list('user_admin', [inst_id_c])
 
         # step 8 LCM-InstantiateV2, Resource Group C / User Group C
-        self._step_lcm_instantiate('user_c', inst_id_c,
+        self._step_lcm_instantiate('user_c', inst_id_c, 'tenant_C',
                                    glance_image,
                                    flavour_vdu_dict, zone_name_list, 202,
                                    vim_id=self.vim_c['id'])
@@ -927,15 +948,15 @@ class VnflcmAPIsV2VNFInstanceWithoutArea(VnflcmAPIsV2VNFBase):
 
         # step 27 LCM-Change-ConnectivityV2, Resource Group C / User Group C
         self._step_lcm_change_ext_conn(
-            'user_c', inst_id_c, None, zone_name_list, 403)
+            'user_c', inst_id_c, 'tenant_C', None, zone_name_list, 403)
 
         # step 28 LCM-Change-ConnectivityV2, Resource Group C / User Group A
         self._step_lcm_change_ext_conn(
-            'user_all', inst_id_c, None, zone_name_list, 403)
+            'user_all', inst_id_c, 'tenant_C', None, zone_name_list, 403)
 
         # step 29 LCM-Change-ConnectivityV2, Resource Group C / User Group all
         self._step_lcm_change_ext_conn(
-            'user_admin', inst_id_c, None, zone_name_list, 202)
+            'user_admin', inst_id_c, 'tenant_C', None, zone_name_list, 202)
 
         # step 30 LCM-Change-VnfPkgV2, Resource Group C / User Group C
         self._step_lcm_change_vnfpkg('user_c', inst_id_c, self.vnfd_id_c_2,

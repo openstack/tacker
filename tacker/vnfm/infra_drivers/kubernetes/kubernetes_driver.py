@@ -1733,6 +1733,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
             if not vnf_instance.vnf_metadata:
                 vnf_instance.vnf_metadata = {}
             vnf_instance.vnf_metadata['namespace'] = namespace
+            vnf_instance.vnf_metadata['tenant'] = namespace
             vnf_instance.save()
 
             return {}
