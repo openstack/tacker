@@ -89,7 +89,8 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         )
 
     def _set_grant_response(self, is_nfvo, operation, glance_image=None,
-                            flavour_vdu_dict=None, zone_name_list=None):
+                            flavour_vdu_dict=None, zone_name_list=None,
+                            password=None):
         if is_nfvo:
             if operation == 'INSTANTIATE':
                 # Set Fake server response for Grant-Req(Instantiate)
@@ -100,7 +101,7 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
                     callback=lambda req_headers,
                     req_body: fake_grant_v2.GrantV2.make_inst_response_body(
                         req_body, glance_image, flavour_vdu_dict,
-                        zone_name_list))
+                        zone_name_list, password=password))
             elif operation == 'TERMINATE':
                 # Set Fake server response for Grant-Req(Terminate)
                 self.set_server_callback(

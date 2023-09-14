@@ -252,10 +252,19 @@ class GrantV2:
     @staticmethod
     def make_inst_response_body(
             request_body, image_id_dict,
-            flavour_id_dict, zone_name_list):
+            flavour_id_dict, zone_name_list,
+            password=None):
         request_body = GrantV2.convert_body_to_dict(request_body)
         res = GrantV2._make_response_template(request_body)
         res["vimConnectionInfo"] = GrantV2._make_vim_connection_info()
+        if password:
+            # Normally, password, client_secret, and bearer_token are not
+            # specified at the same time, but this time they are all included
+            # for the DB registration test.
+            accessInfo = res["vimConnectionInfo"]["vim1"]["accessInfo"]
+            accessInfo["password"] = password
+            accessInfo["client_secret"] = password
+            accessInfo["bearer_token"] = password
         res["zones"] = GrantV2._make_zones(zone_name_list)
         if 'addResources' in request_body.keys():
             res["addResources"] = GrantV2._make_add_resources(

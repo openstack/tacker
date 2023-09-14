@@ -43,6 +43,7 @@ from sqlalchemy import exc as sqlexc
 from tacker._i18n import _
 from tacker import auth
 from tacker.common import coordination
+from tacker.common import crypt_utils
 from tacker.common import csar_utils
 from tacker.common import driver_manager
 from tacker.common import exceptions
@@ -2601,4 +2602,5 @@ def main(manager='tacker.conductor.conductor_server.Conductor'):
         binary='tacker-conductor',
         topic=topics.TOPIC_CONDUCTOR,
         manager=manager)
+    crypt_utils.CryptUtil()
     service.launch(CONF, server, restart_method='mutate').wait()

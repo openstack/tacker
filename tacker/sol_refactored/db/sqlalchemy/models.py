@@ -259,3 +259,18 @@ class PerformanceReportV2(model_base.BASE):
     id = sa.Column(sa.String(255), nullable=False, primary_key=True)
     jobId = sa.Column(sa.String(255), nullable=False, primary_key=False)
     entries = sa.Column(sa.JSON(), nullable=False)
+
+
+class CryptKey(model_base.BASE):
+    """Type: CryptKey
+
+    This is a proprietary implementation of Tacker.
+    Contain the encrypt key for credential information.
+    """
+
+    __tablename__ = 'CryptKey'
+    id = sa.Column(sa.String(36), nullable=False, primary_key=True)
+    secretUuid = sa.Column(sa.String(36), nullable=True)
+    encryptedKey = sa.Column(sa.String(255), nullable=False)
+    keyType = sa.Column(sa.String(36), nullable=False)
+    inUse = sa.Column(sa.Boolean, nullable=False)

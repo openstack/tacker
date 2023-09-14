@@ -357,12 +357,14 @@ class InstanceViewBuilder(BaseViewBuilder):
 
         resp = inst.to_dict()
 
-        # remove password from vim_connection_info
+        # remove credential data from vim_connection_info
         # see SOL003 4.4.1.6
+        cred_data = ['password', 'bearer_token', 'client_secret']
         for vim_info in resp.get('vimConnectionInfo', {}).values():
-            if ('accessInfo' in vim_info and
-                    'password' in vim_info['accessInfo']):
-                vim_info['accessInfo'].pop('password')
+            if 'accessInfo' in vim_info:
+                for cred_key in cred_data:
+                    if cred_key in vim_info['accessInfo']:
+                        vim_info['accessInfo'].pop(cred_key)
 
         if selector is not None:
             resp = selector.filter(inst, resp)
@@ -395,6 +397,40 @@ class LcmOpOccViewBuilder(BaseViewBuilder):
             lcmocc._links = lcmocc_utils.make_lcmocc_links(lcmocc,
                                                            self.endpoint)
         resp = lcmocc.to_dict()
+
+        op_param = resp.get('operationParams', {})
+        cred_data = ['password', 'bearer_token', 'client_secret']
+        for vim_info in op_param.get('vimConnectionInfo', {}).values():
+            if 'accessInfo' in vim_info:
+                for cred_key in cred_data:
+                    if cred_key in vim_info['accessInfo']:
+                        vim_info['accessInfo'].pop(cred_key)
+
+        vdu_params = op_param.get('additionalParams', {}).get('vdu_params', [])
+        for vdu_param in vdu_params:
+            vnfc_data = ['old_vnfc_param', 'new_vnfc_param']
+            for vnfc_key in vnfc_data:
+                vnfc_param = vdu_param.get(vnfc_key, {})
+                if vnfc_param:
+                    if vnfc_param.get('password', None):
+                        vnfc_param.pop('password')
+                    auth = vnfc_param.get('authentication', {})
+                    if auth.get('paramsBasic', {}).get('password', None):
+                        vnfc_param['authentication']['paramsBasic'].pop(
+                            'password')
+                    if (auth.get('paramsOauth2ClientCredentials', {})
+                            .get('clientPassword', None)):
+                        (vnfc_param['authentication']
+                         ['paramsOauth2ClientCredentials']
+                         .pop('clientPassword'))
+
+        changed_info = resp.get('changedInfo', {})
+        if changed_info:
+            for vim_info in changed_info.get('vimConnectionInfo', {}).values():
+                for cred_key in cred_data:
+                    if cred_key in vim_info['accessInfo']:
+                        vim_info['accessInfo'].pop(cred_key)
+
         if selector is not None:
             resp = selector.filter(lcmocc, resp)
         return resp

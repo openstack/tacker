@@ -29,6 +29,7 @@ def register_all():
     # need to receive it via RPC.
     objects_root = 'tacker.sol_refactored.objects'
     __import__(objects_root + '.common.cp_protocol_data')
+    __import__(objects_root + '.common.crypt_key')
     __import__(objects_root + '.common.ext_link_port_data')
     __import__(objects_root + '.common.ext_managed_virtual_link_data')
     __import__(objects_root + '.common.ext_virtual_link_data')

@@ -12,9 +12,16 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+import copy
 
+from oslo_config import cfg
+from oslo_serialization import jsonutils
+
+from tacker.common import crypt_utils
 from tacker.sol_refactored.objects import base
 from tacker.sol_refactored.objects import fields
+
+CONF = cfg.CONF
 
 
 # NFV-SOL 003
@@ -44,6 +51,43 @@ class ThresholdV2(base.TackerPersistentObject, base.TackerObjectDictCompat):
         # It is necessary to keep this to be used at setting prometheus config.
         'metadata': fields.KeyValuePairsField(nullable=True),
     }
+
+    @classmethod
+    def from_db_obj(cls, db_obj):
+        threshold = super().from_db_obj(db_obj)
+        if not CONF.use_credential_encryption:
+            # If use_credential_encryption in the config is False,
+            # credential information is not encrypted.
+            return threshold
+
+        if threshold.obj_attr_is_set('authentication'):
+            auth = threshold.authentication
+            crypt_utils.decrypt_subsc_auth_v2(auth)
+
+        if threshold.obj_attr_is_set('metadata'):
+            metadata = threshold.metadata
+            crypt_utils.decrypt_monitoring_v2(metadata)
+        return threshold
+
+    def to_db_obj(self):
+        obj = super().to_db_obj()
+        if not CONF.use_credential_encryption:
+            # If use_credential_encryption in the config is False,
+            # credential information is not encrypted.
+            return obj
+
+        auth_db_obj = obj.get('authentication', None)
+        if auth_db_obj:
+            auth = jsonutils.loads(auth_db_obj)
+            crypt_utils.encrypt_subsc_auth_v2(auth)
+            obj['authentication'] = jsonutils.dumps(auth)
+
+        metadata = obj.get('metadata__', None)
+        if metadata:
+            metadata = copy.deepcopy(metadata)
+            crypt_utils.encrypt_monitoring_v2(metadata)
+            obj['metadata__'] = metadata
+        return obj
 
 
 @base.TackerObjectRegistry.register

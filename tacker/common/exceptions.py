@@ -441,3 +441,7 @@ class NamespaceIsNotUnique(TackerException):
 class TenantMatchFailure(TackerException):
     message = _('The target %(resource)s %(id)s cannot be %(action)s '
                 'from a VIM of a different tenant.')
+
+
+class FailedToGetCryptKey(TackerException):
+    message = _('Failed to get crypt key.')
