@@ -27,7 +27,6 @@ The diagram below shows an overview of the CNF updating.
    Kubernetes Master update resources according to the API calls.
 
 .. figure:: ../_images/mgmt_driver_for_container_update.png
-    :align: left
 
 Mgmt Driver Introduction
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -50,6 +49,8 @@ Kubernetes during update. Update the ConfigMap and Secret, and also
 update the image in the Pod, Deployment, DaemonSet and ReplicaSet, and other
 resources will not change.
 
+.. _Prerequisites :
+
 Prerequisites
 -------------
 
@@ -58,15 +59,24 @@ The following packages should be installed:
 * tacker
 * python-tackerclient
 
-After installing the above packages, you also need to import the sample
-Mgmt Driver file. You can refer to `Set Tacker Configuration`_ in
+If you will use v1 API, after installing the above packages, you also need
+to import the sample Mgmt Driver file. You can refer to
+`Set Tacker Configuration`_ in
 `How to use Mgmt Driver for deploying Kubernetes Cluster`_ for usage of
 Mgmt Driver file.
+
+If you will use v2 API, you just need to put the Mgmt Driver file in the
+Scripts directory of the VNF Package.
 
 .. note::
 
     You can find sample Mgmt Driver file in the following path.
+
+    case of v1 API:
     `samples/mgmt_driver/kubernetes/container_update/container_update_mgmt.py`_
+
+    case of v2 API:
+    `tacker/sol_refactored/mgmt_drivers/container_update_mgmt_v2.py`_
 
 You can also refer to :doc:`./etsi_containerized_vnf_usage_guide` for the
 procedure of preparation from "`Prepare Kubernetes VIM`_" to
@@ -79,9 +89,11 @@ You can use the sample VNF package below to instantiate VNF to be updated.
 
 .. note::
 
-    In this document, ``TACKER_ROOT`` is the root of tacker’s repository on
+    In this document, ``TACKER_ROOT`` is the root of tacker's repository on
     the server.
 
+When Use v1 API
+:::::::::::::::
 .. code-block:: console
 
     $ cd TACKER_ROOT/tacker/tests/etc/samples/etsi/nfv/test_cnf_container_update_before
@@ -109,6 +121,26 @@ Following commands are an example of compressing a VNF Package:
     $ mkdir Scripts
     $ cp TACKER_ROOT/samples/mgmt_driver/kubernetes/container_update/container_update_mgmt.py Scripts/
     $ zip deployment.zip -r Definitions/ Files/ TOSCA-Metadata/ Scripts/
+
+When Use v2 API
+:::::::::::::::
+
+.. code-block:: console
+
+    $ cd TACKER_ROOT/tacker/tests/functional/sol_kubernetes_v2/samples/test_cnf_container_update_before
+    $ vi pkggen.py
+      ...
+      vim_id = "your k8s vim's id" (modify this value to your own vim Id)
+      ...
+    $ python3 pkggen.py
+    $ ll
+      ...
+      drwxrwxr-x  5 stack stack  4096 Jun  1 04:36 contents/
+      -rw-rw-r--  1 stack stack  1922 Jun  1 04:54 pkggen.py
+      -rw-rw-r--  1 stack stack 25459 Jul  4 07:30 test_cnf_container_update_before.zip
+
+After you have done the above, you will have the sample VNF package
+`test_cnf_container_update_before.zip`.
 
 After creating a VNF package with :command:`openstack vnf package create`,
 When the Onboarding State is CREATED, the Operational
@@ -182,6 +214,13 @@ Here is an example of creating VNF :
     | vnfPkgId                    |                                                                                                                  |
     +-----------------------------+------------------------------------------------------------------------------------------------------------------+
 
+.. note::
+
+    If you need to use the v2 API, you can add `--os-tacker-api-version 2`
+    to the end of all commands related to `openstack vnflcm`.
+
+    Or you can modify environment variables. `export OS_TACKER_API_VERSION=2`
+
 The following example shows the yaml files that deploys the Kubernetes
 resources.
 You can see resource definition files are included as a value of
@@ -218,6 +257,22 @@ You can see resource definition files are included as a value of
         ]
       }
 
+If you use v2 API, you should change the value of `vimConnectionInfo` key.
+The following is an example.
+
+.. code-block:: console
+
+    $ cat ./instance_kubernetes.json
+      {
+        ...
+        "vimConnectionInfo": {
+          "vim1": {
+            "vimId": "143897f4-7ab3-4fc5-9a5b-bbff09bdb92f",
+            "vimType": "ETSINFV.KUBERNETES.V_1"
+          }
+        }
+      }
+
 Instantiate VNF by running the following command
 :command:`openstack vnflcm instantiate <VNF instance ID> <json file>`,
 after the command above is executed.
@@ -230,8 +285,8 @@ after the command above is executed.
 CNF Updating Procedure
 -----------------------
 
-As mentioned in Prerequisites, the VNF must be instantiated before performing
-updating.
+As mentioned in :ref:`Prerequisites`, the VNF must be instantiated before
+performing updating.
 
 Next, the user can use the original vnf package as a template to make a new
 vnf package, in which the yaml of ConfigMap, Secret, Pod, Deployment, DaemonSet
@@ -258,8 +313,13 @@ recreate the deployment, DaemonSet and ReplicaSet to update.
 
 .. note::
 
-    This document provides the new vnf package, the path is
+    This document provides the new vnf package,
+
+    if you use v1 API, the path is
     `tacker/tests/etc/samples/etsi/nfv/test_cnf_container_update_after`_
+
+    if you use v2 API, the path is
+    `tacker/tests/functional/sol_kubernetes_v2/samples/test_cnf_container_update_after`_
 
 Details of CLI commands are described in :doc:`../cli/cli-etsi-vnflcm`.
 
@@ -780,8 +840,10 @@ recreated.
 .. _Set Tacker Configuration : https://docs.openstack.org/tacker/latest/user/mgmt_driver_deploy_k8s_usage_guide.html#set-tacker-configuration
 .. _How to use Mgmt Driver for deploying Kubernetes Cluster : https://docs.openstack.org/tacker/latest/user/mgmt_driver_deploy_k8s_usage_guide.html#mgmt-driver-introduction
 .. _samples/mgmt_driver/kubernetes/container_update/container_update_mgmt.py : https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes/container_update/container_update_mgmt.py
+.. _tacker/sol_refactored/mgmt_drivers/container_update_mgmt_v2.py : https://opendev.org/openstack/tacker/src/branch/master/tacker/sol_refactored/mgmt_drivers/container_update_mgmt_v2.py
 .. _tacker/tests/etc/samples/etsi/nfv/test_cnf_container_update_before : https://opendev.org/openstack/tacker/src/branch/master/tacker/tests/etc/samples/etsi/nfv/test_cnf_container_update_before
 .. _tacker/tests/etc/samples/etsi/nfv/test_cnf_container_update_after : https://opendev.org/openstack/tacker/src/branch/master/tacker/tests/etc/samples/etsi/nfv/test_cnf_container_update_after
+.. _tacker/tests/functional/sol_kubernetes_v2/samples/test_cnf_container_update_after : https://opendev.org/openstack/tacker/src/branch/master/tacker/tests/functional/sol_kubernetes_v2/samples/test_cnf_container_update_after
 .. _ETSI GS NFV-SOL 001 : https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/001/02.06.01_60/gs_nfv-sol001v020601p.pdf
 .. _Prepare Kubernetes VIM : https://docs.openstack.org/tacker/latest/user/etsi_containerized_vnf_usage_guide.html#prepare-kubernetes-vim
 .. _Instantiate VNF : https://docs.openstack.org/tacker/latest/user/etsi_containerized_vnf_usage_guide.html#instantiate-vnf

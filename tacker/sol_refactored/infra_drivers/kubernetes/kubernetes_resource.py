@@ -116,6 +116,17 @@ class NamespacedResource(CommonResource):
             raise sol_ex.K8sOperationFailed(sol_title=sol_title,
                                             sol_detail=str(ex))
 
+    def replace(self):
+        method = getattr(self.k8s_client,
+            'replace_namespaced' + convert(self.__class__.__name__))
+        try:
+            method(namespace=self.namespace, name=self.name, body=self.body)
+        except Exception as ex:
+            operation = inspect.currentframe().f_code.co_name
+            sol_title = "%s failed" % operation
+            raise sol_ex.K8sOperationFailed(sol_title=sol_title,
+                                            sol_detail=str(ex))
+
     def scale(self, scale_replicas):
         body = {'spec': {'replicas': scale_replicas}}
         method = getattr(self.k8s_client,

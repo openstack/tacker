@@ -1025,3 +1025,52 @@ def prometheus_auto_healing_alert(inst_id, vnfc_info_id):
         "groupKey": "{}:{}",
         "truncatedAlerts": 0
     }
+
+
+def test_cnf_update_create(vnfd_id):
+    return {
+        "vnfdId": vnfd_id,
+        "vnfInstanceName": "container_update_multi_kinds",
+        "vnfInstanceDescription": "container update multi kinds"
+    }
+
+
+def test_cnf_update_instantiate(vim_id):
+    return {
+        "flavourId": "simple",
+        "vimConnectionInfo": {
+            "vim1": {
+                "vimId": vim_id,
+                "vimType": "ETSINFV.KUBERNETES.V_1"
+            }
+        },
+        "additionalParams": {
+            "lcm-kubernetes-def-files": [
+                "Files/kubernetes/configmap_1.yaml",
+                "Files/kubernetes/deployment.yaml",
+                "Files/kubernetes/pod_env.yaml",
+                "Files/kubernetes/pod_volume.yaml",
+                "Files/kubernetes/replicaset.yaml",
+                "Files/kubernetes/secret_1.yaml",
+                "Files/kubernetes/configmap_3.yaml",
+                "Files/kubernetes/pod_env_2.yaml",
+                "Files/kubernetes/pod_volume_2.yaml",
+                "Files/kubernetes/daemonset.yaml",
+                "Files/kubernetes/deployment_2.yaml",
+                "Files/kubernetes/secret_3.yaml"
+            ]
+        }
+    }
+
+
+def test_cnf_update_modify(vnfd_id):
+    return {
+        "vnfdId": vnfd_id,
+        "vnfInstanceName": "modify_vnf_after",
+        "metadata": {
+            "configmap_secret_paths": [
+                "Files/kubernetes/configmap_2.yaml",
+                "Files/kubernetes/secret_2.yaml"
+            ]
+        }
+    }

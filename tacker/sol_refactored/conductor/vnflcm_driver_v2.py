@@ -94,7 +94,7 @@ class VnfLcmDriverV2(object):
             method(context, lcmocc, inst, grant_req, grant, vnfd)
 
     def _exec_mgmt_driver_script(self, operation, flavour_id, req, inst,
-            grant_req, grant, vnfd):
+            grant_req, grant, vnfd, new_vnfd=None):
         script = vnfd.get_interface_script(flavour_id, operation)
         if script is None:
             return
@@ -110,6 +110,9 @@ class VnfLcmDriverV2(object):
                                if grant is not None else None),
             'tmp_csar_dir': tmp_csar_dir
         }
+        if new_vnfd:
+            new_csar_dir = new_vnfd.make_tmp_csar_dir()
+            script_dict['new_csar_dir'] = new_csar_dir
         # script is relative path to Definitions/xxx.yaml
         script_path = os.path.join(tmp_csar_dir, "Definitions", script)
 
@@ -239,9 +242,15 @@ class VnfLcmDriverV2(object):
         method(context, lcmocc, inst, grant_req, grant, vnfd)
 
         # perform postamble LCM script
+        new_vnfd = None
+        if (lcmocc.operation == v2fields.LcmOperationType.MODIFY_INFO
+                and req.obj_attr_is_set('vnfdId')):
+            new_vnfd = self.nfvo_client.get_vnfd(
+                context, req.vnfdId, all_contents=True)
         operation = "{}_end".format(self._script_method_name(lcmocc.operation))
-        self._exec_mgmt_driver_script(operation,
-            flavour_id, req, inst, grant_req, grant, vnfd)
+        self._exec_mgmt_driver_script(
+            operation, flavour_id, req, inst,
+            grant_req, grant, vnfd, new_vnfd=new_vnfd)
 
         self._make_inst_info_common(lcmocc, inst_saved, inst, vnfd)
         lcmocc_utils.update_lcmocc(lcmocc, inst_saved, inst)

@@ -237,11 +237,6 @@ class BaseSolV2Test(base_v2.BaseTackerTestV2):
         for image_id in image_ids:
             glance_client.delete_image(image_id)
 
-    def update_vnf_instance(self, inst_id, req_body):
-        path = f"/vnflcm/v2/vnf_instances/{inst_id}"
-        return self.tacker_client.do_request(
-            path, "PATCH", body=req_body, version=VNFLCM_V2_VERSION)
-
     def change_ext_conn(self, inst_id, req_body):
         path = f"/vnflcm/v2/vnf_instances/{inst_id}/change_ext_conn"
         return self.tacker_client.do_request(

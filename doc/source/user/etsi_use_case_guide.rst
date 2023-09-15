@@ -128,14 +128,14 @@ Error Handling
 .. TODO(h-asahina): add `Action Driver`
   * https://etherpad.opendev.org/p/tacker-wallaby-revise-docs
 
-Management Driver (v1 API)
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+Management Driver
+^^^^^^^^^^^^^^^^^
 
 .. TODO(h-asahina): add `Overview`
   * https://etherpad.opendev.org/p/tacker-wallaby-revise-docs
 
-Kubernetes Cluster VNF
-~~~~~~~~~~~~~~~~~~~~~~
+Kubernetes Cluster VNF (v1 API)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. toctree::
    :maxdepth: 1
@@ -146,16 +146,16 @@ Kubernetes Cluster VNF
    mgmt_driver_deploy_k8s_pv_usage_guide
    mgmt_driver_deploy_k8s_kubespary_usage_guide
 
-Ansible Driver
-~~~~~~~~~~~~~~
+Ansible Driver (v1 API)
+~~~~~~~~~~~~~~~~~~~~~~~
 
 .. toctree::
    :maxdepth: 1
 
    mgmt_driver_for_ansible_driver_usage_guide
 
-Container Update
-~~~~~~~~~~~~~~~~
+Container Update (v1/v2 API)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. toctree::
    :maxdepth: 1
