@@ -29,6 +29,7 @@ Developer Info
    api_layer.rst
    api_extensions.rst
    tacker_functional_test.rst
+   tacker_compliance_test.rst
    dashboards.rst
    vagrant_devstack.rst
 
