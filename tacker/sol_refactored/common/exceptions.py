@@ -384,6 +384,11 @@ class HelmOperationFailed(SolHttpError422):
     # detail set in the code
 
 
+class TerraformOperationFailed(SolHttpError422):
+    title = 'Terraform operation failed'
+    # detail set in the code
+
+
 class HelmParameterNotFound(SolHttpError400):
     message = _("Helm parameter for scale vdu %(vdu_name)s is not found.")
 

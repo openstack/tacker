@@ -750,6 +750,23 @@
       config_enhanced_policy: true
 
 - job:
+    name: tacker-functional-devstack-multinode-sol-terraform-v2
+    parent: tacker-functional-devstack-multinode-legacy
+    description: |
+      Multinodes job for SOL Terraform devstack-based functional tests
+    attempts: 1
+    host-vars:
+      controller-tacker:
+        tox_envlist: dsvm-functional-sol-terraform-v2
+        devstack_local_conf:
+          post-config:
+            $TACKER_CONF:
+              v2_vnfm:
+                tf_file_dir: /tmp/tacker/terraform
+    vars:
+      terraform_setup: true
+
+- job:
     name: tacker-compliance-devstack-multinode-sol
     parent: tacker-functional-devstack-multinode-legacy
     description: |
@@ -791,3 +808,4 @@
         - tacker-functional-devstack-enhanced-policy-sol
         - tacker-functional-devstack-enhanced-policy-sol-kubernetes
         - tacker-compliance-devstack-multinode-sol
+        - tacker-functional-devstack-multinode-sol-terraform-v2

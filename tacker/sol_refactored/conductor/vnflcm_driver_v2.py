@@ -28,6 +28,7 @@ from tacker.sol_refactored.common import vnf_instance_utils as inst_utils
 from tacker.sol_refactored.infra_drivers.kubernetes import helm
 from tacker.sol_refactored.infra_drivers.kubernetes import kubernetes
 from tacker.sol_refactored.infra_drivers.openstack import openstack
+from tacker.sol_refactored.infra_drivers.terraform import terraform
 from tacker.sol_refactored.nfvo import nfvo_client
 from tacker.sol_refactored import objects
 from tacker.sol_refactored.objects.v2 import fields as v2fields
@@ -468,6 +469,9 @@ class VnfLcmDriverV2(object):
         elif vim_info.vimType == 'ETSINFV.HELM.V_3':
             driver = helm.Helm()
             driver.instantiate(req, inst, grant_req, grant, vnfd)
+        elif vim_info.vimType == 'TERRAFORM.V1':
+            driver = terraform.Terraform()
+            driver.instantiate(req, inst, grant_req, grant, vnfd)
         else:
             # should not occur
             raise sol_ex.SolException(sol_detail='not support vim type')
@@ -486,6 +490,9 @@ class VnfLcmDriverV2(object):
             driver.instantiate_rollback(req, inst, grant_req, grant, vnfd)
         elif vim_info.vimType == 'ETSINFV.HELM.V_3':
             driver = helm.Helm()
+            driver.instantiate_rollback(req, inst, grant_req, grant, vnfd)
+        elif vim_info.vimType == 'TERRAFORM.V1':
+            driver = terraform.Terraform()
             driver.instantiate_rollback(req, inst, grant_req, grant, vnfd)
         else:
             # should not occur
@@ -631,6 +638,9 @@ class VnfLcmDriverV2(object):
             driver.terminate(req, inst, grant_req, grant, vnfd)
         elif vim_info.vimType == 'ETSINFV.HELM.V_3':
             driver = helm.Helm()
+            driver.terminate(req, inst, grant_req, grant, vnfd)
+        elif vim_info.vimType == 'TERRAFORM.V1':
+            driver = terraform.Terraform()
             driver.terminate(req, inst, grant_req, grant, vnfd)
         else:
             # should not occur

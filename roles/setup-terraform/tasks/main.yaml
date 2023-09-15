@@ -1,0 +1,61 @@
+- block:
+  - name: Install docker from ubuntu official repository
+    package:
+      name: docker.io
+      state: present
+    become: yes
+
+  - name: Make the user belong to a Docker group
+    user:
+      name: stack
+      groups: docker
+      append: yes
+    become: yes
+
+  - name: Get gpg key of hashicorp
+    get_url:
+      url: https://apt.releases.hashicorp.com/gpg
+      dest: /usr/share/keyrings/hashicorp-archive-keyring.asc
+      mode: 0644
+      force: true
+    become: yes
+
+  - name: Add hashicorp repository
+    apt_repository:
+      repo: deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.asc] https://apt.releases.hashicorp.com {{ ansible_distribution_release }} main
+      filename: hashicorp
+      state: present
+    become: yes
+
+  - name: Install terraform
+    apt:
+      name: terraform
+      state: present
+      update_cache: yes
+    become: yes
+
+  - name: Install awscli, LocalStack CLI
+    pip:
+      name:
+      - awscli>=1.29.0
+      - localstack>=2.0.0
+      state: present
+    become: yes
+    become_user: stack
+
+  - name: Check terraform version
+    shell: terraform --version
+    register: terraform_version
+    become: yes
+    become_user: stack
+
+  - name: Start LocalStack
+    shell: localstack start -d
+    register: localstack_start
+    environment:
+      PATH: "{{ ansible_env.PATH }}:/opt/stack/.local/bin"
+    become: yes
+    become_user: stack
+
+  when:
+    - inventory_hostname == 'controller-tacker'

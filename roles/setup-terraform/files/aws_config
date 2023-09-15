@@ -1,0 +1,2 @@
+[profile localstack_profile]
+region = us-east-1
