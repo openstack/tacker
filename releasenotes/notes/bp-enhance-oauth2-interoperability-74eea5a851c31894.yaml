@@ -1,0 +1,6 @@
+---
+features:
+  - Support Tacker service to obtain an OAuth 2.0 access token from an
+    external authorization server, and then use the access token to access
+    related OpenStack services that uses the external_oauth2_token filter
+    provided by the keystone middleware for permission authentication.

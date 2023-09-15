@@ -24,6 +24,7 @@ from oslo_context import context as oslo_context
 from oslo_db.sqlalchemy import enginefacade
 
 from tacker.common import exceptions
+from tacker.common.ext_oauth2_auth import ExtOAuth2Auth
 from tacker.db import api as db_api
 from tacker import policy
 
@@ -217,6 +218,8 @@ def is_user_context(context):
 
 
 def generate_tacker_service_context():
+    if CONF.ext_oauth2_auth.use_ext_oauth2_auth:
+        return ExtOAuth2Auth()
     return keystone_password.KeystonePassword(
         password=CONF.keystone_authtoken.password,
         auth_url=CONF.keystone_authtoken.auth_url,

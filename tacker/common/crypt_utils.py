@@ -246,30 +246,20 @@ class CryptKeyBase(metaclass=abc.ABCMeta):
 class CryptKeyBarbican(CryptKeyBase):
     def load_key(self, id):
         k_context = t_context.generate_tacker_service_context()
-        # After external authorization server support for barbican is
-        # implemented, the endpoint retrieval method for keymgr_api must be
-        # changed by enabling the following commented out part:
-
-        # if CONF.ext_oauth2_auth.use_ext_oauth2_auth:
-        #     keymgr_api = KEYMGR_API(CONF.ext_oauth2_auth.token_endpoint)
-        # else:
-        #     keymgr_api = KEYMGR_API(CONF.keystone_authtoken.auth_url)
-        keymgr_api = KEYMGR_API(CONF.keystone_authtoken.auth_url)
+        if CONF.ext_oauth2_auth.use_ext_oauth2_auth:
+            keymgr_api = KEYMGR_API(CONF.ext_oauth2_auth.token_endpoint)
+        else:
+            keymgr_api = KEYMGR_API(CONF.keystone_authtoken.auth_url)
         secret_obj = keymgr_api.get(k_context, id)
         master_key = secret_obj.payload
         return master_key
 
     def save_key(self, key):
         k_context = t_context.generate_tacker_service_context()
-        # After external authorization server support for barbican is
-        # implemented, the endpoint retrieval method for keymgr_api must be
-        # changed by enabling the following commented out part:
-
-        # if CONF.ext_oauth2_auth.use_ext_oauth2_auth:
-        #     keymgr_api = KEYMGR_API(CONF.ext_oauth2_auth.token_endpoint)
-        # else:
-        #     keymgr_api = KEYMGR_API(CONF.keystone_authtoken.auth_url)
-        keymgr_api = KEYMGR_API(CONF.keystone_authtoken.auth_url)
+        if CONF.ext_oauth2_auth.use_ext_oauth2_auth:
+            keymgr_api = KEYMGR_API(CONF.ext_oauth2_auth.token_endpoint)
+        else:
+            keymgr_api = KEYMGR_API(CONF.keystone_authtoken.auth_url)
         secret_uuid = keymgr_api.store(k_context, key)
         return secret_uuid
 

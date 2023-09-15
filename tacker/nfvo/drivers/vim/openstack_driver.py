@@ -194,9 +194,12 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
         if auth.get('key_type') == 'barbican_key':
             try:
                 k_context = t_context.generate_tacker_service_context()
-                keystone_conf = CONF.keystone_authtoken
                 secret_uuid = auth['secret_uuid']
-                keymgr_api = KEYMGR_API(keystone_conf.auth_url)
+                if CONF.ext_oauth2_auth.use_ext_oauth2_auth:
+                    keymgr_api = KEYMGR_API(
+                        CONF.ext_oauth2_auth.token_endpoint)
+                else:
+                    keymgr_api = KEYMGR_API(CONF.keystone_authtoken.auth_url)
                 keymgr_api.delete(k_context, secret_uuid)
                 LOG.debug('VIM key deleted successfully for vim %s',
                           vim_id)
@@ -227,8 +230,11 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
         if CONF.vim_keys.use_barbican:
             try:
                 k_context = t_context.generate_tacker_service_context()
-                keystone_conf = CONF.keystone_authtoken
-                keymgr_api = KEYMGR_API(keystone_conf.auth_url)
+                if CONF.ext_oauth2_auth.use_ext_oauth2_auth:
+                    keymgr_api = KEYMGR_API(
+                        CONF.ext_oauth2_auth.token_endpoint)
+                else:
+                    keymgr_api = KEYMGR_API(CONF.keystone_authtoken.auth_url)
                 secret_uuid = keymgr_api.store(k_context, fernet_key)
 
                 auth['key_type'] = 'barbican_key'

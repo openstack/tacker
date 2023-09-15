@@ -53,6 +53,7 @@ setuptools!=24.0.0,!=34.0.0,!=34.0.1,!=34.0.2,!=34.0.3,!=34.1.0,!=34.1.1,!=34.2.
 tooz>=1.58.0 # Apache-2.0
 PyYAML>=5.4.1 # MIT
 PyMySQL>=0.10.1 # MIT
+PyJWT>=2.4.0 # MIT
 
 # Glance Store
 glance-store>=2.4.0 # Apache-2.0

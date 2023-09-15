@@ -20,9 +20,11 @@ from barbicanclient import client as barbican_client
 from barbicanclient import exceptions as barbican_exception
 from keystoneauth1 import identity
 from keystoneauth1 import session
+from oslo_config import cfg
 from oslo_log import log as logging
 
 from tacker._i18n import _
+from tacker.common.exceptions import TackerException
 from tacker.keymgr import exception
 from tacker.keymgr import key_manager
 
@@ -56,6 +58,30 @@ class BarbicanKeyManager(key_manager.KeyManager):
 
         if self._barbican_client and self._current_context == context:
             return self._barbican_client
+
+        if cfg.CONF.ext_oauth2_auth.use_ext_oauth2_auth:
+            try:
+                barbican_endpoint = cfg.CONF.key_manager.barbican_endpoint
+                barbican_version = cfg.CONF.key_manager.barbican_version
+                if not barbican_endpoint:
+                    msg = _('The value is required for option %s in group '
+                            '[key_manager]') % 'barbican_endpoint'
+                    raise TackerException(msg)
+                sess = context.create_session()
+                self._barbican_endpoint = barbican_endpoint
+                if self._barbican_endpoint[-1] == '/':
+                    self._barbican_endpoint = self._barbican_endpoint[:-1]
+                self._barbican_client = barbican_client.Client(
+                    session=sess,
+                    endpoint=self._barbican_endpoint)
+                self._current_context = context
+                self._base_url = '%s/%s/' % (
+                    self._barbican_endpoint,
+                    barbican_version)
+                return self._barbican_client
+            except Exception as e:
+                LOG.error('Error creating Barbican client: %s', e)
+                raise exception.KeyManagerError(reason=e)
 
         try:
             auth = self._get_keystone_auth(context)
