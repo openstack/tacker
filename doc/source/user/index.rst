@@ -57,6 +57,7 @@ Use Case Guide
    legacy_use_case_guide
    oauth2_usage_guide
    oauth2_mtls_usage_guide
+   external_oauth2_usage_guide
    fault_notification_use_case_guide
    prometheus_plugin_use_case_guide
    db_migration_tool_usage_guide
