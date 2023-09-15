@@ -217,7 +217,32 @@ tacker.sol_refactored.common.monitoring_plugin_base.MonitoringPlugin.
     - ServerNotification
     - Class name for server notification.
 
+Error-handling
+--------------
+
+This chapter introduces how to perform error-handling if the LCM fails in
+the FaultNotification function.
+
+The LCM of the FaultNotification function will use MgmtDriver, so if the
+user wants to call MgmtDriver in the rollback operation of error-handling,
+the VNF Package needs to be modified in advance.
+
+For the specific modification method, please refer to
+`how to error-handling when using MgmtDriver`_.
+
+.. note::
+
+    After modifying the VNF Package, LCM can be performed normally. If the
+    LCM fails, the user can perform error-handling operations.
+
+    For details, please refer to the content of
+    `Retry VNF LCM Operation`_ and `Rollback VNF LCM Operation`_.
+
 References
 ==========
 
 .. [#fault_notification_apiref] https://docs.openstack.org/api-ref/nfv-orchestration/v2/fault_notification.html
+
+.. _how to error-handling when using MgmtDriver : https://docs.openstack.org/tacker/latest/user/etsi_vnf_error_handling.html#error-handling-of-mgmtdriver
+.. _Retry VNF LCM Operation : https://docs.openstack.org/tacker/latest/user/etsi_vnf_error_handling.html#retry-vnf-lcm-operation
+.. _Rollback VNF LCM Operation : https://docs.openstack.org/tacker/latest/user/etsi_vnf_error_handling.html#rollback-vnf-lcm-operation
