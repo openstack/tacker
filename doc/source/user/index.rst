@@ -24,11 +24,8 @@ Getting Started
 .. toctree::
    :maxdepth: 1
 
-   ../install/etsi_getting_started
-   ../install/legacy_getting_started
+   etsi_getting_started
 
-.. TODO(h-asahina): add `Getting started with ETSI NFV-SOL Tacker`
-  * https://etherpad.opendev.org/p/tacker-wallaby-revise-docs
 
 Overview
 --------
@@ -45,16 +42,10 @@ Overview
 Use Case Guide
 --------------
 
-.. warning::
-    Legacy Tacker features excluding VIM feature are deprecated
-    and will be removed in the first major release after the Tacker server
-    version 9.0.0 (2023.1 Antelope release).
-
 .. toctree::
    :maxdepth: 1
 
    etsi_use_case_guide
-   legacy_use_case_guide
    oauth2_usage_guide
    oauth2_mtls_usage_guide
    external_oauth2_usage_guide
@@ -62,3 +53,4 @@ Use Case Guide
    prometheus_plugin_use_case_guide
    db_migration_tool_usage_guide
    enhanced_tacker_policy_usage_guide
+   encrypt_vim_auth_with_barbican

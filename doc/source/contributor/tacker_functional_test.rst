@@ -92,12 +92,6 @@ Execution of testcase:
   tacker service and endpoint, creates "nfv_user" and "nfv" project,
   and registers default VIM with the created user and project.
 
-* Under tacker project dir, to prepare function test env via:
-
-.. code-block:: console
-
-  ./tools/prepare_functional_test.sh
-
 * From tacker directory, all function testcases can be executed using
   following commands:
 

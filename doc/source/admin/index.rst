@@ -24,54 +24,83 @@ The following list covers the commands for Tacker services available in
 These commands can be referenced by doing **openstack help** and the detail
 of individual command can be referred by **openstack help <command-name>**.
 
-.. warning::
-    Legacy commands excluding VIM feature are deprecated
-    and will be removed in the first major release after the Tacker server
-    version 9.0.0 (2023.1 Antelope release).
-
 .. code-block:: console
 
-   openstack vnf create                            Create a VNF.
-   openstack vnf delete                            Delete given VNF(s).
-   openstack vnf list                              List VNF(s) that belong to a given tenant.
-   openstack vnf resource list                     List resources of a VNF like VDU, CP, etc.
-   openstack vnf scale                             Scale a VNF.
-   openstack vnf show                              Show information of a given VNF.
-   openstack vnf set                               Update a given VNF.
-   openstack vnf descriptor create                 Create a VNFD.
-   openstack vnf descriptor delete                 Delete given VNFD(s).
-   openstack vnf descriptor list                   List VNFD(s) that belong to a given tenant.
-   openstack vnf descriptor show                   Show information of a given VNFD.
-   openstack vnf descriptor template show          Show template of a given VNFD.
-   openstack vim list                              List VIM(s) that belong to a given tenant.
-   openstack vim register                          Create a VIM.
-   openstack vim show                              Show information of a given VIM.
-   openstack vim set                               Update a given VIM.
-   openstack vim delete                            Delete given VIM(s).
-   openstack ns create                             Create a NS.
-   openstack ns delete                             Delete given NS(s).
-   openstack ns list                               List NS that belong to a given tenant.
-   openstack ns show                               Show information of a given NS.
-   openstack ns descriptor create                  Create a NSD.
-   openstack ns descriptor delete                  Delete a given NSD.
-   openstack ns descriptor list                    List NSD(s) that belong to a given tenant.
-   openstack ns descriptor show                    Show information of a given NSD.
-   openstack ns descriptor template show           Show template of a given NSD.
-   openstack vnf graph create                      Create a VNFFG.
-   openstack vnf graph delete                      Delete a given VNFFG.
-   openstack vnf graph list                        List VNFFG(s) that belong to a given tenant.
-   openstack vnf graph show                        Show information of a given VNFFG.
-   openstack vnf graph set                         Update a given VNFFG.
-   openstack vnf graph descriptor create           Create a VNFFGD.
-   openstack vnf graph descriptor delete           Delete a given VNFFGD.
-   openstack vnf graph descriptor list             List VNFFGD(s) that belong to a given tenant.
-   openstack vnf graph descriptor show             Show information of a given VNFFGD.
-   openstack vnf graph descriptor template show    Show template of a given VNFFGD.
-   openstack vnf chain list                        List SFC(s) that belong to a given tenant.
-   openstack vnf chain show                        Show information of a given SFC.
-   openstack vnf classifier list                   List FC(s) that belong to a given tenant.
-   openstack vnf classifier show                   Show information of a given FC.
-   openstack vnf network forwarding path list      List NFP(s) that belong to a given tenant.
-   openstack vnf network forwarding path show      Show information of a given NFP.
-   openstack nfv event show                        Show event given the event id.
-   openstack nfv event list                        List events of resources.
+  [legacy]
+   openstack vim delete                        Delete given VIM(s).
+   openstack vim list                          List VIM(s) in a given tenant.
+   openstack vim register                      Create a VIM.
+   openstack vim set                           Update a given VIM.
+   openstack vim show                          Show information of a given VIM.
+
+  [v1] --os-tacker-api-version 1
+   openstack vnf package artifact download     Download VNF package artifact.
+   openstack vnf package create                Create a new VNF Package.
+   openstack vnf package delete                Delete VNF Package.
+   openstack vnf package download              Download VNF package.
+   openstack vnf package list                  List VNF Packages.
+   openstack vnf package show                  Show VNF Package Details.
+   openstack vnf package update                Update a VNF package.
+   openstack vnf package upload                Upload VNF Package.
+   openstack vnflcm change-ext-conn            Change External VNF Connectivity.
+   openstack vnflcm create                     Create a new VNF Instance.
+   openstack vnflcm delete                     Delete VNF Instance(s).
+   openstack vnflcm heal                       Heal VNF Instance.
+   openstack vnflcm instantiate                Instantiate a VNF Instance.
+   openstack vnflcm list                       List VNF Instance.
+   openstack vnflcm op cancel                  Cancel VNF Instance.
+   openstack vnflcm op fail                    Fail VNF Instance.
+   openstack vnflcm op list                    List LCM Operation Occurrences.
+   openstack vnflcm op retry                   Retry VNF Instance.
+   openstack vnflcm op rollback                Rollback VNF Instance.
+   openstack vnflcm op show                    Display Operation Occurrence details.
+   openstack vnflcm scale                      Scale a VNF Instance.
+   openstack vnflcm show                       Display VNF instance details.
+   openstack vnflcm subsc create               Create a new Lccn Subscription.
+   openstack vnflcm subsc delete               Delete Lccn Subscription(s).
+   openstack vnflcm subsc list                 List Lccn Subscriptions.
+   openstack vnflcm subsc show                 Display Lccn Subscription details.
+   openstack vnflcm terminate                  Terminate a VNF instance.
+   openstack vnflcm update                     Update VNF Instance.
+   openstack vnflcm versions                   Show VnfLcm Api versions.
+
+  [v2] --os-tacker-api-version 2
+   openstack vnflcm change-ext-conn            Change External VNF Connectivity.
+   openstack vnflcm change-vnfpkg              Change Current VNF Package.
+   openstack vnflcm create                     Create a new VNF Instance.
+   openstack vnflcm delete                     Delete VNF Instance(s)
+   openstack vnflcm heal                       Heal VNF Instance
+   openstack vnflcm instantiate                Instantiate a VNF Instance.
+   openstack vnflcm list                       List VNF Instance.
+   openstack vnflcm op fail                    Fail VNF Instance.
+   openstack vnflcm op list                    List LCM Operation Occurrences.
+   openstack vnflcm op retry                   Retry VNF Instance.
+   openstack vnflcm op rollback                Rollback VNF Instance.
+   openstack vnflcm op show                    Display Operation Occurrence details.
+   openstack vnflcm scale                      Scale a VNF Instance.
+   openstack vnflcm show                       Display VNF instance details.
+   openstack vnflcm subsc create               Create a new Lccn Subscription.
+   openstack vnflcm subsc delete               Delete Lccn Subscription(s).
+   openstack vnflcm subsc list                 List Lccn Subscriptions.
+   openstack vnflcm subsc show                 Display Lccn Subscription details.
+   openstack vnflcm terminate                  Terminate a VNF instance.
+   openstack vnflcm update                     Update VNF Instance.
+   openstack vnflcm versions                   Show VnfLcm Api versions.
+   openstack vnffm alarm listn                 List VNF FM alarms.
+   openstack vnffm alarm show                  Display VNF FM alarm details.
+   openstack vnffm alarm update                Update a VNF FM alarm information.
+   openstack vnffm sub create                  Create a new VNF FM subscription.
+   openstack vnffm sub delete                  Delete VNF FM subscription(s).
+   openstack vnffm sub list                    List VNF FM subs.
+   openstack vnffm sub show                    Display VNF FM subscription details.
+   openstack vnfpm job create                  Create a new VNF PM job.
+   openstack vnfpm job delete                  Delete VNF PM job.
+   openstack vnfpm job list                    List VNF PM jobs.
+   openstack vnfpm job show                    Display VNF PM job details.
+   openstack vnfpm job update                  Update a VNF PM job information.
+   openstack vnfpm report show                 Display VNF PM report details.
+   openstack vnfpm threshold create            Create a new VNF PM threshold.
+   openstack vnfpm threshold delete            Delete VNF PM threshold.
+   openstack vnfpm threshold list              List VNF PM thresholds.
+   openstack vnfpm threshold show              Display VNF PM threshold details.
+   openstack vnfpm threshold update            Update a VNF PM threshold information.

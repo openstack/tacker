@@ -633,8 +633,8 @@ Please refer to the procedure in Section `Termination and Delete`_.
 
 .. _NFV-SOL001 v2.6.1 : https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/001/02.06.01_60/gs_NFV-SOL001v020601p.pdf
 .. _Ansible Installation Guide : https://docs.ansible.com/ansible/2.9/installation_guide/index.html
-.. _Create and Upload VNF Package : https://docs.openstack.org/tacker/latest/install/etsi_getting_started.html#create-and-upload-vnf-package
-.. _Create & Instantiate VNF : https://docs.openstack.org/tacker/latest/install/etsi_getting_started.html#create-instantiate-vnf
-.. _Termination and Delete : https://docs.openstack.org/tacker/latest/install/etsi_getting_started.html#terminate-delete-vnf
+.. _Create and Upload VNF Package : https://docs.openstack.org/tacker/latest/user/etsi_getting_started.html#create-and-upload-vnf-package
+.. _Create & Instantiate VNF : https://docs.openstack.org/tacker/latest/user/etsi_getting_started.html#create-instantiate-vnf
+.. _Termination and Delete : https://docs.openstack.org/tacker/latest/user/etsi_getting_started.html#terminate-delete-vnf
 .. _VNF Healing : https://docs.openstack.org/tacker/latest/user/etsi_vnf_healing.html
 .. _VNF Scaling : https://docs.openstack.org/tacker/latest/user/etsi_vnf_scaling.html

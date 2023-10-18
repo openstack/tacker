@@ -2,7 +2,7 @@
   - name: Copy tools/test-setup-fake-prometheus-server.sh
     copy:
        remote_src=True
-       src={{ devstack_base_dir }}/tacker/tools/test-setup-fake-prometheus-server.sh
+       src={{ devstack_base_dir }}/tacker/tacker/tests/functional/tools/test-setup-fake-prometheus-server.sh
        dest={{ zuul_work_dir }}/tools/test-setup-fake-prometheus-server.sh
        mode=0755
 
