@@ -4,32 +4,35 @@ Tacker Architecture
 
 Tacker design can be described by the following diagram:
 
-.. figure:: ../_images/tacker-design.png
+.. figure:: ../_images/tacker-design.svg
     :figwidth: 700 px
     :align: left
     :scale: 80 %
 
 Packages:
 
-* **python-tackerclient** - is the package for CLI and *REST API* calling.
 * **tacker** - is the main package for Tacker project.
 
 Components:
 
-* **tacker-client** - provides CLI and communication with Tacker via
-  *REST API*.
-
 * **server** - provides *REST API* and calls conductor via RPC.
-* **conductor** - implements all logics to operate VNF and call required
+* **tacker-conductor** - implements all logics to operate VNF and call required
   drivers providing interface to NFV infrastructures.
 
-* **infra-driver** - is responsible for exact actions to operate OpenStack or
-  Kubernetes resources.
+* **VnfPm/VnfFmController** - is responsible for exact actions
+  to configure of PM/FM.
+* **VnfLcmController** - is responsible for exact actions to
+  configure of LCM.
+* **PrometheusPlugin** - is responsible for exact actions to
+  configure Prometheus.
 
-* **vim-driver** - is responsible for registration of VIM.
-* **mgmt-driver** - is responsible for exact actions to configure VNFs.
-* **monitor-driver** - is responsible for exact actions to monitor VNFs.
-* **policy-driver** - is responsible for policy based VNF operations.
+* **VnfPm/VnfFmDriver** - is responsible for send notification to NFVO.
+* **VnfLcmDriver** - is responsible for exact action to
+  mgmt driver or infra driver.
+
+* **MgmtDriver** - is responsible for exact actions to configure VNFs.
+* **InfraDriver** - is responsible for exact actions to operate OpenStack or
+  Kubernates.
 
 Tacker Service
 --------------
