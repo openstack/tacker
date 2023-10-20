@@ -62,3 +62,9 @@ disable_service tempest
 [[post-config|/etc/neutron/dhcp_agent.ini]]
 [DEFAULT]
 enable_isolated_metadata = True
+
+# NOTE: workaround for Cinder image volume cache problem.
+# https://bugs.launchpad.net/cinder/+bug/1953704
+[[post-config|/etc/cinder/cinder.conf]]
+[lvmdriver-1]
+image_volume_cache_enabled = False

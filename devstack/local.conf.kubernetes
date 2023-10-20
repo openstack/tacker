@@ -84,3 +84,9 @@ enable_isolated_metadata = True
 [[post-config|$OCTAVIA_CONF]]
 [controller_worker]
 amp_active_retries=9999
+
+# NOTE: workaround for Cinder image volume cache problem.
+# https://bugs.launchpad.net/cinder/+bug/1953704
+[[post-config|/etc/cinder/cinder.conf]]
+[lvmdriver-1]
+image_volume_cache_enabled = False
