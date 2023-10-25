@@ -13,12 +13,21 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import functools
 import os
 import pickle
 import sys
 
 
-class SampleScript(object):
+class FailScript(object):
+    """Define error method for each operation
+
+    For example:
+
+    def instantiate_start(self):
+        if os.path.exists('/tmp/instantiate_start')
+            raise Exception('test instantiate_start error')
+    """
 
     def __init__(self, req, inst, grant_req, grant, csar_dir):
         self.req = req
@@ -27,17 +36,12 @@ class SampleScript(object):
         self.grant = grant
         self.csar_dir = csar_dir
 
-    def instantiate_start(self):
-        pass
+    def _fail(self, method):
+        if os.path.exists(f'/tmp/{method}'):
+            raise Exception(f'test {method} error')
 
-    def instantiate_end(self):
-        pass
-
-    def terminate_start(self):
-        pass
-
-    def terminate_end(self):
-        pass
+    def __getattr__(self, name):
+        return functools.partial(self._fail, name)
 
 
 def main():
@@ -50,11 +54,8 @@ def main():
     grant = script_dict['grant_response']
     csar_dir = script_dict['tmp_csar_dir']
 
-    script = SampleScript(req, inst, grant_req, grant, csar_dir)
-    try:
-        getattr(script, operation)()
-    except AttributeError:
-        raise Exception("{} is not included in the script.".format(operation))
+    script = FailScript(req, inst, grant_req, grant, csar_dir)
+    getattr(script, operation)()
 
 
 if __name__ == "__main__":
