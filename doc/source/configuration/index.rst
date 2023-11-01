@@ -47,6 +47,9 @@ permissions on REST API actions.
 * :doc:`Sample Policy File <sample_policy>`: A sample tacker
   policy file with inline documentation.
 
+* :doc:`Enhanced Tacker Policy <enhanced_policy>`: A document
+  describes how to use Enhanced Tacker Policy in Tacker.
+
 .. # NOTE(bhagyashris): This is the section where we hide things that we don't
    # actually want in the table of contents but sphinx build would fail if
    # they aren't in the toctree somewhere.
@@ -58,3 +61,4 @@ permissions on REST API actions.
    sample_policy
    config
    sample_config
+   enhanced_policy

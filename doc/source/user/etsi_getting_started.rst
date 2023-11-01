@@ -14,9 +14,9 @@
       License for the specific language governing permissions and limitations
       under the License.
 
-========================================
-Getting Started with ETSI NFV-SOL Tacker
-========================================
+==============================
+Getting Started with v1 Tacker
+==============================
 
 Summary
 -------

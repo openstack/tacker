@@ -6,7 +6,7 @@ Overview
 ~~~~~~~~
 
 This document describes about Prometheus Plugin that provides
-monitoring functions in combination with External Monitoring Tool
+monitoring functions in combination with External Monitoring Tool.
 
 The Prometheus Plugin has 5 functions:
 

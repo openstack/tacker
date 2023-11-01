@@ -1,6 +1,6 @@
-=============================
-ETSI NFV-SOL Tacker Use Cases
-=============================
+======================
+v1/v2 Tacker Use Cases
+======================
 
 
 VNF
@@ -106,6 +106,7 @@ VM
 
    etsi_vnf_change_current_vnf_package
    etsi_vnf_change_current_vnf_package_with_standard_user_data
+   coordinate_api_client_in_coordinatevnf_script
 
 Container
 ~~~~~~~~~
@@ -162,34 +163,37 @@ Container Update (v1/v2 API)
 
    mgmt_driver_for_container_update
 
-Sample Usage
-^^^^^^^^^^^^
-
-VM
-~~
+FaultNotification AutoHealing (v2 API)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. toctree::
    :maxdepth: 1
 
-   practical_sample_package_usage_guide
-   coordinate_api_client_in_coordinatevnf_script
+   fault_notification_use_case_guide
 
 Prometheus Plugin
 ^^^^^^^^^^^^^^^^^
 
-Auto Scaling
-~~~~~~~~~~~~
+.. toctree::
+   :maxdepth: 1
+
+   prometheus_plugin_use_case_guide
+
+Container
+~~~~~~~~~
 
 .. toctree::
    :maxdepth: 1
 
    etsi_cnf_auto_scaling_pm
    etsi_cnf_auto_scaling_pm_threshold
+   etsi_cnf_auto_healing_fm
 
-Auto Healing
-~~~~~~~~~~~~
+
+VNF Package
+___________
 
 .. toctree::
    :maxdepth: 1
 
-   etsi_cnf_auto_healing_fm
+   sample_package
