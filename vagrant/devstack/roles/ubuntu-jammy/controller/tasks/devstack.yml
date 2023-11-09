@@ -10,11 +10,12 @@
       repo=https://opendev.org/openstack/devstack.git
       dest={{ ansible_env.HOME }}/devstack
 
-- name: install os-testr
-  pip:
-      name: os-testr
-      state: latest
+- name: install required packages for openstack
+  become: yes
+  pip: name={{ item }}
+  with_items:
+    - os-testr
+    - tox
+    - netaddr
+    - pbr
 
-- name: install tox
-  pip:
-      name: tox

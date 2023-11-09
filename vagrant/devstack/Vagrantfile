@@ -23,16 +23,16 @@ machines = Machines.new(vd_config["machines"])
 # TODO(yasufum) Test libvirt's boxes can be deployed haven't been tested yet.
 supported_boxes = {
   "virtualbox" => {
-    "ubuntu" => ["bento/ubuntu-20.04", "bento/ubuntu-22.04", "ubuntu/focal64", "ubuntu/jammy64"],
+    "ubuntu" => ["bento/ubuntu-22.04", "generic/ubuntu2204"],
     "centos" => ["bento/centos-stream-8", "centos/stream8"]
   },
   #"libvirt" => {
-  #  "ubuntu" => ["generic/ubuntu2204", "generic/ubuntu2004"],
+  #  "ubuntu" => ["bento/ubuntu-22.04", "generic/ubuntu2204"],
   #  "centos" => ["generic/centos9s", "generic/centos8s"]
   #}
 }
 
-lvm_boxes = ["bento/ubuntu-20.04", "bento/ubuntu-22.04"]
+lvm_boxes = ["bento/ubuntu-22.04"]
 
 Vagrant.configure("2") do |config|
 

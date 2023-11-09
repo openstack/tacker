@@ -1,8 +1,0 @@
----
-- name: install extra packages
-  become: yes
-  apt: name={{ item }}
-  with_items:
-      - jq
-      - htop
-      - lnav
