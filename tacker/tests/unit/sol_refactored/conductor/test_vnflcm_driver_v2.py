@@ -378,7 +378,7 @@ _inst_info_example = {
             "id": "vnfc_res_info_id_VDU2",
             "vduId": "VDU2",
             "computeResource": {
-                # "vimConnectionId": omitted
+                "vimConnectionId": "vim1",
                 "resourceId": "res_id_VDU2",
                 "vimLevelResourceType": "OS::Nova::Server"
             },
@@ -419,7 +419,7 @@ _inst_info_example = {
             "id": "vnfc_res_info_id_VDU1_1",
             "vduId": "VDU1",
             "computeResource": {
-                # "vimConnectionId": omitted
+                "vimConnectionId": "vim1",
                 "resourceId": "res_id_VDU1_1",
                 "vimLevelResourceType": "OS::Nova::Server"
             },
@@ -456,7 +456,7 @@ _inst_info_example = {
             "id": "vnfc_res_info_id_VDU1_2",
             "vduId": "VDU1",
             "computeResource": {
-                # "vimConnectionId": omitted
+                "vimConnectionId": "vim1",
                 "resourceId": "res_id_VDU1_2",
                 "vimLevelResourceType": "OS::Nova::Server"
             },
@@ -494,7 +494,7 @@ _inst_info_example = {
             "id": "vnfc_res_no_cp_info",
             "vduId": "VDU1",
             "computeResource": {
-                # "vimConnectionId": omitted
+                "vimConnectionId": "vim1",
                 "resourceId": "res_id_VDU1_3",
                 "vimLevelResourceType": "OS::Nova::Server"
             }
@@ -621,6 +621,12 @@ _inst_info_example = {
             "id": "VDU1-vnfc_res_info_id_VDU1_2",
             "vduId": "VDU1",
             "vnfcResourceInfoId": "vnfc_res_info_id_VDU1_2",
+            "vnfcState": "STARTED"
+        },
+        {
+            "id": "VDU1-vnfc_res_no_cp_info",
+            "vduId": "VDU1",
+            "vnfcResourceInfoId": "vnfc_res_no_cp_info",
             "vnfcState": "STARTED"
         }
     ]
@@ -1095,6 +1101,16 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
         for def_id in vdu_def_ids:
             expected_placement_constraints[0]['resource'].append(
                 {'idType': 'GRANT', 'resourceId': def_id})
+        expected_placement_constraints[0]['resource'].extend([
+            {'idType': 'RES_MGMT', 'resourceId': 'res_id_VDU2',
+             'vimConnectionId': 'vim1'},
+            {'idType': 'RES_MGMT', 'resourceId': 'res_id_VDU1_1',
+             'vimConnectionId': 'vim1'},
+            {'idType': 'RES_MGMT', 'resourceId': 'res_id_VDU1_2',
+             'vimConnectionId': 'vim1'},
+            {'idType': 'RES_MGMT', 'resourceId': 'res_id_VDU1_3',
+             'vimConnectionId': 'vim1'}
+        ])
         self.assertEqual(expected_placement_constraints,
                          grant_req['placementConstraints'])
 
