@@ -1,0 +1,8 @@
+auth_url: 'http://192.168.56.10/identity'
+username: "nfv_user"
+password: "devstack"
+project_name: "nfv"
+domain_name: "default"
+project_domain_name: "default"
+user_domain_name: "default"
+cert_verify: "False"

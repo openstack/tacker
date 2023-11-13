@@ -1,0 +1,114 @@
+{
+    "flavourId": "simple",
+    "instantiationLevelId": "instantiation_level_1",
+    "extVirtualLinks": [
+      {
+        "id": "ext_vl_id_net1",
+        "resourceId": "0cefe3d4-6729-41c5-bd39-277fd9ece3d3",
+        "extCps": [
+          {
+            "cpdId": "VDU1_CP1",
+            "cpConfig": {
+              "VDU1_CP1_1": {
+                "cpProtocolData": [
+                  {
+                    "layerProtocol": "IP_OVER_ETHERNET",
+                    "ipOverEthernet": {
+                      "ipAddresses": [
+                        {
+                          "type": "IPV4",
+                          "numDynamicAddresses": 1
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "cpdId": "VDU2_CP1",
+            "cpConfig": {
+              "VDU2_CP1_1": {
+                "cpProtocolData": [
+                  {
+                    "layerProtocol": "IP_OVER_ETHERNET",
+                    "ipOverEthernet": {
+                      "ipAddresses": [
+                        {
+                          "type": "IPV4",
+                          "numDynamicAddresses": 1,
+                          "subnetId": "f2ca4370-8b4b-4c2a-8c0a-4994d3da556d"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "cpdId": "VDU3_CP1",
+            "cpConfig": {
+              "VDU3_CP1_1": {
+                "cpProtocolData": [
+                  {
+                    "layerProtocol": "IP_OVER_ETHERNET",
+                    "ipOverEthernet": {
+                      "ipAddresses": [
+                        {
+                          "type": "IPV4",
+                          "numDynamicAddresses": 1
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "extManagedVirtualLinks": [
+      {
+        "id": "ext_managed_vl_1",
+        "vnfVirtualLinkDescId": "internalVL1",
+        "resourceId": "87512249-79b9-4e25-b173-18c327436c12"
+      }
+    ],
+    "vimConnectionInfo": {
+      "vim1": {
+        "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3",
+        "vimId": "3a2904a7-094a-4b26-8ddf-8b38c2efda9b",
+        "interfaceInfo": {
+          "endpoint": "http://localhost/identity/v3"
+        },
+        "accessInfo": {
+          "username": "nfv_user",
+          "region": "RegionOne",
+          "password": "devstack",
+          "project": "nfv",
+          "projectDomain": "Default",
+          "userDomain": "Default"
+        }
+      }
+    },
+    "additionalParams": {
+      "lcm-operation-user-data": "./UserData/userdata_standard.py",
+      "lcm-operation-user-data-class": "StandardUserData",
+      "nfv": {
+        "VDU": {
+          "VDU1-0": {
+            "name": "VDU1-a-001-instantiate"
+          },
+          "VDU1-1": {
+            "name": "VDU1-a-010-instantiate"
+          },
+          "VDU1-2": {
+            "name": "VDU1-a-011-instantiate"
+          }
+        }
+      }
+    }
+  }

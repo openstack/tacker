@@ -1,0 +1,4 @@
+TOSCA-Meta-File-Version: 1.0
+Created-by: Dummy User
+CSAR-Version: 1.1
+Entry-Definitions: Definitions/sample_vnfd_top.yaml

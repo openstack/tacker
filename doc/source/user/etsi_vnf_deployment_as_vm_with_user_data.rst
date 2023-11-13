@@ -3,14 +3,24 @@ ETSI NFV-SOL VNF Deployment as VM with LCM Operation User Data
 ==============================================================
 
 This document describes how to deploy VNF as VM with
-LCM operation user data in Tacker using CLI commands.
+LCM operation user data in Tacker v1 API using CLI commands.
 Please check `LCM-user-data spec`_ and `NFV-SOL014 v2.8.1`_
 for more information on LCM operation user data.
 
 .. note::
-       Most of the content is the same as :doc:`./etsi_vnf_deployment_as_vm_with_tosca`,
-       but some have 'LCM operation user data' specific descriptions.
-       The part will be clarified with the notation [This is UserData specific part].
+
+  This is a document for Tacker v1 API.
+  See :doc:`/user/v2/vnf/deployment_with_user_data/index`
+  for Tacker v2 API.
+
+
+.. note::
+
+  Most of the content is the same as
+  :doc:`/user/etsi_vnf_deployment_as_vm_with_tosca`,
+  but some have 'LCM operation user data' specific descriptions.
+  The part will be clarified with the notation [This is UserData specific part].
+
 
 Overview
 --------
@@ -20,9 +30,10 @@ The diagram below shows an overview of the VNF deployment.
 1. Request create VNF
 
    A user requests tacker-server to create a VNF with tacker-client by
-   uploading a VNF Package and requesting ``create VNF``.  The VNF Package
-   should contain ``BaseHOT`` and ``UserData`` in addition to ``VNFD``.  The
-   detailed explanation of these contents can be found in :doc:`./vnf-package`.
+   uploading a VNF Package and requesting ``create VNF``. The VNF Package
+   should contain ``BaseHOT`` and ``UserData`` in addition to ``VNFD``.
+   The detailed explanation of these contents can be found in
+   :doc:`/user/vnf-package`.
 
 2. Request instantiate VNF
 
@@ -34,15 +45,15 @@ The diagram below shows an overview of the VNF deployment.
    Upon receiving a request, tacker-server redirects it to tacker-conductor.
    In tacker-conductor, the request is redirected again to an appropriate
    infra-driver (in this case OpenStack infra-driver) according to the contents
-   of the instantiate parameters.  Then, OpenStack infra-driver calls OpenStack
+   of the instantiate parameters. Then, OpenStack infra-driver calls OpenStack
    Heat APIs to create a VM as a VNF.
 
 4. Create a VM
 
    OpenStack Heat creates a VM according to the API calls.
 
-.. figure:: ../_images/etsi_vnf_deployment_as_vm_with_user_data.png
-    :align: left
+.. figure:: /_images/etsi_vnf_deployment_as_vm_with_user_data.png
+
 
 Prerequisites
 -------------
@@ -53,16 +64,18 @@ The following packages should be installed:
 * python-tackerclient
 
 A default VIM should be registered according to
-:doc:`../cli/cli-legacy-vim`.
+:doc:`/cli/cli-legacy-vim`.
 
 
-The VNF Package(sample_vnf_pkg.zip) used below is prepared
-by referring to :doc:`./vnf-package`.
+The VNF Package(sample_vnf_package_csar.zip) used below is prepared
+by referring to :doc:`/user/vnf-package`.
 
-.. note:: [This is UserData specific part]
-          In order to deploy VNF using LCM operation user data,
-          it is necessary to include BaseHOT and UserData in the VNF Package,
-          which are optional in :doc:`./vnf-package`.
+.. note::
+
+  [This is UserData specific part]
+  In order to deploy VNF using LCM operation user data,
+  it is necessary to include BaseHOT and UserData in the VNF Package,
+  which are optional in :doc:`/user/vnf-package`.
 
 
 VNF Deployment Procedure as VM
@@ -71,28 +84,29 @@ VNF Deployment Procedure as VM
 In order to deploy VNF as a VM, it is necessary to execute
 the following procedure.
 Details of CLI commands are described in
-:doc:`../cli/cli-etsi-vnfpkgm` and :doc:`../cli/cli-etsi-vnflcm`.
+:doc:`/cli/cli-etsi-vnfpkgm` and :doc:`/cli/cli-etsi-vnflcm`.
 
-Many procedures are the same as :doc:`./etsi_vnf_deployment_as_vm_with_tosca`,
+Many procedures are the same as
+:doc:`/user/etsi_vnf_deployment_as_vm_with_tosca`,
 so refer to the doc for those procedures.
 
 
 1. Create VNF Package Info
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-See procedure in :doc:`./etsi_vnf_deployment_as_vm_with_tosca`.
+See procedure in :doc:`/user/etsi_vnf_deployment_as_vm_with_tosca`.
 
 
 2. Upload VNF Package
 ^^^^^^^^^^^^^^^^^^^^^
 
-See procedure in :doc:`./etsi_vnf_deployment_as_vm_with_tosca`.
+See procedure in :doc:`/user/etsi_vnf_deployment_as_vm_with_tosca`.
 
 
 3. Create VNF Identifier
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-See procedure in :doc:`./etsi_vnf_deployment_as_vm_with_tosca`.
+See procedure in :doc:`/user/etsi_vnf_deployment_as_vm_with_tosca`.
 
 
 4. Instantiate VNF
@@ -108,18 +122,21 @@ Required parameter:
 * additionalParams
 
 .. note::
-       Details of flavourId is described in :doc:`./vnfd-sol001`.
+
+  Details of flavourId is described in :doc:`/user/vnfd-sol001`.
 
 .. note::
-       [This is UserData specific part]
-       additionalParams is a parameter that can be described by KeyValuePairs.
-       By setting the following two parameters in this parameter,
-       instantiate using LCM operation user data becomes possible.
-       For file_name.py and class_name, set the file name and class name
-       described in Prerequisites.
 
-       * lcm-operation-user-data: ./UserData/file_name.py
-       * lcm-operation-user-data-class: class_name
+  [This is UserData specific part]
+  additionalParams is a parameter that can be described by KeyValuePairs.
+  By setting the following two parameters in this parameter,
+  instantiate using LCM operation user data becomes possible.
+  For file_name.py and class_name, set the file name and class name
+  described in Prerequisites.
+
+  * lcm-operation-user-data: ./UserData/file_name.py
+  * lcm-operation-user-data-class: class_name
+
 
 Optional parameters:
 
@@ -129,17 +146,21 @@ Optional parameters:
 * vimConnectionInfo
 
 .. note::
-      You can skip ``vimConnectionInfo`` only when you have
-      the default VIM described in :doc:`../cli/cli-legacy-vim`.
+
+  You can skip ``vimConnectionInfo`` only when you have
+  the default VIM described in :doc:`/cli/cli-legacy-vim`.
+
 
 .. note::
-      This operation can specify the ``vimConnectionInfo``
-      for the VNF instance.
-      Even if this operation specify multiple ``vimConnectionInfo``
-      associated with one VNF instance, only one of them will be used for
-      life cycle management operations.
 
-Param file with only required parameters:
+  This operation can specify the ``vimConnectionInfo``
+  for the VNF instance.
+  Even if this operation specify multiple ``vimConnectionInfo``
+  associated with one VNF instance, only one of them will be used for
+  life cycle management operations.
+
+
+An example of a param file with only required parameters:
 
 .. code-block:: console
 
@@ -151,7 +172,8 @@ Param file with only required parameters:
     }
   }
 
-Param file with optional parameters:
+
+An example of a param file with optional parameters:
 
 .. code-block:: console
 
@@ -203,19 +225,24 @@ Param file with optional parameters:
   }
 
 
+samlple_param_file.json used in this document is below.
+
+.. literalinclude:: ../../../samples/etsi_getting_started/userdata/lcm_instantiate_request/sample_param_file.json
+         :language: json
+
+
 Execute the following CLI command to instantiate the VNF instance.
 
 .. code-block:: console
 
-  $ openstack vnflcm instantiate VNF_INSTANCE_ID \
-       ./sample_param_file.json
+  $ openstack vnflcm instantiate VNF_INSTANCE_ID ./sample_param_file.json
 
 
 Result:
 
 .. code-block:: console
 
-  Instantiate request for VNF Instance 725f625e-f6b7-4bcd-b1b7-7184039fde45 has been accepted.
+  Instantiate request for VNF Instance 810d8c9b-e467-4b06-9265-ac9dce015fce has been accepted.
 
 
 After that, execute the following CLI command and confirm that
@@ -225,8 +252,7 @@ VNF instance instantiation was successful.
 
 .. code-block:: console
 
-  $ openstack vnflcm show VNF_INSTANCE_ID \
-      -c 'Instantiation State'
+  $ openstack vnflcm show VNF_INSTANCE_ID -c 'Instantiation State'
 
 
 Result:
@@ -243,14 +269,14 @@ Result:
 5. Terminate VNF
 ^^^^^^^^^^^^^^^^
 
-See procedure in :doc:`./etsi_vnf_deployment_as_vm_with_tosca`.
+See procedure in :doc:`/user/etsi_vnf_deployment_as_vm_with_tosca`.
 
 
 6. Delete VNF Identifier
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-See procedure in :doc:`./etsi_vnf_deployment_as_vm_with_tosca`.
+See procedure in :doc:`/user/etsi_vnf_deployment_as_vm_with_tosca`.
+
 
 .. _LCM-user-data spec : https://specs.openstack.org/openstack/tacker-specs/specs/ussuri/lcm-operation-with-lcm-operation-user-data.html
 .. _NFV-SOL014 v2.8.1 : https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/014/02.08.01_60/gs_NFV-SOL014v020801p.pdf
-

@@ -1,0 +1,64 @@
+{
+  "vnfdId": "3e7c1be1-ec09-4288-bbf6-e2af08086b61",
+  "additionalParams": {
+    "upgrade_type": "RollingUpdate",
+    "lcm-operation-coordinate-old-vnf": "./Scripts/coordinate_old_vnf.py",
+    "lcm-operation-coordinate-new-vnf": "./Scripts/coordinate_new_vnf.py",
+    "vdu_params": [
+      {
+        "vdu_id": "VDU1",
+        "old_vnfc_param": {
+          "cp_name": "VDU1_CP1",
+          "username": "ubuntu",
+          "password": "ubuntu"
+        },
+        "new_vnfc_param": {
+          "cp_name": "VDU1_CP1",
+          "username": "ubuntu",
+          "password": "ubuntu"
+        }
+      },
+      {
+        "vdu_id": "VDU2",
+        "old_vnfc_param": {
+          "cp_name": "VDU2_CP1",
+          "username": "ubuntu",
+          "password": "ubuntu"
+        },
+        "new_vnfc_param": {
+          "cp_name": "VDU2_CP1",
+          "username": "ubuntu",
+          "password": "ubuntu"
+        }
+      }
+    ]
+  },
+  "extVirtualLinks": [
+    {
+      "id": "9b319831-f6e2-4027-be42-170b2effd3dd",
+      "resourceId": "0cefe3d4-6729-41c5-bd39-277fd9ece3d3",
+      "extCps": [
+        {
+          "cpdId": "VDU1_CP1",
+          "cpConfig": {
+            "VDU1_CP1_1": {
+              "cpProtocolData": [
+                {
+                  "layerProtocol": "IP_OVER_ETHERNET",
+                  "ipOverEthernet": {
+                    "ipAddresses": [
+                      {
+                        "type": "IPV4",
+                        "numDynamicAddresses": 1
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

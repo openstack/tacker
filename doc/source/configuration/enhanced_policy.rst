@@ -14,6 +14,7 @@ on user and VNF information for API resources.
 
 This document describes how to use Enhanced Tacker Policy in Tacker.
 
+
 Introduction to enhanced tacker attributes
 ------------------------------------------
 
@@ -28,6 +29,7 @@ area, vendor, and tenant.
 * tenant: Tenant attribute is the name of the tenant. This attribute describes
   the namespace of CNF, and the project name of VNF.
 
+
 Enable Enhanced Tacker Policy
 -----------------------------
 
@@ -38,16 +40,17 @@ yourself.
 
 .. code-block:: console
 
-    $ vi /etc/tacker/tacker.conf
-    ...
-    [oslo_policy]
-    enhanced_tacker_policy = True
-    ...
+  $ vi /etc/tacker/tacker.conf
+  ...
+  [oslo_policy]
+  enhanced_tacker_policy = True
+  ...
+
 
 Configure Enhanced Policy Rules
 -------------------------------
 
-The oslo.policy [#oslo.policy]_ supports the function to compare API attributes
+The `oslo.policy`_ supports the function to compare API attributes
 to object attributes.
 Based on this function, Enhanced Tacker Policy function currently supports
 three enhanced tacker attributes: area, vendor, and tenant.
@@ -58,6 +61,7 @@ three enhanced tacker attributes: area, vendor, and tenant.
   "os_nfv_orchestration_api:vnf_packages:show" : "vendor:%(vendor)s"
   "os_nfv_orchestration_api:vnf_instances:show" : "tenant:%(tenant)s"
 
+
 Take the area attribute as an example, the area string before the colon is an
 API attribute, namely the area of the API user. It is compared with the area of
 the object (in this case, a VNF instance). More precisely, it is compared with
@@ -66,6 +70,7 @@ permission is granted.
 
 For the policy rule configuration used in this usage guide, please refer to the
 `Sample policy.yaml file`_ chapter in the Appendix.
+
 
 Create user with special roles
 ------------------------------
@@ -76,6 +81,7 @@ role of ``VENDOR_company-a`` has permission to access resources whose vendor
 attribute is ``company-a``. This is because in implementation, Tacker will
 convert special roles into user attributes according to the following
 conversion rules for attribute comparison.
+
 
 Special Roles' Naming Rules
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -116,6 +122,7 @@ attributes.
       As "all" is treated as a special value, the above attribute of resource
       cannot use "all" as the attribute value.
 
+
 Conversion rules
 ~~~~~~~~~~~~~~~~
 
@@ -143,6 +150,7 @@ following rules:
         - tenant
         - TENANT_default -> {"tenant": ["default"]}
 
+
 #.  For special value in Enhanced Tacker Policy, the corresponding attribute
     value of resource will be assigned to user.
 
@@ -167,11 +175,13 @@ following rules:
 
             {"area": "tokyo@japan"} -> {"area": ["tokyo@japan"]}
 
+
           different region value:
 
           .. code-block:: console
 
             any -> {"area": []}
+
 
       * - VENDOR
         - vendor
@@ -182,6 +192,7 @@ following rules:
         - all
         - {"tenant": "default"} -> {"tenant": ["default"]}
 
+
 Create users with special roles
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -190,6 +201,7 @@ In this user guide, user creates three end-users with admin user:
 * ``user-a`` with special roles is used as the experimental group.
 * ``user-b`` without special roles is used as the control group.
 * ``user-manager`` with special roles and ``manager`` role as manager.
+
 
 Create users
 ^^^^^^^^^^^^
@@ -202,14 +214,15 @@ Create users
     +---------------------+----------------------------------+
     | Field               | Value                            |
     +---------------------+----------------------------------+
-    | default_project_id  | 4cdc4e2efe144f87812677cfe224fffb |
+    | default_project_id  | ebbc6cf1a03d49918c8e408535d87268 |
     | domain_id           | default                          |
     | enabled             | True                             |
-    | id                  | 57dacae03a1a41eeb0eacf481863697a |
+    | id                  | e0c0212d3a21473da9a9828bb73000fe |
     | name                | user-a                           |
     | options             | {}                               |
     | password_expires_at | None                             |
     +---------------------+----------------------------------+
+
 
 #. Create the ``user-b`` user:
 
@@ -219,14 +232,15 @@ Create users
     +---------------------+----------------------------------+
     | Field               | Value                            |
     +---------------------+----------------------------------+
-    | default_project_id  | 4cdc4e2efe144f87812677cfe224fffb |
+    | default_project_id  | ebbc6cf1a03d49918c8e408535d87268 |
     | domain_id           | default                          |
     | enabled             | True                             |
-    | id                  | 3ce9d137090943e1a006392274d92f8a |
+    | id                  | d08df8befcfb4d0eb8acd3a88aa62641 |
     | name                | user-b                           |
     | options             | {}                               |
     | password_expires_at | None                             |
     +---------------------+----------------------------------+
+
 
 #. Create the ``user-manager`` user:
 
@@ -236,14 +250,15 @@ Create users
     +---------------------+----------------------------------+
     | Field               | Value                            |
     +---------------------+----------------------------------+
-    | default_project_id  | 4cdc4e2efe144f87812677cfe224fffb |
+    | default_project_id  | ebbc6cf1a03d49918c8e408535d87268 |
     | domain_id           | default                          |
     | enabled             | True                             |
-    | id                  | 53f085076d9d4324bbe8498d92aa5292 |
+    | id                  | ccc5c486a6504918b776a2de8f34deb9 |
     | name                | user-manager                     |
     | options             | {}                               |
     | password_expires_at | None                             |
     +---------------------+----------------------------------+
+
 
 Create roles
 ^^^^^^^^^^^^
@@ -258,10 +273,11 @@ Create roles
     +-------------+----------------------------------+
     | description | None                             |
     | domain_id   | None                             |
-    | id          | b059c62190b34877a9e6f649108161e7 |
+    | id          | 81bd97ee20ef420482b34669cbffe9fd |
     | name        | AREA_tokyo@japan                 |
     | options     | {}                               |
     +-------------+----------------------------------+
+
 
 #. Create the ``AREA_all@all`` role:
 
@@ -273,10 +289,11 @@ Create roles
     +-------------+----------------------------------+
     | description | None                             |
     | domain_id   | None                             |
-    | id          | b7c1f766a0884064aac130807844d429 |
+    | id          | 9cbb968d907a4dab8be1af081a9a15fa |
     | name        | AREA_all@all                     |
     | options     | {}                               |
     +-------------+----------------------------------+
+
 
 #. Create the ``VENDOR_company-a`` role:
 
@@ -288,10 +305,11 @@ Create roles
     +-------------+----------------------------------+
     | description | None                             |
     | domain_id   | None                             |
-    | id          | 9bdacbbb96c14a849e4e0e86cd627845 |
+    | id          | b4fabd4bed784f60a8b07bd5f3a91a4a |
     | name        | VENDOR_company-a                 |
     | options     | {}                               |
     +-------------+----------------------------------+
+
 
 #. Create the ``VENDOR_all`` role:
 
@@ -303,10 +321,11 @@ Create roles
     +-------------+----------------------------------+
     | description | None                             |
     | domain_id   | None                             |
-    | id          | 28f0bb8a07bb44c3973e2922c8380ef2 |
+    | id          | aa9fe93854724cd7880d3974dd0e89ef |
     | name        | VENDOR_all                       |
     | options     | {}                               |
     +-------------+----------------------------------+
+
 
 #. Create the ``TENANT_tenant-a`` role:
 
@@ -318,10 +337,11 @@ Create roles
     +-------------+----------------------------------+
     | description | None                             |
     | domain_id   | None                             |
-    | id          | cb98edb048ad49399701d4397708f397 |
+    | id          | e6535546ea42472eb923300617532ad1 |
     | name        | TENANT_tenant-a                  |
     | options     | {}                               |
     +-------------+----------------------------------+
+
 
 #. Create the ``TENANT_all`` role:
 
@@ -333,10 +353,11 @@ Create roles
     +-------------+----------------------------------+
     | description | None                             |
     | domain_id   | None                             |
-    | id          | b2ab9d7eec8c4b978417aff45206a7e0 |
+    | id          | d420e279711d49fb8a2f211d816507ec |
     | name        | TENANT_all                       |
     | options     | {}                               |
     +-------------+----------------------------------+
+
 
 #. Create the ``manager`` role:
 
@@ -353,6 +374,15 @@ Create roles
     | options     | {}                               |
     +-------------+----------------------------------+
 
+
+   .. note::
+
+     In versions 2023.2 and later, the manager role is created by default
+     on the keystone side.
+     If it has already been created, there is no need to create it
+     manually.
+
+
 Assign roles to user-project pairs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -364,6 +394,7 @@ Assign roles to user-project pairs
     $ openstack role add --user user-a --project nfv AREA_tokyo@japan
     $ openstack role add --user user-a --project nfv VENDOR_company-a
     $ openstack role add --user user-a --project nfv TENANT_tenant-a
+
 
    Verify the role assignment of ``user-a``:
 
@@ -378,11 +409,13 @@ Assign roles to user-project pairs
     | TENANT_tenant-a  | user-a@Default |       | nfv@Default |        |        | False     |
     +------------------+----------------+-------+-------------+--------+--------+-----------+
 
+
 #. Assign reader to ``user-b``:
 
    .. code-block:: console
 
     $ openstack role add --user user-b --project nfv reader
+
 
    Verify the role assignment of ``user-b``:
 
@@ -395,8 +428,9 @@ Assign roles to user-project pairs
     | reader | user-b@Default |       | nfv@Default |        |        | False     |
     +--------+----------------+-------+-------------+--------+--------+-----------+
 
-#. Assign ``AREA_all@all``, ``VENDOR_all`` and ``TENANT_all`` to
-   ``user-manager``:
+
+#. Assign ``AREA_all@all``, ``VENDOR_all``, ``TENANT_all`` and
+   ``manager`` to ``user-manager``:
 
    .. code-block:: console
 
@@ -404,6 +438,7 @@ Assign roles to user-project pairs
     $ openstack role add --user user-manager --project nfv VENDOR_all
     $ openstack role add --user user-manager --project nfv TENANT_all
     $ openstack role add --user user-manager --project nfv manager
+
 
    Verify the role assignment of ``user-manager``:
 
@@ -419,26 +454,30 @@ Assign roles to user-project pairs
     | manager       | user-manager@Default |       | nfv@Default |        |        | False     |
     +---------------+----------------------+-------+-------------+--------+--------+-----------+
 
+
 Create resources with enhanced tacker attributes
 ------------------------------------------------
 
 This section describes how to create resources with enhanced tacker
 attributes, using examples.
 
+
 Register vim with area attribute
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 When registering a vim, users can specify area attribute for the vim. This is
 achieved by putting the area attribute into the extra field of the vim
-configuration file. Please refer to VIM Management [#VIM_Management]_ for how
+configuration file. Please refer to :doc:`/cli/cli-legacy-vim` for how
 to register a vim.
 And the project_name of the vim configuration file is used as tenant attribute
 of instantiated VNF.
 
 .. warning::
-    It is highly recommended that users who performs the VIM registration is
-    isolated from users who call VNF LCM APIs. Otherwise, users can ignore
-    area attribute if VIM by overwriting.
+
+  It is highly recommended that users who performs the VIM registration is
+  isolated from users who call VNF LCM APIs. Otherwise, users can ignore
+  area attribute if VIM by overwriting.
+
 
 #. Register an OpenStack VIM with area attribute ``tokyo@japan``.
 
@@ -446,7 +485,7 @@ of instantiated VNF.
 
    .. code-block:: yaml
 
-    auth_url: 'http://192.168.10.115/identity/v3'
+    auth_url: 'http://192.168.56.10/identity/v3'
     username: 'vim-user'
     password: 'devstack'
     project_name: 'tenant-a'
@@ -456,10 +495,12 @@ of instantiated VNF.
     extra:
         area: tokyo@japan
 
+
    .. note::
 
     The project and VIM user which specified in the vim configuration file must
     be created previously and assign the member role to VIM user.
+
 
     .. code-block:: console
 
@@ -467,49 +508,50 @@ of instantiated VNF.
      $ openstack user create --project tenant-a --password devstack vim-user
      $ openstack role add --user vim-user --project tenant-a member
 
+
    Register OpenStack VIM:
 
    .. code-block:: console
 
     $ openstack vim register --config-file ./vim_config.yaml \
-        --description 'openstack vim in nfv' \
-        openstack-tokyo@japan
-    +----------------+------------------------------------------------------+
-    | Field          | Value                                                |
-    +----------------+------------------------------------------------------+
-    | auth_cred      | {                                                    |
-    |                |     "username": "vim-user",                          |
-    |                |     "user_domain_name": "default",                   |
-    |                |     "cert_verify": "True",                           |
-    |                |     "project_id": null,                              |
-    |                |     "project_name": "tenant-a"                       |
-    |                |     "project_domain_name": "default",                |
-    |                |     "auth_url": "http://192.168.10.115/identity/v3", |
-    |                |     "key_type": "barbican_key",                      |
-    |                |     "secret_uuid": "***",                            |
-    |                |     "password": "***"                                |
-    |                | }                                                    |
-    | auth_url       | http://192.168.10.115/identity/v3                    |
-    | created_at     | 2023-02-14 07:05:26.234729                           |
-    | description    | openstack vim in nfv                                 |
-    | extra          | area=tokyo@japan                                     |
-    | id             | 95f633de-d2d1-4d90-90f7-0f3839369ff2                 |
-    | is_default     | False                                                |
-    | name           | openstack-tokyo@japan                                |
-    | placement_attr | {                                                    |
-    |                |     "regions": [                                     |
-    |                |         "RegionOne"                                  |
-    |                |     ]                                                |
-    |                | }                                                    |
-    | project_id     | 4cdc4e2efe144f87812677cfe224fffb                     |
-    | status         | PENDING                                              |
-    | type           | openstack                                            |
-    | updated_at     | None                                                 |
-    | vim_project    | {                                                    |
-    |                |     "name": "tenant-a",                              |
-    |                |     "project_domain_name": "default"                 |
-    |                | }                                                    |
-    +----------------+------------------------------------------------------+
+      --description 'openstack vim in nfv' openstack-tokyo@japan
+    +----------------+-----------------------------------------------------+
+    | Field          | Value                                               |
+    +----------------+-----------------------------------------------------+
+    | auth_cred      | {                                                   |
+    |                |     "username": "vim-user",                         |
+    |                |     "user_domain_name": "default",                  |
+    |                |     "cert_verify": "True",                          |
+    |                |     "project_id": null,                             |
+    |                |     "project_name": "tenant-a",                     |
+    |                |     "project_domain_name": "default",               |
+    |                |     "auth_url": "http://192.168.56.10/identity/v3", |
+    |                |     "key_type": "barbican_key",                     |
+    |                |     "secret_uuid": "***",                           |
+    |                |     "password": "***"                               |
+    |                | }                                                   |
+    | auth_url       | http://192.168.56.10/identity/v3                    |
+    | created_at     | 2023-12-12 06:49:16.994225                          |
+    | description    | openstack vim in nfv                                |
+    | extra          | area=tokyo@japan                                    |
+    | id             | b266493d-1782-4b4e-9c92-65b0946fe81c                |
+    | is_default     | False                                               |
+    | name           | openstack-tokyo@japan                               |
+    | placement_attr | {                                                   |
+    |                |     "regions": [                                    |
+    |                |         "RegionOne"                                 |
+    |                |     ]                                               |
+    |                | }                                                   |
+    | project_id     | ebbc6cf1a03d49918c8e408535d87268                    |
+    | status         | ACTIVE                                              |
+    | type           | openstack                                           |
+    | updated_at     | None                                                |
+    | vim_project    | {                                                   |
+    |                |     "name": "tenant-a",                             |
+    |                |     "project_domain_name": "default"                |
+    |                | }                                                   |
+    +----------------+-----------------------------------------------------+
+
 
 #. Register a OpenStack VIM with area attribute ``osaka@japan``.
 
@@ -517,7 +559,7 @@ of instantiated VNF.
 
    .. code-block:: yaml
 
-    auth_url: 'http://192.168.10.115/identity/v3'
+    auth_url: 'http://192.168.56.10/identity/v3'
     username: 'vim-user'
     password: 'devstack'
     project_name: 'tenant-a'
@@ -527,49 +569,50 @@ of instantiated VNF.
     extra:
         area: osaka@japan
 
+
    Register OpenStack VIM:
 
    .. code-block:: console
 
     $ openstack vim register --config-file ./vim_config.yaml \
-        --description 'openstack vim in nfv' \
-        openstack-osaka@japan
-    +----------------+------------------------------------------------------+
-    | Field          | Value                                                |
-    +----------------+------------------------------------------------------+
-    | auth_cred      | {                                                    |
-    |                |     "username": "vim-user",                          |
-    |                |     "user_domain_name": "default",                   |
-    |                |     "cert_verify": "True",                           |
-    |                |     "project_id": null,                              |
-    |                |     "project_name": "tenant-a",                      |
-    |                |     "project_domain_name": "default",                |
-    |                |     "auth_url": "http://192.168.10.115/identity/v3", |
-    |                |     "key_type": "barbican_key",                      |
-    |                |     "secret_uuid": "***",                            |
-    |                |     "password": "***"                                |
-    |                | }                                                    |
-    | auth_url       | http://192.168.10.115/identity/v3                    |
-    | created_at     | 2023-02-14 07:07:36.934208                           |
-    | description    | openstack vim in nfv                                 |
-    | extra          | area=osaka@japan                                     |
-    | id             | cd63517f-95c2-4088-ab67-36420ab87ed7                 |
-    | is_default     | False                                                |
-    | name           | openstack-osaka@japan                                |
-    | placement_attr | {                                                    |
-    |                |     "regions": [                                     |
-    |                |         "RegionOne"                                  |
-    |                |     ]                                                |
-    |                | }                                                    |
-    | project_id     | 4cdc4e2efe144f87812677cfe224fffb                     |
-    | status         | PENDING                                              |
-    | type           | openstack                                            |
-    | updated_at     | None                                                 |
-    | vim_project    | {                                                    |
-    |                |     "name": "tenant-a",                              |
-    |                |     "project_domain_name": "default"                 |
-    |                | }                                                    |
-    +----------------+------------------------------------------------------+
+      --description 'openstack vim in nfv' openstack-osaka@japan
+    +----------------+-----------------------------------------------------+
+    | Field          | Value                                               |
+    +----------------+-----------------------------------------------------+
+    | auth_cred      | {                                                   |
+    |                |     "username": "vim-user",                         |
+    |                |     "user_domain_name": "default",                  |
+    |                |     "cert_verify": "True",                          |
+    |                |     "project_id": null,                             |
+    |                |     "project_name": "tenant-a",                     |
+    |                |     "project_domain_name": "default",               |
+    |                |     "auth_url": "http://192.168.56.10/identity/v3", |
+    |                |     "key_type": "barbican_key",                     |
+    |                |     "secret_uuid": "***",                           |
+    |                |     "password": "***"                               |
+    |                | }                                                   |
+    | auth_url       | http://192.168.56.10/identity/v3                    |
+    | created_at     | 2023-12-12 06:55:57.154779                          |
+    | description    | openstack vim in nfv                                |
+    | extra          | area=osaka@japan                                    |
+    | id             | e0941ab7-dd35-4d08-80ea-1264c75050f4                |
+    | is_default     | False                                               |
+    | name           | openstack-osaka@japan                               |
+    | placement_attr | {                                                   |
+    |                |     "regions": [                                    |
+    |                |         "RegionOne"                                 |
+    |                |     ]                                               |
+    |                | }                                                   |
+    | project_id     | ebbc6cf1a03d49918c8e408535d87268                    |
+    | status         | ACTIVE                                              |
+    | type           | openstack                                           |
+    | updated_at     | None                                                |
+    | vim_project    | {                                                   |
+    |                |     "name": "tenant-a",                             |
+    |                |     "project_domain_name": "default"                |
+    |                | }                                                   |
+    +----------------+-----------------------------------------------------+
+
 
 #. Register a Kubernetes VIM with area attribute ``tokyo@japan``.
 
@@ -577,86 +620,83 @@ of instantiated VNF.
 
    .. code-block:: yaml
 
-    auth_url: "https://kubernetes.default.svc:6443"
-    bearer_token: "eyJhbGciOiJSUzI1NiIsImtpZCI6IjlrcFJlLVBRREoxZDRHVVRFS1g4eHBFQzFqRWpqOWNhSmRkbDVtY0tqWW8ifQ.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJrdWJlLXN5c3RlbSIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VjcmV0Lm5hbWUiOiJhZG1pbi10b2tlbi1rOHN2aW0iLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC5uYW1lIjoiYWRtaW4iLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC51aWQiOiIwM2M3ODRjNi0yNjhkLTQ5ZTgtYjU1Yi0zNDJhMmFiMjM1ZDUiLCJzdWIiOiJzeXN0ZW06c2VydmljZWFjY291bnQ6a3ViZS1zeXN0ZW06YWRtaW4ifQ.KgqK6nBOnJaJ6uxmbLilYjenUbEwVvJ3-Ynbulw2GjGgMfbhO4lXR57nVdA9LkM17NyiUnP01t7b6BzzUPELQA03q5ufGkZns9d7xzlmb6SAKzTXh2rdh3skUDtv4dMHTqf7-e6K9VWtQPRo9qfCgRR_nrU4ED9ycjE707kcopbrOTk_EEZ-roPBTWZl5OgFQrTl5y-xVPcHNqF2vN-l6t8M_3g6PZV6yQl0ul4iBrfGpnMQyvJcgUBmFe2o1L3ey4VXC9aR0FLz--vi9K7TntBrm5pipAJIrLdDImws00P5hylyAavY8OACInyNWPkHeVK0D49koV9J1J5kR_paxQ"
-    project_name: "default"
+    auth_url: "https://192.168.56.10:6443"
+    bearer_token: "eyJhbGciOiJSUzI1NiIsImtpZCI6IkdVazBPakx4Q2NsUjJjNHhsZFdaaXJMSHVQMUo4NkdMS0toamlSaENiVFUifQ.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJkZWZhdWx0Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZWNyZXQubmFtZSI6ImRlZmF1bHQtdG9rZW4tazhzdmltIiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQubmFtZSI6ImRlZmF1bHQiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC51aWQiOiJhNTIzYzFhMi1jYmU5LTQ1Y2YtYTc5YS00ZDA4MDYwZDE3NmEiLCJzdWIiOiJzeXN0ZW06c2VydmljZWFjY291bnQ6ZGVmYXVsdDpkZWZhdWx0In0.BpKAAQLjXMIpJIjqQDsGtyh1a-Ij8e-YOVRv0md_iOGXd1KLR-qreM6xA-Ni8WFILzq3phaZU6npET8PlfhQ6csF5u20OT2SoZ7iAotHXpCcYkRdrUd2oO5KxSFTkOhasaN1pQ3pZyaFYUZbwwmLK3I31rG4Br2VbZQ7Qu8wFOXUK-syBGF48vIPZ5JQ3K00KNxpuEcGybMK5LtdSKZ25Ozp_I2oqm3KBZMPMfWwaUnvuRnyly13tsiXudPt_9H78AxLubMo3rcvECJU2y_zZLiavcZKXAz-UmHulxtz_XZ80hMu-XOpYWEYrOB0Lt0hB59ZoY1y3OvJElTfPyrwWw"
     ssl_ca_cert: "-----BEGIN CERTIFICATE-----
-    MIIC/jCCAeagAwIBAgIBADANBgkqhkiG9w0BAQsFADAVMRMwEQYDVQQDEwprdWJl
-    cm5ldGVzMB4XDTIyMTIwNTA1MzIwOFoXDTMyMTIwMjA1MzIwOFowFTETMBEGA1UE
-    AxMKa3ViZXJuZXRlczCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAMHS
-    8d5g+5Qxhw5ViKwQo8kAWf/wxmfrT5sPQZfCfb/lnxt2kdiUkbhPlM2f4SLSz0CF
-    3QM+6rFCP3ajOKyVF4/Gom/qwNseGrxKW3PxzWqA4PBgXk4wiv/VVXiAm0TS6fMd
-    GnuVqebV7Q8lue6YnuK1ttDsYSpHiEaiWW1g9eBV4/BRHUFHKRHO4b1u2c+s3MSV
-    NpPGgyVEqwAk76kDNJGcrihP7Ze3TRWHY52VCjsZZ4x4zQrAtsCYL9to6PcOxz7z
-    ZFL4SKOlOXdQieIZ47DTHWKlB6gshxQiWd74AEzzVH3jMSRPnSTipcFzwL9z7AY6
-    r1SzLb9TngxrjiNdndcCAwEAAaNZMFcwDgYDVR0PAQH/BAQDAgKkMA8GA1UdEwEB
-    /wQFMAMBAf8wHQYDVR0OBBYEFAHIWsqm7ffo4EF4dDbUWFHQAZjLMBUGA1UdEQQO
-    MAyCCmt1YmVybmV0ZXMwDQYJKoZIhvcNAQELBQADggEBAEQuTS5F6g/XRnjF9C1v
-    umi1ZphbOUVcrAifRMVFV1fLqa9kgKH/mgl0JN04CE2fCErJYxBmlGlCJQcihlkk
-    sZu6/dQ1hgI4pS891kCpSu5RExDNj5fm7X3s/OuxqIBsOr2CayEhWyKkqXyT9CoR
-    jsfyfq/WQYxbhq92l7sB+tWI0/sVHWVaouY7QzXdP6d6LkC58f7t5d0p46X3sECK
-    jPUFktAZb2axK4ipHRYxYzB7n7RB6K+nNsaaZOhWMxCa4835yleuRp6Caq9TnV75
-    YW8MCUN6YNEQ1PYpGMuguAkAsS62QeL7/1VCUzYo/Rxu7l5sErjcKtq6bWWJ3eM6
-    Yx4=
+    MIIDBTCCAe2gAwIBAgIIa76wZDxLNAowDQYJKoZIhvcNAQELBQAwFTETMBEGA1UE
+    AxMKa3ViZXJuZXRlczAeFw0yMzExMDYwMDA3MzBaFw0zMzExMDMwMDEyMzBaMBUx
+    EzARBgNVBAMTCmt1YmVybmV0ZXMwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEK
+    AoIBAQDd0LBXGxVexr09mVFNSXWQq3TN66IIcXCBAMbIWI4EiQ8Y0zI4hSwADdK2
+    ltYSdWw7wq3/YTFHK8/YTY7Jvd9/k3UJrqkZ6kBtL20pJUPXNJVLE/hRzsqEnHHv
+    cfqYZTHvTY4g7qNcMOcfl/oDUGUMfpQT2gs6xoNl0WX/1+QeQbadx1kWaD2Ii45F
+    d8TR+c4wccxNaLArk3ok4h1PNeAwra4mRmBHQQ2wFjkTYGl4+ss3v1yoUJkrQjXL
+    RgzLufeXaz8eRTi36HkjudGKfS3OnUeke3uBN7usW58FFJ8TdKOhuoguRm53kj6+
+    TwXtZCOPzn4gNxq6xJE1Xj2hwFfpAgMBAAGjWTBXMA4GA1UdDwEB/wQEAwICpDAP
+    BgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBRdmQ4r63pXBHIO8ODqxROE7x+aizAV
+    BgNVHREEDjAMggprdWJlcm5ldGVzMA0GCSqGSIb3DQEBCwUAA4IBAQBeQ/9+bzRe
+    qbA02MfYnN3vycGhDObcAoiDIMIutojFTpx4hGZjqVgTRpLH5ReddwR4kkxn3NRg
+    weCVkNkhzyGze64nb11qZG71olaOQRMYzyN2hYfmbq7MXSvmJQQYIr1OewaRk+xl
+    TyG1XRXoD2IEaHEvG0+pQJlDerd5Z6S1fkPaKZtcRbM/E6y5VXMV6hegN4MwHZSI
+    Ll1uEBTxUzzTm3dnl1KL8GDg05ajoYcyL3X/0aWsb/MFhtIlXe2CMxu5qUkLBhzy
+    fCfX4cZpI5KFxMgdmAEoaGbNy7iqsGrLFtEmub2gdEBIVNr7vgOk4OeQ9Uodj6K7
+    jK97z+cupc5G
     -----END CERTIFICATE-----"
+    project_name: "default"
     type: "kubernetes"
     extra:
-      use_helm: true
-      area: tokyo@japan
+        use_helm: true
+        area: tokyo@japan
+
 
    Register Kubernetes VIM:
 
    .. code-block:: console
 
     $ openstack vim register --config-file ./vim_k8s_config.yaml \
-        --description 'kubernetes vim in nfv' \
-        kubernetes-tokyo@japan --fit-width
-    +----------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    | Field          | Value                                                                                                                                                          |
-    +----------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    | auth_cred      | {                                                                                                                                                              |
-    |                |     "bearer_token": "***",                                                                                                                                     |
-    |                |     "ssl_ca_cert": "b'gAAAAABj6zRs0_iM8WzO3BPSdafLsnunr8jA1Kx-9V3ITS-m_2W7_Z76hmH3zXHSOn8zmwwUbKoWBl74QTHOne-                                                  |
-    |                | z_Uwuc5tJuaKaEgfOUX8UkifhVhA2-V6zZyQ5nFoLVLmzwN1oSUmFaT-yli9Noel0oi4xK03WxvnOj01F_LcGFXnJahSg74FYCoRRQpSng9IBYy_jCIeLCPtoeWpxx1Yske-2nyOCXmcxnEgbOw79s-8qL07iu |
-    |                | Ln2nYBS7buGTZ64nmCPNiUWsFeccOCX8rdoTSOiKaeSVFQYlfos5eUA8V-6RKJECEtmbjUWyoc1084uTukS_0-o--rLsnOklAfkDuArC2l_w62iMxLGmsQQO3dD5C9nImbdKkR0xRRTayRiCKDFqCua9Ny2UIy |
-    |                | WdsNYziX1oxhYeeguHkL1b9hIzlU3pStuEkcqhmX1R9-E4Heh0h4uJb_2wc_R540-Wq0x7faKhPbWx4kuyr4S1S4KplDuyWCpQEWTlZ957-S5n50pnsTRTrjPi25VvYtQ3c7yyZjQaNIf0bJ9eXVbG2OhnZOWC |
-    |                | hOX-_B_CsqP27_zdQ5etxj-                                                                                                                                        |
-    |                | Dct9VGHpD29Sra_bLUw3_EUHxvB4J-Rb0FyinKzOuLJSB52kPZ5Ay2k8_jwEQyrXK6ZqJYAP24XtQFrFl7FMCiYoep_6cYrB2WX8nCwQW4BqLDV4astJEGHRSVwEiJklF3BBNCeuJ-MhMmtm-              |
-    |                | hulnqw7tSHYYUHKzKcU30_XZKHdp5dqtsmGJvbuvfwbbKX0fjHasi8PQrI_7982OLF55JkXsmdu-vemoJe8RQZC2KX9nZI8qOVTqmmqkAo3GupcCgLMPItaLjogeEkLmqy30L7WOrXU9em3oq7828gufPS6JmG |
-    |                | FpqridqJf8onbljrayND2050-XmgzaEOLtzah9YZaIo4_97Ki4QyCtVk2uauP0_po3jcGnU1qklOZyqdRAkZ9sWTiWUdfmmxjpE_JHgwu8VeFJFVB1y5is7O7Ww4YNvVCGjZYPzQVzomssjmWgtAqzu_biDrv0 |
-    |                | JvAz4OjV3VgRUhSW_VDIUmCnlx6zWWoPckOVuGAIAX0Q93afUqdOPsLB9QU0J4D1eTTQcjCOMWROMSDvsi11KN6ejmp7fiki5KRQX8hZGmo2d71OmkPhap8KSW2hcV2EfZlLOT0i5RQZNpfuc3BWUnKgeSW1OM |
-    |                | FssJLiDScFry-7VvMjQCIVYWH7amMubSNGVuPvN5dFhUk6CukjAmW82VZ9pvz1XymohS48FSYBfRiTgO6m4BMkxhVb1sMOMCBSysi8NIc75YHh4vwvTkmt5pu6wZcIisdGgwTgkOoYezmBex2agQXJ2vCiO-   |
-    |                | bLAISkCyl-Bs0dF-TI3HEVv0twRXBZsSJiaF8lmk_lOlqP5rFLwk37JCvFC-MMRWHl9pBcvr-FLWyUGVVL1WDaWnW6o3cEz0iwRw5wFmy7kqZw_3FAj0qguCq6UQ-                                  |
-    |                | NDBaePMyv9vJJJrXVInsJA6J17b9iA97UqNlzydb07Ag4TBgSipsC1NZwbMJR87D'",                                                                                            |
-    |                |     "auth_url": "https://kubernetes.default.svc:6443",                                                                                                         |
-    |                |     "username": "None",                                                                                                                                        |
-    |                |     "key_type": "barbican_key",                                                                                                                                |
-    |                |     "secret_uuid": "***"                                                                                                                                       |
-    |                | }                                                                                                                                                              |
-    | auth_url       | https://kubernetes.default.svc:6443                                                                                                                            |
-    | created_at     | 2023-02-14 07:12:45.027780                                                                                                                                     |
-    | description    | kubernetes vim in nfv                                                                                                                                          |
-    | extra          | area=tokyo@japan, use_helm=True                                                                                                                                |
-    | id             | 705f23fc-054f-46c4-bcfe-922d11d85b27                                                                                                                           |
-    | is_default     | False                                                                                                                                                          |
-    | name           | kubernetes-tokyo@japan                                                                                                                                         |
-    | placement_attr | {                                                                                                                                                              |
-    |                |     "regions": [                                                                                                                                               |
-    |                |         "default",                                                                                                                                             |
-    |                |         "kube-node-lease",                                                                                                                                     |
-    |                |         "kube-public",                                                                                                                                         |
-    |                |         "kube-system",                                                                                                                                         |
-    |                |         "syg"                                                                                                                                                  |
-    |                |     ]                                                                                                                                                          |
-    |                | }                                                                                                                                                              |
-    | project_id     | 4cdc4e2efe144f87812677cfe224fffb                                                                                                                               |
-    | status         | PENDING                                                                                                                                                        |
-    | type           | kubernetes                                                                                                                                                     |
-    | updated_at     | None                                                                                                                                                           |
-    | vim_project    | {                                                                                                                                                              |
-    |                |     "name": "default"                                                                                                                                          |
-    |                | }                                                                                                                                                              |
-    +----------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
+      --description 'kubernetes vim in nfv' \
+      kubernetes-tokyo@japan --fit-width
+    +----------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | Field          | Value                                                                                                                                                                                                                                     |
+    +----------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | auth_cred      | {                                                                                                                                                                                                                                         |
+    |                |     "bearer_token": "***",                                                                                                                                                                                                                |
+    |                |     "ssl_ca_cert": "b'gAAAAABleAUrM8oGbXIoXuHIe3WXU0AXqqe0UdOD9hPECuKMum_7dZwjMx_Xtd6pVMIKXoraXr_x-n1P6wPahwz2V7zt5Mpiy3guplnlfb8qwyUT51yS3JkgEvykXRIwIWvJKBFr2LKU4qGBqmyml8C-ZM7qFN_U9ctyzw53dw0c1Sq7ma19gsUM2Ehbfylz3B4zV_t2aY-         |
+    |                | 0a7sA8FBwM_mkmOeL2DjOmHn39TAUeT59zshJSGaKafvGdUb2YOdXp4k6vVB4UR09GmIOlRuFAPfM5_0EhFPQ9Ys1jn-1Q4KCBWXt68yHOoUaepe_zEmLfCn0lAAXdYAjALnymZ8q4xpLI1oY8NsPAM7inMo9NGSGW6Gtb1JegMcYL5-xGjKUfHMKOF5gcndKMNSvkcCEMVcJ6bvheE6eFluFA5QQLLshl-       |
+    |                | wYU7eSlM9mapGzlwuCv5QLafuvttiOSn0tgDf3PFuMF9K1BN1Pao-2_A6QwmLqEOwoShUJbD8d7J3ZZykTaBgNOVQSK6IzQKxGZ0ajSqZhPPFrbSYMuTmXCcmGz-G71tPcupSohsf9DNmIVrb8Ylwz50oHr4mB_hrN1LxuUOh-27nawPFwhdeF0_ebqJesjWbYQea6M2JLcHcZs8lrk6w7f4PZN8FFdGa-        |
+    |                | s_oOCdxHtM4A4ZQQEDi9IpPc-ekXtxqax5T_8Fve8kBneixYguc9oFffHF195L-0aAJwoo2d5TOYuU2-fhxfGwsfcThGcHpNL3M-giGPGveqgUpc-YoW2HmXtyE0dent_Xc8HFklBfKVNIs2ckP8zgBqx_4h0U09WCsLNKvghXtJy27j0lzo5u5QnIzb7xJjaBcZAAoSsmJvbWlDmcMNENHXKmrzv0qz5uHJ05PBU |
+    |                | L7xInxSOfqEPjRK5FccBzpZ9FgWlALvnW7E37PmWrPJyx1g0-rAsOXthFad9Pz3CLQExbly5Z4lQkdqh4YgCbnERL0052_EAILsf9ou-67CHYLcAosZvnU5T2tBTYYUxJWujoJD95OrG9fj-XY7rkAElUe5bIfFj2yf7Kp8jKjaTeXDFZIu5dA9Qk5LPqfxhxSEbL83pmjbuXydO7dXBzmqsameJ0Ju0CmUvsn1rg |
+    |                | QjCW899ckRIZH8IvsJM_kVpGoS9m8hnoJwilhuvvAMNQiZqb8qgwb4ooYRryxFOO-6xOaT3joYWryVpeYp9Enmu1LlRPOaV1_Te4f84JK5PYdyJ03-                                                                                                                        |
+    |                | KchdiylzSQQsWqs285ZxCssjr_FmSfAs0bf8YnBfbhLmYxgCpopyTuqbPTZf2yqZAlzyhEZf02lzFeJQTETjNyG4HUkQV1yEagoUWbxeozSPaJpatm3D3Bf1Sr-Q_8TspgXZYy9Wws1Ig3aCzs1AW7EczwJFnlBrYlNr1WoTWgk87_ElfyLxuuXfn3Ks-                                             |
+    |                | BVzHnciBWjOwmP0CTCJB1MBpARxuqms0KyrxXKJvQbfW9VmQ4kvbrHW227g_SEen1WVfrp27hmJ4wk9WwzrnVGfg8STKHvKW-AoNdpRvuXD07Hjzl1bQaZ0Oee6ngmkPQgCF4N1Sx1vidX-Hg=='",                                                                                    |
+    |                |     "auth_url": "https://192.168.56.10:6443",                                                                                                                                                                                             |
+    |                |     "username": "None",                                                                                                                                                                                                                   |
+    |                |     "key_type": "barbican_key",                                                                                                                                                                                                           |
+    |                |     "secret_uuid": "***"                                                                                                                                                                                                                  |
+    |                | }                                                                                                                                                                                                                                         |
+    | auth_url       | https://192.168.56.10:6443                                                                                                                                                                                                                |
+    | created_at     | 2023-12-12 07:00:59.413587                                                                                                                                                                                                                |
+    | description    | kubernetes vim in nfv                                                                                                                                                                                                                     |
+    | extra          | area=tokyo@japan, use_helm=True                                                                                                                                                                                                           |
+    | id             | e5f9e74b-7c58-4316-8523-3617a704d5dc                                                                                                                                                                                                      |
+    | is_default     | False                                                                                                                                                                                                                                     |
+    | name           | kubernetes-tokyo@japan                                                                                                                                                                                                                    |
+    | placement_attr | {                                                                                                                                                                                                                                         |
+    |                |     "regions": [                                                                                                                                                                                                                          |
+    |                |         "default",                                                                                                                                                                                                                        |
+    |                |         "kube-node-lease",                                                                                                                                                                                                                |
+    |                |         "kube-public",                                                                                                                                                                                                                    |
+    |                |         "kube-system"                                                                                                                                                                                                                     |
+    |                |     ]                                                                                                                                                                                                                                     |
+    |                | }                                                                                                                                                                                                                                         |
+    | project_id     | ebbc6cf1a03d49918c8e408535d87268                                                                                                                                                                                                          |
+    | status         | ACTIVE                                                                                                                                                                                                                                    |
+    | type           | kubernetes                                                                                                                                                                                                                                |
+    | updated_at     | None                                                                                                                                                                                                                                      |
+    | vim_project    | {                                                                                                                                                                                                                                         |
+    |                |     "name": "default"                                                                                                                                                                                                                     |
+    |                | }                                                                                                                                                                                                                                         |
+    +----------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
 
 Create VNF package with vendor attribute
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -664,7 +704,7 @@ Create VNF package with vendor attribute
 The vendor attribute of the VNF package resource comes from the provider field
 defined in ``Definitions/vnfd_top.yaml`` of the VNF package. To create a VNF
 package with a specified vendor attribute, users need to modify the provider
-attribute to vendor. Please refer to VNF Package [#VNF_Package]_ for how to
+attribute to vendor. Please refer to :doc:`/user/vnf-package` for how to
 make zip file and create VNF packages. This chapter only gives a sample of
 configuration files that need to be modified in VNF package.
 
@@ -704,6 +744,7 @@ configuration files that need to be modified in VNF package.
             #- virtual_link_external # mapped in lower-level templates
             #- virtual_link_internal # mapped in lower-level templates
 
+
 #. Set the provider in ``Definitions/vnfd_types.yaml`` to ``company-a``.
 
    .. code-block:: yaml
@@ -727,6 +768,7 @@ configuration files that need to be modified in VNF package.
             default: "company-a"
           ...
 
+
 Create & Instantiate VNF with vendor, area and tenant attributes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -744,7 +786,8 @@ Create a VNF with vnfd_id:
 
 .. code-block:: console
 
-    $ openstack vnflcm create <vnfd_id>
+  $ openstack vnflcm create <vnfd_id>
+
 
 Instantiate VNF on VIM with area and tenant attributes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -753,7 +796,7 @@ The area and tenant attribute of the VNF comes from the used vim. In other
 words, you need to specify a VIM in the area and tenant where you want to
 instantiate a VNF.
 
-For VNF LCM API version 1, please refer to [#VNF_Lifecycle_Management]_ to
+For VNF LCM API version 1, please refer to :doc:`/cli/cli-etsi-vnflcm` to
 instantiate VNF. Below are two samples of <param-file>.
 
 #. If <param-file> contains the ``vimConnectionInfo`` parameter, the area
@@ -761,49 +804,16 @@ instantiate VNF. Below are two samples of <param-file>.
 
    .. code-block:: json
 
-    {
-        "flavourId": "simple",
-        "extVirtualLinks": [
-            {
-                "id": "net0",
-                "resourceId": "1d868d02-ecd4-4402-8e6b-54e77ebdcc28",
-                "extCps": [
-                    {
-                        "cpdId": "CP1",
-                        "cpConfig": [
-                            {
-                                "cpProtocolData": [
-                                    {
-                                        "layerProtocol": "IP_OVER_ETHERNET",
-                                        "ipOverEthernet": {
-                                            "ipAddresses": [
-                                                {
-                                                    "type": "IPV4",
-                                                    "numDynamicAddresses": 1,
-                                                    "subnetId": "109f5049-b51e-409a-9a99-d740ba5f3acb"
-                                                }
-                                            ]
-                                        }
-                                    }
-                                ]
-                            }
-                        ]
-                    }
-                ]
-            }
-        ],
-        "vimConnectionInfo": [
-            {
-                "id": "e24f9796-a8e9-4cb0-85ce-5920dcddafa1",
-                "vimId": "991a1e07-e8a2-4e1b-b77d-3937177a5b7f",
-                "vimType": "ETSINFV.OPENSTACK_KEYSTONE.v_2"
-            }
-        ],
-        "additionalParams": {
-            "lcm-operation-user-data": "./UserData/lcm_user_data.py",
-            "lcm-operation-user-data-class": "SampleUserData"
-        }
-    }
+     {
+         "flavourId": "simple",
+         "vimConnectionInfo": [
+             {
+                 "id": "e24f9796-a8e9-4cb0-85ce-5920dcddafa1",
+                 "vimId": "9f2bac4c-2d17-4269-8164-93d4e875f101",
+                 "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_2"
+             }
+         ]
+     }
 
 
 #. If <param-file> doesn't contains the ``vimConnectionInfo`` parameter, the
@@ -811,11 +821,12 @@ instantiate VNF. Below are two samples of <param-file>.
 
    .. code-block:: json
 
-    {
-        "flavourId": "simple"
-    }
+     {
+         "flavourId": "simple"
+     }
 
-For VNF LCM API version 2, please refer to [#VNF_Lifecycle_Management]_ to
+
+For VNF LCM API version 2, please refer to :doc:`/cli/cli-etsi-vnflcm` to
 instantiate VNF. Below are two samples of <param-file>.
 
 #. If the vim in the ``vimConnectionInfo`` parameter of <param-file> is an
@@ -824,124 +835,17 @@ instantiate VNF. Below are two samples of <param-file>.
 
    .. code-block:: json
 
-    {
-        "extManagedVirtualLinks": [
-            {
-                "id": "7a6fe192-c34b-4029-937d-f1a2e7a00f5a",
-                "resourceId": "11f8a056-0495-4ca6-8de9-94402604663f",
-                "vnfVirtualLinkDescId": "internalVL1"
-            }
-        ],
-        "extVirtualLinks": [
-            {
-                "extCps": [
-                    {
-                        "cpConfig": {
-                            "VDU1_CP1_1": {
-                                "cpProtocolData": [
-                                    {
-                                        "ipOverEthernet": {
-                                            "ipAddresses": [
-                                                {
-                                                    "numDynamicAddresses": 1,
-                                                    "type": "IPV4"
-                                                }
-                                            ]
-                                        },
-                                        "layerProtocol": "IP_OVER_ETHERNET"
-                                    }
-                                ]
-                            }
-                        },
-                        "cpdId": "VDU1_CP1"
-                    },
-                    {
-                        "cpConfig": {
-                            "VDU2_CP1_1": {
-                                "cpProtocolData": [
-                                    {
-                                        "ipOverEthernet": {
-                                            "ipAddresses": [
-                                                {
-                                                    "fixedAddresses": [
-                                                        "10.10.0.101"
-                                                    ],
-                                                    "type": "IPV4"
-                                                }
-                                            ]
-                                        },
-                                        "layerProtocol": "IP_OVER_ETHERNET"
-                                    }
-                                ]
-                            }
-                        },
-                        "cpdId": "VDU2_CP1"
-                    }
-                ],
-                "id": "b0b2f836-a275-4374-834e-ed336a563b1e",
-                "resourceId": "1948231e-bbf0-4ff9-a692-40f8d6d5c90d"
-            },
-            {
-                "extCps": [
-                    {
-                        "cpConfig": {
-                            "VDU1_CP2_1": {
-                                "cpProtocolData": [
-                                    {
-                                        "ipOverEthernet": {
-                                            "ipAddresses": [
-                                                {
-                                                    "numDynamicAddresses": 1,
-                                                    "subnetId": "1d4877ea-b810-4093-95de-bee62b2363f1",
-                                                    "type": "IPV4"
-                                                }
-                                            ]
-                                        },
-                                        "layerProtocol": "IP_OVER_ETHERNET"
-                                    }
-                                ]
-                            }
-                        },
-                        "cpdId": "VDU1_CP2"
-                    },
-                    {
-                        "cpConfig": {
-                            "VDU2_CP2_1": {
-                                "cpProtocolData": [
-                                    {
-                                        "ipOverEthernet": {
-                                            "ipAddresses": [
-                                                {
-                                                    "fixedAddresses": [
-                                                        "10.10.1.101"
-                                                    ],
-                                                    "subnetId": "1d4877ea-b810-4093-95de-bee62b2363f1",
-                                                    "type": "IPV4"
-                                                }
-                                            ]
-                                        },
-                                        "layerProtocol": "IP_OVER_ETHERNET"
-                                    }
-                                ]
-                            }
-                        },
-                        "cpdId": "VDU2_CP2"
-                    }
-                ],
-                "id": "6766a8d4-cad1-43f1-b0cb-ce0ef9267661",
-                "resourceId": "5af7e28a-e744-4b4f-a1a4-c7d0f7d93cd7"
-            }
-        ],
-        "flavourId": "simple",
-        "instantiationLevelId": "instantiation_level_1",
-        "vimConnectionInfo": {
-            "vim1": {
-                "id": "725f625e-f6b7-4bcd-b1b7-7184039fde45"
-                "vimId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
-                "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3"
-            }
-        }
-    }
+     {
+         "flavourId": "simple",
+         "vimConnectionInfo": {
+             "vim1": {
+                 "id": "725f625e-f6b7-4bcd-b1b7-7184039fde45"
+                 "vimId": "9f2bac4c-2d17-4269-8164-93d4e875f101",
+                 "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3"
+             }
+         }
+     }
+
 
 #. If the vim in the ``vimConnectionInfo`` parameter of <param-file> is not
    existed in the DB, users need to specify the area and tenant attributes in
@@ -950,135 +854,28 @@ instantiate VNF. Below are two samples of <param-file>.
 
    .. code-block:: json
 
-    {
-        "extManagedVirtualLinks": [
-            {
-                "id": "7a6fe192-c34b-4029-937d-f1a2e7a00f5a",
-                "resourceId": "11f8a056-0495-4ca6-8de9-94402604663f",
-                "vnfVirtualLinkDescId": "internalVL1"
-            }
-        ],
-        "extVirtualLinks": [
-            {
-                "extCps": [
-                    {
-                        "cpConfig": {
-                            "VDU1_CP1_1": {
-                                "cpProtocolData": [
-                                    {
-                                        "ipOverEthernet": {
-                                            "ipAddresses": [
-                                                {
-                                                    "numDynamicAddresses": 1,
-                                                    "type": "IPV4"
-                                                }
-                                            ]
-                                        },
-                                        "layerProtocol": "IP_OVER_ETHERNET"
-                                    }
-                                ]
-                            }
-                        },
-                        "cpdId": "VDU1_CP1"
-                    },
-                    {
-                        "cpConfig": {
-                            "VDU2_CP1_1": {
-                                "cpProtocolData": [
-                                    {
-                                        "ipOverEthernet": {
-                                            "ipAddresses": [
-                                                {
-                                                    "fixedAddresses": [
-                                                        "10.10.0.101"
-                                                    ],
-                                                    "type": "IPV4"
-                                                }
-                                            ]
-                                        },
-                                        "layerProtocol": "IP_OVER_ETHERNET"
-                                    }
-                                ]
-                            }
-                        },
-                        "cpdId": "VDU2_CP1"
-                    }
-                ],
-                "id": "b0b2f836-a275-4374-834e-ed336a563b1e",
-                "resourceId": "1948231e-bbf0-4ff9-a692-40f8d6d5c90d"
-            },
-            {
-                "extCps": [
-                    {
-                        "cpConfig": {
-                            "VDU1_CP2_1": {
-                                "cpProtocolData": [
-                                    {
-                                        "ipOverEthernet": {
-                                            "ipAddresses": [
-                                                {
-                                                    "numDynamicAddresses": 1,
-                                                    "subnetId": "1d4877ea-b810-4093-95de-bee62b2363f1",
-                                                    "type": "IPV4"
-                                                }
-                                            ]
-                                        },
-                                        "layerProtocol": "IP_OVER_ETHERNET"
-                                    }
-                                ]
-                            }
-                        },
-                        "cpdId": "VDU1_CP2"
-                    },
-                    {
-                        "cpConfig": {
-                            "VDU2_CP2_1": {
-                                "cpProtocolData": [
-                                    {
-                                        "ipOverEthernet": {
-                                            "ipAddresses": [
-                                                {
-                                                    "fixedAddresses": [
-                                                        "10.10.1.101"
-                                                    ],
-                                                    "subnetId": "1d4877ea-b810-4093-95de-bee62b2363f1",
-                                                    "type": "IPV4"
-                                                }
-                                            ]
-                                        },
-                                        "layerProtocol": "IP_OVER_ETHERNET"
-                                    }
-                                ]
-                            }
-                        },
-                        "cpdId": "VDU2_CP2"
-                    }
-                ],
-                "id": "6766a8d4-cad1-43f1-b0cb-ce0ef9267661",
-                "resourceId": "5af7e28a-e744-4b4f-a1a4-c7d0f7d93cd7"
-            }
-        ],
-        "flavourId": "simple",
-        "instantiationLevelId": "instantiation_level_1",
-        "vimConnectionInfo": {
-            "vim1": {
-                "accessInfo": {
-                    "password": "devstack",
-                    "project": "tenant-a",
-                    "projectDomain": "Default",
-                    "region": "RegionOne",
-                    "userDomain": "Default",
-                    "username": "vim-user"
-                },
-                "interfaceInfo": {
-                    "endpoint": "http://localhost/identity/v3"
-                },
-                "vimId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
-                "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3",
-                "extra": {"area": "tokyo@japan"}
-            }
-        }
-    }
+     {
+         "flavourId": "simple",
+         "vimConnectionInfo": {
+             "vim1": {
+                 "accessInfo": {
+                     "password": "devstack",
+                     "project": "tenant-a",
+                     "projectDomain": "Default",
+                     "region": "RegionOne",
+                     "userDomain": "Default",
+                     "username": "vim-user"
+                 },
+                 "interfaceInfo": {
+                     "endpoint": "http://localhost/identity/v3"
+                 },
+                 "vimId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+                 "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3",
+                 "extra": {"area": "tokyo@japan"}
+             }
+         }
+     }
+
 
 Instantiate CNF with tenant attribute
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1088,23 +885,24 @@ namespace in the additionalParams field of <param-file>.
 
 .. code-block:: json
 
-    {
-        "flavourId": "simple",
-        "vimConnectionInfo": [
-            {
-                "id": "b1bb0ce7-ebca-4fa7-95ed-4840d70a1177",
-                "vimId": "725f625e-f6b7-4bcd-b1b7-7184039fde45",
-                "vimType": "kubernetes"
-            }
-        ],
-        "additionalParams": {
-            "lcm-kubernetes-def-files": [
-                "Files/kubernetes/deployment.yaml",
-                "Files/kubernetes/namespace.yaml"
-            ],
-            "namespace": "tenant-a"
-        }
-    }
+  {
+      "flavourId": "simple",
+      "vimConnectionInfo": [
+          {
+              "id": "b1bb0ce7-ebca-4fa7-95ed-4840d70a1177",
+              "vimId": "43a2c212-8a6b-468f-a51f-c912fdd722fe",
+              "vimType": "kubernetes"
+          }
+      ],
+      "additionalParams": {
+          "lcm-kubernetes-def-files": [
+              "Files/kubernetes/deployment.yaml",
+              "Files/kubernetes/namespace.yaml"
+          ],
+          "namespace": "tenant-a"
+      }
+  }
+
 
 Usage of APIs supporting Enhanced Tacker Policy
 -----------------------------------------------
@@ -1113,6 +911,7 @@ This section takes the VIM Management API as an example to introduce the API
 calls that support Enhanced Tacker Policy. You can find a list of APIs that
 support Enhanced Tacker Policy and the enhanced tacker attributes supported by
 each API in `Tacker APIs that support Enhanced Tacker Policy`_.
+
 
 GET individual resources
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1128,50 +927,52 @@ an example.
 
 .. code-block:: console
 
-    $ openstack vim show 95f633de-d2d1-4d90-90f7-0f3839369ff2
-    +----------------+------------------------------------------------------+
-    | Field          | Value                                                |
-    +----------------+------------------------------------------------------+
-    | auth_cred      | {                                                    |
-    |                |     "username": "vim-user",                          |
-    |                |     "user_domain_name": "default",                   |
-    |                |     "cert_verify": "True",                           |
-    |                |     "project_id": null,                              |
-    |                |     "project_name": "tenant-a",                      |
-    |                |     "project_domain_name": "default",                |
-    |                |     "auth_url": "http://192.168.10.115/identity/v3", |
-    |                |     "key_type": "barbican_key",                      |
-    |                |     "secret_uuid": "***",                            |
-    |                |     "password": "***"                                |
-    |                | }                                                    |
-    | auth_url       | http://192.168.10.115/identity/v3                    |
-    | created_at     | 2023-02-14 07:05:26                                  |
-    | description    | openstack vim in nfv                                 |
-    | extra          | area=tokyo@japan                                     |
-    | id             | 95f633de-d2d1-4d90-90f7-0f3839369ff2                 |
-    | is_default     | False                                                |
-    | name           | openstack-tokyo@japan                                |
-    | placement_attr | {                                                    |
-    |                |     "regions": [                                     |
-    |                |         "RegionOne"                                  |
-    |                |     ]                                                |
-    |                | }                                                    |
-    | project_id     | 4cdc4e2efe144f87812677cfe224fffb                     |
-    | status         | REACHABLE                                            |
-    | type           | openstack                                            |
-    | updated_at     | 2023-02-14 07:05:28                                  |
-    | vim_project    | {                                                    |
-    |                |     "name": "tenant-a",                              |
-    |                |     "project_domain_name": "default"                 |
-    |                | }                                                    |
-    +----------------+------------------------------------------------------+
+  $ openstack vim show 9f2bac4c-2d17-4269-8164-93d4e875f101
+  +----------------+-----------------------------------------------------+
+  | Field          | Value                                               |
+  +----------------+-----------------------------------------------------+
+  | auth_cred      | {                                                   |
+  |                |     "username": "vim-user",                         |
+  |                |     "user_domain_name": "default",                  |
+  |                |     "cert_verify": "True",                          |
+  |                |     "project_id": null,                             |
+  |                |     "project_name": "tenant-a",                     |
+  |                |     "project_domain_name": "default",               |
+  |                |     "auth_url": "http://192.168.56.10/identity/v3", |
+  |                |     "key_type": "barbican_key",                     |
+  |                |     "secret_uuid": "***",                           |
+  |                |     "password": "***"                               |
+  |                | }                                                   |
+  | auth_url       | http://192.168.56.10/identity/v3                    |
+  | created_at     | 2024-01-05 02:10:30                                 |
+  | description    | openstack vim in nfv                                |
+  | extra          | area=tokyo@japan                                    |
+  | id             | 9f2bac4c-2d17-4269-8164-93d4e875f101                |
+  | is_default     | True                                                |
+  | name           | openstack-tokyo@japan                               |
+  | placement_attr | {                                                   |
+  |                |     "regions": [                                    |
+  |                |         "RegionOne"                                 |
+  |                |     ]                                               |
+  |                | }                                                   |
+  | project_id     | 711fcdc235bf4095bb83fe368a4f95a6                    |
+  | status         | ACTIVE                                              |
+  | type           | openstack                                           |
+  | updated_at     | 2024-01-05 03:11:24                                 |
+  | vim_project    | {                                                   |
+  |                |     "name": "tenant-a",                             |
+  |                |     "project_domain_name": "default"                |
+  |                | }                                                   |
+  +----------------+-----------------------------------------------------+
+
 
 ``user-b`` shows VIM whose area attribute is ``tokyo@japan``, and it fails.
 
 .. code-block:: console
 
-    $ openstack vim show 95f633de-d2d1-4d90-90f7-0f3839369ff2
-    The request you have made requires authentication. (HTTP 401) (Request-ID: req-4875a3b8-b553-439b-a837-5940737f672a)
+  $ openstack vim show 9f2bac4c-2d17-4269-8164-93d4e875f101
+  Unable to find vim with name '9f2bac4c-2d17-4269-8164-93d4e875f101'
+
 
 Users can use the ``manager`` role to distinguish between reference APIs and
 operating APIs. This is an existing function of oslo.policy, and here is just a
@@ -1181,16 +982,34 @@ suggested usage scenario.
 
 .. code-block:: console
 
-    $ openstack vim delete 95f633de-d2d1-4d90-90f7-0f3839369ff2
-    Unable to delete the below vim(s):
-    Cannot delete 95f633de-d2d1-4d90-90f7-0f3839369ff2: The resource could not be found.
+  $ openstack vim delete 9f2bac4c-2d17-4269-8164-93d4e875f101
+
+
+  Unable to delete the below vim(s):
+  Cannot delete 9f2bac4c-2d17-4269-8164-93d4e875f101: Unable to find vim with name '9f2bac4c-2d17-4269-8164-93d4e875f101'
+
 
 ``user-manager`` has the role of ``manager`` and can delete VIM.
 
 .. code-block:: console
 
-    $ openstack vim delete 95f633de-d2d1-4d90-90f7-0f3839369ff2
-    All specified vim(s) deleted successfully
+  $ openstack vim delete 9f2bac4c-2d17-4269-8164-93d4e875f101
+  All specified vim(s) deleted successfully
+
+
+.. note::
+
+  Please note that currently, the "openstack vim show/set/delete"
+  commands do not work properly due to the following bug.
+
+  * https://bugs.launchpad.net/tacker/+bug/2051069
+
+  The API below itself works correctly.
+
+  * GET /v1.0/vims/{vim_id}
+  * PUT /v1.0/vims/{vim_id}
+  * Delete /v1.0/vims/{vim_id}
+
 
 LIST resources
 ~~~~~~~~~~~~~~
@@ -1205,21 +1024,22 @@ attribute ``tokyo@japan``.
 
 .. code-block:: console
 
-    $ openstack vim list
-    +--------------------------------------+------------------------+----------------------------------+------------+------------+-----------+
-    | ID                                   | Name                   | Tenant_id                        | Type       | Is Default | Status    |
-    +--------------------------------------+------------------------+----------------------------------+------------+------------+-----------+
-    | 705f23fc-054f-46c4-bcfe-922d11d85b27 | kubernetes-tokyo@japan | 4cdc4e2efe144f87812677cfe224fffb | kubernetes | False      | REACHABLE |
-    | c5e82dd6-c5bc-4018-8415-ee5d53df5203 | default_for_nfv        | 4cdc4e2efe144f87812677cfe224fffb | openstack  | True       | REACHABLE |
-    +--------------------------------------+------------------------+----------------------------------+------------+------------+-----------+
+  $ openstack vim list
+  +--------------------------------------+------------------------+----------------------------------+------------+------------+--------+
+  | ID                                   | Name                   | Tenant_id                        | Type       | Is Default | Status |
+  +--------------------------------------+------------------------+----------------------------------+------------+------------+--------+
+  | 43a2c212-8a6b-468f-a51f-c912fdd722fe | kubernetes-tokyo@japan | 711fcdc235bf4095bb83fe368a4f95a6 | kubernetes | False      | ACTIVE |
+  | 9f2bac4c-2d17-4269-8164-93d4e875f101 | openstack-tokyo@japan  | 711fcdc235bf4095bb83fe368a4f95a6 | openstack  | False      | ACTIVE |
+  +--------------------------------------+------------------------+----------------------------------+------------+------------+--------+
+
 
 The ``user-b`` does not have access to any VIM with the area attribute, so
 the list is empty when performing the List VIM operation.
 
 .. code-block:: console
 
-    $ openstack vim list
-    (No output.)
+  $ openstack vim list
+  (No output.)
 
 
 The ``user-manager`` has access rights to all resources. It can list all
@@ -1227,14 +1047,15 @@ resources.
 
 .. code-block:: console
 
-    $ openstack vim list
-    +--------------------------------------+------------------------+----------------------------------+------------+------------+-----------+
-    | ID                                   | Name                   | Tenant_id                        | Type       | Is Default | Status    |
-    +--------------------------------------+------------------------+----------------------------------+------------+------------+-----------+
-    | 705f23fc-054f-46c4-bcfe-922d11d85b27 | kubernetes-tokyo@japan | 4cdc4e2efe144f87812677cfe224fffb | kubernetes | False      | REACHABLE |
-    | c5e82dd6-c5bc-4018-8415-ee5d53df5203 | default_for_nfv        | 4cdc4e2efe144f87812677cfe224fffb | openstack  | True       | REACHABLE |
-    | cd63517f-95c2-4088-ab67-36420ab87ed7 | openstack-osaka@japan  | 4cdc4e2efe144f87812677cfe224fffb | openstack  | False      | REACHABLE |
-    +--------------------------------------+------------------------+----------------------------------+------------+------------+-----------+
+  $ openstack vim list
+  +--------------------------------------+------------------------+----------------------------------+------------+------------+--------+
+  | ID                                   | Name                   | Tenant_id                        | Type       | Is Default | Status |
+  +--------------------------------------+------------------------+----------------------------------+------------+------------+--------+
+  | 43a2c212-8a6b-468f-a51f-c912fdd722fe | kubernetes-tokyo@japan | 711fcdc235bf4095bb83fe368a4f95a6 | kubernetes | False      | ACTIVE |
+  | 9f2bac4c-2d17-4269-8164-93d4e875f101 | openstack-tokyo@japan  | 711fcdc235bf4095bb83fe368a4f95a6 | openstack  | False      | ACTIVE |
+  | c100874d-26f6-4b34-b0eb-55bfaba926aa | openstack-osaka@japan  | 711fcdc235bf4095bb83fe368a4f95a6 | openstack  | False      | ACTIVE |
+  +--------------------------------------+------------------------+----------------------------------+------------+------------+--------+
+
 
 Limitations
 -----------
@@ -1243,6 +1064,7 @@ Limitations
   comparison attributes in the policy rule, this rule will prevent users from
   accessing those resources without these attributes as the comparison result
   is always false.
+
 
 Appendix
 --------
@@ -1432,15 +1254,11 @@ enhanced tacker attributes supported by each API.
 (2) Default vim is used when the state is `NOT_INSTANTIATED`.
 (3) This is ignored when the state is `NOT_INSTANTIATED`.
 
+
 Sample policy.yaml file
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../etc/tacker/enhanced_tacker_policy.yaml.sample
 
-References
-----------
 
-.. [#oslo.policy] https://docs.openstack.org/oslo.policy/latest/
-.. [#VIM_Management] https://docs.openstack.org/tacker/latest/cli/cli-legacy-vim.html
-.. [#VNF_Package] https://docs.openstack.org/tacker/latest/user/vnf-package.html
-.. [#VNF_Lifecycle_Management] https://docs.openstack.org/tacker/latest/cli/cli-etsi-vnflcm.html
+.. _oslo.policy: https://docs.openstack.org/oslo.policy/latest/

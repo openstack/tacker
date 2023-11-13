@@ -18,7 +18,7 @@ are available:
           VNF LCM API version 2 supports only
           *CSAR with TOSCA-Metadata directory*.
 
-.. note:: For more detailed definitions of CSAR, see section 16 in
+.. note:: For more detailed definitions of CSAR, see section 6 in
           `TOSCA-Simple-Profile-YAML-v1.1`_.
 
 Some examples for VNF Package are available in Tacker repository.
@@ -360,7 +360,7 @@ The file structure:
 
 * **<VNFD file name>.yaml**
 * **Definitions/**
-* **<manifest file name>.yaml**
+* **<manifest file name>.mf**
 
 .. code-block::
 
@@ -394,8 +394,8 @@ VNFD type files provided from `ETSI NFV-SOL001 repository`_ may be included:
 * etsi_nfv_sol001_common_types.yaml
 * etsi_nfv_sol001_vnfd_types.yaml
 
-<manifest file name>.yaml
-^^^^^^^^^^^^^^^^^^^^^^^^^
+<manifest file name>.mf
+^^^^^^^^^^^^^^^^^^^^^^^
 
 The manifest file has an extension .mf, the same name as the top-level VNFD
 YAML file. The contents is exactly same as described in the previous section.
@@ -409,4 +409,3 @@ YAML file. The contents is exactly same as described in the previous section.
 .. _NFV-SOL004 v2.6.1 : https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/004/02.06.01_60/gs_NFV-SOL004v020601p.pdf
 .. _NFV-SOL005 v2.6.1 : https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/005/02.06.01_60/gs_NFV-SOL005v020601p.pdf
 .. _NFV-SOL014 v2.8.1 : https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/014/02.08.01_60/gs_NFV-SOL014v020801p.pdf
-.. _UserData script (VNF LCM v2):
