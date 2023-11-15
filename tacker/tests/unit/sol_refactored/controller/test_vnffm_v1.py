@@ -106,6 +106,11 @@ class TestVnffmV1(base.BaseTestCase):
         self.assertEqual('1.3.0', result.headers['version'])
         self.assertEqual(body, result.body)
 
+        body = {"ackState": "UNACKNOWLEDGED"}
+        result = self.controller.update(
+            request=self.request, id=SAMPLE_ALARM_ID, body=body)
+        self.assertEqual(body, result.body)
+
     @mock.patch.object(alarm_utils, 'get_alarm')
     def test_update_invalid_body(self, mock_alarm):
         mock_alarm.return_value = objects.AlarmV1.from_dict(

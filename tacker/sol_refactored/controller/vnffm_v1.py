@@ -13,6 +13,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import datetime
+
 from oslo_log import log as logging
 from oslo_utils import uuidutils
 
@@ -97,6 +99,11 @@ class VnfFmControllerV1(sol_wsgi.SolAPIController):
             raise sol_ex.AckStateInvalid()
 
         alarm.ackState = ack_state
+        if ack_state == "ACKNOWLEDGED":
+            alarm.alarmAcknowledgedTime = datetime.datetime.now(
+                datetime.timezone.utc)
+        else:
+            alarm.alarmAcknowledgedTime = None
         with context.session.begin(subtransactions=True):
             alarm.update(context)
 

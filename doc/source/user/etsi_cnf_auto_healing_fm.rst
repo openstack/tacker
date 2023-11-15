@@ -564,7 +564,7 @@ Here is an example of getting the specified alarm:
     | Field                      | Value                                                                                                |
     +----------------------------+------------------------------------------------------------------------------------------------------+
     | Ack State                  | ACKNOWLEDGED                                                                                         |
-    | Alarm Acknowledged Time    |                                                                                                      |
+    | Alarm Acknowledged Time    | 2022-08-30T12:23:52Z                                                                                 |
     | Alarm Changed Time         | 2022-08-31T07:47:05Z                                                                                 |
     | Alarm Cleared Time         | 2022-06-22T23:47:36Z                                                                                 |
     | Alarm Raised Time          | 2022-08-31T07:46:59Z                                                                                 |

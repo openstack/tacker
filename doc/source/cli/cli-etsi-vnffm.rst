@@ -109,7 +109,7 @@ Result:
   | Field                      | Value                                                                                                |
   +----------------------------+------------------------------------------------------------------------------------------------------+
   | Ack State                  | ACKNOWLEDGED                                                                                         |
-  | Alarm Acknowledged Time    |                                                                                                      |
+  | Alarm Acknowledged Time    | 2022-08-30T12:23:52Z                                                                                 |
   | Alarm Changed Time         | 2022-08-29T05:49:02Z                                                                                 |
   | Alarm Cleared Time         | 2022-06-22T23:47:36Z                                                                                 |
   | Alarm Raised Time          | 2022-08-29T05:48:56Z                                                                                 |
