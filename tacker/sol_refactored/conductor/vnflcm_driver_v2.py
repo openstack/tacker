@@ -1178,6 +1178,9 @@ class VnfLcmDriverV2(object):
         elif vim_info.vimType == 'ETSINFV.HELM.V_3':
             driver = helm.Helm()
             driver.change_vnfpkg(req, inst, grant_req, grant, vnfd)
+        elif vim_info.vimType == 'TERRAFORM.V1':
+            driver = terraform.Terraform()
+            driver.change_vnfpkg(req, inst, grant_req, grant, vnfd)
         else:
             # should not occur
             raise sol_ex.SolException(sol_detail='not support vim type')
@@ -1203,6 +1206,9 @@ class VnfLcmDriverV2(object):
                 req, inst, grant_req, grant, vnfd)
         elif vim_info.vimType == 'ETSINFV.HELM.V_3':
             driver = helm.Helm()
+            driver.change_vnfpkg_rollback(req, inst, grant_req, grant, vnfd)
+        elif vim_info.vimType == 'TERRAFORM.V1':
+            driver = terraform.Terraform()
             driver.change_vnfpkg_rollback(req, inst, grant_req, grant, vnfd)
         else:
             # should not occur

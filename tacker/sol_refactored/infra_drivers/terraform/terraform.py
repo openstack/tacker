@@ -21,7 +21,7 @@ from tacker.sol_refactored.common import config
 from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import vnf_instance_utils as inst_utils
 from tacker.sol_refactored import objects
-
+from tacker.sol_refactored.objects.v2 import fields as v2fields
 
 import json
 import os
@@ -53,28 +53,24 @@ class Terraform():
         self._instantiate(vim_conn_info, working_dir, tf_var_path)
         self._make_instantiated_vnf_info(req, inst, grant_req,
                                          grant, vnfd, working_dir,
-                                         tf_var_path)
+                                         tf_dir_path, tf_var_path)
 
     def _instantiate(self, vim_conn_info, working_dir, tf_var_path):
         '''Executes terraform init, terraform plan, and terraform apply'''
 
         access_info = vim_conn_info.get('accessInfo', {})
 
-        try:
-            init_cmd = self._gen_tf_cmd("init")
-            self._exec_cmd(init_cmd, cwd=working_dir)
-            LOG.info("Terraform init completed successfully.")
+        init_cmd = ['terraform', 'init']
+        self._exec_cmd(init_cmd, cwd=working_dir)
+        LOG.info("Terraform init completed successfully.")
 
-            plan_cmd = self._gen_tf_cmd('plan', access_info, tf_var_path)
-            self._exec_cmd(plan_cmd, cwd=working_dir)
-            LOG.info("Terraform plan completed successfully.")
+        plan_cmd = self._gen_plan_cmd(access_info, tf_var_path)
+        self._exec_cmd(plan_cmd, cwd=working_dir)
+        LOG.info("Terraform plan completed successfully.")
 
-            apply_cmd = self._gen_tf_cmd('apply', access_info, tf_var_path)
-            self._exec_cmd(apply_cmd, cwd=working_dir)
-            LOG.info("Terraform apply completed successfully.")
-
-        except subprocess.CalledProcessError as error:
-            raise sol_ex.TerraformOperationFailed(sol_detail=str(error))
+        apply_cmd = self._gen_apply_cmd(access_info, tf_var_path)
+        self._exec_cmd(apply_cmd, cwd=working_dir)
+        LOG.info("Terraform apply completed successfully.")
 
     def terminate(self, req, inst, grant_req, grant, vnfd):
         '''Terminates the terraform resources managed by the current project'''
@@ -89,17 +85,9 @@ class Terraform():
 
         access_info = vim_conn_info.get('accessInfo', {})
 
-        try:
-            # Execute the terraform destroy command (auto-approve)
-            destroy_cmd = self._gen_tf_cmd('destroy', access_info, tf_var_path)
-            self._exec_cmd(destroy_cmd, cwd=working_dir)
-            LOG.info("Terraform destroy completed successfully.")
-
-        except subprocess.CalledProcessError as error:
-            failed_process = error.cmd[0].capitalize()
-            LOG.error(f"Error running {failed_process}: {error}")
-            # raise error and leave working_dir for retry
-            raise sol_ex.TerraformOperationFailed(sol_detail=str(error))
+        destroy_cmd = self._gen_destroy_cmd(access_info, tf_var_path)
+        self._exec_cmd(destroy_cmd, cwd=working_dir)
+        LOG.info("Terraform destroy completed successfully.")
 
         try:
             # Remove the working directory and its contents
@@ -113,18 +101,113 @@ class Terraform():
         '''Calls terminate'''
         self.terminate(req, inst, grant_req, grant, vnfd)
 
-    def _make_instantiated_vnf_info(self, req, inst, grant_req,
-                                    grant, vnfd, working_dir, tf_var_path):
+    def change_vnfpkg(self, req, inst, grant_req, grant, vnfd):
+        '''Calls Terraform Apply and replicates new files'''
+
+        vim_conn_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
+        tf_dir_path = req.additionalParams.get('tf_dir_path')
+        tf_var_path = req.additionalParams.get('tf_var_path')
+        working_dir = f"{CONF.v2_vnfm.tf_file_dir}/{inst.id}"
+
+        if req.additionalParams['upgrade_type'] == 'RollingUpdate':
+            self._change_vnfpkg_rolling_update(vim_conn_info, working_dir,
+                                               req.vnfdId, tf_dir_path,
+                                               tf_var_path)
+
+        self._make_instantiated_vnf_info(req, inst, grant_req,
+                                         grant, vnfd, working_dir,
+                                         tf_dir_path, tf_var_path)
+
+    def _change_vnfpkg_rolling_update(self, vim_conn_info, working_dir,
+                                      vnfd_id, tf_dir_path, tf_var_path):
+        '''Calls Terraform Apply'''
+
+        excluded_files = ['.terraform', '.terraform.lock.hcl',
+                  'terraform.tfstate', 'provider.tf', 'provider.tf.json']
+
+        # Delete old files (e.g main.tf, variables.tf, modules)
+        for root, dirs, files in os.walk(working_dir):
+            for file_name in files:
+                if file_name not in excluded_files:
+                    file_path = os.path.join(root, file_name)
+                    if os.path.exists(file_path):
+                        os.remove(file_path)
+            for dir_name in dirs:
+                dir_path = os.path.join(root, dir_name)
+                if os.path.exists(dir_path):
+                    shutil.rmtree(dir_path)
+
+        # Duplicate tf files from new VNF Package
+        context = tacker.context.get_admin_context()
+        try:
+            pkg_vnfd = vnf_package_vnfd.VnfPackageVnfd().get_by_id(
+                context, vnfd_id)
+        except exceptions.VnfPackageVnfdNotFound as exc:
+            raise sol_ex.VnfdIdNotFound(vnfd_id=vnfd_id) from exc
+        csar_path = os.path.join(CONF.vnf_package.vnf_package_csar_path,
+                                pkg_vnfd.package_uuid)
+        if tf_dir_path is not None:
+            vnf_package_path = f"{csar_path}/{tf_dir_path}"
+        else:
+            vnf_package_path = csar_path
+
+        # Copy files from new VNF Package
+        for file_name in os.listdir(vnf_package_path):
+            if file_name not in excluded_files:
+                source_path = os.path.join(vnf_package_path, file_name)
+                if os.path.exists(source_path):
+                    if os.path.isfile(source_path):
+                        shutil.copy2(source_path, working_dir)
+                    elif os.path.isdir(source_path):
+                        destination_dir = os.path.join(working_dir, file_name)
+                        shutil.copytree(source_path, destination_dir,
+                                        dirs_exist_ok=True)
+
+        access_info = vim_conn_info.get('accessInfo', {})
+
+        init_cmd = ['terraform', 'init', '-upgrade']
+        self._exec_cmd(init_cmd, cwd=working_dir)
+        LOG.info("Terraform init completed successfully.")
+
+        plan_cmd = self._gen_plan_cmd(access_info, tf_var_path)
+        self._exec_cmd(plan_cmd, cwd=working_dir)
+        LOG.info("Terraform plan completed successfully.")
+
+        apply_cmd = self._gen_apply_cmd(access_info, tf_var_path)
+        self._exec_cmd(apply_cmd, cwd=working_dir)
+        LOG.info("Terraform apply completed successfully.")
+
+    def change_vnfpkg_rollback(self, req, inst, grant_req, grant, vnfd):
+        '''Calls _change_vnfpkg_rolling_update function'''
+
+        vim_conn_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
+        tf_dir_path = inst.instantiatedVnfInfo.metadata['tf_dir_path']
+        tf_var_path = inst.instantiatedVnfInfo.metadata['tf_var_path']
+        working_dir = f"{CONF.v2_vnfm.tf_file_dir}/{inst.id}"
+
+        if req.additionalParams['upgrade_type'] == 'RollingUpdate':
+            self._change_vnfpkg_rolling_update(vim_conn_info, working_dir,
+                                               inst.vnfdId, tf_dir_path,
+                                               tf_var_path)
+
+        self._make_instantiated_vnf_info(req, inst, grant_req,
+                                         grant, vnfd, working_dir,
+                                         tf_dir_path, tf_var_path)
+
+    def _make_instantiated_vnf_info(self, req, inst, grant_req, grant, vnfd,
+                                    working_dir, tf_dir_path, tf_var_path):
         '''Updates Tacker with information on the VNF state'''
 
-        # Define inst_vnf_info
-        flavour_id = req.flavourId
-        inst.instantiatedVnfInfo = objects.VnfInstanceV2_InstantiatedVnfInfo(
+        op = grant_req.operation
+        if op == v2fields.LcmOperationType.INSTANTIATE:
+            flavour_id = req.flavourId
+        else:
+            flavour_id = inst.instantiatedVnfInfo.flavourId
+
+        # make new instantiatedVnfInfo and replace
+        inst_vnf_info = objects.VnfInstanceV2_InstantiatedVnfInfo(
             flavourId=flavour_id,
             vnfState='STARTED',
-            metadata={
-                'tf_var_path': tf_var_path
-            }
         )
 
         # Specify the path to the terraform.tfstate file
@@ -167,8 +250,24 @@ class Terraform():
             for vnfc_res_info in vnfc_resource_info_list
         ]
 
-        inst.instantiatedVnfInfo.vnfcResourceInfo = vnfc_resource_info_list
-        inst.instantiatedVnfInfo.vnfcInfo = vnfc_info_list
+        inst_vnf_info.vnfcResourceInfo = vnfc_resource_info_list
+        inst_vnf_info.vnfcInfo = vnfc_info_list
+
+        inst_vnf_info.metadata = {}
+        # Restore metadata
+        if (inst.obj_attr_is_set('instantiatedVnfInfo') and
+                inst.instantiatedVnfInfo.obj_attr_is_set('metadata')):
+            inst_vnf_info.metadata.update(inst.instantiatedVnfInfo.metadata)
+
+        # Store tf_dir_path
+        if op == v2fields.LcmOperationType.INSTANTIATE or tf_dir_path:
+            inst_vnf_info.metadata['tf_dir_path'] = tf_dir_path
+
+        # Store tf_var_path
+        if op == v2fields.LcmOperationType.INSTANTIATE or tf_var_path:
+            inst_vnf_info.metadata['tf_var_path'] = tf_var_path
+
+        inst.instantiatedVnfInfo = inst_vnf_info
 
     def _get_tf_vnfpkg(self, vnf_instance_id, vnfd_id, tf_dir_path):
         """Create a VNF package with given IDs
@@ -239,6 +338,33 @@ class Terraform():
 
         return provider_tf_path
 
+    def _gen_cmd_args(self, access_info, tf_var_path):
+        args = []
+        for key, value in access_info.items():
+            if key == "endpoints":
+                continue
+            args.extend(['-var', f'{key}={value}'])
+        if tf_var_path:
+            args.extend(['-var-file', tf_var_path])
+        return args
+
+    def _gen_plan_cmd(self, access_info, tf_var_path, extra_args=None):
+        cmd = ['terraform', 'plan']
+        args = self._gen_cmd_args(access_info, tf_var_path)
+        if extra_args:
+            args.extend(extra_args)
+        return cmd + args
+
+    def _gen_apply_cmd(self, access_info, tf_var_path):
+        cmd = ['terraform', 'apply', '-auto-approve']
+        args = self._gen_cmd_args(access_info, tf_var_path)
+        return cmd + args
+
+    def _gen_destroy_cmd(self, access_info, tf_var_path):
+        cmd = ['terraform', 'destroy', '-auto-approve']
+        args = self._gen_cmd_args(access_info, tf_var_path)
+        return cmd + args
+
     def _exec_cmd(self, cmd, cwd,
                   stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                   check=True, text=True):
@@ -248,42 +374,8 @@ class Terraform():
         commands used in this package. All the args other than self and cmd
         the same as for subprocess.run().
         """
-        res = subprocess.run(cmd, cwd=cwd, stdout=stdout, stderr=stderr,
-                             check=check, text=text)
-        if res.returncode != 0:
-            raise
-        return res
-
-    def _gen_tf_cmd(self, subcmd, access_info=None, tf_var_path=None,
-                    auto_approve=True):
-        """Return terraform command of given subcommand as a list
-
-        The result is intended to be an arg of supprocess.run().
-        """
-
-        # NOTE(yasufum): Only following subcommands are supported.
-        allowed_subcmds = ["init", "plan", "apply", "destroy"]
-        if subcmd not in allowed_subcmds:
-            return []
-
-        if subcmd == "init":
-            return ["terraform", "init"]
-
-        def _gen_tf_cmd_args(access_info, tf_var_path):
-            args = []
-            for key, value in access_info.items():
-                if key == "endpoints":
-                    continue
-                args.extend(['-var', f'{key}={value}'])
-            if tf_var_path:
-                args.extend(['-var-file', tf_var_path])
-            return args
-
-        # list of subcommands accept "-auto-approve" option.
-        accept_ap = ["apply", "destroy"]
-        if auto_approve is True and subcmd in accept_ap:
-            cmd = ["terraform", subcmd, "-auto-approve"]
-        else:
-            cmd = ["terraform", subcmd]
-        args = _gen_tf_cmd_args(access_info, tf_var_path)
-        return cmd + args
+        try:
+            subprocess.run(cmd, cwd=cwd, stdout=stdout, stderr=stderr,
+                           check=check, text=text)
+        except subprocess.CalledProcessError as error:
+            raise sol_ex.TerraformOperationFailed(sol_detail=str(error))

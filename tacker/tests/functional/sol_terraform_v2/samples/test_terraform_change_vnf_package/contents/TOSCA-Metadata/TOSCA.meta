@@ -1,0 +1,9 @@
+TOSCA-Meta-File-Version: 1.0
+Created-by: dummy_user
+CSAR-Version: 1.1
+Entry-Definitions: Definitions/sample_tf_top.vnfd.yaml
+
+Name: Files/terraform/main.tf
+Content-Type: test-data
+Algorithm: SHA-256
+Hash: c438b48a8bfb577746eff0c3e3d284a55a211430fc6ab80120b58750b0dd8bea
