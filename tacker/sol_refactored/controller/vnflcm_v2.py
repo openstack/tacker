@@ -610,7 +610,8 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
         grant_req, grant = lcmocc_utils.get_grant_req_and_grant(context,
                                                                 lcmocc)
 
-        lcmocc.operationState = v2fields.LcmOperationStateType.FAILED
+        lcmocc_utils.update_lcmocc_status(
+            lcmocc, v2fields.LcmOperationStateType.FAILED)
         with context.session.begin(subtransactions=True):
             lcmocc.update(context)
             if grant_req is not None:

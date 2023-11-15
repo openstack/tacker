@@ -1465,11 +1465,14 @@ class TestVnflcmV2(db_base.SqlTestCase):
     def test_lcm_op_occ_fail(self, mocked_send_lcmocc_notification):
         # prepare
         lcmocc = self._prepare_db_for_fail()
+        before_state_entered_time = lcmocc.stateEnteredTime
 
         op_state = []
+        op_state_entered_time = []
 
         def _store_state(context, lcmocc, inst, endpoint):
             op_state.append(lcmocc.operationState)
+            op_state_entered_time.append(lcmocc.stateEnteredTime)
 
         mocked_send_lcmocc_notification.side_effect = _store_state
 
@@ -1479,6 +1482,10 @@ class TestVnflcmV2(db_base.SqlTestCase):
         # check operationstate
         self.assertEqual(1, mocked_send_lcmocc_notification.call_count)
         self.assertEqual(fields.LcmOperationStateType.FAILED, op_state[0])
+
+        # check stateEnteredTime
+        self.assertNotEqual(before_state_entered_time,
+                            op_state_entered_time[0])
 
         # check grant_req and grant are deleted
         self.assertRaises(sol_ex.GrantRequestOrGrantNotFound,
