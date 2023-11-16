@@ -399,6 +399,7 @@ VIMC_PROJ=${VIMC_PROJ:-${VIMC_DEFAULT_PROJ}}
 
 VIMC_OS_CERT_VERIFY=${VIMC_OS_CERT_VERIFY:-true}
 VIMC_K8S_USE_CERT=${VIMC_K8S_USE_CERT:-false}
+VIMC_K8S_USE_HELM=${VIMC_K8S_USE_HELM:-false}
 
 if [[ ${VIMC_TYPE} == "openstack" || ${VIMC_TYPE} == "os" ]]; then
     os_main

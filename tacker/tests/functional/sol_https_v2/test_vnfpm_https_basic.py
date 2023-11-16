@@ -54,7 +54,7 @@ class VnfPmWithHttpsRequestTest(test_vnflcm_basic_common.CommonVnfLcmTest):
     def _get_controller_tacker_ip(cls):
         cur_dir = os.path.dirname(__file__)
         script_path = os.path.join(
-            cur_dir, "../../../../tools/test-setup-fake-prometheus-server.sh")
+            cur_dir, "../tools/test-setup-fake-prometheus-server.sh")
         with open(script_path, 'r') as f_obj:
             content = f_obj.read()
         ip = content.split('TEST_REMOTE_URI')[1].split(

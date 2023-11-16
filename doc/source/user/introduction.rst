@@ -7,16 +7,6 @@ operate Network Services (NSs) and Virtual Network Functions (VNFs) on an NFV
 infrastructure platform like OpenStack or Kubernetes. The operations are based
 on ETSI NFV Management and Orchestration (MANO) Architecture [1]_.
 
-Now Tacker has two different architectures:
-
-* ETSI NFV-SOL based implementation
-* Legacy implementation
-
-.. warning::
-    Legacy Tacker features excluding VIM feature are deprecated
-    and will be removed in the first major release after the Tacker server
-    version 9.0.0 (2023.1 Antelope release).
-
 When Tacker project was originated to follow the ETSI NFV MANO standards in
 Liberty release, the standarding for "NFV Solutions (SOL)", which is the
 specifications for protocols and data models, was not yet defined. After the

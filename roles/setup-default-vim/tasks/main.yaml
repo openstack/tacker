@@ -2,7 +2,7 @@
   - name: Copy tools/test-setup-default-vim.sh
     copy:
        remote_src=True
-       src={{ devstack_base_dir }}/tacker/tools/test-setup-default-vim.sh
+       src={{ devstack_base_dir }}/tacker/tacker/tests/functional/tools/test-setup-default-vim.sh
        dest={{ zuul_work_dir }}/tools/test-setup-default-vim.sh
        mode=0755
 
@@ -121,7 +121,7 @@
   - name: Copy tools/test-setup-k8s-vim.sh
     copy:
        remote_src=True
-       src={{ devstack_base_dir }}/tacker/tools/test-setup-k8s-vim.sh
+       src={{ devstack_base_dir }}/tacker/tacker/tests/functional/tools/test-setup-k8s-vim.sh
        dest={{ zuul_work_dir }}/tools/test-setup-k8s-vim.sh
        mode=0755
 
@@ -289,7 +289,7 @@
   - name: Copy tools/test-setup-mgmt.sh
     copy:
        remote_src=True
-       src={{ devstack_base_dir }}/tacker/tools/test-setup-mgmt.sh
+       src={{ devstack_base_dir }}/tacker/tacker/tests/functional/tools/test-setup-mgmt.sh
        dest={{ zuul_work_dir }}/tools/test-setup-mgmt.sh
        mode=0755
 

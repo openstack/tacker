@@ -22,7 +22,4 @@ Reference
    :maxdepth: 1
 
    vim_config.rst
-   block_storage_usage_guide.rst
-   reservation_policy_usage_guide.rst
-   maintenance_usage_guide.rst
    kubernetes_openid_token_auth_usage_guide.rst

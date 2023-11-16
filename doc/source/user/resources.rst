@@ -58,47 +58,5 @@ Grant
 
    granting_interface
 
-
-Legacy Tacker Resources
------------------------
-
-.. warning::
-    Legacy Tacker features excluding VIM feature are deprecated
-    and will be removed in the first major release after the Tacker server
-    version 9.0.0 (2023.1 Antelope release).
-
-NFVO
-^^^^
-
-VNFFG, VNFFGD
-"""""""""""""
-
-.. toctree::
-   :maxdepth: 1
-
-   ../contributor/vnffgd_template_description
-
-.. TODO(h-asahina): add `VIM` and `NS, NSD`.
+.. TODO(h-asahina): add `VIM`.
   * https://etherpad.opendev.org/p/tacker-wallaby-revise-docs
-
-
-VNFM
-^^^^
-
-VNF, VNFD
-"""""""""
-
-.. toctree::
-   :maxdepth: 1
-
-   ../contributor/vnfd_template_description
-   ../contributor/vnfd_template_parameterization
-   vnf_component_usage_guide
-
-Event
-^^^^^
-
-.. toctree::
-   :maxdepth: 1
-
-   ../contributor/event_logging
