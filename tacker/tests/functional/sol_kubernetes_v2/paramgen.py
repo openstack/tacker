@@ -582,9 +582,15 @@ def alert_event_resolved(inst_id, pod_name):
     }
 
 
-def update_alarm():
+def update_alarm_acknowledged():
     return {
         "ackState": "ACKNOWLEDGED"
+    }
+
+
+def update_alarm_unacknowledged():
+    return {
+        "ackState": "UNACKNOWLEDGED"
     }
 
 

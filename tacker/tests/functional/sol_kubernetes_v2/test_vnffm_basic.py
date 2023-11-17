@@ -67,13 +67,15 @@ class VnfFmTest(base_v2.BaseVnfLcmKubernetesV2Test):
           - 6. Alert-Event (firing)
           - 7. FM-List-Alarm
           - 8. FM-Show-Alarm
-          - 9. FM-Update-Alarm
+          - 9. FM-Update-Alarm (acknowledged)
           - 10. FM-Show-Alarm
-          - 11. Alert-Event (resolved)
+          - 11. FM-Update-Alarm (unacknowledged)
           - 12. FM-Show-Alarm
-          - 13. FM-Delete-Subscription: Delete subscription
-          - 14. Terminate a VNF instance
-          - 15. Delete a VNF instance
+          - 13. Alert-Event (resolved)
+          - 14. FM-Show-Alarm
+          - 15. FM-Delete-Subscription: Delete subscription
+          - 16. Terminate a VNF instance
+          - 17. Delete a VNF instance
         """
 
         # 1. LCM-Create: Create a new VNF instance resource
@@ -172,11 +174,11 @@ class VnfFmTest(base_v2.BaseVnfLcmKubernetesV2Test):
         self.check_resp_headers_in_get(resp)
         self.check_resp_body(body, alarm_expected_attrs)
 
-        # 9. FM-Update-Alarm
+        # 9. FM-Update-Alarm (acknowledged)
         expected_attrs = [
             'ackState'
         ]
-        update_req = paramgen.update_alarm()
+        update_req = paramgen.update_alarm_acknowledged()
         resp, body = self.update_fm_alarm(alarm_id, update_req)
         self.assertEqual(200, resp.status_code)
         self.check_resp_headers_in_delete(resp)
@@ -188,6 +190,7 @@ class VnfFmTest(base_v2.BaseVnfLcmKubernetesV2Test):
             'managedObjectId',
             'alarmRaisedTime',
             'ackState',
+            'alarmAcknowledgedTime',
             'perceivedSeverity',
             'eventTime',
             'eventType',
@@ -200,25 +203,35 @@ class VnfFmTest(base_v2.BaseVnfLcmKubernetesV2Test):
         self.check_resp_headers_in_get(resp)
         self.check_resp_body(body, expected_attrs)
 
-        # 11. Alert-Event (resolved)
+        # 11. FM-Update-Alarm (unacknowledged)
+        update_req = paramgen.update_alarm_unacknowledged()
+        resp, _ = self.update_fm_alarm(alarm_id, update_req)
+        self.assertEqual(200, resp.status_code)
+
+        # 12. FM-Show-Alarm
+        resp, body = self.show_fm_alarm(alarm_id)
+        self.assertEqual(200, resp.status_code)
+        self.assertIsNone(body.get('alarmAcknowledgedTime'))
+
+        # 13. Alert-Event (resolved)
         alert = paramgen.alert_event_resolved(inst_id, pod_name)
         resp, body = self.create_fm_alarm(alert)
         self.assertEqual(204, resp.status_code)
         time.sleep(WAIT_NOTIFICATION_TIME)
         self._check_notification(callback_url, 'AlarmClearedNotification')
 
-        # 12. FM-Show-Alarm
+        # 14. FM-Show-Alarm
         resp, body = self.show_fm_alarm(alarm_id)
         self.assertEqual(200, resp.status_code)
         self.check_resp_headers_in_get(resp)
         self.check_resp_body(body, alarm_expected_attrs)
 
-        # 13. FM-Delete-Subscription: Delete subscription
+        # 15. FM-Delete-Subscription: Delete subscription
         resp, body = self.delete_fm_subscription(sub_id)
         self.assertEqual(204, resp.status_code)
         self.check_resp_headers_in_delete(resp)
 
-        # 14. LCM-Terminate: Terminate VNF
+        # 16. LCM-Terminate: Terminate VNF
         terminate_req = paramgen.terminate_vnf_min()
         resp, body = self.terminate_vnf_instance(inst_id, terminate_req)
         self.assertEqual(202, resp.status_code)
@@ -232,7 +245,7 @@ class VnfFmTest(base_v2.BaseVnfLcmKubernetesV2Test):
         self.assertEqual(fields.VnfInstanceState.NOT_INSTANTIATED,
                          body['instantiationState'])
 
-        # 15. LCM-Delete: Delete a VNF instance
+        # 17. LCM-Delete: Delete a VNF instance
         resp, body = self.exec_lcm_operation(self.delete_vnf_instance, inst_id)
         self.assertEqual(204, resp.status_code)
 
@@ -261,7 +274,7 @@ class VnfFmTest(base_v2.BaseVnfLcmKubernetesV2Test):
           - 6. Alert-Event (firing)
           - 7. FM-List-Alarm
           - 8. FM-Show-Alarm
-          - 9. FM-Update-Alarm
+          - 9. FM-Update-Alarm (acknowledged)
           - 10. FM-Show-Alarm
           - 11. Alert-Event (resolved)
           - 12. FM-Show-Alarm
@@ -367,11 +380,11 @@ class VnfFmTest(base_v2.BaseVnfLcmKubernetesV2Test):
         self.check_resp_headers_in_get(resp)
         self.check_resp_body(body, alarm_expected_attrs)
 
-        # 9. FM-Update-Alarm
+        # 9. FM-Update-Alarm (acknowledged)
         expected_attrs = [
             'ackState'
         ]
-        update_req = paramgen.update_alarm()
+        update_req = paramgen.update_alarm_acknowledged()
         resp, body = self.update_fm_alarm(alarm_id, update_req)
         self.assertEqual(200, resp.status_code)
         self.check_resp_headers_in_delete(resp)
