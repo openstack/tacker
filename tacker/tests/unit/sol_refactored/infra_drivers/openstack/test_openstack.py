@@ -1465,7 +1465,7 @@ _inst_info_example = {
             "id": "res_id_VDU1_2",
             "vduId": "VDU1",
             "computeResource": {
-                "vimConnectionId": "vim_id_1",
+                "vimConnectionId": "vim1",
                 "resourceId": "res_id_VDU1_2",
                 "vimLevelResourceType": "OS::Nova::Server"
             },
@@ -1512,7 +1512,7 @@ _inst_info_example = {
             "id": "res_id_VDU2_1",
             "vduId": "VDU2",
             "computeResource": {
-                "vimConnectionId": "vim_id_1",
+                "vimConnectionId": "vim1",
                 "resourceId": "res_id_VDU2_1",
                 "vimLevelResourceType": "OS::Nova::Server"
             },
@@ -1790,7 +1790,7 @@ _expected_inst_info = {
                 {
                     "id": "res_id_VDU1_CP1_1",
                     "resourceHandle": {
-                        "vimConnectionId": "vim_id_1",
+                        "vimConnectionId": "vim1",
                         "resourceId": "res_id_VDU1_CP1_1",
                         "vimLevelResourceType": "OS::Neutron::Port"
                     },
@@ -1799,7 +1799,7 @@ _expected_inst_info = {
                 {
                     "id": "res_id_VDU1_CP1_2",
                     "resourceHandle": {
-                        "vimConnectionId": "vim_id_1",
+                        "vimConnectionId": "vim1",
                         "resourceId": "res_id_VDU1_CP1_2",
                         "vimLevelResourceType": "OS::Neutron::Port"
                     },
@@ -1808,7 +1808,7 @@ _expected_inst_info = {
                 {
                     "id": "res_id_VDU2_CP1",
                     "resourceHandle": {
-                        "vimConnectionId": "vim_id_1",
+                        "vimConnectionId": "vim1",
                         "resourceId": "res_id_VDU2_CP1",
                         "vimLevelResourceType": "OS::Neutron::Port"
                     },
@@ -1876,7 +1876,7 @@ _expected_inst_info = {
                 {
                     "id": "res_id_VDU1_CP2_1",
                     "resourceHandle": {
-                        "vimConnectionId": "vim_id_1",
+                        "vimConnectionId": "vim1",
                         "resourceId": "res_id_VDU1_CP2_1",
                         "vimLevelResourceType": "OS::Neutron::Port"
                     },
@@ -1885,7 +1885,7 @@ _expected_inst_info = {
                 {
                     "id": "res_id_VDU1_CP2_2",
                     "resourceHandle": {
-                        "vimConnectionId": "vim_id_1",
+                        "vimConnectionId": "vim1",
                         "resourceId": "res_id_VDU1_CP2_2",
                         "vimLevelResourceType": "OS::Neutron::Port"
                     },
@@ -1936,7 +1936,7 @@ _expected_inst_info = {
                 {
                     "id": "res_id_VDU1_CP3_1",
                     "resourceHandle": {
-                        "vimConnectionId": "vim_id_1",
+                        "vimConnectionId": "vim1",
                         "resourceId": "res_id_VDU1_CP3_1",
                         "vimLevelResourceType": "OS::Neutron::Port"
                     },
@@ -1946,7 +1946,7 @@ _expected_inst_info = {
                 {
                     "id": "res_id_VDU1_CP3_2",
                     "resourceHandle": {
-                        "vimConnectionId": "vim_id_1",
+                        "vimConnectionId": "vim1",
                         "resourceId": "res_id_VDU1_CP3_2",
                         "vimLevelResourceType": "OS::Neutron::Port"
                     },
@@ -1956,7 +1956,7 @@ _expected_inst_info = {
                 {
                     "id": "res_id_VDU2_CP3",
                     "resourceHandle": {
-                        "vimConnectionId": "vim_id_1",
+                        "vimConnectionId": "vim1",
                         "resourceId": "res_id_VDU2_CP3",
                         "vimLevelResourceType": "OS::Neutron::Port"
                     },
@@ -1971,7 +1971,7 @@ _expected_inst_info = {
             "id": "res_id_VDU1_2",
             "vduId": "VDU1",
             "computeResource": {
-                "vimConnectionId": "vim_id_1",
+                "vimConnectionId": "vim1",
                 "resourceId": "res_id_VDU1_2",
                 "vimLevelResourceType": "OS::Nova::Server"
             },
@@ -2018,7 +2018,7 @@ _expected_inst_info = {
             "id": "res_id_VDU1_1",
             "vduId": "VDU1",
             "computeResource": {
-                "vimConnectionId": "vim_id_1",
+                "vimConnectionId": "vim1",
                 "resourceId": "res_id_VDU1_1",
                 "vimLevelResourceType": "OS::Nova::Server"
             },
@@ -2065,7 +2065,7 @@ _expected_inst_info = {
             "id": "res_id_VDU2",
             "vduId": "VDU2",
             "computeResource": {
-                "vimConnectionId": "vim_id_1",
+                "vimConnectionId": "vim1",
                 "resourceId": "res_id_VDU2",
                 "vimLevelResourceType": "OS::Nova::Server"
             },
@@ -2110,7 +2110,7 @@ _expected_inst_info = {
             "id": "res_id_internalVL2",
             "vnfVirtualLinkDescId": "internalVL2",
             "networkResource": {
-                "vimConnectionId": "vim_id_1",
+                "vimConnectionId": "vim1",
                 "resourceId": "res_id_internalVL2",
                 "vimLevelResourceType": "OS::Neutron::Net"
             },
@@ -2118,7 +2118,7 @@ _expected_inst_info = {
                 {
                     "id": "res_id_VDU1_CP4_1",
                     "resourceHandle": {
-                        "vimConnectionId": "vim_id_1",
+                        "vimConnectionId": "vim1",
                         "resourceId": "res_id_VDU1_CP4_1",
                         "vimLevelResourceType": "OS::Neutron::Port"
                     },
@@ -2128,7 +2128,7 @@ _expected_inst_info = {
                 {
                     "id": "res_id_VDU1_CP4_2",
                     "resourceHandle": {
-                        "vimConnectionId": "vim_id_1",
+                        "vimConnectionId": "vim1",
                         "resourceId": "res_id_VDU1_CP4_2",
                         "vimLevelResourceType": "OS::Neutron::Port"
                     },
@@ -2138,7 +2138,7 @@ _expected_inst_info = {
                 {
                     "id": "res_id_VDU2_CP4",
                     "resourceHandle": {
-                        "vimConnectionId": "vim_id_1",
+                        "vimConnectionId": "vim1",
                         "resourceId": "res_id_VDU2_CP4",
                         "vimLevelResourceType": "OS::Neutron::Port"
                     },
@@ -2151,7 +2151,7 @@ _expected_inst_info = {
             "id": "res_id_internalVL3",
             "vnfVirtualLinkDescId": "internalVL3",
             "networkResource": {
-                "vimConnectionId": "vim_id_1",
+                "vimConnectionId": "vim1",
                 "resourceId": "res_id_internalVL3",
                 "vimLevelResourceType": "OS::Neutron::Net"
             },
@@ -2159,7 +2159,7 @@ _expected_inst_info = {
                 {
                     "id": "res_id_VDU1_CP5_1",
                     "resourceHandle": {
-                        "vimConnectionId": "vim_id_1",
+                        "vimConnectionId": "vim1",
                         "resourceId": "res_id_VDU1_CP5_1",
                         "vimLevelResourceType": "OS::Neutron::Port"
                     },
@@ -2169,7 +2169,7 @@ _expected_inst_info = {
                 {
                     "id": "res_id_VDU1_CP5_2",
                     "resourceHandle": {
-                        "vimConnectionId": "vim_id_1",
+                        "vimConnectionId": "vim1",
                         "resourceId": "res_id_VDU1_CP5_2",
                         "vimLevelResourceType": "OS::Neutron::Port"
                     },
@@ -2179,7 +2179,7 @@ _expected_inst_info = {
                 {
                     "id": "res_id_VDU2_CP5",
                     "resourceHandle": {
-                        "vimConnectionId": "vim_id_1",
+                        "vimConnectionId": "vim1",
                         "resourceId": "res_id_VDU2_CP5",
                         "vimLevelResourceType": "OS::Neutron::Port"
                     },
@@ -2194,7 +2194,7 @@ _expected_inst_info = {
             "id": "res_id_VirtualStorage_1",
             "virtualStorageDescId": "VirtualStorage",
             "storageResource": {
-                "vimConnectionId": "vim_id_1",
+                "vimConnectionId": "vim1",
                 "resourceId": "res_id_VirtualStorage_1",
                 "vimLevelResourceType": "OS::Cinder::Volume"
             },
@@ -2204,7 +2204,7 @@ _expected_inst_info = {
             "id": "res_id_VirtualStorage_2",
             "virtualStorageDescId": "VirtualStorage",
             "storageResource": {
-                "vimConnectionId": "vim_id_1",
+                "vimConnectionId": "vim1",
                 "resourceId": "res_id_VirtualStorage_2",
                 "vimLevelResourceType": "OS::Cinder::Volume"
             },
@@ -2437,7 +2437,7 @@ _expected_inst_info_change_ext_conn = {
                 {
                     "id": "res_id_VDU1_CP1_1",
                     "resourceHandle": {
-                        "vimConnectionId": "vim_id_1",
+                        "vimConnectionId": "vim1",
                         "resourceId": "res_id_VDU1_CP1_1",
                         "vimLevelResourceType": "OS::Neutron::Port"
                     },
@@ -2446,7 +2446,7 @@ _expected_inst_info_change_ext_conn = {
                 {
                     "id": "res_id_VDU1_CP1_2",
                     "resourceHandle": {
-                        "vimConnectionId": "vim_id_1",
+                        "vimConnectionId": "vim1",
                         "resourceId": "res_id_VDU1_CP1_2",
                         "vimLevelResourceType": "OS::Neutron::Port"
                     },
@@ -2485,7 +2485,7 @@ _expected_inst_info_change_ext_conn = {
                 {
                     "id": "res_id_VDU2_CP1_modified",
                     "resourceHandle": {
-                        "vimConnectionId": "vim_id_1",
+                        "vimConnectionId": "vim1",
                         "resourceId": "res_id_VDU2_CP1_modified",
                         "vimLevelResourceType": "OS::Neutron::Port"
                     },
@@ -2533,7 +2533,7 @@ _expected_inst_info_change_ext_conn = {
                 {
                     "id": "res_id_VDU1_CP2_1_modified",
                     "resourceHandle": {
-                        "vimConnectionId": "vim_id_1",
+                        "vimConnectionId": "vim1",
                         "resourceId": "res_id_VDU1_CP2_1_modified",
                         "vimLevelResourceType": "OS::Neutron::Port"
                     },
@@ -2542,7 +2542,7 @@ _expected_inst_info_change_ext_conn = {
                 {
                     "id": "res_id_VDU1_CP2_2_modified",
                     "resourceHandle": {
-                        "vimConnectionId": "vim_id_1",
+                        "vimConnectionId": "vim1",
                         "resourceId": "res_id_VDU1_CP2_2_modified",
                         "vimLevelResourceType": "OS::Neutron::Port"
                     },
@@ -2587,7 +2587,7 @@ _expected_inst_info_change_ext_conn = {
             "id": "res_id_VDU1_2",
             "vduId": "VDU1",
             "computeResource": {
-                "vimConnectionId": "vim_id_1",
+                "vimConnectionId": "vim1",
                 "resourceId": "res_id_VDU1_2",
                 "vimLevelResourceType": "OS::Nova::Server"
             },
@@ -2634,7 +2634,7 @@ _expected_inst_info_change_ext_conn = {
             "id": "res_id_VDU1_1",
             "vduId": "VDU1",
             "computeResource": {
-                "vimConnectionId": "vim_id_1",
+                "vimConnectionId": "vim1",
                 "resourceId": "res_id_VDU1_1",
                 "vimLevelResourceType": "OS::Nova::Server"
             },
@@ -2681,7 +2681,7 @@ _expected_inst_info_change_ext_conn = {
             "id": "res_id_VDU2",
             "vduId": "VDU2",
             "computeResource": {
-                "vimConnectionId": "vim_id_1",
+                "vimConnectionId": "vim1",
                 "resourceId": "res_id_VDU2",
                 "vimLevelResourceType": "OS::Nova::Server"
             },
@@ -2849,7 +2849,7 @@ _expected_inst_info_S = {
                 {
                     "id": "res_id_VDU1_CP1_0",
                     "resourceHandle": {
-                        "vimConnectionId": "vim_id_1",
+                        "vimConnectionId": "vim1",
                         "resourceId": "res_id_VDU1_CP1_0",
                         "vimLevelResourceType": "OS::Neutron::Port"
                     },
@@ -2858,7 +2858,7 @@ _expected_inst_info_S = {
                 {
                     "id": "res_id_VDU1_CP1_1",
                     "resourceHandle": {
-                        "vimConnectionId": "vim_id_1",
+                        "vimConnectionId": "vim1",
                         "resourceId": "res_id_VDU1_CP1_1",
                         "vimLevelResourceType": "OS::Neutron::Port"
                     },
@@ -2867,7 +2867,7 @@ _expected_inst_info_S = {
                 {
                     "id": "res_id_VDU2_CP1_0",
                     "resourceHandle": {
-                        "vimConnectionId": "vim_id_1",
+                        "vimConnectionId": "vim1",
                         "resourceId": "res_id_VDU2_CP1_0",
                         "vimLevelResourceType": "OS::Neutron::Port"
                     },
@@ -2930,7 +2930,7 @@ _expected_inst_info_S = {
                 {
                     "id": "res_id_VDU1_CP2_0",
                     "resourceHandle": {
-                        "vimConnectionId": "vim_id_1",
+                        "vimConnectionId": "vim1",
                         "resourceId": "res_id_VDU1_CP2_0",
                         "vimLevelResourceType": "OS::Neutron::Port"
                     },
@@ -2940,7 +2940,7 @@ _expected_inst_info_S = {
                 {
                     "id": "res_id_VDU1_CP2_1",
                     "resourceHandle": {
-                        "vimConnectionId": "vim_id_1",
+                        "vimConnectionId": "vim1",
                         "resourceId": "res_id_VDU1_CP2_1",
                         "vimLevelResourceType": "OS::Neutron::Port"
                     },
@@ -2950,7 +2950,7 @@ _expected_inst_info_S = {
                 {
                     "id": "res_id_VDU2_CP2_0",
                     "resourceHandle": {
-                        "vimConnectionId": "vim_id_1",
+                        "vimConnectionId": "vim1",
                         "resourceId": "res_id_VDU2_CP2_0",
                         "vimLevelResourceType": "OS::Neutron::Port"
                     },
@@ -2965,7 +2965,7 @@ _expected_inst_info_S = {
             "id": "res_id_VDU1_1",
             "vduId": "VDU1",
             "computeResource": {
-                "vimConnectionId": "vim_id_1",
+                "vimConnectionId": "vim1",
                 "resourceId": "res_id_VDU1_1",
                 "vimLevelResourceType": "OS::Nova::Server"
             },
@@ -3003,7 +3003,7 @@ _expected_inst_info_S = {
             "id": "res_id_VDU1_0",
             "vduId": "VDU1",
             "computeResource": {
-                "vimConnectionId": "vim_id_1",
+                "vimConnectionId": "vim1",
                 "resourceId": "res_id_VDU1_0",
                 "vimLevelResourceType": "OS::Nova::Server"
             },
@@ -3041,7 +3041,7 @@ _expected_inst_info_S = {
             "id": "res_id_VDU2_0",
             "vduId": "VDU2",
             "computeResource": {
-                "vimConnectionId": "vim_id_1",
+                "vimConnectionId": "vim1",
                 "resourceId": "res_id_VDU2_0",
                 "vimLevelResourceType": "OS::Nova::Server"
             },
@@ -3079,7 +3079,7 @@ _expected_inst_info_S = {
             "id": "res_id_internalVL2",
             "vnfVirtualLinkDescId": "internalVL2",
             "networkResource": {
-                "vimConnectionId": "vim_id_1",
+                "vimConnectionId": "vim1",
                 "resourceId": "res_id_internalVL2",
                 "vimLevelResourceType": "OS::Neutron::Net"
             },
@@ -3087,7 +3087,7 @@ _expected_inst_info_S = {
                 {
                     "id": "res_id_VDU1_CP3_0",
                     "resourceHandle": {
-                        "vimConnectionId": "vim_id_1",
+                        "vimConnectionId": "vim1",
                         "resourceId": "res_id_VDU1_CP3_0",
                         "vimLevelResourceType": "OS::Neutron::Port"
                     },
@@ -3097,7 +3097,7 @@ _expected_inst_info_S = {
                 {
                     "id": "res_id_VDU1_CP3_1",
                     "resourceHandle": {
-                        "vimConnectionId": "vim_id_1",
+                        "vimConnectionId": "vim1",
                         "resourceId": "res_id_VDU1_CP3_1",
                         "vimLevelResourceType": "OS::Neutron::Port"
                     },
@@ -3107,7 +3107,7 @@ _expected_inst_info_S = {
                 {
                     "id": "res_id_VDU2_CP3_0",
                     "resourceHandle": {
-                        "vimConnectionId": "vim_id_1",
+                        "vimConnectionId": "vim1",
                         "resourceId": "res_id_VDU2_CP3_0",
                         "vimLevelResourceType": "OS::Neutron::Port"
                     },
@@ -3122,7 +3122,7 @@ _expected_inst_info_S = {
             "id": "res_id_VDU1-VirtualStorage_0",
             "virtualStorageDescId": "VDU1-VirtualStorage",
             "storageResource": {
-                "vimConnectionId": "vim_id_1",
+                "vimConnectionId": "vim1",
                 "resourceId": "res_id_VDU1-VirtualStorage_0",
                 "vimLevelResourceType": "OS::Cinder::Volume"
             },
@@ -3134,7 +3134,7 @@ _expected_inst_info_S = {
             "id": "res_id_VDU1-VirtualStorage_1",
             "virtualStorageDescId": "VDU1-VirtualStorage",
             "storageResource": {
-                "vimConnectionId": "vim_id_1",
+                "vimConnectionId": "vim1",
                 "resourceId": "res_id_VDU1-VirtualStorage_1",
                 "vimLevelResourceType": "OS::Cinder::Volume"
             },
@@ -3146,7 +3146,7 @@ _expected_inst_info_S = {
             "id": "res_id_VDU2-VirtualStorage_0",
             "virtualStorageDescId": "VDU2-VirtualStorage",
             "storageResource": {
-                "vimConnectionId": "vim_id_1",
+                "vimConnectionId": "vim1",
                 "resourceId": "res_id_VDU2-VirtualStorage_0",
                 "vimLevelResourceType": "OS::Cinder::Volume"
             },

@@ -91,7 +91,7 @@
             "id": "38a38351-fbed-4637-8dcd-01ca1f69d4bb",
             "resourceId": "bbe38e96-8395-4b7f-a7da-67058922df1c",
             "resourceProviderId": "Company",
-            "vimConnectionId": "defb2f96-5670-4bef-8036-27bf61267fc1"
+            "vimConnectionId": "vim1"
         },
         {
             "extCps": [
@@ -151,7 +151,7 @@
             "id": "97a82200-328a-44f6-98cb-bfdf27c359c1",
             "resourceId": "b47d25bd-f1d8-4136-b7e7-ac8754977661",
             "resourceProviderId": "Company",
-            "vimConnectionId": "defb2f96-5670-4bef-8036-27bf61267fc1"
+            "vimConnectionId": "vim1"
         }
     ],
     "vimConnectionInfo": {

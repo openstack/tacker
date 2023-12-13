@@ -197,8 +197,7 @@ def instantiate_vnf_max(net_ids, subnets, ports, auth_url, user_data=False):
     #  - 1
     #  - 1..N (2 or more)
 
-    vim_id_1 = uuidutils.generate_uuid()
-    vim_id_2 = uuidutils.generate_uuid()
+    vim_id_1 = "vim1"
     link_port_id_1 = uuidutils.generate_uuid()
     link_port_id_2 = uuidutils.generate_uuid()
 
@@ -393,7 +392,7 @@ def instantiate_vnf_max(net_ids, subnets, ports, auth_url, user_data=False):
         "extManagedMultisiteVirtualLinkId": uuidutils.generate_uuid()
     }
     vim_1 = {
-        "vimId": vim_id_1,
+        "vimId": uuidutils.generate_uuid(),
         "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3",
         "interfaceInfo": {"endpoint": auth_url},
         "accessInfo": {
@@ -407,7 +406,7 @@ def instantiate_vnf_max(net_ids, subnets, ports, auth_url, user_data=False):
         "extra": {"dummy-key": "dummy-val"}
     }
     vim_2 = {
-        "vimId": vim_id_2,
+        "vimId": uuidutils.generate_uuid(),
         "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3",
         "interfaceInfo": {"endpoint": auth_url},
         "accessInfo": {
@@ -688,8 +687,7 @@ def change_ext_conn_max(net_ids, subnets, auth_url):
     #  - 1
     #  - 1..N (2 or more)
 
-    vim_id_1 = uuidutils.generate_uuid()
-    vim_id_2 = uuidutils.generate_uuid()
+    vim_id_1 = "vim1"
 
     ext_vl_1 = {
         "id": uuidutils.generate_uuid(),
@@ -748,7 +746,7 @@ def change_ext_conn_max(net_ids, subnets, auth_url):
         ]
     }
     vim_1 = {
-        "vimId": vim_id_1,
+        "vimId": uuidutils.generate_uuid(),
         "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3",
         "interfaceInfo": {"endpoint": auth_url},
         "accessInfo": {
@@ -762,7 +760,7 @@ def change_ext_conn_max(net_ids, subnets, auth_url):
         "extra": {"dummy-key": "dummy-val"}
     }
     vim_2 = {
-        "vimId": vim_id_2,
+        "vimId": uuidutils.generate_uuid(),
         "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3",
         "interfaceInfo": {"endpoint": auth_url},
         "accessInfo": {
@@ -1644,14 +1642,14 @@ def change_vnf_pkg_individual_vnfc_max(vnfd_id, net_ids, subnet_ids):
         "extManagedVirtualLinks": [{
             "id": uuidutils.generate_uuid(),
             "vnfVirtualLinkDescId": "internalVL1",
-            "vimConnectionId": uuidutils.generate_uuid(),
+            "vimConnectionId": "vim1",
             "resourceProviderId": "Company",
             "resourceId": net_ids['net_mgmt'],
             "extManagedMultisiteVirtualLinkId": uuidutils.generate_uuid()
         }, {
             "id": uuidutils.generate_uuid(),
             "vnfVirtualLinkDescId": "internalVL2",
-            "vimConnectionId": uuidutils.generate_uuid(),
+            "vimConnectionId": "vim1",
             "resourceProviderId": "Company",
             "resourceId": net_ids['net_mgmt'],
             "extManagedMultisiteVirtualLinkId": uuidutils.generate_uuid()

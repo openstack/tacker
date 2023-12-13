@@ -169,7 +169,7 @@ class VnflcmAPIsV2VNFBase(CommonVnfLcmTest, BaseEnhancedPolicyTest):
 
         ext_vl_1 = {
             "id": uuidutils.generate_uuid(),
-            "vimConnectionId": vim_id_1,
+            "vimConnectionId": "vim1",
             "resourceProviderId": uuidutils.generate_uuid(),
             "resourceId": net_ids['ft-net1'],
             "extCps": [

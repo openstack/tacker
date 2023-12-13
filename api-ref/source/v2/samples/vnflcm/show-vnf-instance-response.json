@@ -120,7 +120,7 @@
                         "id": "b8b0430e-169c-442a-9c48-8fb8c4c3db4d",
                         "resourceHandle": {
                             "resourceId": "7fe18c76-85eb-4e90-ba95-df6e6bad2cd6",
-                            "vimConnectionId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+                            "vimConnectionId": "vim1",
                             "vimLevelResourceType": "OS::Neutron::Port"
                         }
                     },
@@ -130,7 +130,7 @@
                         "id": "2950622a-ded8-4160-88dc-2bf0f02529dd",
                         "resourceHandle": {
                             "resourceId": "07dc4096-49c7-478d-986a-fd132efd573a",
-                            "vimConnectionId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+                            "vimConnectionId": "vim1",
                             "vimLevelResourceType": "OS::Neutron::Port"
                         }
                     }
@@ -190,7 +190,7 @@
                         "id": "c19db045-8526-4d2d-8daf-819905f9b3fb",
                         "resourceHandle": {
                             "resourceId": "c1f49f87-37ff-437b-84a0-91a346fdec55",
-                            "vimConnectionId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+                            "vimConnectionId": "vim1",
                             "vimLevelResourceType": "OS::Neutron::Port"
                         }
                     },
@@ -199,7 +199,7 @@
                         "id": "51043a84-78f4-4bbe-832d-a7fcfbd3cb23",
                         "resourceHandle": {
                             "resourceId": "88bc7eee-0893-4892-b0d3-d58d1c2293a8",
-                            "vimConnectionId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+                            "vimConnectionId": "vim1",
                             "vimLevelResourceType": "OS::Neutron::Port"
                         }
                     }
@@ -262,7 +262,7 @@
                         "id": "c9008244-6561-49cf-a9a3-6218034e6b02",
                         "resourceHandle": {
                             "resourceId": "3c89dfce-2039-41ad-a60b-6be6488bbca6",
-                            "vimConnectionId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+                            "vimConnectionId": "vim1",
                             "vimLevelResourceType": "OS::Neutron::Port"
                         }
                     },
@@ -271,7 +271,7 @@
                         "id": "f190426f-63a7-42a5-ad12-44c6bc464f13",
                         "resourceHandle": {
                             "resourceId": "a0db5863-e420-4191-a2bb-c8536b091bda",
-                            "vimConnectionId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+                            "vimConnectionId": "vim1",
                             "vimLevelResourceType": "OS::Neutron::Port"
                         }
                     }
@@ -300,7 +300,7 @@
                 "id": "0357ecab-bdd8-403f-a91b-b80f287b536f",
                 "storageResource": {
                     "resourceId": "0ea498c7-a740-4b16-b8fd-93dbd5d8ee7d",
-                    "vimConnectionId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+                    "vimConnectionId": "vim1",
                     "vimLevelResourceType": "OS::Cinder::Volume"
                 },
                 "virtualStorageDescId": "VirtualStorage"
@@ -312,7 +312,7 @@
                 "id": "e651053a-e17e-47e3-9665-6ec028873040",
                 "networkResource": {
                     "resourceId": "98d5c67b-c7f8-4293-890c-011184b6574b",
-                    "vimConnectionId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+                    "vimConnectionId": "vim1",
                     "vimLevelResourceType": "OS::Neutron::Net"
                 },
                 "vnfLinkPorts": [
@@ -322,7 +322,7 @@
                         "id": "d5ec9027-dba4-4b53-be4a-7bbad1ab9f51",
                         "resourceHandle": {
                             "resourceId": "42fe1697-30a7-4a79-8547-71de0c43c8b5",
-                            "vimConnectionId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+                            "vimConnectionId": "vim1",
                             "vimLevelResourceType": "OS::Neutron::Port"
                         }
                     },
@@ -332,7 +332,7 @@
                         "id": "a5f21c6d-3ba4-4843-b3cc-cc4c8b37be72",
                         "resourceHandle": {
                             "resourceId": "5bd09199-1409-46b1-9cd4-191e3fb7c9cb",
-                            "vimConnectionId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+                            "vimConnectionId": "vim1",
                             "vimLevelResourceType": "OS::Neutron::Port"
                         }
                     }
@@ -343,7 +343,7 @@
                 "id": "5efa5ab4-4237-4b41-9e39-7f4565992acc",
                 "networkResource": {
                     "resourceId": "be459310-e24d-4430-a0b9-b9ad391f4e5e",
-                    "vimConnectionId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+                    "vimConnectionId": "vim1",
                     "vimLevelResourceType": "OS::Neutron::Net"
                 },
                 "vnfLinkPorts": [
@@ -353,7 +353,7 @@
                         "id": "c02a75f8-a809-49c6-b6dc-bbda31928ef0",
                         "resourceHandle": {
                             "resourceId": "86c5a181-4232-4937-ba73-5c494f0d267a",
-                            "vimConnectionId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+                            "vimConnectionId": "vim1",
                             "vimLevelResourceType": "OS::Neutron::Port"
                         }
                     },
@@ -363,7 +363,7 @@
                         "id": "bfb260e7-cfdd-45ee-8fb9-64f51d8c2064",
                         "resourceHandle": {
                             "resourceId": "de311602-f52b-44a7-af11-15b97ca28beb",
-                            "vimConnectionId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+                            "vimConnectionId": "vim1",
                             "vimLevelResourceType": "OS::Neutron::Port"
                         }
                     }
@@ -389,7 +389,7 @@
             {
                 "computeResource": {
                     "resourceId": "edda96a2-b4c2-48ca-a06f-31976f9d9653",
-                    "vimConnectionId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+                    "vimConnectionId": "vim1",
                     "vimLevelResourceType": "OS::Nova::Server"
                 },
                 "id": "d0c3f928-adca-4c9b-aaa3-1a8b43a9460d",
@@ -425,7 +425,7 @@
             {
                 "computeResource": {
                     "resourceId": "66a84389-8234-4394-929f-68e0ea77fde1",
-                    "vimConnectionId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+                    "vimConnectionId": "vim1",
                     "vimLevelResourceType": "OS::Nova::Server"
                 },
                 "id": "60d4ffe7-275c-458d-9f40-0a7b43f895fd",

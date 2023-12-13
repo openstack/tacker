@@ -28,6 +28,7 @@ from tacker.db.migration import migrate_to_v2
 from tacker.db.nfvo import nfvo_db
 from tacker.db.vnfm import vnfm_db
 from tacker import objects
+from tacker.sol_refactored.common import vnf_instance_utils as inst_utils
 from tacker.sol_refactored import objects as objects_v2
 from tacker.sol_refactored.objects.v2 import fields as fields_v2
 from tacker.tests.base import BaseTestCase
@@ -1305,7 +1306,22 @@ class TestDbMigrationToV2(SqlTestCase):
                              vnfc_res_infos_v1[i].id)
             self.assertEqual(vnfc_info_v2.vnfcState, "STARTED")
 
-    def test_create_vnf_lcm_op_occ_v2(self):
+    @mock.patch.object(inst_utils, 'get_inst')
+    def test_create_vnf_lcm_op_occ_v2(self, mock_inst):
+        vim_connection_info = objects_v2.VimConnectionInfo.from_dict({
+            "vimId": uuidutils.generate_uuid(),
+            "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3"
+        })
+        mock_inst.return_value = objects_v2.VnfInstanceV2(
+            id=uuidutils.generate_uuid(),
+            vnfdId=uuidutils.generate_uuid(),
+            vnfProvider='provider',
+            vnfProductName='product name',
+            vnfSoftwareVersion='software version',
+            vnfdVersion='vnfd version',
+            instantiationState='INSTANTIATED',
+            vimConnectionInfo={"vim_0": vim_connection_info}
+        )
         vnf_lcm_op_occs_v1 = self.vnf_lcm_op_occs
         vnf_lcm_op_occs_v2 = \
             migrate_to_v2.create_vnf_lcm_op_occs_v2(self.context,
