@@ -138,36 +138,23 @@ The following is the content of a sample ``prometheus.yml``:
 
 .. code-block:: yaml
 
-    # my global config
     global:
-      scrape_interval: 15s # Set the scrape interval to every 15 seconds. Default is every 1 minute.
-      evaluation_interval: 15s # Evaluate rules every 15 seconds. The default is every 1 minute.
-      # scrape_timeout is set to the global default (10s).
+      scrape_interval: 15s
+      evaluation_interval: 15s
 
-    # Alertmanager configuration
     alerting:
       alertmanagers:
-        - static_configs:
-            - targets:
-              - <IP of Alertmanager>:9093
+      - static_configs:
+        - targets:
+          - <IP of Alertmanager>:9093
 
-    # Load rules once and periodically evaluate them according to the global 'evaluation_interval'.
     rule_files:
-      # - "first_rules.yml"
-      # - "second_rules.yml"
-      - "tacker-samplevnf-rules.yaml"
+    - "tacker-samplevnf-rules.yaml"
 
-    # A scrape configuration containing exactly one endpoint to scrape:
-    # Here it's Prometheus itself.
     scrape_configs:
-      # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
-      - job_name: "kube-state-metrics"
-
-        # metrics_path defaults to '/metrics'
-        # scheme defaults to 'http'.
-
-        static_configs:
-          - targets: ["<IP of Kubernetes>:<port of metrics>"]
+    - job_name: "kube-state-metrics"
+      static_configs:
+      - targets: ["<IP of Kubernetes>:<port of metrics>"]
 
 The following is the content of a sample ``tacker-samplevnf-rules.yaml``:
 
@@ -210,11 +197,11 @@ The following is the content of a sample ``alertmanager.yml``:
       webhook_configs:
       - url: 'http://<IP of Tacker>:9890/alert'
     inhibit_rules:
-      - source_match:
-          severity: 'critical'
-        target_match:
-          severity: 'warning'
-        equal: ['dev', 'instance']
+    - source_match:
+        severity: 'critical'
+      target_match:
+        severity: 'warning'
+      equal: ['dev', 'instance']
 
 How does NFVO Auto Heal CNF
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
