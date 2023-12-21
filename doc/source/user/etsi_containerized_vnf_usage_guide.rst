@@ -986,6 +986,6 @@ References
 .. [#fourth] https://docs.openstack.org/tacker/latest/user/vnfd-sol001.html
 .. [#fifth] https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#dns-subdomain-names
 .. [#sixth] https://kubernetes.io/docs/reference/access-authn-authz/authentication/#openid-connect-tokens
-.. [#seventh] https://docs.openstack.org/tacker/latest/reference/kubernetes_openid_token_auth_usage_guide.html
+.. [#seventh] https://docs.openstack.org/tacker/latest/admin/kubernetes_openid_token_auth_usage_guide.html
 .. _Prepare VNF Package : https://docs.openstack.org/tacker/latest/user/mgmt_driver_deploy_k8s_and_cnf_with_helm.html#prepare-vnf-package
 .. _Instantiate VNF : https://docs.openstack.org/tacker/latest/user/mgmt_driver_deploy_k8s_and_cnf_with_helm.html#instantiate-vnf

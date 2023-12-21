@@ -21,8 +21,18 @@ Welcome to Tacker Documentation
 Tacker is an OpenStack service for NFV Orchestration with a general purpose VNF
 Manager to deploy and operate Virtual Network Functions (VNFs) and Network
 Services on an NFV Platform. It is based on ETSI MANO Architectural Framework
-and provides `OpenStack’s NFV Orchestration API
+and provides `OpenStack's NFV Orchestration API
 <https://docs.openstack.org/api-ref/nfv-orchestration/>`_.
+
+Overview
+--------
+
+.. toctree::
+   :maxdepth: 2
+
+   user/introduction
+   user/architecture
+   user/resources
 
 Contents
 --------

@@ -22,35 +22,16 @@ Getting Started
 ---------------
 
 .. toctree::
-   :maxdepth: 1
-
-   etsi_getting_started
-
-
-Overview
---------
-
-.. toctree::
    :maxdepth: 2
 
-   introduction
-   architecture
-   resources
-
+   etsi_getting_started
 
 
 Use Case Guide
 --------------
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 3
 
    etsi_use_case_guide
-   oauth2_usage_guide
-   oauth2_mtls_usage_guide
-   external_oauth2_usage_guide
-   fault_notification_use_case_guide
-   prometheus_plugin_use_case_guide
-   db_migration_tool_usage_guide
-   enhanced_tacker_policy_usage_guide
    encrypt_vim_auth_with_barbican

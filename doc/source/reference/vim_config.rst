@@ -201,7 +201,7 @@ Service Account Token.
 
 2. Another example of Kubernetes VIM configuration with
 OpenID Connect Token. The OpenID Connect related parameters are described in
-:doc:`kubernetes_openid_token_auth_usage_guide`.
+:doc:`/admin/kubernetes_openid_token_auth_usage_guide`.
 
 .. code-block:: yaml
 

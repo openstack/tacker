@@ -543,7 +543,7 @@ see `Middleware Architecture`_.
         'client_id': 'test_user', 'username': 'service-account-test_user', 'active': True}
         from (pid=3757068) _fetch_token /usr/local/lib/python3.8/dist-packages/keystonemiddleware/external_oauth2_token.py:572
 
-.. _OAuth2.0 mTLS usage guide: https://docs.openstack.org/tacker/latest/user/oauth2_mtls_usage_guide.html
+.. _OAuth2.0 mTLS usage guide: https://docs.openstack.org/tacker/latest/admin/oauth2_mtls_usage_guide.html
 .. _Middleware Architecture: https://docs.openstack.org/keystonemiddleware/latest/middlewarearchitecture.html
 
 About OpenStack Command

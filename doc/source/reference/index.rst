@@ -18,8 +18,10 @@
 Reference
 =========
 
+Tools
+-----
+
 .. toctree::
    :maxdepth: 1
 
-   vim_config.rst
-   kubernetes_openid_token_auth_usage_guide.rst
+   vim_config
