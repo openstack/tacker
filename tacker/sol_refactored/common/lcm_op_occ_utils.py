@@ -607,3 +607,8 @@ def check_lcmocc_in_progress(context, inst_id):
         operationState=fields.LcmOperationStateType.FAILED_TEMP)
     if lcmoccs:
         raise sol_ex.OtherOperationInProgress(inst_id=inst_id)
+
+
+def update_lcmocc_status(lcmocc, op_state):
+    lcmocc.operationState = op_state
+    lcmocc.stateEnteredTime = datetime.utcnow()

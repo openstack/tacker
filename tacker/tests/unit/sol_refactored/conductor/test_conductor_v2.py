@@ -152,9 +152,11 @@ class TestConductorV2(db_base.SqlTestCase):
         mocked_grant.return_value = grant_req, grant
 
         op_state = []
+        op_state_entered_time = []
 
         def _store_state(context, lcmocc, inst, endpoint):
             op_state.append(lcmocc.operationState)
+            op_state_entered_time.append(lcmocc.stateEnteredTime)
 
         mocked_send_lcmocc_notification.side_effect = _store_state
 
@@ -166,6 +168,10 @@ class TestConductorV2(db_base.SqlTestCase):
         self.assertEqual(fields.LcmOperationStateType.STARTING, op_state[0])
         self.assertEqual(fields.LcmOperationStateType.PROCESSING, op_state[1])
         self.assertEqual(fields.LcmOperationStateType.COMPLETED, op_state[2])
+
+        # check stateEnteredTime
+        self.assertNotEqual(op_state_entered_time[0], op_state_entered_time[1])
+        self.assertNotEqual(op_state_entered_time[1], op_state_entered_time[2])
 
         # check grant_req and grant are deleted
         self.assertRaises(sol_ex.GrantRequestOrGrantNotFound,
@@ -184,9 +190,11 @@ class TestConductorV2(db_base.SqlTestCase):
         mocked_grant.return_value = self._make_grant_req_and_grant(lcmocc)
         mocked_process.return_value = mock.Mock()
         op_state = []
+        op_state_entered_time = []
 
         def _store_state(context, lcmocc, inst, endpoint):
             op_state.append(lcmocc.operationState)
+            op_state_entered_time.append(lcmocc.stateEnteredTime)
 
         mocked_send_lcmocc_notification.side_effect = _store_state
 
@@ -198,6 +206,10 @@ class TestConductorV2(db_base.SqlTestCase):
         self.assertEqual(fields.LcmOperationStateType.STARTING, op_state[0])
         self.assertEqual(fields.LcmOperationStateType.PROCESSING, op_state[1])
         self.assertEqual(fields.LcmOperationStateType.COMPLETED, op_state[2])
+
+        # check stateEnteredTime
+        self.assertNotEqual(op_state_entered_time[0], op_state_entered_time[1])
+        self.assertNotEqual(op_state_entered_time[1], op_state_entered_time[2])
 
     @mock.patch.object(nfvo_client.NfvoClient, 'send_lcmocc_notification')
     @mock.patch.object(nfvo_client.NfvoClient, 'get_vnfd')
@@ -211,9 +223,11 @@ class TestConductorV2(db_base.SqlTestCase):
         mocked_grant.side_effect = ex
 
         op_state = []
+        op_state_entered_time = []
 
         def _store_state(context, lcmocc, inst, endpoint):
             op_state.append(lcmocc.operationState)
+            op_state_entered_time.append(lcmocc.stateEnteredTime)
 
         mocked_send_lcmocc_notification.side_effect = _store_state
 
@@ -224,6 +238,9 @@ class TestConductorV2(db_base.SqlTestCase):
         self.assertEqual(2, mocked_send_lcmocc_notification.call_count)
         self.assertEqual(fields.LcmOperationStateType.STARTING, op_state[0])
         self.assertEqual(fields.LcmOperationStateType.ROLLED_BACK, op_state[1])
+
+        # check stateEnteredTime
+        self.assertNotEqual(op_state_entered_time[0], op_state_entered_time[1])
 
         # check lcmocc.error
         # get lcmocc from DB to be sure lcmocc saved to DB
@@ -247,9 +264,11 @@ class TestConductorV2(db_base.SqlTestCase):
         mocked_process.side_effect = ex
 
         op_state = []
+        op_state_entered_time = []
 
         def _store_state(context, lcmocc, inst, endpoint):
             op_state.append(lcmocc.operationState)
+            op_state_entered_time.append(lcmocc.stateEnteredTime)
 
         mocked_send_lcmocc_notification.side_effect = _store_state
 
@@ -261,6 +280,10 @@ class TestConductorV2(db_base.SqlTestCase):
         self.assertEqual(fields.LcmOperationStateType.STARTING, op_state[0])
         self.assertEqual(fields.LcmOperationStateType.PROCESSING, op_state[1])
         self.assertEqual(fields.LcmOperationStateType.FAILED_TEMP, op_state[2])
+
+        # check stateEnteredTime
+        self.assertNotEqual(op_state_entered_time[0], op_state_entered_time[1])
+        self.assertNotEqual(op_state_entered_time[1], op_state_entered_time[2])
 
         # check lcmocc.error
         # get lcmocc from DB to be sure lcmocc saved to DB
@@ -285,9 +308,11 @@ class TestConductorV2(db_base.SqlTestCase):
         mocked_get_vnfd.return_value = mock.Mock()
 
         op_state = []
+        op_state_entered_time = []
 
         def _store_state(context, lcmocc, inst, endpoint):
             op_state.append(lcmocc.operationState)
+            op_state_entered_time.append(lcmocc.stateEnteredTime)
 
         mocked_send_lcmocc_notification.side_effect = _store_state
 
@@ -298,6 +323,9 @@ class TestConductorV2(db_base.SqlTestCase):
         self.assertEqual(2, mocked_send_lcmocc_notification.call_count)
         self.assertEqual(fields.LcmOperationStateType.PROCESSING, op_state[0])
         self.assertEqual(fields.LcmOperationStateType.COMPLETED, op_state[1])
+
+        # check stateEnteredTime
+        self.assertNotEqual(op_state_entered_time[0], op_state_entered_time[1])
 
         # check grant_req and grant are deleted
         self.assertRaises(sol_ex.GrantRequestOrGrantNotFound,
@@ -321,9 +349,11 @@ class TestConductorV2(db_base.SqlTestCase):
         mocked_process.side_effect = ex
 
         op_state = []
+        op_state_entered_time = []
 
         def _store_state(context, lcmocc, inst, endpoint):
             op_state.append(lcmocc.operationState)
+            op_state_entered_time.append(lcmocc.stateEnteredTime)
 
         mocked_send_lcmocc_notification.side_effect = _store_state
 
@@ -334,6 +364,9 @@ class TestConductorV2(db_base.SqlTestCase):
         self.assertEqual(2, mocked_send_lcmocc_notification.call_count)
         self.assertEqual(fields.LcmOperationStateType.PROCESSING, op_state[0])
         self.assertEqual(fields.LcmOperationStateType.FAILED_TEMP, op_state[1])
+
+        # check stateEnteredTime
+        self.assertNotEqual(op_state_entered_time[0], op_state_entered_time[1])
 
         # check lcmocc.error
         # get lcmocc from DB to be sure lcmocc saved to DB
@@ -362,9 +395,11 @@ class TestConductorV2(db_base.SqlTestCase):
         mocked_get_vnfd.return_value = mock.Mock()
 
         op_state = []
+        op_state_entered_time = []
 
         def _store_state(context, lcmocc, inst, endpoint):
             op_state.append(lcmocc.operationState)
+            op_state_entered_time.append(lcmocc.stateEnteredTime)
 
         mocked_send_lcmocc_notification.side_effect = _store_state
 
@@ -376,6 +411,9 @@ class TestConductorV2(db_base.SqlTestCase):
         self.assertEqual(fields.LcmOperationStateType.ROLLING_BACK,
                          op_state[0])
         self.assertEqual(fields.LcmOperationStateType.ROLLED_BACK, op_state[1])
+
+        # check stateEnteredTime
+        self.assertNotEqual(op_state_entered_time[0], op_state_entered_time[1])
 
         # check grant_req and grant are deleted
         self.assertRaises(sol_ex.GrantRequestOrGrantNotFound,
@@ -400,9 +438,11 @@ class TestConductorV2(db_base.SqlTestCase):
         mocked_rollback.side_effect = ex
 
         op_state = []
+        op_state_entered_time = []
 
         def _store_state(context, lcmocc, inst, endpoint):
             op_state.append(lcmocc.operationState)
+            op_state_entered_time.append(lcmocc.stateEnteredTime)
 
         mocked_send_lcmocc_notification.side_effect = _store_state
 
@@ -414,6 +454,9 @@ class TestConductorV2(db_base.SqlTestCase):
         self.assertEqual(fields.LcmOperationStateType.ROLLING_BACK,
                          op_state[0])
         self.assertEqual(fields.LcmOperationStateType.FAILED_TEMP, op_state[1])
+
+        # check stateEnteredTime
+        self.assertNotEqual(op_state_entered_time[0], op_state_entered_time[1])
 
         # check lcmocc.error
         # get lcmocc from DB to be sure lcmocc saved to DB
@@ -437,9 +480,11 @@ class TestConductorV2(db_base.SqlTestCase):
         mocked_get_vnfd.return_value = mock.Mock()
 
         op_state = []
+        op_state_entered_time = []
 
         def _store_state(context, lcmocc, inst, endpoint):
             op_state.append(lcmocc.operationState)
+            op_state_entered_time.append(lcmocc.stateEnteredTime)
 
         mocked_send_lcmocc_notification.side_effect = _store_state
 
@@ -450,6 +495,9 @@ class TestConductorV2(db_base.SqlTestCase):
         self.assertEqual(2, mocked_send_lcmocc_notification.call_count)
         self.assertEqual(fields.LcmOperationStateType.PROCESSING, op_state[0])
         self.assertEqual(fields.LcmOperationStateType.COMPLETED, op_state[1])
+
+        # check stateEnteredTime
+        self.assertNotEqual(op_state_entered_time[0], op_state_entered_time[1])
 
     @mock.patch.object(nfvo_client.NfvoClient, 'send_lcmocc_notification')
     @mock.patch.object(nfvo_client.NfvoClient, 'get_vnfd')
@@ -465,9 +513,11 @@ class TestConductorV2(db_base.SqlTestCase):
         mocked_process.side_effect = ex
 
         op_state = []
+        op_state_entered_time = []
 
         def _store_state(context, lcmocc, inst, endpoint):
             op_state.append(lcmocc.operationState)
+            op_state_entered_time.append(lcmocc.stateEnteredTime)
 
         mocked_send_lcmocc_notification.side_effect = _store_state
 
@@ -478,6 +528,9 @@ class TestConductorV2(db_base.SqlTestCase):
         self.assertEqual(2, mocked_send_lcmocc_notification.call_count)
         self.assertEqual(fields.LcmOperationStateType.PROCESSING, op_state[0])
         self.assertEqual(fields.LcmOperationStateType.FAILED_TEMP, op_state[1])
+
+        # check stateEnteredTime
+        self.assertNotEqual(op_state_entered_time[0], op_state_entered_time[1])
 
         # check lcmocc.error
         # get lcmocc from DB to be sure lcmocc saved to DB
@@ -528,13 +581,16 @@ class TestConductorV2(db_base.SqlTestCase):
             mocked_send_lcmocc_notification, before_state, after_state):
         # prepare
         lcmocc = self._prepare_change_lcm_op_state(before_state)
+        before_state_entered_time = lcmocc.stateEnteredTime
         mocked_get_vnfd.return_value = mock.Mock()
         ex = sol_ex.ConductorProcessingError()
 
         op_state = []
+        op_state_entered_time = []
 
         def _store_state(context, lcmocc, inst, endpoint):
             op_state.append(lcmocc.operationState)
+            op_state_entered_time.append(lcmocc.stateEnteredTime)
 
         mocked_send_lcmocc_notification.side_effect = _store_state
 
@@ -544,6 +600,10 @@ class TestConductorV2(db_base.SqlTestCase):
         # check operationState transition
         self.assertEqual(1, mocked_send_lcmocc_notification.call_count)
         self.assertEqual(after_state, op_state[0])
+
+        # check stateEnteredTime
+        self.assertNotEqual(before_state_entered_time,
+                            op_state_entered_time[0])
 
         # check lcmocc.error
         # get lcmocc from DB to be sure lcmocc saved to DB
@@ -582,9 +642,11 @@ class TestConductorV2(db_base.SqlTestCase):
         mocked_get_vnfd.return_value = mock.Mock()
 
         op_state = []
+        op_state_entered_time = []
 
         def _store_state(context, lcmocc, inst, endpoint):
             op_state.append(lcmocc.operationState)
+            op_state_entered_time.append(lcmocc.stateEnteredTime)
 
         mocked_send_lcmocc_notification.side_effect = _store_state
 
@@ -595,6 +657,9 @@ class TestConductorV2(db_base.SqlTestCase):
         self.assertEqual(2, mocked_send_lcmocc_notification.call_count)
         self.assertEqual(fields.LcmOperationStateType.PROCESSING, op_state[0])
         self.assertEqual(fields.LcmOperationStateType.COMPLETED, op_state[1])
+
+        # check stateEnteredTime
+        self.assertNotEqual(op_state_entered_time[0], op_state_entered_time[1])
 
         # check grant_req and grant are deleted
         self.assertRaises(sol_ex.GrantRequestOrGrantNotFound,
@@ -621,9 +686,11 @@ class TestConductorV2(db_base.SqlTestCase):
         mocked_get_vnfd.return_value = mock.Mock()
 
         op_state = []
+        op_state_entered_time = []
 
         def _store_state(context, lcmocc, inst, endpoint):
             op_state.append(lcmocc.operationState)
+            op_state_entered_time.append(lcmocc.stateEnteredTime)
 
         mocked_send_lcmocc_notification.side_effect = _store_state
 
@@ -635,6 +702,9 @@ class TestConductorV2(db_base.SqlTestCase):
         self.assertEqual(fields.LcmOperationStateType.ROLLING_BACK,
                          op_state[0])
         self.assertEqual(fields.LcmOperationStateType.ROLLED_BACK, op_state[1])
+
+        # check stateEnteredTime
+        self.assertNotEqual(op_state_entered_time[0], op_state_entered_time[1])
 
         # check grant_req and grant are deleted
         self.assertRaises(sol_ex.GrantRequestOrGrantNotFound,

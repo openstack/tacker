@@ -92,7 +92,7 @@ class ConductorV2(object):
             lcmoccs = objects.VnfLcmOpOccV2.get_by_filter(context,
                 operationState=before_state)
             for lcmocc in lcmoccs:
-                lcmocc.operationState = after_state
+                lcmocc_utils.update_lcmocc_status(lcmocc, after_state)
                 self._set_lcmocc_error(lcmocc, ex)
                 inst = inst_utils.get_inst(context, lcmocc.vnfInstanceId)
                 lcmocc.update(context)
@@ -158,7 +158,8 @@ class ConductorV2(object):
             self.vnflcm_driver.post_grant(context, lcmocc, inst, grant_req,
                                           grant, vnfd)
 
-            lcmocc.operationState = fields.LcmOperationStateType.PROCESSING
+            lcmocc_utils.update_lcmocc_status(
+                lcmocc, fields.LcmOperationStateType.PROCESSING)
             lcmocc.grantId = grant.id
             with context.session.begin(subtransactions=True):
                 # save grant_req and grant to be used when retry
@@ -173,7 +174,8 @@ class ConductorV2(object):
                 lcmocc.update(context)
         except Exception as ex:
             LOG.exception("STARTING %s failed", lcmocc.operation)
-            lcmocc.operationState = fields.LcmOperationStateType.ROLLED_BACK
+            lcmocc_utils.update_lcmocc_status(
+                lcmocc, fields.LcmOperationStateType.ROLLED_BACK)
             self._set_lcmocc_error(lcmocc, ex)
             lcmocc.update(context)
 
@@ -189,7 +191,8 @@ class ConductorV2(object):
                                        grant, vnfd,
                                        user_script_err_handling_data)
 
-            lcmocc.operationState = fields.LcmOperationStateType.COMPLETED
+            lcmocc_utils.update_lcmocc_status(
+                lcmocc, fields.LcmOperationStateType.COMPLETED)
             # update inst and lcmocc at the same time
             with context.session.begin(subtransactions=True):
                 inst.update(context)
@@ -199,7 +202,8 @@ class ConductorV2(object):
                 grant.delete(context)
         except Exception as ex:
             LOG.exception("PROCESSING %s failed", lcmocc.operation)
-            lcmocc.operationState = fields.LcmOperationStateType.FAILED_TEMP
+            lcmocc_utils.update_lcmocc_status(
+                lcmocc, fields.LcmOperationStateType.FAILED_TEMP)
             self._set_lcmocc_error(lcmocc, ex, user_script_err_handling_data)
             lcmocc.update(context)
 
@@ -229,7 +233,8 @@ class ConductorV2(object):
         else:
             user_script_err_handling_data = {}
 
-        lcmocc.operationState = fields.LcmOperationStateType.PROCESSING
+        lcmocc_utils.update_lcmocc_status(
+            lcmocc, fields.LcmOperationStateType.PROCESSING)
         lcmocc.update(context)
         # send notification PROCESSING
         self.nfvo_client.send_lcmocc_notification(context, lcmocc, inst,
@@ -250,7 +255,8 @@ class ConductorV2(object):
                                        grant, vnfd,
                                        user_script_err_handling_data)
 
-            lcmocc.operationState = fields.LcmOperationStateType.COMPLETED
+            lcmocc_utils.update_lcmocc_status(
+                lcmocc, fields.LcmOperationStateType.COMPLETED)
             lcmocc.error = None  # clear error
             # update inst and lcmocc at the same time
             with context.session.begin(subtransactions=True):
@@ -262,7 +268,8 @@ class ConductorV2(object):
                     grant.delete(context)
         except Exception as ex:
             LOG.exception("PROCESSING %s failed", lcmocc.operation)
-            lcmocc.operationState = fields.LcmOperationStateType.FAILED_TEMP
+            lcmocc_utils.update_lcmocc_status(
+                lcmocc, fields.LcmOperationStateType.FAILED_TEMP)
             self._set_lcmocc_error(lcmocc, ex, user_script_err_handling_data)
             lcmocc.update(context)
             # grant_req and grant are already saved. they are not deleted
@@ -294,7 +301,8 @@ class ConductorV2(object):
         else:
             user_script_err_handling_data = {}
 
-        lcmocc.operationState = fields.LcmOperationStateType.ROLLING_BACK
+        lcmocc_utils.update_lcmocc_status(
+            lcmocc, fields.LcmOperationStateType.ROLLING_BACK)
         lcmocc.update(context)
         # send notification ROLLING_BACK
         self.nfvo_client.send_lcmocc_notification(context, lcmocc, inst,
@@ -311,7 +319,8 @@ class ConductorV2(object):
                                         grant, vnfd,
                                         user_script_err_handling_data)
 
-            lcmocc.operationState = fields.LcmOperationStateType.ROLLED_BACK
+            lcmocc_utils.update_lcmocc_status(
+                lcmocc, fields.LcmOperationStateType.ROLLED_BACK)
             if (lcmocc.obj_attr_is_set('error') and
                     lcmocc.error.obj_attr_is_set('userScriptErrHandlingData')):
                 del lcmocc.error.userScriptErrHandlingData
@@ -330,7 +339,8 @@ class ConductorV2(object):
                     grant.delete(context)
         except Exception as ex:
             LOG.exception("ROLLING_BACK %s failed", lcmocc.operation)
-            lcmocc.operationState = fields.LcmOperationStateType.FAILED_TEMP
+            lcmocc_utils.update_lcmocc_status(
+                lcmocc, fields.LcmOperationStateType.FAILED_TEMP)
             self._set_lcmocc_error(lcmocc, ex, user_script_err_handling_data)
             lcmocc.update(context)
             # grant_req and grant are already saved. they are not deleted
@@ -365,14 +375,16 @@ class ConductorV2(object):
             vnfd = self.nfvo_client.get_vnfd(context, inst.vnfdId)
             self.vnflcm_driver.process(context, lcmocc, inst, None, None, vnfd,
                                        user_script_err_handling_data)
-            lcmocc.operationState = fields.LcmOperationStateType.COMPLETED
+            lcmocc_utils.update_lcmocc_status(
+                lcmocc, fields.LcmOperationStateType.COMPLETED)
             # update inst and lcmocc at the same time
             with context.session.begin(subtransactions=True):
                 inst.update(context)
                 lcmocc.update(context)
         except Exception as ex:
             LOG.exception("PROCESSING %s failed", lcmocc.operation)
-            lcmocc.operationState = fields.LcmOperationStateType.FAILED_TEMP
+            lcmocc_utils.update_lcmocc_status(
+                lcmocc, fields.LcmOperationStateType.FAILED_TEMP)
             self._set_lcmocc_error(lcmocc, ex, user_script_err_handling_data)
             lcmocc.update(context)
 
