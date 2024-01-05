@@ -28,6 +28,7 @@ from tacker.sol_refactored.infra_drivers.openstack import openstack
 from tacker.sol_refactored import objects
 from tacker.sol_refactored.objects.v2 import fields
 from tacker.tests import base
+from tacker.tests import utils
 
 
 SAMPLE_VNFD_ID = "b1bb0ce7-ebca-4fa7-95ed-4840d7000000"
@@ -3777,8 +3778,7 @@ class TestOpenstack(base.BaseTestCase):
         CONF.v2_vnfm.default_graceful_termination_timeout = 0
         CONF.v2_vnfm.use_oauth2_mtls_for_heat = False
 
-        cur_dir = os.path.dirname(__file__)
-        sample_dir = os.path.join(cur_dir, "../..", "samples")
+        sample_dir = utils.test_sample("unit/sol_refactored/samples")
 
         self.vnfd_1 = vnfd_utils.Vnfd(SAMPLE_VNFD_ID)
         self.vnfd_1.init_from_csar_dir(os.path.join(sample_dir, "sample1"))

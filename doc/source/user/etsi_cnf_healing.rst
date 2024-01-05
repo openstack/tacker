@@ -46,12 +46,12 @@ This procedure uses an example using the sample VNF package.
 
 How to Create VNF Package for Healing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Using `tacker/tests/etc/samples/etsi/nfv/test_cnf_heal`_,
+Using `samples/tests/etc/samples/etsi/nfv/test_cnf_heal`_,
 describe how to create VNF package for healing.
 
 .. code-block:: console
 
-    $ cd tacker/tests/etc/samples/etsi/nfv/test_cnf_heal
+    $ cd samples/tests/etc/samples/etsi/nfv/test_cnf_heal
 
 Download official definition files from ETSI NFV.
 ETSI GS NFV-SOL 001 [i.4] specifies the structure and format of the VNFD based
@@ -204,7 +204,7 @@ Healing Target VNF Instance
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Assuming that the following VNF instance exists. VNF Instance is made by using
-`tacker/tests/etc/samples/etsi/nfv/test_cnf_heal`_.
+`samples/tests/etc/samples/etsi/nfv/test_cnf_heal`_.
 This instance will be healed.
 
 .. code-block:: console
@@ -528,4 +528,4 @@ Result:
 
 
 .. _NFV-SOL002 v2.6.1 : https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/002/02.06.01_60/gs_nfv-sol002v020601p.pdf
-.. _tacker/tests/etc/samples/etsi/nfv/test_cnf_heal : https://opendev.org/openstack/tacker/src/branch/master/tacker/tests/etc/samples/etsi/nfv/test_cnf_heal
+.. _samples/tests/etc/samples/etsi/nfv/test_cnf_heal : https://opendev.org/openstack/tacker/src/branch/master/samples/tests/etc/samples/etsi/nfv/test_cnf_heal

@@ -373,6 +373,6 @@ Result:
   The age of pods under deployment has been reset, so pods under
   this deployment has redeployed before and after operation.
 
-.. _VNF Package for Common instantiate: https://opendev.org/openstack/tacker/src/branch/master/tacker/tests/functional/sol_kubernetes_v2/samples/test_instantiate_cnf_resources/contents
-.. _VNF Package for Change Current VNF Package: https://opendev.org/openstack/tacker/src/branch/master/tacker/tests/functional/sol_kubernetes_v2/samples/test_change_vnf_pkg_with_deployment/contents
+.. _VNF Package for Common instantiate: https://opendev.org/openstack/tacker/src/branch/master/samples/tests/functional/sol_kubernetes_v2/test_instantiate_cnf_resources/contents
+.. _VNF Package for Change Current VNF Package: https://opendev.org/openstack/tacker/src/branch/master/samples/tests/functional/sol_kubernetes_v2/test_change_vnf_pkg_with_deployment/contents
 .. _ETSI SOL002 v3.5.1: https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/002/03.05.01_60/gs_nfv-sol002v030501p.pdf

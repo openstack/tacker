@@ -19,6 +19,7 @@ import time
 from tacker.objects import fields
 from tacker.tests.functional.sol_kubernetes_v2 import base_v2
 from tacker.tests.functional.sol_kubernetes_v2 import paramgen
+from tacker.tests import utils
 
 WAIT_NOTIFICATION_TIME = 5
 
@@ -30,10 +31,8 @@ class VnfPmTest(base_v2.BaseVnfLcmKubernetesV2Test):
     def setUpClass(cls):
         super(VnfPmTest, cls).setUpClass()
 
-        cur_dir = os.path.dirname(__file__)
-
-        test_instantiate_cnf_resources_path = os.path.join(
-            cur_dir, "samples/test_instantiate_cnf_resources")
+        test_instantiate_cnf_resources_path = utils.test_sample(
+            "functional/sol_kubernetes_v2/test_instantiate_cnf_resources")
         cls.cnf_pkg, cls.cnf_vnfd_id = cls.create_vnf_package(
             test_instantiate_cnf_resources_path)
 

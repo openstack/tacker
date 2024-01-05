@@ -19,6 +19,7 @@ import os
 from tacker.objects import fields
 from tacker.tests.functional.sol_v2_common import paramgen
 from tacker.tests.functional.sol_v2_common import test_vnflcm_basic_common
+from tacker.tests import utils
 
 
 @ddt.ddt
@@ -27,30 +28,25 @@ class VnfLcmTest(test_vnflcm_basic_common.CommonVnfLcmTest):
     @classmethod
     def setUpClass(cls):
         super(VnfLcmTest, cls).setUpClass()
-        cur_dir = os.path.dirname(__file__)
-        # tacker/tests/etc...
-        #             /functional/sol_v2
-        image_dir = os.path.join(
-            cur_dir, "../../etc/samples/etsi/nfv/common/Files/images")
-        image_file = "cirros-0.5.2-x86_64-disk.img"
-        image_path = os.path.abspath(os.path.join(image_dir, image_file))
+        image_path = utils.test_etc_sample("etsi/nfv/common/Files/images",
+            "cirros-0.5.2-x86_64-disk.img")
 
         # for basic lcms tests max pattern
-        basic_lcms_max_path = os.path.join(cur_dir, "../sol_v2_common/"
-                                                    "samples/basic_lcms_max")
+        basic_lcms_max_path = utils.test_sample("functional/sol_v2_common",
+                                                "basic_lcms_max")
         cls.max_pkg, cls.max_vnfd_id = cls.create_vnf_package(
             basic_lcms_max_path, image_path=image_path)
 
         # for basic lcms tests min pattern
-        basic_lcms_min_path = os.path.join(cur_dir, "../sol_v2_common/"
-                                                    "samples/basic_lcms_min")
+        basic_lcms_min_path = utils.test_sample("functional/sol_v2_common",
+                                                "basic_lcms_min")
         # no image contained
         cls.min_pkg, cls.min_vnfd_id = cls.create_vnf_package(
             basic_lcms_min_path)
 
         # for update vnf test
-        update_vnf_path = os.path.join(cur_dir, "../sol_v2_common/"
-                                                "samples/update_vnf")
+        update_vnf_path = utils.test_sample("functional/sol_v2_common",
+                                            "update_vnf")
         # no image contained
         cls.upd_pkg, cls.upd_vnfd_id = cls.create_vnf_package(update_vnf_path)
 

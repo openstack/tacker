@@ -38,6 +38,7 @@ from tacker.tests.unit.vnflcm import fakes
 from tacker.tests.unit.vnfm.infra_drivers.openstack.fixture_data import client
 from tacker.tests.unit.vnfm.infra_drivers.openstack.fixture_data import \
     fixture_data_utils as fd_utils
+from tacker.tests import utils as test_utils
 from tacker.tests import uuidsentinel
 from tacker.vnfm.infra_drivers.openstack import heat_client as hc
 from tacker.vnfm.infra_drivers.openstack import openstack
@@ -113,6 +114,9 @@ class TestOpenStack(base.FixturedTestCase):
                                    'openstack.LOG').start()
         mock.patch('time.sleep', return_value=None).start()
 
+    def _nfv_sample(self, name):
+        return test_utils.test_etc_sample('etsi/nfv', name)
+
     def _response_in_wait_until_stack_ready(self, status_list,
                                             stack_outputs=True):
         # response for heat_client's get()
@@ -169,9 +173,8 @@ class TestOpenStack(base.FixturedTestCase):
                 self.requests_mock.register_uri('PATCH', url)
 
     def _json_load(self, input_file):
-        json_file = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                    "../../../../etc/samples/lcm_instantiate_request/",
-                    str(input_file)))
+        json_file = test_utils.test_etc_sample("lcm_instantiate_request",
+                                               input_file)
         with open(json_file) as f:
             json_dict = json.load(f)
         return json_dict
@@ -181,16 +184,13 @@ class TestOpenStack(base.FixturedTestCase):
             file_name = "hot_lcm_user_data_with_scale.yaml"
         else:
             file_name = "hot_lcm_user_data.yaml"
-        yaml_file = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                    "../../../../etc/samples/", file_name))
+        yaml_file = test_utils.test_etc_sample(file_name)
         with open(yaml_file, 'r') as f:
             yaml_file_dict = yaml.safe_load(f)
         return yaml_file_dict
 
     def _read_nested_file(self):
-        yaml_file = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                    "../../../../etc/samples/",
-                    "nested_hot_data.yaml"))
+        yaml_file = test_utils.test_etc_sample("nested_hot_data.yaml")
         with open(yaml_file, 'r') as f:
             yaml_file_dict = yaml.safe_load(f)
         return yaml_file_dict
@@ -271,10 +271,7 @@ class TestOpenStack(base.FixturedTestCase):
         vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
-        vnf_package_path_test = os.path.abspath(
-            os.path.join(os.path.dirname(__file__),
-                         "../../../../etc/samples/etsi/nfv",
-                         "user_data_sample_normal"))
+        vnf_package_path_test = self._nfv_sample("user_data_sample_normal")
         inst_req_info_test = type('', (), {})
         test_json = self._json_load(
             'instantiate_vnf_request_lcm_userdata.json')
@@ -308,10 +305,8 @@ class TestOpenStack(base.FixturedTestCase):
                                        scaling_group=True,
                                        flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
-        vnf_package_path_test = os.path.abspath(
-            os.path.join(os.path.dirname(__file__),
-                         "../../../../etc/samples/etsi/nfv",
-                         "user_data_sample_normal_scaling"))
+        vnf_package_path_test = self._nfv_sample(
+            "user_data_sample_normal_scaling")
         inst_req_info_test = type('', (), {})
         test_json = self._json_load(
             'instantiate_vnf_request_lcm_userdata.json')
@@ -347,10 +342,7 @@ class TestOpenStack(base.FixturedTestCase):
         vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
-        vnf_package_path_test = os.path.abspath(
-            os.path.join(os.path.dirname(__file__),
-                         "../../../../etc/samples/etsi/nfv",
-                         "user_data_sample_normal"))
+        vnf_package_path_test = self._nfv_sample("user_data_sample_normal")
         inst_req_info_test = type('', (), {})
         test_json = self._json_load(
             'instantiate_vnf_request_lcm_userdata.json')
@@ -397,10 +389,7 @@ class TestOpenStack(base.FixturedTestCase):
         vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
-        vnf_package_path_test = os.path.abspath(
-            os.path.join(os.path.dirname(__file__),
-                         "../../../../etc/samples/etsi/nfv",
-                         "user_data_sample_normal"))
+        vnf_package_path_test = self._nfv_sample("user_data_sample_normal")
         inst_req_info_test = type('', (), {})
         test_json = self._json_load(
             'instantiate_vnf_request_lcm_userdata.json')
@@ -520,10 +509,7 @@ class TestOpenStack(base.FixturedTestCase):
         vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
-        vnf_package_path_test = os.path.abspath(
-            os.path.join(os.path.dirname(__file__),
-                         "../../../../etc/samples/etsi/nfv",
-                         "user_data_sample_normal"))
+        vnf_package_path_test = self._nfv_sample("user_data_sample_normal")
         inst_req_info_test = type('', (), {})
         test_json = self._json_load(
             'instantiate_vnf_request_lcm_userdata.json')
@@ -592,10 +578,7 @@ class TestOpenStack(base.FixturedTestCase):
         vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
-        vnf_package_path_test = os.path.abspath(
-            os.path.join(os.path.dirname(__file__),
-                         "../../../../etc/samples/etsi/nfv",
-                         "user_data_sample_normal"))
+        vnf_package_path_test = self._nfv_sample("user_data_sample_normal")
         inst_req_info_test = type('', (), {})
         test_json = self._json_load(
             'instantiate_vnf_request_lcm_userdata.json')
@@ -659,10 +642,7 @@ class TestOpenStack(base.FixturedTestCase):
         vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
-        vnf_package_path_test = os.path.abspath(
-            os.path.join(os.path.dirname(__file__),
-                         "../../../../etc/samples/etsi/nfv",
-                         "user_data_sample_normal"))
+        vnf_package_path_test = self._nfv_sample("user_data_sample_normal")
         inst_req_info_test = type('', (), {})
         test_json = self._json_load(
             'instantiate_vnf_request_lcm_userdata.json')
@@ -729,10 +709,7 @@ class TestOpenStack(base.FixturedTestCase):
         vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
-        vnf_package_path_test = os.path.abspath(
-            os.path.join(os.path.dirname(__file__),
-                         "../../../../etc/samples/etsi/nfv",
-                         "user_data_sample_normal"))
+        vnf_package_path_test = self._nfv_sample("user_data_sample_normal")
         inst_req_info_test = type('', (), {})
         test_json = self._json_load(
             'instantiate_vnf_request_lcm_userdata.json')
@@ -801,10 +778,7 @@ class TestOpenStack(base.FixturedTestCase):
         vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
-        vnf_package_path_test = os.path.abspath(
-            os.path.join(os.path.dirname(__file__),
-                         "../../../../etc/samples/etsi/nfv",
-                         "user_data_sample_normal"))
+        vnf_package_path_test = self._nfv_sample("user_data_sample_normal")
         inst_req_info_test = type('', (), {})
         test_json = self._json_load(
             'instantiate_vnf_request_lcm_userdata.json')
@@ -880,10 +854,7 @@ class TestOpenStack(base.FixturedTestCase):
     def test_create_userdata_none(self, mock_OpenstackClients_heat):
         vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
-        vnf_package_path_test = os.path.abspath(
-            os.path.join(os.path.dirname(__file__),
-                         "../../../../etc/samples/etsi/nfv",
-                         "user_data_sample_normal"))
+        vnf_package_path_test = self._nfv_sample("user_data_sample_normal")
         inst_req_info_test = type('', (), {})
         test_json = self._json_load(
             'instantiate_vnf_request_lcm_userdata.json')
@@ -905,10 +876,7 @@ class TestOpenStack(base.FixturedTestCase):
     def test_create_userdataclass_none(self, mock_OpenstackClients_heat):
         vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
-        vnf_package_path_test = os.path.abspath(
-            os.path.join(os.path.dirname(__file__),
-                         "../../../../etc/samples/etsi/nfv",
-                         "user_data_sample_normal"))
+        vnf_package_path_test = self._nfv_sample("user_data_sample_normal")
         inst_req_info_test = type('', (), {})
         test_json = self._json_load(
             'instantiate_vnf_request_lcm_userdata.json')
@@ -933,10 +901,7 @@ class TestOpenStack(base.FixturedTestCase):
         vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
-        vnf_package_path_test = os.path.abspath(
-            os.path.join(os.path.dirname(__file__),
-                         "../../../../etc/samples/etsi/nfv",
-                         "user_data_sample_normal"))
+        vnf_package_path_test = self._nfv_sample("user_data_sample_normal")
         inst_req_info_test = type('', (), {})
         test_json = self._json_load(
             'instantiate_vnf_request_lcm_userdata.json')
@@ -967,10 +932,7 @@ class TestOpenStack(base.FixturedTestCase):
         vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
-        vnf_package_path_test = os.path.abspath(
-            os.path.join(os.path.dirname(__file__),
-                         "../../../../etc/samples/etsi/nfv",
-                         "user_data_sample_normal"))
+        vnf_package_path_test = self._nfv_sample("user_data_sample_normal")
         inst_req_info_test = type('', (), {})
         test_json = self._json_load(
             'instantiate_vnf_request_lcm_userdata.json')
@@ -1001,10 +963,7 @@ class TestOpenStack(base.FixturedTestCase):
         vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
-        vnf_package_path_test = os.path.abspath(
-            os.path.join(os.path.dirname(__file__),
-                         "../../../../etc/samples/etsi/nfv",
-                         "user_data_sample_normal"))
+        vnf_package_path_test = self._nfv_sample("user_data_sample_normal")
         inst_req_info_test = type('', (), {})
         test_json = self._json_load(
             'instantiate_vnf_request_lcm_userdata.json')
@@ -1034,10 +993,7 @@ class TestOpenStack(base.FixturedTestCase):
         vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
-        vnf_package_path_test = os.path.abspath(
-            os.path.join(os.path.dirname(__file__),
-                         "../../../../etc/samples/etsi/nfv",
-                         "user_data_sample_normal"))
+        vnf_package_path_test = self._nfv_sample("user_data_sample_normal")
         inst_req_info_test = type('', (), {})
         test_json = self._json_load(
             'instantiate_vnf_request_lcm_userdata.json')
@@ -1067,10 +1023,8 @@ class TestOpenStack(base.FixturedTestCase):
         vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
-        vnf_package_path_test = os.path.abspath(
-            os.path.join(os.path.dirname(__file__),
-                         "../../../../etc/samples/etsi/nfv",
-                         "user_data_sample_userdata_none"))
+        vnf_package_path_test = self._nfv_sample(
+            "user_data_sample_userdata_none")
         inst_req_info_test = type('', (), {})
         test_json = self._json_load(
             'instantiate_vnf_request_lcm_userdata.json')
@@ -1101,10 +1055,8 @@ class TestOpenStack(base.FixturedTestCase):
         vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
-        vnf_package_path_test = os.path.abspath(
-            os.path.join(os.path.dirname(__file__),
-                         "../../../../etc/samples/etsi/nfv",
-                         "user_data_sample_userdata_non_dict"))
+        vnf_package_path_test = self._nfv_sample(
+            "user_data_sample_userdata_non_dict")
         inst_req_info_test = type('', (), {})
         test_json = self._json_load(
             'instantiate_vnf_request_lcm_userdata.json')
@@ -1164,10 +1116,8 @@ class TestOpenStack(base.FixturedTestCase):
         vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
-        vnf_package_path_test = os.path.abspath(
-            os.path.join(os.path.dirname(__file__),
-                         "../../../../etc/samples/etsi/nfv",
-                         "user_data_sample_userdata_normal"))
+        vnf_package_path_test = self._nfv_sample(
+            "user_data_sample_userdata_normal")
         inst_req_info_test = type('', (), {})
         test_json = self._json_load(
             'instantiate_vnf_request_lcm_userdata.json')
@@ -1200,10 +1150,8 @@ class TestOpenStack(base.FixturedTestCase):
         vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
-        vnf_package_path_test = os.path.abspath(
-            os.path.join(os.path.dirname(__file__),
-                         "../../../../etc/samples/etsi/nfv",
-                         "user_data_sample_userdata_normal"))
+        vnf_package_path_test = self._nfv_sample(
+            "user_data_sample_userdata_normal")
         inst_req_info_test = type('', (), {})
         test_json = self._json_load(
             'instantiate_vnf_request_lcm_userdata.json')
@@ -1235,10 +1183,8 @@ class TestOpenStack(base.FixturedTestCase):
         vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
-        vnf_package_path_test = os.path.abspath(
-            os.path.join(os.path.dirname(__file__),
-                         "../../../../etc/samples/etsi/nfv",
-                         "user_data_sample_userdata_normal"))
+        vnf_package_path_test = self._nfv_sample(
+            "user_data_sample_userdata_normal")
         inst_req_info_test = type('', (), {})
         test_json = self._json_load(
             'instantiate_vnf_request_lcm_userdata.json')
@@ -1272,10 +1218,8 @@ class TestOpenStack(base.FixturedTestCase):
             mock_OpenstackClients_heat):
         vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
-        vnf_package_path_test = os.path.abspath(
-            os.path.join(os.path.dirname(__file__),
-                         "../../../../etc/samples/etsi/nfv",
-                         "user_data_sample_userdata_normal"))
+        vnf_package_path_test = self._nfv_sample(
+            "user_data_sample_userdata_normal")
         inst_req_info_test = type('', (), {})
         test_json = self._json_load(
             'instantiate_vnf_request_lcm_userdata.json')
@@ -1296,10 +1240,8 @@ class TestOpenStack(base.FixturedTestCase):
     @mock.patch('tacker.common.clients.OpenstackClients')
     def test_create_no_additionalparams(self, mock_OpenstackClients_heat):
         vnf = utils.get_dummy_vnf(instance_id=self.instance_uuid)
-        vnf_package_path_test = os.path.abspath(
-            os.path.join(os.path.dirname(__file__),
-                         "../../../../etc/samples/etsi/nfv",
-                         "user_data_sample_userdata_normal"))
+        vnf_package_path_test = self._nfv_sample(
+            "user_data_sample_userdata_normal")
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
         inst_req_info_test = type('', (), {})
         inst_req_info_test.additional_params = None
@@ -1318,10 +1260,8 @@ class TestOpenStack(base.FixturedTestCase):
         vnf = utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
                                        flavour='simple')
         vnf['placement_attr'] = {'region_name': 'dummy_region'}
-        vnf_package_path_test = os.path.abspath(
-            os.path.join(os.path.dirname(__file__),
-                         "../../../../etc/samples/etsi/nfv",
-                         "user_data_sample_userdata_invalid_script"))
+        vnf_package_path_test = self._nfv_sample(
+            "user_data_sample_userdata_invalid_script")
         inst_req_info_test = type('', (), {})
         test_json = self._json_load(
             'instantiate_vnf_request_lcm_userdata.json')
@@ -2184,10 +2124,8 @@ class TestOpenStack(base.FixturedTestCase):
             virtual_storage_resource_info=[v_s_resource_info],
             vnfc_resource_info=[vnfc_resource_info])
 
-        mock_get_vnf_package_path.return_value = os.path.abspath(
-            os.path.join(os.path.dirname(__file__),
-                         "../../../../etc/samples/etsi/nfv",
-                         "stack_update_in_heal"))
+        mock_get_vnf_package_path.return_value = self._nfv_sample(
+            "stack_update_in_heal")
 
         vnf_instance = fd_utils.get_vnf_instance_object(
             instantiated_vnf_info=inst_vnf_info)
@@ -2259,10 +2197,8 @@ class TestOpenStack(base.FixturedTestCase):
             'instantiate_vnf_request_lcm_userdata.json')
         inst_vnf_info.additional_params = test_json['additionalParams']
 
-        mock_get_vnf_package_path.return_value = os.path.abspath(
-            os.path.join(os.path.dirname(__file__),
-                         "../../../../etc/samples/etsi/nfv",
-                         "stack_update_in_heal"))
+        mock_get_vnf_package_path.return_value = self._nfv_sample(
+            "stack_update_in_heal")
 
         vnf_instance = fd_utils.get_vnf_instance_object(
             instantiated_vnf_info=inst_vnf_info)
@@ -2330,10 +2266,8 @@ class TestOpenStack(base.FixturedTestCase):
             virtual_storage_resource_info=[v_s_resource_info],
             vnfc_resource_info=[vnfc_resource_info])
 
-        mock_get_vnf_package_path.return_value = os.path.abspath(
-            os.path.join(os.path.dirname(__file__),
-                         "../../../../etc/samples/etsi/nfv",
-                         "stack_update_in_heal"))
+        mock_get_vnf_package_path.return_value = self._nfv_sample(
+            "stack_update_in_heal")
 
         vnf_instance = fd_utils.get_vnf_instance_object(
             instantiated_vnf_info=inst_vnf_info)
@@ -2823,10 +2757,8 @@ class TestOpenStack(base.FixturedTestCase):
         scale_vnf_request = objects.ScaleVnfRequest(type='SCALE_OUT',
                                                    aspect_id='SP1',
                                                    number_of_steps=1)
-        mock_get_vnf_package_path.return_value = os.path.abspath(
-            os.path.join(os.path.dirname(__file__),
-                         "../../../../etc/samples/etsi/nfv",
-                         "stack_update_in_heal"))
+        mock_get_vnf_package_path.return_value = self._nfv_sample(
+            "stack_update_in_heal")
         vnf_info = {}
         vnf_info['attributes'] = {}
         vnf_info['attributes']['scale_group'] = '{\"scaleGroupDict\": ' + \

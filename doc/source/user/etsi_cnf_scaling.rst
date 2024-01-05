@@ -45,12 +45,12 @@ This procedure uses an example using the sample VNF package.
 
 How to Create VNF Package for Scaling
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Using `tacker/tests/etc/samples/etsi/nfv/test_cnf_scale`_,
+Using `samples/tests/etc/samples/etsi/nfv/test_cnf_scale`_,
 describe how to create VNF package for scaling.
 
 .. code-block:: console
 
-    $ cd tacker/tests/etc/samples/etsi/nfv/test_cnf_scale
+    $ cd samples/tests/etc/samples/etsi/nfv/test_cnf_scale
 
 Download official definition files from ETSI NFV.
 ETSI GS NFV-SOL 001 [i.4] specifies the structure and format of the VNFD based
@@ -354,4 +354,4 @@ Replicas information after scale-in:
   vdu1   1/1     1            1           2d
 
 .. _NFV-SOL001 v2.6.1 : https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/001/02.06.01_60/gs_NFV-SOL001v020601p.pdf
-.. _tacker/tests/etc/samples/etsi/nfv/test_cnf_scale : https://opendev.org/openstack/tacker/src/branch/master/tacker/tests/etc/samples/etsi/nfv/test_cnf_scale
+.. _samples/tests/etc/samples/etsi/nfv/test_cnf_scale : https://opendev.org/openstack/tacker/src/branch/master/samples/tests/etc/samples/etsi/nfv/test_cnf_scale

@@ -16,6 +16,7 @@ from oslo_utils import uuidutils
 from tacker.objects import fields
 from tacker.tests.functional.sol.vnflcm import base as vnflcm_base
 from tacker.tests.functional.sol.vnflcm import fake_vnflcm
+from tacker.tests import utils
 from tacker.vnfm.infra_drivers.openstack import constants as infra_cnst
 import tempfile
 import time
@@ -58,6 +59,9 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
                 print("Fail, Modify-VNF specific image create.", e, flush=True)
                 cls.is_setup_error = True
                 return
+
+    def _sample_path(self, sample_name):
+        return utils.test_etc_sample("etsi/nfv", sample_name)
 
     def _vnf_instance_wait_until_fail_detected(self, id,
             instantiation_state=fields.VnfInstanceState.NOT_INSTANTIATED,
@@ -128,11 +132,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
 
         # Pre Setting: Create vnf package.
         sample_name = 'functional5'
-        csar_package_path = os.path.abspath(
-            os.path.join(
-                os.path.dirname(__file__),
-                "../../../etc/samples/etsi/nfv",
-                sample_name))
+        csar_package_path = self._sample_path(sample_name)
         tempname, _ = vnflcm_base._create_csar_with_unique_vnfd_id(
             csar_package_path)
         # upload vnf package
@@ -250,11 +250,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
 
         # Pre Setting: Create vnf package.
         sample_name = 'user_data_sample_virtual_storage_missing'
-        csar_package_path = os.path.abspath(
-            os.path.join(
-                os.path.dirname(__file__),
-                "../../../etc/samples/etsi/nfv",
-                sample_name))
+        csar_package_path = self._sample_path(sample_name)
         tempname, _ = vnflcm_base._create_csar_with_unique_vnfd_id(
             csar_package_path)
         # upload vnf package
@@ -343,11 +339,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
             """
         # Pre Setting: Create vnf package.
         sample_name = 'functional5'
-        csar_package_path = os.path.abspath(
-            os.path.join(
-                os.path.dirname(__file__),
-                "../../../etc/samples/etsi/nfv",
-                sample_name))
+        csar_package_path = self._sample_path(sample_name)
         tempname, _ = vnflcm_base._create_csar_with_unique_vnfd_id(
             csar_package_path)
         # upload vnf package
@@ -480,11 +472,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
 
         # Pre Setting: Create vnf package.
         sample_name = 'stack_update_in_scale'
-        csar_package_path = os.path.abspath(
-            os.path.join(
-                os.path.dirname(__file__),
-                "../../../etc/samples/etsi/nfv",
-                sample_name))
+        csar_package_path = self._sample_path(sample_name)
         tempname, _ = vnflcm_base._create_csar_with_unique_vnfd_id(
             csar_package_path)
         # upload vnf package
@@ -683,11 +671,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
 
         # Pre Setting: Create vnf package.
         sample_name = 'functional'
-        csar_package_path = os.path.abspath(
-            os.path.join(
-                os.path.dirname(__file__),
-                "../../../etc/samples/etsi/nfv",
-                sample_name))
+        csar_package_path = self._sample_path(sample_name)
         tempname, _ = vnflcm_base._create_csar_with_unique_vnfd_id(
             csar_package_path)
         # upload vnf package
@@ -737,11 +721,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
 
         # Update vnf (vnfdId)
         sample_name = 'functional2'
-        csar_package_path = os.path.abspath(
-            os.path.join(
-                os.path.dirname(__file__),
-                "../../../etc/samples/etsi/nfv",
-                sample_name))
+        csar_package_path = self._sample_path(sample_name)
         tempname, _ = vnflcm_base._create_csar_with_unique_vnfd_id(
             csar_package_path)
         # upload vnf package
@@ -919,11 +899,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
 
         # Pre Setting: Create vnf package.
         sample_name = 'functional'
-        csar_package_path = os.path.abspath(
-            os.path.join(
-                os.path.dirname(__file__),
-                "../../../etc/samples/etsi/nfv",
-                sample_name))
+        csar_package_path = self._sample_path(sample_name)
         tempname, _ = vnflcm_base._create_csar_with_unique_vnfd_id(
             csar_package_path)
         # upload vnf package
@@ -966,11 +942,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
 
         # Update vnf (vnfdId)
         sample_name = 'stack_update_in_heal'
-        csar_package_path = os.path.abspath(
-            os.path.join(
-                os.path.dirname(__file__),
-                "../../../etc/samples/etsi/nfv",
-                sample_name))
+        csar_package_path = self._sample_path(sample_name)
         tempname, _ = vnflcm_base._create_csar_with_unique_vnfd_id(
             csar_package_path)
         # upload vnf package
@@ -1070,11 +1042,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
 
         # Pre Setting: Create vnf package.
         sample_name = 'functional'
-        csar_package_path = os.path.abspath(
-            os.path.join(
-                os.path.dirname(__file__),
-                "../../../etc/samples/etsi/nfv",
-                sample_name))
+        csar_package_path = self._sample_path(sample_name)
         tempname, _ = vnflcm_base._create_csar_with_unique_vnfd_id(
             csar_package_path)
         # upload vnf package
@@ -1119,11 +1087,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
 
         # Update vnf (vnfPkgId)
         sample_name = 'functional2'
-        csar_package_path = os.path.abspath(
-            os.path.join(
-                os.path.dirname(__file__),
-                "../../../etc/samples/etsi/nfv",
-                sample_name))
+        csar_package_path = self._sample_path(sample_name)
         tempname, _ = vnflcm_base._create_csar_with_unique_vnfd_id(
             csar_package_path)
         # upload vnf package
@@ -1179,11 +1143,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         """
         # Pre Setting: Create vnf package.
         sample_name = "user_data_sample_basehot_invalid"
-        csar_package_path = os.path.abspath(
-            os.path.join(
-                os.path.dirname(__file__),
-                "../../../etc/samples/etsi/nfv",
-                sample_name))
+        csar_package_path = self._sample_path(sample_name)
         tempname, _ = vnflcm_base._create_csar_user_data_common(
             csar_package_path)
         # upload vnf package
@@ -1230,11 +1190,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         """
         # Pre Setting: Create vnf package.
         sample_name = "user_data_sample_userdata_timeout"
-        csar_package_path = os.path.abspath(
-            os.path.join(
-                os.path.dirname(__file__),
-                "../../../etc/samples/etsi/nfv",
-                sample_name))
+        csar_package_path = self._sample_path(sample_name)
         tempname, _ = vnflcm_base._create_csar_user_data_common(
             csar_package_path)
         # upload vnf package
@@ -1283,11 +1239,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         """
         # Pre Setting: Create vnf package.
         sample_name = "user_data_sample_userdata_invalid_hot_param"
-        csar_package_path = os.path.abspath(
-            os.path.join(
-                os.path.dirname(__file__),
-                "../../../etc/samples/etsi/nfv",
-                sample_name))
+        csar_package_path = self._sample_path(sample_name)
         tempname, _ = vnflcm_base._create_csar_user_data_common(
             csar_package_path)
         # upload vnf package
@@ -1337,11 +1289,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         """
         # Pre Setting: Create vnf package.
         sample_name = "user_data_sample_userdata_none"
-        csar_package_path = os.path.abspath(
-            os.path.join(
-                os.path.dirname(__file__),
-                "../../../etc/samples/etsi/nfv",
-                sample_name))
+        csar_package_path = self._sample_path(sample_name)
         tempname, _ = vnflcm_base._create_csar_user_data_common(
             csar_package_path)
         # upload vnf package
@@ -1392,11 +1340,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         """
         # Pre Setting: Create vnf package.
         sample_name = "user_data_sample_userdata_invalid_script"
-        csar_package_path = os.path.abspath(
-            os.path.join(
-                os.path.dirname(__file__),
-                "../../../etc/samples/etsi/nfv",
-                sample_name))
+        csar_package_path = self._sample_path(sample_name)
         tempname, _ = vnflcm_base._create_csar_user_data_common(
             csar_package_path)
         # upload vnf package
@@ -1470,11 +1414,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
 
         # Pre Setting: Create vnf package.
         sample_name = 'functional3'
-        csar_package_path = os.path.abspath(
-            os.path.join(
-                os.path.dirname(__file__),
-                "../../../etc/samples/etsi/nfv",
-                sample_name))
+        csar_package_path = self._sample_path(sample_name)
         tempname, _ = vnflcm_base._create_csar_with_unique_vnfd_id(
             csar_package_path)
         # upload vnf package
@@ -1581,11 +1521,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
 
         # Pre Setting: Create vnf package.
         sample_name = 'functional4'
-        csar_package_path = os.path.abspath(
-            os.path.join(
-                os.path.dirname(__file__),
-                "../../../etc/samples/etsi/nfv",
-                sample_name))
+        csar_package_path = self._sample_path(sample_name)
         tempname, _ = vnflcm_base._create_csar_with_unique_vnfd_id(
             csar_package_path)
         # upload vnf package
@@ -1710,11 +1646,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
 
         # Pre Setting: Create vnf package.
         sample_name = 'functional3'
-        csar_package_path = os.path.abspath(
-            os.path.join(
-                os.path.dirname(__file__),
-                "../../../etc/samples/etsi/nfv",
-                sample_name))
+        csar_package_path = self._sample_path(sample_name)
         tempname, _ = vnflcm_base._create_csar_with_unique_vnfd_id(
             csar_package_path)
         # upload vnf package
@@ -1812,11 +1744,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
 
         # Pre Setting: Create vnf package.
         sample_name = 'functional4'
-        csar_package_path = os.path.abspath(
-            os.path.join(
-                os.path.dirname(__file__),
-                "../../../etc/samples/etsi/nfv",
-                sample_name))
+        csar_package_path = self._sample_path(sample_name)
         tempname, _ = vnflcm_base._create_csar_with_unique_vnfd_id(
             csar_package_path)
         # upload vnf package
@@ -1938,11 +1866,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
 
         # Pre Setting: Create vnf package.
         sample_name = 'functional3'
-        csar_package_path = os.path.abspath(
-            os.path.join(
-                os.path.dirname(__file__),
-                "../../../etc/samples/etsi/nfv",
-                sample_name))
+        csar_package_path = self._sample_path(sample_name)
         tempname, _ = vnflcm_base._create_csar_with_unique_vnfd_id(
             csar_package_path)
         # upload vnf package
@@ -2048,11 +1972,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
 
         # Pre Setting: Create vnf package.
         sample_name = 'functional4'
-        csar_package_path = os.path.abspath(
-            os.path.join(
-                os.path.dirname(__file__),
-                "../../../etc/samples/etsi/nfv",
-                sample_name))
+        csar_package_path = self._sample_path(sample_name)
         tempname, _ = vnflcm_base._create_csar_with_unique_vnfd_id(
             csar_package_path)
         # upload vnf package
@@ -2173,11 +2093,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
 
         # Pre Setting: Create vnf package.
         sample_name = 'functional4'
-        csar_package_path = os.path.abspath(
-            os.path.join(
-                os.path.dirname(__file__),
-                "../../../etc/samples/etsi/nfv",
-                sample_name))
+        csar_package_path = self._sample_path(sample_name)
         tempname, _ = vnflcm_base._create_csar_with_unique_vnfd_id(
             csar_package_path)
         # upload vnf package
@@ -2586,11 +2502,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
 
         # Pre Setting: Create vnf package.
         sample_name = 'functional5'
-        csar_package_path = os.path.abspath(
-            os.path.join(
-                os.path.dirname(__file__),
-                "../../../etc/samples/etsi/nfv",
-                sample_name))
+        csar_package_path = self._sample_path(sample_name)
         tempname, _ = vnflcm_base._create_csar_with_unique_vnfd_id(
             csar_package_path)
         # upload vnf package

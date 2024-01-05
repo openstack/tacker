@@ -19,6 +19,7 @@ import subprocess
 import tacker.conf
 from tacker.tests.functional.sol_v2_common import paramgen
 from tacker.tests.functional.sol_v2_common import test_vnflcm_basic_common
+from tacker.tests import utils
 
 
 CONF = tacker.conf.CONF
@@ -44,16 +45,12 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
     @classmethod
     def setUpClass(cls):
         super(IndividualVnfcMgmtTest, cls).setUpClass()
-        cur_dir = os.path.dirname(__file__)
-        # tacker/tests/functional/sol_v2(here)
-        #             /etc
-        image_dir = os.path.join(
-            cur_dir, "../../etc/samples/etsi/nfv/common/Files/images")
-        image_file = "cirros-0.5.2-x86_64-disk.img"
-        image_path = os.path.abspath(os.path.join(image_dir, image_file))
+        image_path = utils.test_etc_sample("etsi/nfv/common/Files/images",
+            "cirros-0.5.2-x86_64-disk.img")
 
         # tacker/tests/functional/sol_v2(here)
         #       /sol_refactored
+        cur_dir = os.path.dirname(__file__)
         userdata_dir = os.path.join(
             cur_dir, "../../../sol_refactored/infra_drivers/openstack")
         userdata_file = "userdata_standard.py"
@@ -61,14 +58,14 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
             os.path.join(userdata_dir, userdata_file))
 
         # main vnf package for StandardUserData test
-        pkg_path_1 = os.path.join(cur_dir,
-            "../sol_v2_common/samples/userdata_standard")
+        pkg_path_1 = utils.test_sample("functional/sol_v2_common",
+                                       "userdata_standard")
         cls.standard_pkg, cls.standard_vnfd_id = cls.create_vnf_package(
             pkg_path_1, image_path=image_path, userdata_path=userdata_path)
 
         # for change_vnfpkg test
-        pkg_path_2 = os.path.join(cur_dir,
-            "../sol_v2_common/samples/userdata_standard_change_vnfpkg")
+        pkg_path_2 = utils.test_sample("functional/sol_v2_common",
+            "userdata_standard_change_vnfpkg")
         cls.new_pkg, cls.new_vnfd_id = cls.create_vnf_package(
             pkg_path_2, image_path=image_path, userdata_path=userdata_path)
         # Currently, the vnfpkgm v1 API does not support mgmt_driver_script
@@ -83,14 +80,14 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
                         os.path.join(csar_dir, dest_path)])
 
         # for change_vnfpkg network/flavor change test
-        pkg_path_3 = os.path.join(cur_dir,
-            "../sol_v2_common/samples/userdata_standard_change_vnfpkg_nw")
+        pkg_path_3 = utils.test_sample("functional/sol_v2_common",
+            "userdata_standard_change_vnfpkg_nw")
         cls.new_nw_pkg, cls.new_nw_vnfd_id = cls.create_vnf_package(
             pkg_path_3, image_path=image_path, userdata_path=userdata_path)
 
         # for attach non-boot volume to VDU test
-        pkg_path_4 = os.path.join(cur_dir,
-            "../sol_v2_common/samples/userdata_standard_with_non_boot_volume")
+        pkg_path_4 = utils.test_sample("functional/sol_v2_common",
+            "userdata_standard_with_non_boot_volume")
         cls.non_boot_volume_pkg, cls.non_boot_volume_vnfd_id = (
             cls.create_vnf_package(pkg_path_4, image_path=image_path,
                                    userdata_path=userdata_path))

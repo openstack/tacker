@@ -15,7 +15,6 @@
 
 import copy
 import ddt
-import os
 
 from kubernetes import client
 from oslo_log import log as logging
@@ -38,6 +37,7 @@ from tacker.tests.unit.vnflcm import fakes as vnflcm_fakes
 from tacker.tests.unit.vnfm.infra_drivers.kubernetes import fakes
 from tacker.tests.unit.vnfm.infra_drivers.openstack.fixture_data import \
     fixture_data_utils as fd_utils
+from tacker.tests import utils as test_utils
 from tacker.vnflcm import utils as vnflcm_utils
 from tacker.vnfm.infra_drivers.kubernetes.k8s import tosca_kube_object
 from tacker.vnfm.infra_drivers.kubernetes.k8s import translate_outputs
@@ -56,10 +56,8 @@ class TestKubernetes(base.TestCase):
         self.k8s_client_dict = fakes.fake_k8s_client_dict()
         self.context = context.get_admin_context()
         self.vnf_instance = fd_utils.get_vnf_instance_object()
-        self.yaml_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "../../../../etc/samples/etsi/nfv/"
-            "sample_kubernetes_driver/Files/kubernetes/")
+        self.yaml_path = test_utils.test_etc_sample(
+            "etsi/nfv/sample_kubernetes_driver/Files/kubernetes/")
 
     @mock.patch.object(client.CoreV1Api, 'read_node')
     def test_create_wait_k8s_success_node(self, mock_read_node):

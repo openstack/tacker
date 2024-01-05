@@ -12,7 +12,6 @@
 
 import copy
 import eventlet
-import os
 import paramiko
 
 from ddt import ddt
@@ -30,6 +29,7 @@ from tacker.tests.unit.vnflcm import fakes as vnflcm_fakes
 from tacker.tests.unit.vnfm.infra_drivers.kubernetes import fakes
 from tacker.tests.unit.vnfm.infra_drivers.openstack.fixture_data import \
     fixture_data_utils as fd_utils
+from tacker.tests import utils as test_utils
 from tacker.vnfm.infra_drivers.kubernetes.helm import helm_client
 from tacker.vnfm.infra_drivers.kubernetes import kubernetes_driver
 from tacker.vnfm import vim_client
@@ -90,9 +90,8 @@ class TestKubernetesHelm(base.TestCase):
         self.k8s_client_dict = fakes.fake_k8s_client_dict()
         self.context = context.get_admin_context()
         self.vnf_instance = fd_utils.get_vnf_instance_object()
-        self.package_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "../../../../etc/samples/etsi/nfv/test_cnf_helmchart")
+        self.package_path = test_utils.test_etc_sample(
+            "etsi/nfv/test_cnf_helmchart")
         self._mock_remote_command_executor()
         self._mock_transport()
         self.helm_client = helm_client.HelmClient('127.0.0.1', 'user', 'pass')

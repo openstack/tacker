@@ -56,14 +56,10 @@ class VnflcmAPIsV2CNFBase(BaseVnfLcmKubernetesV2Test, BaseEnhancedPolicyTest):
 
         cls.tacker_client = cls.get_local_tacker_http_client('user_all')
 
-        cur_dir = os.path.dirname(__file__)
-
-        test_instantiate_cnf_resources_path = os.path.join(
-            cur_dir,
-            "../../sol_kubernetes_v2/samples/test_instantiate_cnf_resources")
-        test_change_vnf_pkg_with_deployment_path = os.path.join(
-            cur_dir,
-            "../../sol_kubernetes_v2/samples/"
+        test_instantiate_cnf_resources_path = base_utils.test_sample(
+            "functional/sol_kubernetes_v2/test_instantiate_cnf_resources")
+        test_change_vnf_pkg_with_deployment_path = base_utils.test_sample(
+            "functional/sol_kubernetes_v2",
             "test_change_vnf_pkg_with_deployment")
 
         cls.vnf_pkg_a, cls.vnfd_id_a = cls.create_vnf_package(

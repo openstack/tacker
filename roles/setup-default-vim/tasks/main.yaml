@@ -9,8 +9,8 @@
   - name: Copy test vim file
     copy:
        remote_src=True
-       src={{ devstack_base_dir }}/tacker/tacker/tests/etc/samples/local-vim.yaml
-       dest={{ zuul_work_dir }}/tacker/tests/etc/samples/local-vim.yaml
+       src={{ devstack_base_dir }}/tacker/samples/tests/etc/samples/local-vim.yaml
+       dest={{ zuul_work_dir }}/samples/tests/etc/samples/local-vim.yaml
 
   - name: Check if project's tools/test-setup-default-vim.sh exists
     stat:
@@ -45,7 +45,7 @@
        replace: "{{ auth_uri }}"
     with_items:
        - "{{ zuul_work_dir }}/tools/test-setup-default-vim.sh"
-       - "{{ zuul_work_dir }}/tacker/tests/etc/samples/local-vim.yaml"
+       - "{{ zuul_work_dir }}/samples/tests/etc/samples/local-vim.yaml"
     when:
       - p.stat.exists
 
@@ -53,7 +53,7 @@
     replace:
        path: "{{ zuul_work_dir }}/tools/test-setup-default-vim.sh"
        regexp: '(?<=config-file )([^ ]+)(?= )'
-       replace: "{{ ansible_env.HOME }}/{{ zuul_work_dir }}/tacker/tests/etc/samples/local-vim.yaml"
+       replace: "{{ ansible_env.HOME }}/{{ zuul_work_dir }}/samples/tests/etc/samples/local-vim.yaml"
 
   - name: Run tools/test-setup-default-vim.sh
     command: tools/test-setup-default-vim.sh
@@ -131,14 +131,14 @@
        src={{ devstack_base_dir }}/tacker/{{ item }}
        dest={{ zuul_work_dir }}/{{ item }}
     with_items:
-       - "tacker/tests/etc/samples/local-k8s-vim.yaml"
-       - "tacker/tests/etc/samples/local-k8s-vim-helm.yaml"
+       - "samples/tests/etc/samples/local-k8s-vim.yaml"
+       - "samples/tests/etc/samples/local-k8s-vim-helm.yaml"
 
   - name: Copy test k8s vim file for oidc
     copy:
        remote_src=True
-       src={{ devstack_base_dir }}/tacker/tacker/tests/etc/samples/local-k8s-vim-oidc.yaml
-       dest={{ zuul_work_dir }}/tacker/tests/etc/samples/local-k8s-vim-oidc.yaml
+       src={{ devstack_base_dir }}/tacker/samples/tests/etc/samples/local-k8s-vim-oidc.yaml
+       dest={{ zuul_work_dir }}/samples/tests/etc/samples/local-k8s-vim-oidc.yaml
     when:
       - keycloak_host is defined
 
@@ -184,8 +184,8 @@
        regexp: "https://127.0.0.1:6443"
        replace: "{{ kuryr_k8s_api_url }}"
     with_items:
-       - "{{ zuul_work_dir }}/tacker/tests/etc/samples/local-k8s-vim.yaml"
-       - "{{ zuul_work_dir }}/tacker/tests/etc/samples/local-k8s-vim-helm.yaml"
+       - "{{ zuul_work_dir }}/samples/tests/etc/samples/local-k8s-vim.yaml"
+       - "{{ zuul_work_dir }}/samples/tests/etc/samples/local-k8s-vim-helm.yaml"
     when:
       - p.stat.exists
 
@@ -195,7 +195,7 @@
        regexp: "https://127.0.0.1:6443"
        replace: "{{ kuryr_k8s_api_url }}"
     with_items:
-       - "{{ zuul_work_dir }}/tacker/tests/etc/samples/local-k8s-vim-oidc.yaml"
+       - "{{ zuul_work_dir }}/samples/tests/etc/samples/local-k8s-vim-oidc.yaml"
     when:
       - p.stat.exists
       - keycloak_host is defined
@@ -206,7 +206,7 @@
        regexp: "https://127.0.0.1:8443"
        replace: "https://{{ keycloak_host }}:{{ keycloak_https_port }}"
     with_items:
-       - "{{ zuul_work_dir }}/tacker/tests/etc/samples/local-k8s-vim-oidc.yaml"
+       - "{{ zuul_work_dir }}/samples/tests/etc/samples/local-k8s-vim-oidc.yaml"
     when:
       - p.stat.exists
       - keycloak_host is defined
@@ -217,8 +217,8 @@
        regexp: "secret_token"
        replace: "{{ hostvars['controller-k8s'].admin_token.stdout }}"
     with_items:
-       - "{{ zuul_work_dir }}/tacker/tests/etc/samples/local-k8s-vim.yaml"
-       - "{{ zuul_work_dir }}/tacker/tests/etc/samples/local-k8s-vim-helm.yaml"
+       - "{{ zuul_work_dir }}/samples/tests/etc/samples/local-k8s-vim.yaml"
+       - "{{ zuul_work_dir }}/samples/tests/etc/samples/local-k8s-vim-helm.yaml"
     when:
       - p.stat.exists
 
@@ -260,9 +260,9 @@
        regexp: "ssl_ca_cert: .*$"
        replace: "ssl_ca_cert: '{{ ssl_ca_cert.stdout }}'"
     with_items:
-       - "{{ zuul_work_dir }}/tacker/tests/etc/samples/local-k8s-vim.yaml"
-       - "{{ zuul_work_dir }}/tacker/tests/etc/samples/local-k8s-vim-oidc.yaml"
-       - "{{ zuul_work_dir }}/tacker/tests/etc/samples/local-k8s-vim-helm.yaml"
+       - "{{ zuul_work_dir }}/samples/tests/etc/samples/local-k8s-vim.yaml"
+       - "{{ zuul_work_dir }}/samples/tests/etc/samples/local-k8s-vim-oidc.yaml"
+       - "{{ zuul_work_dir }}/samples/tests/etc/samples/local-k8s-vim-helm.yaml"
     when:
       - p.stat.exists
       - ssl_ca_cert.rc == 0 and ssl_ca_cert.stdout != ""
@@ -271,7 +271,7 @@
     replace:
        path: "{{ zuul_work_dir }}/tools/test-setup-k8s-vim.sh"
        regexp: '(?<=conf_dir=)([^\n]+)(?=\n)'
-       replace: "{{ ansible_env.HOME }}/{{ zuul_work_dir }}/tacker/tests/etc/samples"
+       replace: "{{ ansible_env.HOME }}/{{ zuul_work_dir }}/samples/tests/etc/samples"
 
   - name: Run tools/test-setup-k8s-vim.sh
     command: tools/test-setup-k8s-vim.sh

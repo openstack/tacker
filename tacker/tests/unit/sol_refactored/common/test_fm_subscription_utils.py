@@ -24,7 +24,7 @@ from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import fm_subscription_utils as subsc_utils
 from tacker.sol_refactored import objects
 from tacker.tests import base
-from tacker.tests.unit.sol_refactored.samples import fakes_for_fm
+from tacker.tests.unit.sol_refactored.common import fakes_for_fm
 
 
 LOG = logging.getLogger(__name__)

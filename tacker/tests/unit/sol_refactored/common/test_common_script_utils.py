@@ -22,6 +22,7 @@ from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import http_client
 from tacker.sol_refactored import objects
 from tacker.tests import base
+from tacker.tests import utils
 
 SAMPLE_VNFD_ID = "b1bb0ce7-ebca-4fa7-95ed-4840d7000000"
 SAMPLE_FLAVOUR_ID = "simple"
@@ -34,11 +35,10 @@ class TestCommontScriptUtils(base.BaseTestCase):
     def setUp(self):
         super(TestCommontScriptUtils, self).setUp()
         objects.register_all()
-        cur_dir = os.path.dirname(__file__)
-        sample_dir = os.path.join(cur_dir, "..", "samples")
+        self.sample_dir = utils.test_sample("unit/sol_refactored/samples")
 
         self.vnfd_1 = common_script_utils.get_vnfd(SAMPLE_VNFD_ID,
-            os.path.join(sample_dir, "sample1"))
+            os.path.join(self.sample_dir, "sample1"))
 
     def test_init_nfv_dict(self):
         hot_dict = self.vnfd_1.get_base_hot(SAMPLE_FLAVOUR_ID)
@@ -586,9 +586,8 @@ class TestCommontScriptUtils(base.BaseTestCase):
                          ex.detail)
 
         # Check OAUTH2_CLIENT_CERT certificateRef type
-        cur_dir = os.path.dirname(__file__)
-        sample_cert = os.path.join(
-            cur_dir, "../samples/sample_cert", "notification_client_cert.pem")
+        sample_cert = os.path.join(self.sample_dir,
+            "sample_cert/notification_client_cert.pem")
         CONF.v2_vnfm.notification_mtls_client_cert_file = sample_cert
 
         auth_req_2 = {

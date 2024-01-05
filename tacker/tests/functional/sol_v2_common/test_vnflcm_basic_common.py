@@ -21,6 +21,7 @@ from tacker.tests.functional.sol_separated_nfvo_v2 import fake_grant_v2
 from tacker.tests.functional.sol_separated_nfvo_v2 import fake_vnfpkgm_v2
 from tacker.tests.functional.sol_v2_common import base_v2
 from tacker.tests.functional.sol_v2_common import paramgen
+from tacker.tests import utils
 
 WAIT_LCMOCC_UPDATE_TIME = 10
 
@@ -37,6 +38,9 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
 
     def setUp(self):
         super().setUp()
+
+    def _sample_path(self, *p):
+        return utils.test_sample("functional/sol_v2_common", *p)
 
     def _register_vnf_package_mock_response(self, vnfd_id, package_path):
         """Prepare VNF package for test.
@@ -205,16 +209,10 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         # 0. Pre-setting
         # nfvo-pre
         if is_nfvo:
-            cur_dir = os.path.dirname(__file__)
-            image_dir = os.path.join(
-                cur_dir, "../../etc/samples/etsi/nfv/common/Files/images")
-            image_file = "cirros-0.5.2-x86_64-disk.img"
-            image_path = os.path.abspath(os.path.join(image_dir, image_file))
-
-            basic_lcms_max_path = os.path.join(
-                cur_dir, "samples/basic_lcms_max")
-            update_vnf_path = os.path.join(
-                cur_dir, "samples/update_vnf")
+            image_path = utils.test_etc_sample("etsi/nfv/common/Files/images",
+                "cirros-0.5.2-x86_64-disk.img")
+            basic_lcms_max_path = self._sample_path("basic_lcms_max")
+            update_vnf_path = self._sample_path("update_vnf")
             vnfd_path = "contents/Definitions/v2_sample1_df_simple.yaml"
             max_zip_path, max_vnfd_id = self.create_vnf_package(
                 basic_lcms_max_path, image_path=image_path, nfvo=True)
@@ -1266,14 +1264,11 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         """
         # 0. Pre setting
         if is_nfvo:
-            cur_dir = os.path.dirname(__file__)
             # for basic lcms tests min pattern
-            basic_lcms_min_path = os.path.join(
-                cur_dir, "samples/basic_lcms_min")
+            basic_lcms_min_path = self._sample_path("basic_lcms_min")
             min_zip_path, min_vnfd_id = self.create_vnf_package(
                 basic_lcms_min_path, nfvo=True)
-            update_vnf_path = os.path.join(
-                cur_dir, "samples/update_vnf")
+            update_vnf_path = self._sample_path("update_vnf")
             vnfd_path = "contents/Definitions/v2_sample2_df_simple.yaml"
             upd_zip_path, upd_vnfd_id = self.create_vnf_package(
                 update_vnf_path, nfvo=True)
@@ -1719,29 +1714,24 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         """
         # 0. Pre-setting
         if is_nfvo:
-            cur_dir = os.path.dirname(__file__)
-            change_vnfpkg_from_image_to_image_path = os.path.join(
-                cur_dir,
-                "samples/test_instantiate_vnf_with_old_image_or_volume")
+            change_vnfpkg_from_image_to_image_path = self._sample_path(
+                "test_instantiate_vnf_with_old_image_or_volume")
             old_zip_path, old_vnfd_id = self.create_vnf_package(
                 change_vnfpkg_from_image_to_image_path, nfvo=True)
-            change_vnfpkg_from_image_to_image_path_2 = os.path.join(
-                cur_dir, "samples/test_change_vnf_pkg_with_new_image")
-            image_dir = os.path.join(
-                cur_dir, "../../etc/samples/etsi/nfv/common/Files/images")
-            image_file = "cirros-0.5.2-x86_64-disk.img"
-            image_path = os.path.abspath(os.path.join(image_dir, image_file))
+            change_vnfpkg_from_image_to_image_path_2 = self._sample_path(
+                "test_change_vnf_pkg_with_new_image")
+            image_path = utils.test_etc_sample("etsi/nfv/common/Files/images",
+                "cirros-0.5.2-x86_64-disk.img")
             new_image_zip_path, new_image_vnfd_id = self.create_vnf_package(
                 change_vnfpkg_from_image_to_image_path_2,
                 image_path=image_path, nfvo=True)
-            package_dir = os.path.join(
-                cur_dir,
-                "samples/test_instantiate_vnf_with_old_image_or_volume")
+            package_dir = self._sample_path(
+                "test_instantiate_vnf_with_old_image_or_volume")
             vnfd_path = (
                 "contents/Definitions/change_vnf_pkg_old_image_df_simple.yaml")
 
-            change_package_dir = os.path.join(
-                cur_dir, "samples/test_change_vnf_pkg_with_new_image")
+            change_package_dir = self._sample_path(
+                "test_change_vnf_pkg_with_new_image")
             change_vnfd_path = (
                 "contents/Definitions/"
                 "change_vnf_pkg_new_image_df_simple.yaml")
@@ -1906,16 +1896,11 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         """
         # 0. Pre-setting
         if is_nfvo:
-            cur_dir = os.path.dirname(__file__)
-            # tacker/tests/etc...
-            #             /functional/sol_v2
-            image_dir = os.path.join(
-                cur_dir, "../../etc/samples/etsi/nfv/common/Files/images")
-            image_file = "cirros-0.5.2-x86_64-disk.img"
-            image_path = os.path.abspath(os.path.join(image_dir, image_file))
+            image_path = utils.test_etc_sample("etsi/nfv/common/Files/images",
+                "cirros-0.5.2-x86_64-disk.img")
 
             # Scale operation will fail
-            scale_ng_path = os.path.join(cur_dir, "samples/scale_ng")
+            scale_ng_path = self._sample_path("scale_ng")
             scale_ng_zip_path, scale_ng_vnfd_id = self.create_vnf_package(
                 scale_ng_path, image_path=image_path, nfvo=True)
             vnfd_path = "contents/Definitions/v2_sample1_df_simple.yaml"
@@ -2215,10 +2200,8 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
           - 10. Delete subscription
         """
         if is_nfvo:
-            cur_dir = os.path.dirname(__file__)
             # Instantiate VNF will fail
-            error_network_path = os.path.join(
-                cur_dir, "samples/error_network")
+            error_network_path = self._sample_path("error_network")
             # no image contained
             err_nw_zip_path, err_nw_vnfd_id = self.create_vnf_package(
                 error_network_path, nfvo=True)

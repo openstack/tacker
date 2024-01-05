@@ -39,7 +39,7 @@ class VnfPackageTest(base.BaseTackerTest):
 
     # The size of CSAR zip file used while verifying downloaded package.
     # NOTE: It should be updated if some contents of packages under
-    #       `tacker/tests/etc/samples` dir.
+    #       `samples/tests/etc/samples` dir.
     SIZE_CSAR_ZIP = 16389096
 
     def setUp(self):
@@ -164,9 +164,7 @@ class VnfPackageTest(base.BaseTackerTest):
         self.assertIn(vnf_package_list[1], package_uuids)
 
     def _get_csar_dir_path(self, csar_name):
-        csar_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                   "../../../etc/samples/etsi/nfv", csar_name))
-        return csar_dir
+        return utils.test_etc_sample("etsi/nfv", csar_name)
 
     def _create_and_upload_vnf(self, sample_name):
         body = jsonutils.dumps({"userDefinedData": {"foo": "bar"}})

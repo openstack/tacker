@@ -23,6 +23,7 @@ import yaml
 from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import vnfd_utils
 from tacker.tests import base
+from tacker.tests import utils
 
 
 SAMPLE_VNFD_ID = "b1bb0ce7-ebca-4fa7-95ed-4840d7000000"
@@ -34,11 +35,11 @@ class TestVnfd(base.BaseTestCase):
 
     def setUp(self):
         super(TestVnfd, self).setUp()
-        cur_dir = os.path.dirname(__file__)
-        sample_dir = os.path.join(cur_dir, "..", "samples")
-
         self.vnfd_1 = vnfd_utils.Vnfd(SAMPLE_VNFD_ID)
-        self.vnfd_1.init_from_csar_dir(os.path.join(sample_dir, "sample1"))
+        self.vnfd_1.init_from_csar_dir(self._sample_dir("sample1"))
+
+    def _sample_dir(self, name):
+        return utils.test_sample("unit/sol_refactored/samples", name)
 
     def test_get_sw_image(self):
         expected_result = {
@@ -189,8 +190,7 @@ class TestVnfd(base.BaseTestCase):
     def test_init_from_zip_data(self):
         vnfd_id = uuidutils.generate_uuid()
         tmp_dir = tempfile.mkdtemp()
-        cur_dir = os.path.dirname(__file__)
-        sample_path = os.path.join(cur_dir, "../samples/sample1")
+        sample_path = self._sample_dir("sample1")
         shutil.make_archive(tmp_dir, 'zip', root_dir=sample_path)
 
         vnfd = vnfd_utils.Vnfd(vnfd_id)

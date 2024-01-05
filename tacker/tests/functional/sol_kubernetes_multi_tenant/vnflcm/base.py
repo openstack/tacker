@@ -88,10 +88,7 @@ class BaseVnfLcmKubernetesMultiTenantTest(vnflcm_base.BaseVnfLcmTest):
         vnf_pkg_id = vnf_package['id']
 
         # upload vnf package
-        csar_package_path = ("../../../etc/samples/etsi/nfv/"
-                             f"{csar_package_name}")
-        file_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                                 csar_package_path))
+        file_path = utils.test_etc_sample("etsi/nfv/", f"{csar_package_name}")
 
         # Generating unique vnfd id. This is required when multiple workers
         # are running concurrently. The call below creates a new temporary

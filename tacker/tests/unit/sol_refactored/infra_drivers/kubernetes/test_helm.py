@@ -21,6 +21,7 @@ from tacker.sol_refactored.common import vnfd_utils
 from tacker.sol_refactored.infra_drivers.kubernetes import helm
 from tacker.sol_refactored import objects
 from tacker.tests.unit import base
+from tacker.tests import utils
 
 
 CNF_SAMPLE_VNFD_ID = "b1bb0ce7-ebca-4fa7-95ed-4840d70a1177"
@@ -33,10 +34,9 @@ class TestHelm(base.TestCase):
         objects.register_all()
         self.driver = helm.Helm()
 
-        cur_dir = os.path.dirname(__file__)
         # NOTE: bollow a sample of k8s at the moment since it is enough
         # for current tests.
-        sample_dir = os.path.join(cur_dir, "../..", "samples")
+        sample_dir = utils.test_sample("unit/sol_refactored/samples")
         self.vnfd_1 = vnfd_utils.Vnfd(CNF_SAMPLE_VNFD_ID)
         self.vnfd_1.init_from_csar_dir(os.path.join(sample_dir, "sample2"))
 

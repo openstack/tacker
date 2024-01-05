@@ -15,7 +15,6 @@
 
 import codecs
 from datetime import datetime
-import os
 from unittest import mock
 from unittest.mock import patch
 
@@ -37,6 +36,7 @@ from tacker.plugins.common import constants
 from tacker.tests import constants as test_constants
 from tacker.tests.unit.db import base as db_base
 from tacker.tests.unit.db import utils
+from tacker.tests import utils as test_utils
 from tacker.vnfm import vim_client
 
 SECRET_PASSWORD = '***'
@@ -98,8 +98,7 @@ def dummy_get_vim(*args, **kwargs):
 
 
 def _get_template(name):
-    filename = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                '../../etc/samples/' + str(name)))
+    filename = test_utils.test_etc_sample(name)
     with codecs.open(filename, encoding='utf-8', errors='strict') as f:
         return f.read()
 

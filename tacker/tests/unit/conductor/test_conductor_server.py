@@ -107,6 +107,9 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         self.addCleanup(cfg.CONF.clear_override, 'retry_wait', group='vnf_lcm')
         self.cctxt_mock = mock.MagicMock()
 
+    def _nfv_sample(self, name):
+        return utils.test_etc_sample("etsi/nfv", name)
+
     def _mock_vnfm_plugin(self):
         self.vnfm_plugin = mock.Mock(wraps=FakeVNFMPlugin())
         fake_vnfm_plugin = mock.Mock()
@@ -295,7 +298,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         cfg.CONF.set_override('vnf_package_csar_path', self.temp_dir,
                               group='vnf_package')
         fake_csar_zip, _ = utils.create_csar_with_unique_vnfd_id(
-            './tacker/tests/etc/samples/etsi/nfv/sample_vnfpkg_tosca_vnfd')
+            self._nfv_sample('sample_vnfpkg_tosca_vnfd'))
         mock_load_csar.return_value = fake_csar_zip
         expected_data = fakes.get_expected_vnfd_data(zip_file=fake_csar_zip)
         result = self.conductor.get_vnf_package_vnfd(self.context,
@@ -2040,25 +2043,16 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             'before_error_point': fields.ErrorPoint.INITIAL,
             'status': ''
         }
-        vnfd_yaml = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                                 '../../etc/samples/etsi/nfv/'
-                                                 'test_heal_grant_unit/'
-                                                 'sample_vnfd.yaml'))
+        vnfd_yaml = self._nfv_sample('test_heal_grant_unit/sample_vnfd.yaml')
         with open(vnfd_yaml) as f:
             mock_vnfd_dict.return_value = yaml.safe_load(f)
         mock_vnfd_dict.return_value['imports'] = []
-        etsi_common_file_path = os.path.abspath(
-            os.path.join(os.path.dirname(__file__),
-                         '../../etc/samples/etsi/nfv/common/Definitions/'
-                         'etsi_nfv_sol001_common_types.yaml'))
-        etsi_vnfd_file_path = os.path.abspath(
-            os.path.join(os.path.dirname(__file__),
-                         '../../etc/samples/etsi/nfv/common/Definitions/'
-                         'etsi_nfv_sol001_vnfd_types.yaml'))
-        etsi_vnfd_file_path_tmp = os.path.abspath(
-            os.path.join(os.path.dirname(__file__),
-                         '../../etc/samples/etsi/nfv/common/Definitions/'
-                         'etsi_nfv_sol001_vnfd_types_tmp.yaml'))
+        etsi_common_file_path = self._nfv_sample(
+            'common/Definitions/etsi_nfv_sol001_common_types.yaml')
+        etsi_vnfd_file_path = self._nfv_sample(
+            'common/Definitions/etsi_nfv_sol001_vnfd_types.yaml')
+        etsi_vnfd_file_path_tmp = self._nfv_sample(
+            'common/Definitions/etsi_nfv_sol001_vnfd_types_tmp.yaml')
         with open(etsi_vnfd_file_path) as f:
             data = yaml.safe_load(f)
             del data['imports']
@@ -2066,14 +2060,10 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             data['imports'].append(etsi_common_file_path)
         with open(etsi_vnfd_file_path_tmp, "w", encoding="utf-8") as f:
             yaml.dump(data, f)
-        types_file_path = os.path.abspath(
-            os.path.join(os.path.dirname(__file__),
-                         '../../etc/samples/etsi/nfv/test_heal_grant_unit/'
-                         'helloworld3_types.yaml'))
-        types_file_tmp_path = os.path.abspath(
-            os.path.join(os.path.dirname(__file__),
-                         '../../etc/samples/etsi/nfv/test_heal_grant_unit/'
-                         'helloworld3_types_tmp.yaml'))
+        types_file_path = self._nfv_sample(
+            'test_heal_grant_unit/helloworld3_types.yaml')
+        types_file_tmp_path = self._nfv_sample(
+            'test_heal_grant_unit/helloworld3_types_tmp.yaml')
         with open(types_file_path) as f:
             data = yaml.safe_load(f)
             data['imports'] = []

@@ -43,7 +43,7 @@ TRUE_STRING = ['True', '1']
 LOG_FORMAT = "%(asctime)s %(levelname)8s [%(name)s] %(message)s"
 
 ROOTDIR = os.path.dirname(__file__)
-ETCDIR = os.path.join(ROOTDIR, 'etc')
+ETCDIR = os.path.join(ROOTDIR, '../../samples/tests/etc')
 
 
 def etcdir(*p):

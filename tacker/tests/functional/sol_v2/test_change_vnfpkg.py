@@ -18,6 +18,7 @@ import os
 
 from tacker.tests.functional.sol_v2_common import paramgen
 from tacker.tests.functional.sol_v2_common import test_vnflcm_basic_common
+from tacker.tests import utils
 
 
 @ddt.ddt
@@ -27,35 +28,30 @@ class ChangeVnfPkgVnfLcmTest(test_vnflcm_basic_common.CommonVnfLcmTest):
     def setUpClass(cls):
         super(ChangeVnfPkgVnfLcmTest, cls).setUpClass()
 
-        cur_dir = os.path.dirname(__file__)
-        # tacker/tests/etc...
-        #             /functional/sol_v2
-        image_dir = os.path.join(
-            cur_dir, "../../etc/samples/etsi/nfv/common/Files/images")
-        image_file = "cirros-0.5.2-x86_64-disk.img"
-        image_path = os.path.abspath(os.path.join(image_dir, image_file))
+        image_path = utils.test_etc_sample("etsi/nfv/common/Files/images",
+            "cirros-0.5.2-x86_64-disk.img")
 
-        change_vnfpkg_from_image_to_image_path = os.path.join(
-            cur_dir, "../sol_v2_common/samples/"
-                     "test_instantiate_vnf_with_old_image_or_volume")
+        change_vnfpkg_from_image_to_image_path = utils.test_sample(
+            "functional/sol_v2_common",
+            "test_instantiate_vnf_with_old_image_or_volume")
         cls.old_pkg, cls.old_vnfd_id = cls.create_vnf_package(
             change_vnfpkg_from_image_to_image_path)
 
-        change_vnfpkg_from_image_to_image_path_2 = os.path.join(
-            cur_dir, "../sol_v2_common/samples/"
-                     "test_change_vnf_pkg_with_new_image")
+        change_vnfpkg_from_image_to_image_path_2 = utils.test_sample(
+            "functional/sol_v2_common",
+            "test_change_vnf_pkg_with_new_image")
         cls.new_image_pkg, cls.new_image_vnfd_id = cls.create_vnf_package(
             change_vnfpkg_from_image_to_image_path_2, image_path=image_path)
 
-        change_vnfpkg_from_image_to_volume_path = os.path.join(
-            cur_dir, "../sol_v2_common/samples/"
-                     "test_change_vnf_pkg_with_new_volume")
+        change_vnfpkg_from_image_to_volume_path = utils.test_sample(
+            "functional/sol_v2_common",
+            "test_change_vnf_pkg_with_new_volume")
         cls.new_volume_pkg, cls.new_volume_vnfd_id = cls.create_vnf_package(
             change_vnfpkg_from_image_to_volume_path, image_path=image_path)
 
-        change_vnfpkg_failed_in_update_path = os.path.join(
-            cur_dir, "../sol_v2_common/samples/"
-                     "test_change_vnf_pkg_with_update_failed")
+        change_vnfpkg_failed_in_update_path = utils.test_sample(
+            "functional/sol_v2_common",
+            "test_change_vnf_pkg_with_update_failed")
         cls.failed_pkg, cls.failed_vnfd_id = cls.create_vnf_package(
             change_vnfpkg_failed_in_update_path, image_path=image_path)
 

@@ -20,7 +20,7 @@ from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import fm_alarm_utils as alarm_utils
 from tacker.sol_refactored import objects
 from tacker.tests import base
-from tacker.tests.unit.sol_refactored.samples import fakes_for_fm
+from tacker.tests.unit.sol_refactored.common import fakes_for_fm
 
 
 class TestFmAlarmUtils(base.BaseTestCase):

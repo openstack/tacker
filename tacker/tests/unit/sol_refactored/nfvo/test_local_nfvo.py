@@ -31,6 +31,7 @@ from tacker.sol_refactored.nfvo import local_nfvo
 from tacker.sol_refactored import objects
 from tacker.sol_refactored.objects.v2 import fields
 from tacker.tests import base
+from tacker.tests import utils
 
 
 SAMPLE_VNFD_ID = "b1bb0ce7-ebca-4fa7-95ed-4840d7000000"
@@ -335,6 +336,9 @@ class TestLocalNfvo(base.BaseTestCase):
         self.context.api_version = api_version.APIVersion('2.0.0')
         self.local_nfvo = local_nfvo.LocalNfvo()
 
+    def _sample_dir(self, name):
+        return utils.test_sample("unit/sol_refactored/samples", name)
+
     def _get_vnfpkg_or_vnfd(
             self, type, state=fields.PackageOnboardingStateType.ONBOARDED):
         if type == 'vnfd':
@@ -402,9 +406,7 @@ class TestLocalNfvo(base.BaseTestCase):
 
     @mock.patch.object(local_nfvo.LocalNfvo, 'get_csar_dir')
     def test_get_vnfd(self, mock_dir):
-        cur_dir = os.path.dirname(__file__)
-        sample_dir = os.path.join(cur_dir, "..", "samples")
-        mock_dir.return_value = os.path.join(sample_dir, "sample1")
+        mock_dir.return_value = self._sample_dir("sample1")
         result = self.local_nfvo.get_vnfd(self.context, SAMPLE_VNFD_ID)
         self.assertEqual(SAMPLE_VNFD_ID, result.vnfd_id)
 
@@ -418,9 +420,7 @@ class TestLocalNfvo(base.BaseTestCase):
             vnfInstanceId=grant_req.vnfInstanceId,
             vnfLcmOpOccId=grant_req.vnfLcmOpOccId
         )
-        cur_dir = os.path.dirname(__file__)
-        sample_dir = os.path.join(cur_dir, "..", "samples")
-        mock_dir.return_value = os.path.join(sample_dir, "sample1")
+        mock_dir.return_value = self._sample_dir("sample1")
         req = objects.InstantiateVnfRequest.from_dict(_inst_req_example)
         mock_lcmocc.return_value = objects.VnfLcmOpOccV2(
             # only set used members in the method
@@ -438,9 +438,7 @@ class TestLocalNfvo(base.BaseTestCase):
     @mock.patch.object(local_nfvo.LocalNfvo, 'get_csar_dir')
     @mock.patch.object(local_nfvo.LocalNfvo, '_get_vim_info')
     def test_instantiate_grant_no_vim_info(self, mock_vim_info, mock_dir):
-        cur_dir = os.path.dirname(__file__)
-        sample_dir = os.path.join(cur_dir, "..", "samples")
-        mock_dir.return_value = os.path.join(sample_dir, "sample1")
+        mock_dir.return_value = self._sample_dir("sample1")
         grant_req = objects.GrantRequestV1.from_dict(_inst_grant_req_example)
         grant_res = objects.GrantV1(
             id=uuidutils.generate_uuid(),
@@ -463,9 +461,7 @@ class TestLocalNfvo(base.BaseTestCase):
             vnfInstanceId=grant_req.vnfInstanceId,
             vnfLcmOpOccId=grant_req.vnfLcmOpOccId
         )
-        cur_dir = os.path.dirname(__file__)
-        sample_dir = os.path.join(cur_dir, "..", "samples")
-        mock_dir.return_value = os.path.join(sample_dir, "sample1")
+        mock_dir.return_value = self._sample_dir("sample1")
         req = objects.InstantiateVnfRequest.from_dict(_inst_req_example)
         mock_lcmocc.return_value = objects.VnfLcmOpOccV2(
             # only set used members in the method
@@ -490,9 +486,7 @@ class TestLocalNfvo(base.BaseTestCase):
             vnfInstanceId=grant_req.vnfInstanceId,
             vnfLcmOpOccId=grant_req.vnfLcmOpOccId
         )
-        cur_dir = os.path.dirname(__file__)
-        sample_dir = os.path.join(cur_dir, "..", "samples")
-        mock_dir.return_value = os.path.join(sample_dir, "sample1")
+        mock_dir.return_value = self._sample_dir("sample1")
         req = objects.ChangeCurrentVnfPkgRequest.from_dict(
             _change_vnfpkg_example)
         mock_lcmocc.return_value = objects.VnfLcmOpOccV2(
@@ -524,9 +518,7 @@ class TestLocalNfvo(base.BaseTestCase):
     @mock.patch.object(local_nfvo.LocalNfvo, 'get_csar_dir')
     @mock.patch.object(local_nfvo.LocalNfvo, '_get_vim_info')
     def test_change_vnfpkg_grant_no_vim_info(self, mock_vim_info, mock_dir):
-        cur_dir = os.path.dirname(__file__)
-        sample_dir = os.path.join(cur_dir, "..", "samples")
-        mock_dir.return_value = os.path.join(sample_dir, "sample1")
+        mock_dir.return_value = self._sample_dir("sample1")
         grant_req = objects.GrantRequestV1.from_dict(
             _change_vnfkg_grant_req_example)
         grant_res = objects.GrantV1(
@@ -553,9 +545,7 @@ class TestLocalNfvo(base.BaseTestCase):
             vnfInstanceId=grant_req.vnfInstanceId,
             vnfLcmOpOccId=grant_req.vnfLcmOpOccId
         )
-        cur_dir = os.path.dirname(__file__)
-        sample_dir = os.path.join(cur_dir, "..", "samples")
-        mock_dir.return_value = os.path.join(sample_dir, "sample1")
+        mock_dir.return_value = self._sample_dir("sample1")
         req = objects.ChangeCurrentVnfPkgRequest.from_dict(
             _change_vnfpkg_example)
         mock_lcmocc.return_value = objects.VnfLcmOpOccV2(
@@ -590,9 +580,7 @@ class TestLocalNfvo(base.BaseTestCase):
             mock_lcmocc, mock_dir):
         # instantiate
         grant_req = objects.GrantRequestV1.from_dict(_inst_grant_req_example)
-        cur_dir = os.path.dirname(__file__)
-        sample_dir = os.path.join(cur_dir, "..", "samples")
-        mock_dir.return_value = os.path.join(sample_dir, "sample1")
+        mock_dir.return_value = self._sample_dir("sample1")
         req = objects.InstantiateVnfRequest.from_dict(_inst_req_example)
         mock_lcmocc.return_value = objects.VnfLcmOpOccV2(
             # only set used members in the method
@@ -610,9 +598,7 @@ class TestLocalNfvo(base.BaseTestCase):
         # change_vnfpkg
         grant_req = objects.GrantRequestV1.from_dict(
             _change_vnfkg_grant_req_example)
-        cur_dir = os.path.dirname(__file__)
-        sample_dir = os.path.join(cur_dir, "..", "samples")
-        mock_dir.return_value = os.path.join(sample_dir, "sample1")
+        mock_dir.return_value = self._sample_dir("sample1")
         req = objects.ChangeCurrentVnfPkgRequest.from_dict(
             _change_vnfpkg_example)
         mock_lcmocc.return_value = objects.VnfLcmOpOccV2(

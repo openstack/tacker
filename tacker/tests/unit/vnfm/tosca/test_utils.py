@@ -18,17 +18,22 @@ import testtools
 import yaml
 
 from tacker.extensions import vnfm
+from tacker.tests import utils
 from tacker.tosca import utils as toscautils
 from toscaparser import tosca_template
 from translator.hot import tosca_translator
+
+
+def _get_template_abs(path):
+    with codecs.open(path, encoding='utf-8', errors='strict') as f:
+        return f.read()
 
 
 def _get_template(name):
     filename = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
         "../infra_drivers/openstack/data/", name)
-    with codecs.open(filename, encoding='utf-8', errors='strict') as f:
-        return f.read()
+    return _get_template_abs(filename)
 
 
 class TestToscaUtils(testtools.TestCase):
@@ -272,8 +277,8 @@ class TestToscaUtils(testtools.TestCase):
         self.assertEqual(expected_heat_dict, dummy_heat_dict)
 
     def test_check_for_substitution_mappings(self):
-        tosca_sb_map = _get_template('../../../../../etc/samples/test-nsd-'
-                                     'vnfd1.yaml')
+        tosca_sb_map = _get_template_abs(
+            utils.test_etc_sample('test-nsd-vnfd1.yaml'))
         param = {'substitution_mappings': {
                  'VL2': {'type': 'tosca.nodes.nfv.VL', 'properties': {
                          'network_name': 'net0', 'vendor': 'tacker'}},

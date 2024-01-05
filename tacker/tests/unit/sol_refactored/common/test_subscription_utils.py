@@ -13,7 +13,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import os
 import requests
 from unittest import mock
 
@@ -29,7 +28,8 @@ from tacker.sol_refactored.common import pm_job_utils
 from tacker.sol_refactored.common import subscription_utils as subsc_utils
 from tacker.sol_refactored import objects
 from tacker.tests import base
-from tacker.tests.unit.sol_refactored.samples import fakes_for_fm
+from tacker.tests.unit.sol_refactored.common import fakes_for_fm
+from tacker.tests import utils
 
 
 CONF = config.CONF
@@ -310,9 +310,9 @@ class TestSubscriptionUtils(base.BaseTestCase):
         result = subsc_utils.get_subsc_auth(auth_req_2)
         self.assertEqual(['OAUTH2_CLIENT_CREDENTIALS'], result.authType)
 
-        cur_dir = os.path.dirname(__file__)
-        sample_cert = os.path.join(
-            cur_dir, "../samples/sample_cert", "notification_client_cert.pem")
+        sample_cert = utils.test_sample(
+            "unit/sol_refactored/samples/sample_cert",
+            "notification_client_cert.pem")
         CONF.v2_vnfm.notification_mtls_client_cert_file = sample_cert
         auth_req_3 = {
             'authType': ['OAUTH2_CLIENT_CERT'],

@@ -79,7 +79,7 @@
     copy:
        remote_src=True
        src={{ os_vim_conf_path_tenant1 }}
-       dest={{ zuul_work_dir }}/tacker/tests/etc/samples/{{ os_vim_conf_name_tenant1 }}
+       dest={{ zuul_work_dir }}/samples/tests/etc/samples/{{ os_vim_conf_name_tenant1 }}
 
   - name: Request authentication token for second tenant
     shell: >
@@ -123,7 +123,7 @@
     copy:
        remote_src=True
        src={{ os_vim_conf_path_tenant2 }}
-       dest={{ zuul_work_dir }}/tacker/tests/etc/samples/{{ os_vim_conf_name_tenant2 }}
+       dest={{ zuul_work_dir }}/samples/tests/etc/samples/{{ os_vim_conf_name_tenant2 }}
 
   when:
     - inventory_hostname == 'controller-tacker'
@@ -175,7 +175,7 @@
     copy:
        remote_src=True
        src={{ k8s_vim_conf_path_tenant1 }}
-       dest={{ zuul_work_dir }}/tacker/tests/etc/samples/{{ k8s_vim_conf_name_tenant1 }}
+       dest={{ zuul_work_dir }}/samples/tests/etc/samples/{{ k8s_vim_conf_name_tenant1 }}
 
   - name: Generate Kubernetes VIM config for second tenant
     shell: >
@@ -209,7 +209,7 @@
     copy:
        remote_src=True
        src={{ k8s_vim_conf_path_tenant2 }}
-       dest={{ zuul_work_dir }}/tacker/tests/etc/samples/{{ k8s_vim_conf_name_tenant2 }}
+       dest={{ zuul_work_dir }}/samples/tests/etc/samples/{{ k8s_vim_conf_name_tenant2 }}
 
   when:
     - inventory_hostname == 'controller-tacker'

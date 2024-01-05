@@ -27,6 +27,8 @@ from tacker.sol_refactored.nfvo import nfvo_client
 from tacker.sol_refactored import objects
 from tacker.tests.unit import base
 from tacker.tests.unit.sol_refactored.infra_drivers.kubernetes import fakes
+from tacker.tests import utils
+
 
 CNF_SAMPLE_VNFD_ID = "b1bb0ce7-ebca-4fa7-95ed-4840d70a1177"
 
@@ -39,8 +41,7 @@ class TestKubernetes(base.TestCase):
         self.driver = kubernetes.Kubernetes()
         self.context = context.get_admin_context()
 
-        cur_dir = os.path.dirname(__file__)
-        sample_dir = os.path.join(cur_dir, "../..", "samples")
+        sample_dir = utils.test_sample("unit/sol_refactored/samples")
         self.vnfd_1 = vnfd_utils.Vnfd(CNF_SAMPLE_VNFD_ID)
         self.vnfd_1.init_from_csar_dir(os.path.join(sample_dir, "sample2"))
 

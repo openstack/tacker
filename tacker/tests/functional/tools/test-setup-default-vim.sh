@@ -24,5 +24,5 @@ openstack vim register \
     --os-user-domain-name Default \
     --is-default \
     --description "Default VIM" \
-    --config-file /opt/stack/tacker/tacker/tests/etc/samples/local-vim.yaml \
+    --config-file /opt/stack/tacker/samples/tests/etc/samples/local-vim.yaml \
     VIM0

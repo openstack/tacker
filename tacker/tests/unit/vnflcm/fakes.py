@@ -35,6 +35,7 @@ from tacker.objects import scale_vnf_request
 from tacker.objects.vim_connection import VimConnectionInfo
 from tacker.policies import vnf_lcm as vnf_lcm_policies
 from tacker.tests import constants
+from tacker.tests import utils as test_utils
 from tacker.tests import uuidsentinel
 from tacker import wsgi
 
@@ -843,8 +844,8 @@ def _get_vnf(**updates):
         'instance_id': uuidsentinel.instance_id,
         'attributes': {
             "scale_group": '{"scaleGroupDict" : {"SP1": {"maxLevel" : 3}}}',
-            "heat_template": os.path.dirname(__file__) +
-            "/../../etc/samples/hot_lcm_template.yaml"}}
+            "heat_template": test_utils.test_etc_sample(
+                "hot_lcm_template.yaml")}}
 
     if updates:
         vnf_data.update(**updates)

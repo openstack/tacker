@@ -19,6 +19,7 @@ from oslo_serialization import jsonutils
 from tacker.tests.functional.base import BaseTackerTest
 from tacker.tests.functional.sol_enhanced_policy.base import (
     BaseEnhancedPolicyTest)
+from tacker.tests import utils
 
 
 class BaseVnfPackageAPIsTest(BaseTackerTest, BaseEnhancedPolicyTest):
@@ -70,11 +71,7 @@ class BaseVnfPackageAPIsTest(BaseTackerTest, BaseEnhancedPolicyTest):
             self.assertIn(pkg.get('id'), pkg_ids)
 
     def _get_csar_dir_path(self, csar_name):
-        csar_dir = os.path.abspath(
-            os.path.join(os.path.dirname(__file__),
-            "../../../etc/samples/etsi/nfv", csar_name))
-
-        return csar_dir
+        return utils.test_etc_sample("etsi/nfv", csar_name)
 
     def _wait_for_onboard(self, client, package_uuid):
         show_url = os.path.join(self.base_url, package_uuid)

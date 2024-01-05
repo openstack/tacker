@@ -16,7 +16,6 @@ import copy
 from datetime import datetime
 import ddt
 from http import client as http_client
-import os
 import requests
 from unittest import mock
 
@@ -41,6 +40,7 @@ from tacker.sol_refactored.nfvo import nfvo_client
 from tacker.sol_refactored import objects
 from tacker.sol_refactored.objects.v2 import fields
 from tacker.tests.unit.db import base as db_base
+from tacker.tests import utils
 
 
 objects.register_all()
@@ -1125,9 +1125,9 @@ class TestVnflcmV2(db_base.SqlTestCase):
 
     @mock.patch.object(subsc_utils, 'test_notification')
     def test_subscription_create_201(self, mock_test):
-        cur_dir = os.path.dirname(__file__)
-        sample_cert = os.path.join(
-            cur_dir, "../samples/sample_cert", "notification_client_cert.pem")
+        sample_cert = utils.test_sample(
+            "unit/sol_refactored/samples/sample_cert",
+            "notification_client_cert.pem")
         CONF.v2_vnfm.notification_mtls_client_cert_file = sample_cert
         body_1 = {
             "callbackUri": "http://127.0.0.1:6789/notification",

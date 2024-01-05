@@ -22,6 +22,7 @@ from tacker.sol_refactored.infra_drivers.openstack import userdata_default
 from tacker.sol_refactored import objects
 from tacker.sol_refactored.objects.v2 import fields
 from tacker.tests import base
+from tacker.tests import utils
 
 
 SAMPLE_VNFD_ID = "b1bb0ce7-ebca-4fa7-95ed-4840d7000000"
@@ -685,8 +686,7 @@ class TestUserdataDefault(base.BaseTestCase):
         self.context = context.get_admin_context()
         self.context.api_version = api_version.APIVersion('2.0.0')
         self.grant = {}
-        cur_dir = os.path.dirname(__file__)
-        sample_dir = os.path.join(cur_dir, "../..", "samples")
+        sample_dir = utils.test_sample("unit/sol_refactored/samples")
         self.tmp_csar_dir = os.path.join(sample_dir, "sample1")
         self.userdata_default = userdata_default.DefaultUserData()
 

@@ -24,7 +24,7 @@ from tacker.sol_refactored.common import vnf_instance_utils as inst_utils
 from tacker.sol_refactored.conductor import vnffm_driver_v1
 from tacker.sol_refactored import objects
 from tacker.tests import base
-from tacker.tests.unit.sol_refactored.samples import fakes_for_fm
+from tacker.tests.unit.sol_refactored.common import fakes_for_fm
 
 
 class TestVnffmDriverV1(base.BaseTestCase):

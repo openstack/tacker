@@ -19,6 +19,7 @@ import time
 
 from tacker.tests.functional.sol_kubernetes_v2 import base_v2
 from tacker.tests.functional.sol_kubernetes_v2 import paramgen
+from tacker.tests import utils
 
 # Waiting time to trigger autoheal (unit: second)
 WAIT_AUTO_HEAL_TIME = 23
@@ -34,10 +35,8 @@ class PromAutoScaleHealTest(base_v2.BaseVnfLcmKubernetesV2Test):
     def setUpClass(cls):
         super(PromAutoScaleHealTest, cls).setUpClass()
 
-        cur_dir = os.path.dirname(__file__)
-
-        test_instantiate_cnf_resources_path = os.path.join(
-            cur_dir, "samples/test_instantiate_cnf_resources")
+        test_instantiate_cnf_resources_path = utils.test_sample(
+            "functional/sol_kubernetes_v2/test_instantiate_cnf_resources")
         cls.cnf_pkg, cls.cnf_vnfd_id = cls.create_vnf_package(
             test_instantiate_cnf_resources_path)
 

@@ -17,6 +17,7 @@ import os
 
 from tacker.tests.functional.sol_kubernetes_v2 import base_v2
 from tacker.tests.functional.sol_kubernetes_v2 import paramgen
+from tacker.tests import utils
 
 
 class VnfLcmKubernetesContainerUpdate(base_v2.BaseVnfLcmKubernetesV2Test):
@@ -26,8 +27,8 @@ class VnfLcmKubernetesContainerUpdate(base_v2.BaseVnfLcmKubernetesV2Test):
         super(VnfLcmKubernetesContainerUpdate, cls).setUpClass()
         cur_dir = os.path.dirname(__file__)
 
-        test_cnf_container_update_before_path = os.path.join(
-            cur_dir, "samples/test_cnf_container_update_before")
+        test_cnf_container_update_before_path = utils.test_sample(
+            "functional/sol_kubernetes_v2/test_cnf_container_update_before")
         mgmt_driver_path = os.path.join(
             cur_dir,
             "../../../sol_refactored/mgmt_drivers/container_update_mgmt_v2.py")
@@ -35,8 +36,8 @@ class VnfLcmKubernetesContainerUpdate(base_v2.BaseVnfLcmKubernetesV2Test):
             test_cnf_container_update_before_path,
             mgmt_driver=mgmt_driver_path)
 
-        test_cnf_container_update_after_path = os.path.join(
-            cur_dir, "samples/test_cnf_container_update_after")
+        test_cnf_container_update_after_path = utils.test_sample(
+            "functional/sol_kubernetes_v2/test_cnf_container_update_after")
         cls.vnf_package_id_after, cls.vnfd_id_after = cls.create_vnf_package(
             test_cnf_container_update_after_path, mgmt_driver=mgmt_driver_path)
 

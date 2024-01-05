@@ -21,6 +21,7 @@ import tacker.conf
 from tacker.objects import fields
 from tacker.tests.functional.sol_terraform_v2 import base_v2
 from tacker.tests.functional.sol_terraform_v2 import paramgen as tf_paramgen
+from tacker.tests import utils
 
 CONF = tacker.conf.CONF
 
@@ -33,13 +34,12 @@ class VnfLcmTerraformTest(base_v2.BaseVnfLcmTerraformV2Test):
     def setUpClass(cls):
         super(VnfLcmTerraformTest, cls).setUpClass()
 
-        cur_dir = os.path.dirname(__file__)
-        sample_pkg = "samples/test_terraform_basic"
-        pkg_dir_path = os.path.join(cur_dir, sample_pkg)
+        pkg_dir_path = utils.test_sample("functional/sol_terraform_v2",
+                                         "test_terraform_basic")
         cls.basic_pkg, cls.basic_vnfd_id = cls.create_vnf_package(pkg_dir_path)
 
-        sample_chg_vnfpkg = "samples/test_terraform_change_vnf_package"
-        chg_vnfpkg_dir_path = os.path.join(cur_dir, sample_chg_vnfpkg)
+        chg_vnfpkg_dir_path = utils.test_sample("functional/sol_terraform_v2",
+            "test_terraform_change_vnf_package")
         cls.new_pkg, cls.new_vnfd_id = cls.create_vnf_package(
             chg_vnfpkg_dir_path)
 

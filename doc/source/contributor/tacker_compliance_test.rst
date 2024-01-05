@@ -147,7 +147,7 @@ all the tacker related apis supported.
 
 **Input yaml files** : These are input files used in testcases for operations
 like create vnfd or create vnf.
-The location of files is ``tacker/tests/etc/samples/``.
+The location of files is ``samples/tests/etc/samples/``.
 
 **Asserting values in testcase** : The base class BaseTackerTest inherits base.
 TestCase which has inbuilt assert functions which can be used in testcase.

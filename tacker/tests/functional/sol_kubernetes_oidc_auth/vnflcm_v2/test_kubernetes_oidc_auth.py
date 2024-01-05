@@ -19,6 +19,7 @@ import os
 
 from tacker.tests.functional.sol_kubernetes_oidc_auth.vnflcm_v2 import base_v2
 from tacker.tests.functional.sol_kubernetes_v2 import paramgen
+from tacker.tests import utils
 
 
 @ddt.ddt
@@ -28,10 +29,8 @@ class VnfLcmKubernetesTest(base_v2.BaseVnfLcmKubernetesV2OidcTest):
     def setUpClass(cls):
         super(VnfLcmKubernetesTest, cls).setUpClass()
 
-        cur_dir = os.path.dirname(__file__)
-
-        test_instantiate_cnf_resources_path = os.path.join(cur_dir,
-            "../../sol_kubernetes_v2/samples/test_instantiate_cnf_resources")
+        test_instantiate_cnf_resources_path = utils.test_sample(
+            "functional/sol_kubernetes_v2/test_instantiate_cnf_resources")
         cls.cnf_pkg, cls.cnf_vnfd_id = cls.create_vnf_package(
             test_instantiate_cnf_resources_path)
 

@@ -992,9 +992,9 @@ confirm that VDU's has changed successfully.
     'fc0e0fcf-8eb9-4ddc-8194-2df6c1b43a7b'.
 
 .. _Heat CLI reference : https://docs.openstack.org/python-openstackclient/latest/cli/plugin-commands/heat.html
-.. _VNF Package for Common instantiate: https://opendev.org/openstack/tacker/src/branch/master/tacker/tests/functional/sol_v2/samples/test_instantiate_vnf_with_old_image_or_volume/contents
-.. _change from image to image: https://opendev.org/openstack/tacker/src/branch/master/tacker/tests/functional/sol_v2/samples/test_change_vnf_pkg_with_new_image/contents
-.. _change from image to volume: https://opendev.org/openstack/tacker/src/branch/master/tacker/tests/functional/sol_v2/samples/test_change_vnf_pkg_with_new_volume/contents
-.. _change from volume to image: https://opendev.org/openstack/tacker/src/branch/master/tacker/tests/functional/sol_v2/samples/test_change_vnf_pkg_with_new_image/contents
-.. _change from volume to volume: https://opendev.org/openstack/tacker/src/branch/master/tacker/tests/functional/sol_v2/samples/test_change_vnf_pkg_with_new_volume/contents
+.. _VNF Package for Common instantiate: https://opendev.org/openstack/tacker/src/branch/master/samples/tests/functional/sol_v2_common/test_instantiate_vnf_with_old_image_or_volume/contents
+.. _change from image to image: https://opendev.org/openstack/tacker/src/branch/master/samples/tests/functional/sol_v2_common/test_change_vnf_pkg_with_new_image/contents
+.. _change from image to volume: https://opendev.org/openstack/tacker/src/branch/master/samples/tests/functional/sol_v2_common/test_change_vnf_pkg_with_new_volume/contents
+.. _change from volume to image: https://opendev.org/openstack/tacker/src/branch/master/samples/tests/functional/sol_v2_common/test_change_vnf_pkg_with_new_image/contents
+.. _change from volume to volume: https://opendev.org/openstack/tacker/src/branch/master/samples/tests/functional/sol_v2_common/test_change_vnf_pkg_with_new_volume/contents
 .. _ETSI SOL002 v3.5.1: https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/002/03.05.01_60/gs_nfv-sol002v030501p.pdf

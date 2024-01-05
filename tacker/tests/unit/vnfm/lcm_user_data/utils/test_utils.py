@@ -11,13 +11,13 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import os
 import testtools
 import yaml
 
 from tacker import objects
 from tacker.objects import instantiate_vnf_req
 from tacker.tests import constants
+from tacker.tests import utils as base_utils
 from tacker.tests import uuidsentinel
 from tacker.vnfm.lcm_user_data import utils
 
@@ -45,9 +45,7 @@ example_initial_param_dict = {
 class TestUtils(testtools.TestCase):
 
     def _read_file(self, input_file):
-        yaml_file = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                    "../../../../etc/samples/",
-                    str(input_file)))
+        yaml_file = base_utils.test_etc_sample(input_file)
         with open(yaml_file, 'r') as f:
             yaml_file_dict = yaml.safe_load(f)
         return yaml_file_dict

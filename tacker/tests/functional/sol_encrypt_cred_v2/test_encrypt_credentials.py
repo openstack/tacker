@@ -30,6 +30,7 @@ from tacker.sol_refactored import objects
 from tacker.tests.functional.sol_encrypt_cred_v2 import paramgen
 from tacker.tests.functional.sol_separated_nfvo_v2 import fake_grant_v2
 from tacker.tests.functional.sol_v2_common import test_vnflcm_basic_common
+from tacker.tests import utils
 
 # NOTE: Loads the Tacker configuration required to use the decrypt method in
 # the test method.
@@ -224,9 +225,8 @@ class VnfLcmTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         """
 
         # setup
-        cur_dir = os.path.dirname(__file__)
-        basic_lcms_min_path = os.path.join(
-            cur_dir, "../sol_v2_common/samples/basic_lcms_min")
+        basic_lcms_min_path = utils.test_sample("functional/sol_v2_common",
+                                                "basic_lcms_min")
         min_zip_path, min_vnfd_id = self.create_vnf_package(
             basic_lcms_min_path, nfvo=True)
 
@@ -239,9 +239,8 @@ class VnfLcmTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         flavour_vdu_dict = fake_grant_v2.GrantV2.get_compute_flavor(
             basic_lcms_min_path, vnfd_path)
 
-        chg_pkg_failed_path = os.path.join(
-            cur_dir, "../sol_v2_common/samples/"
-                     "test_change_vnf_pkg_with_update_failed")
+        chg_pkg_failed_path = utils.test_sample("functional/sol_v2_common",
+            "test_change_vnf_pkg_with_update_failed")
         chg_zip_path, chg_vnfd_id = self.create_vnf_package(
             chg_pkg_failed_path, nfvo=True)
         chg_vnfd_path = ("contents/Definitions/"
@@ -682,9 +681,8 @@ class VnfLcmTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         """
 
         # setup
-        cur_dir = os.path.dirname(__file__)
-        basic_lcms_min_path = os.path.join(
-            cur_dir, "../sol_v2_common/samples/basic_lcms_min")
+        basic_lcms_min_path = utils.test_sample("functional/sol_v2_common",
+                                                "basic_lcms_min")
         min_zip_path, min_vnfd_id = self.create_vnf_package(
             basic_lcms_min_path, nfvo=True)
 
@@ -903,10 +901,8 @@ class VnfLcmTest(test_vnflcm_basic_common.CommonVnfLcmTest):
           - 4. Delete VNF instance
         """
         # setup
-        cur_dir = os.path.dirname(__file__)
-        error_network_path = os.path.join(cur_dir,
-                                          "../sol_v2_common/"
-                                          "samples/error_network")
+        error_network_path = utils.test_sample("functional/sol_v2_common",
+                                               "error_network")
         err_vnf_pkg, err_vnfd_id = self.create_vnf_package(
             error_network_path, nfvo=True)
 

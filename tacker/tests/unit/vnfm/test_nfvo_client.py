@@ -138,7 +138,8 @@ class TestVnfPackageRequest(base.BaseTestCase):
 
             for expected_artifact in expected_artifacts:
                 expected_checksum = hashlib.sha256(
-                    open(expected_artifact, 'rb').read()).hexdigest()
+                    open(utils.test_etc_sample(
+                        expected_artifact), 'rb').read()).hexdigest()
                 actual_checksum = hashlib.sha256(
                     actual_zip.read(expected_artifact)).hexdigest()
                 self.assertEqual(expected_checksum, actual_checksum)
@@ -239,11 +240,10 @@ class TestVnfPackageRequest(base.BaseTestCase):
 
         if artifacts:
             pipelines.append('artifacts')
-            artifacts = [os.path.join("tacker/tests/etc/samples", p)
-                         for p in artifacts]
             for artifact_path in artifacts:
                 expected_connect_cnt += 1
-                with open(artifact_path, 'rb') as artifact_path_obj:
+                with open(utils.test_etc_sample(
+                          artifact_path), 'rb') as artifact_path_obj:
                     self.requests_mock.register_uri(
                         'GET',
                         os.path.join(
@@ -368,11 +368,10 @@ class TestVnfPackageRequest(base.BaseTestCase):
 
         artifacts = ["vnfd_lcm_user_data.yaml"]
         pipelines.append('artifacts')
-        artifacts = [os.path.join("tacker/tests/etc/samples", p)
-                    for p in artifacts]
         for artifact_path in artifacts:
             expected_connect_cnt += 1
-            with open(artifact_path, 'rb') as artifact_path_obj:
+            with open(utils.test_etc_sample(
+                      artifact_path), 'rb') as artifact_path_obj:
                 self.requests_mock.register_uri(
                     'GET',
                     os.path.join(
@@ -403,10 +402,9 @@ class TestVnfPackageRequest(base.BaseTestCase):
 
     def test_download_vnf_packages_content_disposition(self):
         fetch_base_url = os.path.join(self.url, uuidsentinel.vnf_pkg_id)
-        test_yaml_filepath = os.path.join(
-            'tacker/tests/etc/samples',
-            'vnfd_lcm_user_data.yaml')
-        with open(test_yaml_filepath, 'rb') as test_yaml_obj:
+        test_yaml_filepath = 'vnfd_lcm_user_data.yaml'
+        with open(utils.test_etc_sample(
+                test_yaml_filepath), 'rb') as test_yaml_obj:
             headers = {
                 'Content-Type': 'application/octet-stream',
                 'Content-Disposition':
@@ -438,10 +436,9 @@ class TestVnfPackageRequest(base.BaseTestCase):
     def test_download_vnf_packages_non_content_disposition_raise_download(
             self):
         fetch_base_url = os.path.join(self.url, uuidsentinel.vnf_pkg_id)
-        test_yaml_filepath = os.path.join(
-            'tacker/tests/etc/samples',
-            'vnfd_lcm_user_data.yaml')
-        with open(test_yaml_filepath, 'rb') as test_yaml_obj:
+        test_yaml_filepath = 'vnfd_lcm_user_data.yaml'
+        with open(utils.test_etc_sample(
+                test_yaml_filepath), 'rb') as test_yaml_obj:
             headers = {'Content-Type': 'application/octet-stream'}
             self.requests_mock.register_uri(
                 'GET',

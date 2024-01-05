@@ -19,6 +19,7 @@ import os
 from tacker.objects import fields
 from tacker.tests.functional.sol_v2_common import paramgen
 from tacker.tests.functional.sol_v2_common import test_vnflcm_basic_common
+from tacker.tests import utils
 
 
 @ddt.ddt
@@ -28,31 +29,25 @@ class VnfLcmErrorHandlingTest(test_vnflcm_basic_common.CommonVnfLcmTest):
     def setUpClass(cls):
         super(VnfLcmErrorHandlingTest, cls).setUpClass()
 
-        cur_dir = os.path.dirname(__file__)
-        # tacker/tests/etc...
-        #             /functional/sol_v2
-        image_dir = os.path.join(
-            cur_dir, "../../etc/samples/etsi/nfv/common/Files/images")
-        image_file = "cirros-0.5.2-x86_64-disk.img"
-        image_path = os.path.abspath(os.path.join(image_dir, image_file))
+        image_path = utils.test_etc_sample("etsi/nfv/common/Files/images",
+            "cirros-0.5.2-x86_64-disk.img")
 
         # Scale operation will fail
-        scale_ng_path = os.path.join(cur_dir, "../sol_v2_common/"
-                                              "samples/scale_ng")
+        scale_ng_path = utils.test_sample("functional/sol_v2_common",
+                                          "scale_ng")
         cls.scale_ng_pkg, cls.scale_ng_vnfd_id = cls.create_vnf_package(
             scale_ng_path, image_path=image_path)
 
         # Instantiate VNF will fail
-        error_network_path = os.path.join(cur_dir, "../sol_v2_common/"
-                                                   "samples/error_network")
+        error_network_path = utils.test_sample("functional/sol_v2_common",
+                                               "error_network")
         # no image contained
         cls.err_nw_pkg, cls.err_nw_vnfd_id = cls.create_vnf_package(
             error_network_path)
 
         # update VNF or change external VNF connectivity will fail
-        update_change_ng_path = os.path.join(cur_dir,
-                                             "../sol_v2_common/"
-                                             "samples/basic_lcms_min")
+        update_change_ng_path = utils.test_sample("functional/sol_v2_common",
+                                                  "basic_lcms_min")
         # no image contained
         cls.min_pkg, cls.min_vnfd_id = cls.create_vnf_package(
             update_change_ng_path)

@@ -86,7 +86,7 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
 
     def _create_and_upload_vnf_package_add_mgmt(
             self, tacker_client, csar_package_name,
-            user_defined_data, mgmt_rela_path):
+            user_defined_data, mgmt_path):
         # create vnf package
         body = jsonutils.dumps({"userDefinedData": user_defined_data})
         _, vnf_package = tacker_client.do_request(
@@ -94,20 +94,13 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
         vnf_pkg_id = vnf_package['id']
 
         # cp MgmtDriver to package
-        mgmt_abs_path = os.path.abspath(os.path.join(
-            os.path.dirname(__file__), mgmt_rela_path))
-        mgmt_package_abs_path = os.path.abspath(
-            os.path.join(os.path.dirname(__file__),
-                         f"../../../etc/samples/etsi/nfv/"
-                         f"{csar_package_name}/Scripts/"))
+        mgmt_package_abs_path = utils.test_etc_sample("etsi/nfv",
+            f"{csar_package_name}/Scripts/")
         os.mkdir(mgmt_package_abs_path)
-        shutil.copy(mgmt_abs_path, mgmt_package_abs_path)
+        shutil.copy(mgmt_path, mgmt_package_abs_path)
 
         # upload vnf package
-        csar_package_path = ("../../../etc/samples/etsi/nfv/"
-                             f"{csar_package_name}")
-        file_path = os.path.abspath(
-            os.path.join(os.path.dirname(__file__), csar_package_path))
+        file_path = utils.test_etc_sample("etsi/nfv", f"{csar_package_name}")
 
         # Generating unique vnfd id. This is required when multiple workers
         # are running concurrently. The call below creates a new temporary
@@ -150,10 +143,7 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
         vnf_pkg_id = vnf_package['id']
 
         # upload vnf package
-        csar_package_path = ("../../../etc/samples/etsi/nfv/"
-                             f"{csar_package_name}")
-        file_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                                 csar_package_path))
+        file_path = utils.test_etc_sample("etsi/nfv", f"{csar_package_name}")
 
         # Generating unique vnfd id. This is required when multiple workers
         # are running concurrently. The call below creates a new temporary

@@ -27,6 +27,7 @@ from tacker.sol_refactored.mgmt_drivers import (
     container_update_mgmt_v2 as mgmt_driver)
 from tacker.tests.unit import base
 from tacker.tests.unit.sol_refactored.mgmt_drivers import fakes
+from tacker.tests import utils
 from unittest import mock
 
 SAMPLE_OLD_VNFD_ID = "16ca1a07-2453-47f1-9f00-7ca2dce0a5ea"
@@ -642,9 +643,7 @@ class TestContainerUpdate(base.TestCase):
     def setUp(self):
         super(TestContainerUpdate, self).setUp()
         cfg.CONF.v2_vnfm.kubernetes_vim_rsc_wait_timeout = 0
-        cur_dir = os.path.dirname(__file__)
-        sample_dir = os.path.join(
-            cur_dir, "../../../functional/sol_kubernetes_v2/samples")
+        sample_dir = utils.test_sample("functional/sol_kubernetes_v2")
         self.old_vnfd = vnfd_utils.Vnfd(SAMPLE_OLD_VNFD_ID)
         self.old_vnfd.init_from_csar_dir(os.path.join(
             sample_dir, "test_cnf_container_update_before/contents"))

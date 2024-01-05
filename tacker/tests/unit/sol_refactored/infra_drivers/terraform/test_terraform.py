@@ -26,6 +26,7 @@ from tacker.sol_refactored.infra_drivers.terraform import terraform
 from tacker.sol_refactored import objects
 from tacker.sol_refactored.objects.v2 import fields
 from tacker.tests import base
+from tacker.tests import utils
 
 SAMPLE_VNFD_ID = "65b62a2a-c207-423f-9b01-f399c9ab5629"
 SAMPLE_FLAVOUR_ID = "simple"
@@ -75,8 +76,7 @@ class TestTerraform(base.BaseTestCase):
         self.driver = terraform.Terraform()
         self.context = context.get_admin_context()
 
-        cur_dir = os.path.dirname(__file__)
-        sample_dir = os.path.join(cur_dir, "../..", "samples")
+        sample_dir = utils.test_sample("unit/sol_refactored/samples")
 
         self.vnfd_2 = vnfd_utils.Vnfd(SAMPLE_VNFD_ID)
         self.vnfd_2.init_from_csar_dir(os.path.join(sample_dir, "sample2"))

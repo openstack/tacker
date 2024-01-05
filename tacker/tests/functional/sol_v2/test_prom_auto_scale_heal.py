@@ -19,6 +19,7 @@ import time
 
 from tacker.tests.functional.sol_v2_common import paramgen
 from tacker.tests.functional.sol_v2_common import test_vnflcm_basic_common
+from tacker.tests import utils
 
 # Waiting time to trigger autoheal (unit: second)
 WAIT_AUTO_HEAL_TIME = 23
@@ -33,11 +34,10 @@ class PromAutoScaleHealTest(test_vnflcm_basic_common.CommonVnfLcmTest):
     @classmethod
     def setUpClass(cls):
         super(PromAutoScaleHealTest, cls).setUpClass()
-        cur_dir = os.path.dirname(__file__)
 
         # for basic lcms tests min pattern
-        basic_lcms_min_path = os.path.join(
-            cur_dir, "../sol_v2_common/samples/basic_lcms_min")
+        basic_lcms_min_path = utils.test_sample(
+            "functional/sol_v2_common/basic_lcms_min")
         # no image contained
         cls.vnf_pkg_2, cls.vnfd_id_2 = cls.create_vnf_package(
             basic_lcms_min_path)

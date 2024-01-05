@@ -16,6 +16,7 @@ import yaml
 from oslo_serialization import jsonutils
 from oslo_utils import uuidutils
 
+from tacker.tests import utils
 from tacker.tests import uuidsentinel
 
 
@@ -311,12 +312,7 @@ class Grant:
 
     @staticmethod
     def get_sw_image(package_dir="functional6"):
-        sample_name = package_dir
-        csar_package_path = os.path.abspath(
-            os.path.join(
-                os.path.dirname(__file__),
-                "../../../etc/samples/etsi/nfv",
-                sample_name))
+        csar_package_path = utils.test_etc_sample("etsi/nfv", package_dir)
         yaml_file = os.path.join(csar_package_path,
                                  "Definitions/helloworld3_df_simple.yaml")
         with open(yaml_file, 'r', encoding='utf-8') as f:
@@ -338,12 +334,7 @@ class Grant:
 
     @staticmethod
     def get_compute_flavor(package_dir="functional6"):
-        sample_name = package_dir
-        csar_package_path = os.path.abspath(
-            os.path.join(
-                os.path.dirname(__file__),
-                "../../../etc/samples/etsi/nfv",
-                sample_name))
+        csar_package_path = utils.test_etc_sample("etsi/nfv", package_dir)
         yaml_file = os.path.join(csar_package_path,
                                  "Definitions/helloworld3_df_simple.yaml")
         with open(yaml_file, 'r', encoding='utf-8') as f:

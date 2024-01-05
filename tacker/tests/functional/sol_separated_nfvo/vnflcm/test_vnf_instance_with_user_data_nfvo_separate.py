@@ -19,6 +19,7 @@ from tacker.tests.functional.sol.vnflcm import base as vnflcm_base
 from tacker.tests.functional.sol.vnflcm import fake_vnflcm
 from tacker.tests.functional.sol_separated_nfvo.vnflcm import fake_grant
 from tacker.tests.functional.sol_separated_nfvo.vnflcm import fake_vnfpkgm
+from tacker.tests import utils
 
 
 class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
@@ -32,12 +33,7 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
             Response: VNF Package information
         """
         # Pre Setting: Create vnf package.
-        sample_name = package_dir
-        csar_package_path = os.path.abspath(
-            os.path.join(
-                os.path.dirname(__file__),
-                "../../../etc/samples/etsi/nfv",
-                sample_name))
+        csar_package_path = utils.test_etc_sample("etsi/nfv", package_dir)
 
         # Get VNFD id.
         tempname, vnfd_id = vnflcm_base._create_csar_with_unique_vnfd_id(

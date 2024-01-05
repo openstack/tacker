@@ -31,9 +31,27 @@ from oslo_utils import uuidutils
 LOG = logging.getLogger(__name__)
 
 
+def sample_root():
+    return os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                        '../../samples'))
+
+
+def _test_sample_root():
+    # {tacker_root}/samples/tests
+    return os.path.join(sample_root(), 'tests')
+
+
+def test_sample(*p):
+    return os.path.join(_test_sample_root(), *p)
+
+
+def test_etc_sample(*p):
+    # {tacker_root}/samples/tests/etc/samples
+    return test_sample('etc/samples', *p)
+
+
 def read_file(input_file):
-    yaml_file = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                             'etc/samples/' + str(input_file)))
+    yaml_file = test_etc_sample(input_file)
     with open(yaml_file, 'r') as f:
         return f.read()
 
@@ -78,8 +96,6 @@ def create_csar_with_unique_vnfd_id(csar_dir):
         - csar_file_name
         - vnfd_id
     """
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    csar_dir = os.path.join(current_dir, "../../", csar_dir)
     unique_id = uuidutils.generate_uuid()
     tempfd, tempname = tempfile.mkstemp(suffix=".zip",
         dir=os.path.dirname(csar_dir))
@@ -224,12 +240,9 @@ def copy_csar_files(fake_csar_path, csar_dir_name,
     :param read_vnfd_only: when set to 'True', it won't copy the image file
                            from source directory.
     """
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    sample_vnf_package = os.path.join(current_dir, "etc/samples/etsi/nfv",
-                                      csar_dir_name)
+    sample_vnf_package = test_etc_sample("etsi/nfv", csar_dir_name)
     shutil.copytree(sample_vnf_package, fake_csar_path)
-    common_files_path = os.path.join(current_dir,
-                                     "etc/samples/etsi/nfv/common/")
+    common_files_path = test_etc_sample("etsi/nfv/common/")
 
     if not read_vnfd_only:
         # Copying image file.
@@ -253,13 +266,9 @@ def copy_csar_files(fake_csar_path, csar_dir_name,
 
 def copy_artifact_files(fake_csar_path, csar_dir_name,
                     csar_without_tosca_meta=False, read_vnfd_only=False):
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    sample_vnf_package = os.path.join(current_dir,
-                                      "etc/samples/etsi/nfv",
-                                      csar_dir_name)
+    sample_vnf_package = test_etc_sample("etsi/nfv", csar_dir_name)
     shutil.copytree(sample_vnf_package, fake_csar_path)
-    common_files_path = os.path.join(current_dir,
-                                     "etc/samples/etsi/nfv/")
+    common_files_path = test_etc_sample("etsi/nfv/")
 
     if not read_vnfd_only:
         # Copying image file.

@@ -13,8 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-
 from oslo_config import cfg
 
 from kubernetes import client
@@ -25,6 +23,7 @@ from tacker import context
 from tacker.tests.unit import base
 from tacker.tests.unit.vnflcm import fakes
 from tacker.tests.unit.vnfm.mgmt_drivers import fakes as mgmt_fakes
+from tacker.tests import utils
 from tacker.vnflcm import utils as vnflcm_utils
 from tacker.vnfm.infra_drivers.kubernetes.kubernetes_driver import Kubernetes
 from unittest import mock
@@ -46,10 +45,8 @@ class TestContainerUpdate(base.TestCase):
         self._mock_vim_client()
         self._stub_get_vim()
         self._mock_get_vnf_package_path()
-        self.yaml_path_before = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "../../../etc/samples/etsi/nfv/"
-            "test_cnf_container_update_before/")
+        self.yaml_path_before = utils.test_etc_sample(
+            "etsi/nfv/test_cnf_container_update_before/")
 
     def _mock_vim_client(self):
         self.vim_client = mock.Mock(wraps=FakeVimClient())
@@ -69,10 +66,8 @@ class TestContainerUpdate(base.TestCase):
 
     def _mock_get_vnf_package_path(self):
         vnflcm_utils.get_vnf_package_path = mock.Mock(
-            return_value=os.path.join(
-                os.path.abspath(os.path.dirname(__file__)),
-                "../../../etc/samples/etsi/nfv/"
-                "test_cnf_container_update_after/")
+            return_value=utils.test_etc_sample(
+                "etsi/nfv/test_cnf_container_update_after/")
         )
 
     def test_container_update_get_type(self):

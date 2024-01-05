@@ -19,6 +19,7 @@ from tacker.objects import fields
 from tacker.tests.functional.sol.vnflcm import base as vnflcm_base
 from tacker.tests.functional.sol_multi_tenant.vnflcm import base
 from tacker.tests.functional.sol_multi_tenant.vnflcm import fake_vnflcm
+from tacker.tests import utils
 import tempfile
 import time
 
@@ -314,11 +315,7 @@ class VnfLcmWithMultiTenant(base.BaseVnfLcmMultiTenantTest):
         # Create and Upload VNF Package
         # User A creates VNF Package A
         sample_name = 'mt_functional1'
-        csar_package_path = os.path.abspath(
-            os.path.join(
-                os.path.dirname(__file__),
-                "../../../etc/samples/etsi/nfv",
-                sample_name))
+        csar_package_path = utils.test_etc_sample("etsi/nfv", sample_name)
         tempname, _ = vnflcm_base._create_csar_with_unique_vnfd_id(
             csar_package_path)
 
@@ -329,11 +326,8 @@ class VnfLcmWithMultiTenant(base.BaseVnfLcmMultiTenantTest):
 
         # User B creates VNF Package B
         sample_name_t2 = 'mt_functional1'
-        csar_package_path_t2 = os.path.abspath(
-            os.path.join(
-                os.path.dirname(__file__),
-                "../../../etc/samples/etsi/nfv",
-                sample_name_t2))
+        csar_package_path_t2 = utils.test_etc_sample("etsi/nfv",
+                                                     sample_name_t2)
         tempname_t2, _ = vnflcm_base._create_csar_with_unique_vnfd_id(
             csar_package_path_t2)
 
@@ -447,11 +441,8 @@ class VnfLcmWithMultiTenant(base.BaseVnfLcmMultiTenantTest):
         # Create and Upload VNF Package
         # User B creates VNF Package B
         sample_name_t2 = 'mt_functional1'
-        csar_package_path_t2 = os.path.abspath(
-            os.path.join(
-                os.path.dirname(__file__),
-                "../../../etc/samples/etsi/nfv",
-                sample_name_t2))
+        csar_package_path_t2 = utils.test_etc_sample("etsi/nfv",
+                                                     sample_name_t2)
         tempname_t2, _ = vnflcm_base._create_csar_with_unique_vnfd_id(
             csar_package_path_t2)
 

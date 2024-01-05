@@ -19,6 +19,7 @@ import string
 from tacker.objects import fields
 from tacker.tests.functional.sol_v2_common import base_v2
 from tacker.tests.functional.sol_v2_common import paramgen
+from tacker.tests import utils
 
 SUPPORT_STRING_FOR_VNFD_ID = f"{string.ascii_letters}{string.digits}-._ "
 MAX_VNFD_ID = f"{SUPPORT_STRING_FOR_VNFD_ID}max_vnfd_id"
@@ -34,12 +35,8 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
     def setUpClass(cls):
         super(IndividualVnfcMgmtBasicTest, cls).setUpClass()
         cur_dir = os.path.dirname(__file__)
-        # tacker/tests/functional/sol_v2_individual_vnfc_mgmt(here)
-        #             /etc
-        image_dir = os.path.join(
-            cur_dir, "../../etc/samples/etsi/nfv/common/Files/images")
-        image_file = "cirros-0.5.2-x86_64-disk.img"
-        image_path = os.path.abspath(os.path.join(image_dir, image_file))
+        image_path = utils.test_etc_sample("etsi/nfv/common/Files/images",
+            "cirros-0.5.2-x86_64-disk.img")
 
         # tacker/tests/functional/sol_v2_individual_vnfc_mgmt(here)
         #       /sol_refactored
@@ -50,37 +47,35 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
             os.path.join(userdata_dir, userdata_file))
 
         # vnf package for basic lcms tests max pattern
-        pkg_path_1 = os.path.join(cur_dir,
-            "../sol_v2_common/samples/basic_lcms_max_individual_vnfc")
+        pkg_path_1 = utils.test_sample("functional/sol_v2_common",
+            "basic_lcms_max_individual_vnfc")
         cls.max_pkg, cls.max_vnfd_id = cls.create_vnf_package(
             pkg_path_1, image_path=image_path,
             userdata_path=userdata_path, vnfd_id=MAX_VNFD_ID)
 
         # vnf package for basic lcms tests min pattern
-        pkg_path_2 = os.path.join(cur_dir,
-            "../sol_v2_common/samples/basic_lcms_min_individual_vnfc")
+        pkg_path_2 = utils.test_sample("functional/sol_v2_common",
+            "basic_lcms_min_individual_vnfc")
         cls.min_pkg, cls.min_vnfd_id = cls.create_vnf_package(
             pkg_path_2, userdata_path=userdata_path,
             vnfd_id=MIN_VNFD_ID)
 
         # vnf package for update vnf max pattern
-        pkg_path_3 = os.path.join(cur_dir,
-            "../sol_v2_common/samples/update_vnf_max_individual_vnfc")
+        pkg_path_3 = utils.test_sample("functional/sol_v2_common",
+            "update_vnf_max_individual_vnfc")
         cls.upd_max_pkg, cls.upd_max_vnfd_id = cls.create_vnf_package(
             pkg_path_3, image_path=image_path,
             userdata_path=userdata_path, vnfd_id=UPD_MAX_VNFD_ID)
 
         # vnf package for change vnf package max pattern
-        pkg_path_4 = os.path.join(cur_dir,
-            "../sol_v2_common/samples/change_vnfpkg_max_individual_vnfc")
+        pkg_path_4 = utils.test_sample("functional/sol_v2_common",
+            "change_vnfpkg_max_individual_vnfc")
         cls.new_max_pkg, cls.new_max_vnfd_id = cls.create_vnf_package(
             pkg_path_4, userdata_path=userdata_path,
             vnfd_id=NEW_MAX_VNFD_ID)
 
         # vnf package for change vnf package or update min pattern
-        pkg_path_5 = os.path.join(
-            cur_dir,
-            "../sol_v2_common/samples/"
+        pkg_path_5 = utils.test_sample("functional/sol_v2_common",
             "change_vnfpkg_or_update_min_individual_vnfc")
         cls.upd_new_min_pkg, cls.upd_new_min_vnfd_id = cls.create_vnf_package(
             pkg_path_5, image_path=image_path, userdata_path=userdata_path,

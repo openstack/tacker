@@ -64,23 +64,19 @@ class VnflcmAPIsV2VNFBase(CommonVnfLcmTest, BaseEnhancedPolicyTest):
 
         cls.tacker_client = cls.get_local_tacker_http_client('user_all')
 
-        cur_dir = os.path.dirname(__file__)
-        image_dir = os.path.join(
-            cur_dir, "../../../etc/samples/etsi/nfv/common/Files/images")
-
-        image_file = "cirros-0.5.2-x86_64-disk.img"
-        image_path = os.path.abspath(os.path.join(image_dir, image_file))
+        image_path = base_utils.test_etc_sample("etsi/nfv/common/Files/images",
+            "cirros-0.5.2-x86_64-disk.img")
 
         # for basic lcms tests min pattern
-        basic_lcms_min_path = os.path.join(cur_dir,
-                                "../../sol_v2_common/samples/basic_lcms_min")
+        basic_lcms_min_path = base_utils.test_sample(
+            "functional/sol_v2_common/basic_lcms_min")
 
         # for update vnf test
-        update_vnf_path = os.path.join(cur_dir,
-                                    "../../sol_v2_common/samples/update_vnf")
+        update_vnf_path = base_utils.test_sample(
+            "functional/sol_v2_common/update_vnf")
         # for change ext conn
-        change_vnfpkg_from_image_to_image_path_2 = os.path.join(cur_dir,
-            "../../sol_v2_common/samples/test_change_vnf_pkg_with_new_image")
+        change_vnfpkg_from_image_to_image_path_2 = base_utils.test_sample(
+            "functional/sol_v2_common/test_change_vnf_pkg_with_new_image")
 
         # for user_a
         cls.vnf_pkg_a, cls.vnfd_id_a = cls.create_vnf_package(

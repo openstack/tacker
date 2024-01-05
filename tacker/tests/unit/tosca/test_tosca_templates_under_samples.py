@@ -12,13 +12,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import os
 import testtools
 
 from toscaparser import tosca_template
 from toscaparser.utils import yamlparser
 from translator.hot import tosca_translator
 
+from tacker.tests import utils
 from tacker.tosca import utils as toscautils
 
 
@@ -32,8 +32,7 @@ class TestSamples(testtools.TestCase):
 
     def _get_list_of_sample(self, tosca_files):
         if tosca_files:
-            base_path = (os.path.dirname(os.path.abspath(__file__)) +
-                         '/../../../../samples/tosca-templates/vnfd/')
+            base_path = utils.test_sample('../tosca-templates/vnfd/')
             if isinstance(tosca_files, list):
                 list_of_samples = []
                 for tosca_file in tosca_files:

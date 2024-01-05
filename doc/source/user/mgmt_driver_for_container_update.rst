@@ -96,7 +96,7 @@ When Use v1 API
 :::::::::::::::
 .. code-block:: console
 
-    $ cd TACKER_ROOT/tacker/tests/etc/samples/etsi/nfv/test_cnf_container_update_before
+    $ cd TACKER_ROOT/samples/tests/etc/samples/etsi/nfv/test_cnf_container_update_before
 
 Copy the official definition files from the sample directory.
 `ETSI GS NFV-SOL 001`_ specifies the structure and format of the VNFD
@@ -104,7 +104,7 @@ based on TOSCA specifications.
 
 .. code-block:: console
 
-    $ cd TACKER_ROOT/tacker/tests/etc/samples/etsi/nfv/test_cnf_container_update_before
+    $ cd TACKER_ROOT/samples/tests/etc/samples/etsi/nfv/test_cnf_container_update_before
     $ cp TACKER_ROOT/samples/vnf_packages/Definitions/etsi_nfv_sol001_common_types.yaml Definitions/
     $ cp TACKER_ROOT/samples/vnf_packages/Definitions/etsi_nfv_sol001_vnfd_types.yaml Definitions/
 
@@ -117,7 +117,7 @@ Following commands are an example of compressing a VNF Package:
 
 .. code-block:: console
 
-    $ cd TACKER_ROOT/tacker/tests/etc/samples/etsi/nfv/test_cnf_container_update_before
+    $ cd TACKER_ROOT/samples/tests/etc/samples/etsi/nfv/test_cnf_container_update_before
     $ mkdir Scripts
     $ cp TACKER_ROOT/samples/mgmt_driver/kubernetes/container_update/container_update_mgmt.py Scripts/
     $ zip deployment.zip -r Definitions/ Files/ TOSCA-Metadata/ Scripts/
@@ -127,7 +127,7 @@ When Use v2 API
 
 .. code-block:: console
 
-    $ cd TACKER_ROOT/tacker/tests/functional/sol_kubernetes_v2/samples/test_cnf_container_update_before
+    $ cd TACKER_ROOT/samples/tests/functional/sol_kubernetes_v2/test_cnf_container_update_before
     $ vi pkggen.py
       ...
       vim_id = "your k8s vim's id" (modify this value to your own vim Id)
@@ -316,10 +316,10 @@ recreate the deployment, DaemonSet and ReplicaSet to update.
     This document provides the new vnf package,
 
     if you use v1 API, the path is
-    `tacker/tests/etc/samples/etsi/nfv/test_cnf_container_update_after`_
+    `samples/tests/etc/samples/etsi/nfv/test_cnf_container_update_after`_
 
     if you use v2 API, the path is
-    `tacker/tests/functional/sol_kubernetes_v2/samples/test_cnf_container_update_after`_
+    `samples/tests/functional/sol_kubernetes_v2/test_cnf_container_update_after`_
 
 Details of CLI commands are described in :doc:`../cli/cli-etsi-vnflcm`.
 
@@ -841,9 +841,9 @@ recreated.
 .. _How to use Mgmt Driver for deploying Kubernetes Cluster : https://docs.openstack.org/tacker/latest/user/mgmt_driver_deploy_k8s_usage_guide.html#mgmt-driver-introduction
 .. _samples/mgmt_driver/kubernetes/container_update/container_update_mgmt.py : https://opendev.org/openstack/tacker/src/branch/master/samples/mgmt_driver/kubernetes/container_update/container_update_mgmt.py
 .. _tacker/sol_refactored/mgmt_drivers/container_update_mgmt_v2.py : https://opendev.org/openstack/tacker/src/branch/master/tacker/sol_refactored/mgmt_drivers/container_update_mgmt_v2.py
-.. _tacker/tests/etc/samples/etsi/nfv/test_cnf_container_update_before : https://opendev.org/openstack/tacker/src/branch/master/tacker/tests/etc/samples/etsi/nfv/test_cnf_container_update_before
-.. _tacker/tests/etc/samples/etsi/nfv/test_cnf_container_update_after : https://opendev.org/openstack/tacker/src/branch/master/tacker/tests/etc/samples/etsi/nfv/test_cnf_container_update_after
-.. _tacker/tests/functional/sol_kubernetes_v2/samples/test_cnf_container_update_after : https://opendev.org/openstack/tacker/src/branch/master/tacker/tests/functional/sol_kubernetes_v2/samples/test_cnf_container_update_after
+.. _samples/tests/etc/samples/etsi/nfv/test_cnf_container_update_before : https://opendev.org/openstack/tacker/src/branch/master/samples/tests/etc/samples/etsi/nfv/test_cnf_container_update_before
+.. _samples/tests/etc/samples/etsi/nfv/test_cnf_container_update_after : https://opendev.org/openstack/tacker/src/branch/master/samples/tests/etc/samples/etsi/nfv/test_cnf_container_update_after
+.. _samples/tests/functional/sol_kubernetes_v2/test_cnf_container_update_after : https://opendev.org/openstack/tacker/src/branch/master/samples/tests/functional/sol_kubernetes_v2/test_cnf_container_update_after
 .. _ETSI GS NFV-SOL 001 : https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/001/02.06.01_60/gs_nfv-sol001v020601p.pdf
 .. _Prepare Kubernetes VIM : https://docs.openstack.org/tacker/latest/user/etsi_containerized_vnf_usage_guide.html#prepare-kubernetes-vim
 .. _Instantiate VNF : https://docs.openstack.org/tacker/latest/user/etsi_containerized_vnf_usage_guide.html#instantiate-vnf

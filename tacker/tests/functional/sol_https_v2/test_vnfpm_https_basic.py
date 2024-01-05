@@ -24,6 +24,7 @@ from tacker.sol_refactored.conductor import conductor_rpc_v2
 from tacker.tests.functional.sol_https_v2 import paramgen
 from tacker.tests.functional.sol_separated_nfvo_v2 import fake_grant_v2
 from tacker.tests.functional.sol_v2_common import test_vnflcm_basic_common
+from tacker.tests import utils
 
 CONF = config.CONF
 
@@ -96,9 +97,8 @@ class VnfPmWithHttpsRequestTest(test_vnflcm_basic_common.CommonVnfLcmTest):
           - 7. Delete VNF instance
         """
         # setup
-        cur_dir = os.path.dirname(__file__)
-        basic_lcms_min_path = os.path.join(
-            cur_dir, "../sol_v2_common/samples/basic_lcms_min")
+        basic_lcms_min_path = utils.test_sample("functional/sol_v2_common",
+                                                "basic_lcms_min")
         min_zip_path, min_vnfd_id = self.create_vnf_package(
             basic_lcms_min_path, nfvo=True)
         vnfd_path = "contents/Definitions/v2_sample2_df_simple.yaml"
@@ -215,9 +215,8 @@ class VnfPmWithHttpsRequestTest(test_vnflcm_basic_common.CommonVnfLcmTest):
           - 7. Delete VNF instance
         """
         # setup
-        cur_dir = os.path.dirname(__file__)
-        basic_lcms_min_path = os.path.join(
-            cur_dir, "../sol_v2_common/samples/basic_lcms_min")
+        basic_lcms_min_path = utils.test_sample("functional/sol_v2_common",
+                                                "basic_lcms_min")
         min_zip_path, min_vnfd_id = self.create_vnf_package(
             basic_lcms_min_path, nfvo=True)
         vnfd_path = "contents/Definitions/v2_sample2_df_simple.yaml"
@@ -329,9 +328,8 @@ class VnfPmWithHttpsRequestTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         """
 
         # setup
-        cur_dir = os.path.dirname(__file__)
-        basic_lcms_min_path = os.path.join(
-            cur_dir, "../sol_v2_common/samples/basic_lcms_min")
+        basic_lcms_min_path = utils.test_sample("functional/sol_v2_common",
+                                                "basic_lcms_min")
         min_zip_path, min_vnfd_id = self.create_vnf_package(
             basic_lcms_min_path, nfvo=True)
         vnfd_path = "contents/Definitions/v2_sample2_df_simple.yaml"

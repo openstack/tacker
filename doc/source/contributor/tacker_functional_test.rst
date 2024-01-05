@@ -38,7 +38,7 @@ base.BaseTackerTest. Testcases typically has sections to setup, test, validate
 results and finally cleanup.
 
 Input yaml files: These are input files used in testcases for operations like
-create vnfd or create vnf. The location of files is tacker/tests/etc/samples/.
+create vnfd or create vnf. The location of files is samples/tests/etc/samples/.
 
 requirements.txt and test-requirements.txt : The file requirements.txt and
 test-requirements.txt lists all the packages needed for functional test.

@@ -14,7 +14,6 @@
 #    under the License.
 
 
-import os
 import requests
 from unittest import mock
 
@@ -29,7 +28,8 @@ from tacker.sol_refactored.common import subscription_utils as subsc_utils
 from tacker.sol_refactored.controller import vnffm_v1
 from tacker.sol_refactored import objects
 from tacker.tests import base
-from tacker.tests.unit.sol_refactored.samples import fakes_for_fm
+from tacker.tests.unit.sol_refactored.common import fakes_for_fm
+from tacker.tests import utils
 
 SAMPLE_INST_ID = 'c61314d0-f583-4ab3-a457-46426bce02d3'
 SAMPLE_ALARM_ID = '78a39661-60a8-4824-b989-88c1b0c3534a'
@@ -122,9 +122,9 @@ class TestVnffmV1(base.BaseTestCase):
     @mock.patch.object(objects.base.TackerPersistentObject, 'create')
     @mock.patch.object(subsc_utils, 'test_notification')
     def test_subscription_create(self, mock_test, mock_create):
-        cur_dir = os.path.dirname(__file__)
-        sample_cert = os.path.join(
-            cur_dir, "../samples/sample_cert", "notification_client_cert.pem")
+        sample_cert = utils.test_sample(
+            "unit/sol_refactored/samples/sample_cert",
+            "notification_client_cert.pem")
         CONF.v2_vnfm.notification_mtls_client_cert_file = sample_cert
         body_1 = {
             "callbackUri": "http://127.0.0.1:6789/notification",

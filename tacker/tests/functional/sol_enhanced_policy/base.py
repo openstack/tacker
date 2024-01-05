@@ -36,6 +36,7 @@ from tacker.tests.functional.sol.vnflcm import base as vnflcm_base
 from tacker.tests.functional.sol.vnflcm import fake_vnflcm
 from tacker.tests.utils import _update_unique_id_in_yaml
 from tacker.tests.utils import read_file
+from tacker.tests.utils import test_etc_sample
 
 
 class BaseEnhancedPolicyTest(object):
@@ -520,12 +521,7 @@ class BaseEnhancedPolicyTest(object):
 
     @classmethod
     def _get_csar_dir_path(cls, csar_name):
-        csar_dir = os.path.abspath(
-            os.path.join(os.path.dirname(__file__),
-            "../../etc/samples/etsi/nfv",
-            csar_name))
-
-        return csar_dir
+        return test_etc_sample("etsi/nfv", csar_name)
 
     @classmethod
     def _glance_client(cls, username=None, tenant=None):
@@ -547,10 +543,8 @@ class BaseEnhancedPolicyTest(object):
         else:
             raise Exception('vim_user_project_map is needed.')
         image_name = "cirros-0.5.2-x86_64-disk"
-        image_path = os.path.abspath(
-            os.path.join(os.path.dirname(__file__),
-            "../../etc/samples/etsi/nfv/common/Files/images",
-            f"{image_name}.img"))
+        image_path = test_etc_sample("nfv/common/Files/images",
+                                     f"{image_name}.img")
         image_data = {
             'disk_format': 'qcow2',
             'container_format': 'bare',

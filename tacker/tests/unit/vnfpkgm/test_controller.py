@@ -45,6 +45,7 @@ from tacker.tests import constants
 from tacker.tests.unit import base
 from tacker.tests.unit import fake_request
 from tacker.tests.unit.vnfpkgm import fakes
+from tacker.tests import utils
 
 
 @ddt.ddt
@@ -1257,9 +1258,8 @@ class TestController(base.TestCase):
     def test_fetch_vnf_package_artifacts_with_invalid_path(
             self, mock_vnf_by_id, mock_get_csar_path):
         mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj()
-        base_path = os.path.dirname(os.path.abspath(__file__))
-        extract_path = os.path.join(base_path, '../../etc/samples/'
-                            'sample_vnf_package_csar_in_meta_and_manifest')
+        extract_path = utils.test_etc_sample(
+            'sample_vnf_package_csar_in_meta_and_manifest')
         mock_get_csar_path.return_value = extract_path
         # valid_uuid
         req = fake_request.HTTPRequest.blank(
@@ -1304,9 +1304,8 @@ class TestController(base.TestCase):
     def test_fetch_vnf_package_artifacts_with_range(
             self, mock_vnf_by_id, mock_get_csar_path):
         mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj()
-        base_path = os.path.dirname(os.path.abspath(__file__))
-        extract_path = os.path.join(base_path, '../../etc/samples/'
-                    'sample_vnf_package_csar_in_meta_and_manifest')
+        extract_path = utils.test_etc_sample(
+            'sample_vnf_package_csar_in_meta_and_manifest')
         mock_get_csar_path.return_value = extract_path
         # valid_uuid
         req = fake_request.HTTPRequest.blank(
@@ -1341,9 +1340,8 @@ class TestController(base.TestCase):
     def test_fetch_vnf_package_artifacts_with_non_range(
             self, mock_vnf_by_id, mock_get_csar_path):
         mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj()
-        base_path = os.path.dirname(os.path.abspath(__file__))
-        extract_path = os.path.join(base_path, '../../etc/samples/'
-                    'sample_vnf_package_csar_in_meta_and_manifest')
+        extract_path = utils.test_etc_sample(
+            'sample_vnf_package_csar_in_meta_and_manifest')
         mock_get_csar_path.return_value = extract_path
         # valid_uuid
         req = fake_request.HTTPRequest.blank(
@@ -1638,9 +1636,8 @@ class TestControllerEnhancedPolicy(TestController):
             vnfd_updates, rules, roles, expected_status_code):
         mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj(
             vnfd_updates=vnfd_updates)
-        base_path = os.path.dirname(os.path.abspath(__file__))
-        extract_path = os.path.join(base_path, '../../etc/samples/'
-                    'sample_vnf_package_csar_in_meta_and_manifest')
+        extract_path = utils.test_etc_sample(
+            'sample_vnf_package_csar_in_meta_and_manifest')
         mock_get_csar_path.return_value = extract_path
         req = fake_request.HTTPRequest.blank(
             '/vnf_packages/%s/artifacts/%s'

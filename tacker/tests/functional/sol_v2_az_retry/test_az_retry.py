@@ -17,6 +17,7 @@ import os
 
 from tacker.tests.functional.sol_v2_common import paramgen
 from tacker.tests.functional.sol_v2_common import test_vnflcm_basic_common
+from tacker.tests import utils
 
 
 class AzRetryTest(test_vnflcm_basic_common.CommonVnfLcmTest):
@@ -24,16 +25,12 @@ class AzRetryTest(test_vnflcm_basic_common.CommonVnfLcmTest):
     @classmethod
     def setUpClass(cls):
         super(AzRetryTest, cls).setUpClass()
-        cur_dir = os.path.dirname(__file__)
-        # tacker/tests/functional/sol_v2_az_retry(here)
-        #             /etc
-        image_dir = os.path.join(
-            cur_dir, "../../etc/samples/etsi/nfv/common/Files/images")
-        image_file = "cirros-0.5.2-x86_64-disk.img"
-        image_path = os.path.abspath(os.path.join(image_dir, image_file))
+        image_path = utils.test_etc_sample("etsi/nfv/common/Files/images",
+            "cirros-0.5.2-x86_64-disk.img")
 
         # tacker/tests/functional/sol_v2_az_retry(here)
         #       /sol_refactored
+        cur_dir = os.path.dirname(__file__)
         userdata_dir = os.path.join(
             cur_dir, "../../../sol_refactored/infra_drivers/openstack")
         userdata_file = "userdata_standard.py"
@@ -41,8 +38,8 @@ class AzRetryTest(test_vnflcm_basic_common.CommonVnfLcmTest):
             os.path.join(userdata_dir, userdata_file))
 
         # for update_stack_retry test
-        pkg_path_1 = os.path.join(cur_dir,
-            "../sol_v2_common/samples/userdata_standard_az_retry")
+        pkg_path_1 = utils.test_sample(
+            "functional/sol_v2_common/userdata_standard_az_retry")
         cls.az_retry_pkg, cls.az_retry_vnfd_id = cls.create_vnf_package(
             pkg_path_1, image_path=image_path, userdata_path=userdata_path)
 

@@ -211,9 +211,8 @@ class VnfLcmKubernetesTest(vnflcm_base.BaseVnfLcmKubernetesTest):
 
     def test_inst_term_cnf_with_ext_artifact(self):
         # Setup http server
-        instance_file_dir = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            '../../../etc/samples/etsi/nfv/test_cnf_ext_artifact')
+        instance_file_dir = utils.test_etc_sample("etsi/nfv",
+                                                  "test_cnf_ext_artifact")
         artifact_file_dir = os.path.join(
             instance_file_dir, 'Files/kubernetes')
         http_handler = utils.StaticHttpFileHandler(artifact_file_dir)

@@ -12,7 +12,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import os
+
 from tacker.tests.functional.sol_kubernetes.vnflcm import base as vnflcm_base
+from tacker.tests import utils
 
 
 class VnfLcmKubernetesContainerUpdate(vnflcm_base.BaseVnfLcmKubernetesTest):
@@ -20,20 +23,21 @@ class VnfLcmKubernetesContainerUpdate(vnflcm_base.BaseVnfLcmKubernetesTest):
     @classmethod
     def setUpClass(cls):
         super(VnfLcmKubernetesContainerUpdate, cls).setUpClass()
-        mgmt_rela_path = ("../../../../../samples/mgmt_driver/kubernetes/"
-                          "container_update/container_update_mgmt.py")
+        mgmt_path = os.path.join(utils.sample_root(),
+            "mgmt_driver/kubernetes/",
+            "container_update/container_update_mgmt.py")
         vnf_package_id_before, cls.vnfd_id_before = (
             cls._create_and_upload_vnf_package_add_mgmt(
                 cls, cls.tacker_client, "test_cnf_container_update_before",
                 {"key": "sample_container_update_before_functional"},
-                mgmt_rela_path))
+                mgmt_path))
         cls.vnf_package_ids.append(vnf_package_id_before)
 
         vnf_package_id_after, cls.vnfd_id_after = (
             cls._create_and_upload_vnf_package_add_mgmt(
                 cls, cls.tacker_client, "test_cnf_container_update_after",
                 {"key": "sample_container_update_after_functional"},
-                mgmt_rela_path))
+                mgmt_path))
         cls.vnf_package_ids.append(vnf_package_id_after)
 
     @classmethod
