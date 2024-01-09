@@ -140,9 +140,9 @@ class TestVnfd(base.BaseTestCase):
         result = self.vnfd_1.get_placement_groups(SAMPLE_FLAVOUR_ID)
         self.assertEqual(expected_result, result)
 
-    def test_get_tartget(self):
+    def test_get_target(self):
         result = self.vnfd_1.get_affinity_targets(SAMPLE_FLAVOUR_ID)
-        self.assertEqual([], result)
+        self.assertEqual([(['VDU2'], 'zone')], result)
 
         expected_result = [(['VDU1', 'VDU2'], 'nfvi_node')]
         result = self.vnfd_1.get_anti_affinity_targets(SAMPLE_FLAVOUR_ID)

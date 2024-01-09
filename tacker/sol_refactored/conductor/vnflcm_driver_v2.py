@@ -387,7 +387,7 @@ class VnfLcmDriverV2(object):
             grant_req.addResources = add_reses
 
         # placementConstraints
-        self._make_placementconstraints(grant_req, vnfd, add_reses)
+        self._make_placementconstraints(grant_req, vnfd, add_reses, inst)
 
         if req.obj_attr_is_set('additionalParams'):
             grant_req.additionalParams = req.additionalParams
@@ -724,9 +724,9 @@ class VnfLcmDriverV2(object):
             grant_req.addResources = add_reses
 
         # placementConstraints
-        self._make_placementconstraints(grant_req, vnfd, add_reses)
+        self._make_placementconstraints(grant_req, vnfd, add_reses, inst)
 
-    def _make_placementconstraints(self, grant_req, vnfd, add_reses):
+    def _make_placementconstraints(self, grant_req, vnfd, add_reses, inst):
         affinity_policies = {
             'AFFINITY': vnfd.get_affinity_targets(grant_req.flavourId),
             'ANTI_AFFINITY': vnfd.get_anti_affinity_targets(
@@ -736,13 +736,33 @@ class VnfLcmDriverV2(object):
         for key, value in affinity_policies.items():
             for targets, scope in value:
                 res_refs = []
-                for target in targets:
-                    for res in add_reses:
-                        if res.resourceTemplateId == target:
+                for res in add_reses:
+                    if res.resourceTemplateId in targets:
+                        res_ref = objects.ConstraintResourceRefV1(
+                            idType='GRANT',
+                            resourceId=res.id)
+                        res_refs.append(res_ref)
+
+                if not res_refs:
+                    break
+
+                if (inst.obj_attr_is_set('instantiatedVnfInfo') and
+                        inst.instantiatedVnfInfo.obj_attr_is_set(
+                            'vnfcResourceInfo')):
+                    for vnfc in inst.instantiatedVnfInfo.vnfcResourceInfo:
+                        if vnfc.vduId in targets:
                             res_ref = objects.ConstraintResourceRefV1(
-                                idType='GRANT',
-                                resourceId=res.id)
+                                idType='RES_MGMT',
+                                resourceId=vnfc.computeResource.resourceId,
+                                vimConnectionId=(
+                                    vnfc.computeResource.vimConnectionId))
                             res_refs.append(res_ref)
+
+                # NOTE: It is meaningless if the target resource is less
+                # than 2, because it is intended to show the relationship
+                # between the resources.
+                if len(res_refs) < 2:
+                    break
 
                 plc_const = objects.PlacementConstraintV1(
                     affinityOrAntiAffinity=key,

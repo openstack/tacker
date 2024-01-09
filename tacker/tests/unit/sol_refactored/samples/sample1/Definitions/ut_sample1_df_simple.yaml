@@ -424,3 +424,10 @@ topology_template:
         targets: [ affinityOrAntiAffinityGroup1 ]
         properties:
           scope: nfvi_node
+
+    # Definision for grant_req.placementConstraints test
+    - policy_affinity_group:
+        type: tosca.policies.nfv.AffinityRule
+        targets: [ VDU2 ]
+        properties:
+          scope: zone
