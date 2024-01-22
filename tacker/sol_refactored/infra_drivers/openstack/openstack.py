@@ -1383,7 +1383,8 @@ class Openstack(object):
             flavour_id = req.flavourId
         else:
             flavour_id = inst.instantiatedVnfInfo.flavourId
-        vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
+        vim_key, vim_info = inst_utils.select_vim_info(
+            inst.vimConnectionInfo, return_key=True)
         vducp_nodes = vnfd.get_vducp_nodes(flavour_id)
 
         storage_reses = self._get_checked_reses(
@@ -1401,7 +1402,7 @@ class Openstack(object):
             return objects.ResourceHandle(
                 resourceId=res['physical_resource_id'],
                 vimLevelResourceType=res['resource_type'],
-                vimConnectionId=vim_info.vimId)
+                vimConnectionId=vim_key)
 
         storage_infos = [
             objects.VirtualStorageResourceInfoV2(

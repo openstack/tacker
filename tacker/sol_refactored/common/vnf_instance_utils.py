@@ -73,14 +73,16 @@ def json_merge_patch(target, patch):
         return patch
 
 
-def select_vim_info(vim_connection_info):
+def select_vim_info(vim_connection_info, return_key=False):
     # NOTE: It is assumed that vimConnectionInfo has only one item
     # at the moment. If there are multiple items, it is uncertain
     # which item is selected.
-    for vim_info in vim_connection_info.values():
-        if vim_info.vimType == 'kubernetes':
-            vim_info.vimType = 'ETSINFV.KUBERNETES.V_1'
-        return vim_info
+    for key, value in vim_connection_info.items():
+        if value.vimType == 'kubernetes':
+            value.vimType = 'ETSINFV.KUBERNETES.V_1'
+        if return_key:
+            return key, value
+        return value
 
 
 def check_metadata_format(metadata):

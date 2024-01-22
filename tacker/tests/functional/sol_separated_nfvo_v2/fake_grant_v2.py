@@ -30,7 +30,7 @@ class GrantV2:
         {
             "id": uuidsentinel.zone_id,
             "zoneId": "nova",
-            "vimConnectionId": uuidsentinel.vim_connection_id
+            "vimConnectionId": "vim1"
         }
     ]
 
@@ -86,7 +86,7 @@ class GrantV2:
         for req_add_resource in req_add_resources:
             res_add_resource = {
                 "resourceDefinitionId": req_add_resource['id'],
-                "vimConnectionId": uuidsentinel.vim_connection_id
+                "vimConnectionId": "vim1"
             }
             if req_add_resource['type'] == 'COMPUTE':
                 if placement_constraints:
@@ -132,7 +132,7 @@ class GrantV2:
             zone_dict = {
                 "id": uuidutils.generate_uuid(),
                 "zoneId": name,
-                "vimConnectionId": uuidsentinel.vim_connection_id
+                "vimConnectionId": "vim1"
             }
             zone.append(zone_dict)
         return zone
@@ -156,7 +156,7 @@ class GrantV2:
         for req_update_resource in req_update_resources:
             res_update_resource = {
                 "resourceDefinitionId": req_update_resource['id'],
-                "vimConnectionId": uuidsentinel.vim_connection_id
+                "vimConnectionId": "vim1"
             }
             if req_update_resource['type'] == 'COMPUTE':
                 if placement_constraints:
@@ -202,7 +202,7 @@ class GrantV2:
     def _generate_flavour(vdu, flavour_id_dict):
         if flavour_id_dict.get(vdu):
             return {
-                "vimConnectionId": uuidsentinel.vim_connection_id,
+                "vimConnectionId": "vim1",
                 "vnfdVirtualComputeDescId": vdu,
                 "vimFlavourId": flavour_id_dict[vdu]
             }
@@ -212,7 +212,7 @@ class GrantV2:
     def _generate_image(vdu, image_id_dict):
         if image_id_dict.get(vdu):
             return {
-                "vimConnectionId": uuidsentinel.vim_connection_id,
+                "vimConnectionId": "vim1",
                 "vnfdSoftwareImageId": vdu,
                 "vimSoftwareImageId": image_id_dict[vdu]
             }

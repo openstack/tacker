@@ -33,6 +33,7 @@ from tacker.db.nfvo import nfvo_db_plugin
 from tacker.db.vnfm import vnfm_db
 from tacker import objects
 from tacker.sol_refactored.common import vim_utils
+from tacker.sol_refactored.common import vnf_instance_utils as inst_utils
 from tacker.sol_refactored.infra_drivers.openstack import heat_utils
 from tacker.sol_refactored import objects as objects_v2
 from tacker.sol_refactored.objects.v2 import fields as v2fields
@@ -195,7 +196,8 @@ def get_all_vnfs(context):
     return vnf_ids
 
 
-def _to_vnf_instance_v2_instantiated_vnf_info(inst_info, vnf, op_occs):
+def _to_vnf_instance_v2_instantiated_vnf_info(inst_info, vnf, op_occs,
+                                              vim_connection_info=None):
     if not inst_info:
         return None
     fields = {
@@ -207,25 +209,30 @@ def _to_vnf_instance_v2_instantiated_vnf_info(inst_info, vnf, op_occs):
         "extVirtualLinkInfo":
             _to_ext_virtual_link_info_v2(
                 inst_info.ext_virtual_link_info,
-                inst_info.vnf_virtual_link_resource_info, op_occs),
+                inst_info.vnf_virtual_link_resource_info, op_occs,
+                vim_connection_info),
         "extManagedVirtualLinkInfo":
             _to_ext_managed_virtual_link_info_v2(
-                inst_info.ext_managed_virtual_link_info),
+                inst_info.ext_managed_virtual_link_info,
+                vim_connection_info),
         "monitoringParameters": _to_monitoring_parameters(vnf.attributes),
         "localizationLanguage": _to_localization_language(vnf.attributes),
         "vnfcResourceInfo":
             _to_vnfc_resource_info_v2(
                 inst_info.vnfc_resource_info,
                 inst_info.ext_virtual_link_info,
-                inst_info.vnf_virtual_link_resource_info),
+                inst_info.vnf_virtual_link_resource_info,
+                vim_connection_info),
         "vnfVirtualLinkResourceInfo":
             _to_vnf_virtual_link_resource_info_v2(
                 inst_info.vnf_virtual_link_resource_info,
                 inst_info.ext_virtual_link_info,
-                inst_info.ext_managed_virtual_link_info),
+                inst_info.ext_managed_virtual_link_info,
+                vim_connection_info),
         "virtualStorageResourceInfo":
             _to_virtual_storage_resource_info_v2(
-                inst_info.virtual_storage_resource_info),
+                inst_info.virtual_storage_resource_info,
+                vim_connection_info),
         "vnfcInfo": _to_vnfc_info_v2(inst_info.vnfc_resource_info)}
     return objects_v2.VnfInstanceV2_InstantiatedVnfInfo(**fields)
 
@@ -345,7 +352,8 @@ def _to_ip_over_ethernet_address_info_v2_ip_addresses(ip_addresses):
     return ip_over_eth_add_info_v2_ip_addresses
 
 
-def _to_ext_virtual_link_info_v2(ext_vls, vnf_vl_rscs, op_occs):
+def _to_ext_virtual_link_info_v2(ext_vls, vnf_vl_rscs, op_occs,
+                                 vim_connection_info=None):
     ext_vls_v2 = []
     for ext_vl in ext_vls:
         _ext_vl = ext_vl.get("tacker_object.data")
@@ -353,18 +361,22 @@ def _to_ext_virtual_link_info_v2(ext_vls, vnf_vl_rscs, op_occs):
             _ext_vl.get("resource_handle").get("tacker_object.data")
         fields = {
             "id": _ext_vl.get("id"),
-            "resourceHandle": _to_resource_handle(resource_handle_data),
+            "resourceHandle": _to_resource_handle(
+                resource_handle_data, vim_connection_info),
             "extLinkPorts":
-                _to_ext_link_port_info_v2(_ext_vl.get("id"), vnf_vl_rscs),
+                _to_ext_link_port_info_v2(
+                    _ext_vl.get("id"), vnf_vl_rscs, vim_connection_info),
             "currentVnfExtCpData":
                 _to_current_vnf_ext_cp_data(_ext_vl.get("id"), op_occs)}
         ext_vls_v2.append(objects_v2.ExtVirtualLinkInfoV2(**fields))
     return ext_vls_v2
 
 
-def _to_resource_handle(resource_handle_data):
+def _to_resource_handle(resource_handle_data, vim_connection_info=None):
     fields = {
-        'vimConnectionId': resource_handle_data.get("vim_connection_id"),
+        'vimConnectionId': _get_vim_key_by_id(
+            resource_handle_data.get("vim_connection_id"),
+            vim_connection_info),
         'resourceProviderId': resource_handle_data.get("resource_provider_id"),
         'resourceId': resource_handle_data.get("resource_id"),
         'vimLevelResourceType':
@@ -373,7 +385,8 @@ def _to_resource_handle(resource_handle_data):
     return resource_handle
 
 
-def _to_ext_link_port_info_v2(ext_vl_id, vnf_vl_res_infos):
+def _to_ext_link_port_info_v2(ext_vl_id, vnf_vl_res_infos,
+                              vim_connection_info=None):
     ext_link_port_infos_v2 = []
     for vnf_vl_res_info in vnf_vl_res_infos:
         _vnf_vl_res_info = vnf_vl_res_info.get("tacker_object.data")
@@ -386,7 +399,8 @@ def _to_ext_link_port_info_v2(ext_vl_id, vnf_vl_res_infos):
                 fields = {
                     "id": _link_port.get("id"),
                     "resourceHandle":
-                        _to_resource_handle(resource_handle_data),
+                        _to_resource_handle(
+                            resource_handle_data, vim_connection_info),
                     "cpInstanceId": _link_port.get("cp_instance_id")}
                 ext_link_port_infos_v2.append(
                     objects_v2.ExtLinkPortInfoV2(**fields))
@@ -482,7 +496,8 @@ def _to_ip_over_eth_address_data_ip_addresses_address_range(address_range):
         IpOverEthernetAddressData_IpAddresses_AddressRange(**fields)
 
 
-def _to_ext_managed_virtual_link_info_v2(ext_mng_vl_infos):
+def _to_ext_managed_virtual_link_info_v2(ext_mng_vl_infos,
+                                         vim_connection_info=None):
     ext_mng_vl_infos_v2 = []
     for ext_mng_vl_info in ext_mng_vl_infos:
         _ext_mng_vl_info = ext_mng_vl_info.get("tacker_object.data")
@@ -492,15 +507,17 @@ def _to_ext_managed_virtual_link_info_v2(ext_mng_vl_infos):
             "id": _ext_mng_vl_info.get("id"),
             "vnfVirtualLinkDescId":
                 _ext_mng_vl_info.get("vnf_virtual_link_desc_id"),
-            "networkResource": _to_resource_handle(resource_handle_data),
+            "networkResource": _to_resource_handle(
+                resource_handle_data, vim_connection_info),
             "vnfLinkPorts": _to_vnf_link_port_info_v2(
-                    _ext_mng_vl_info.get("vnf_link_ports", []))}
+                _ext_mng_vl_info.get("vnf_link_ports", []),
+                vim_connection_info)}
         ext_mng_vl_infos_v2.append(
             objects_v2.ExtManagedVirtualLinkInfoV2(**fields))
     return ext_mng_vl_infos_v2
 
 
-def _to_vnf_link_port_info_v2(vnf_link_ports):
+def _to_vnf_link_port_info_v2(vnf_link_ports, vim_connection_info=None):
     vnf_link_port_infos_v2 = []
     for vnf_link_port in vnf_link_ports:
         _vnf_link_port = vnf_link_port.get("tacker_object.data")
@@ -513,14 +530,16 @@ def _to_vnf_link_port_info_v2(vnf_link_ports):
         # the value of cpInstanceId but the object doesn't exist at the moment.
         fields = {
             "id": _vnf_link_port.get("id"),
-            "resourceHandle": _to_resource_handle(resource_handle_data),
+            "resourceHandle": _to_resource_handle(
+                resource_handle_data, vim_connection_info),
             "cpInstanceId": _vnf_link_port.get("cp_instance_id"),
             "cpInstanceType": "EXT_CP"}
         vnf_link_port_infos_v2.append(objects_v2.VnfLinkPortInfoV2(**fields))
     return vnf_link_port_infos_v2
 
 
-def _to_vnfc_resource_info_v2(vnfc_rsc_infos, ext_vl_infos, vnf_vl_res_infos):
+def _to_vnfc_resource_info_v2(vnfc_rsc_infos, ext_vl_infos, vnf_vl_res_infos,
+                              vim_connection_info=None):
     vnfc_rsc_infos_v2 = []
     for vnfc_rsc_info in vnfc_rsc_infos:
         _vnfc_rsc_info = vnfc_rsc_info.get("tacker_object.data")
@@ -529,7 +548,8 @@ def _to_vnfc_resource_info_v2(vnfc_rsc_infos, ext_vl_infos, vnf_vl_res_infos):
         fields = {
             "id": _vnfc_rsc_info.get("id"),
             "vduId": _vnfc_rsc_info.get("vdu_id"),
-            "computeResource": _to_resource_handle(resource_handle_data),
+            "computeResource": _to_resource_handle(
+                resource_handle_data, vim_connection_info),
             "storageResourceIds":
                 _vnfc_rsc_info.get("storage_resource_ids"),
             "vnfcCpInfo":
@@ -610,7 +630,8 @@ def _to_localization_language(vnf_attributes):
 
 
 def _to_vnf_virtual_link_resource_info_v2(vl_rsc_infos,
-                                          ext_vl_infos, ext_managed_vl_infos):
+                                          ext_vl_infos, ext_managed_vl_infos,
+                                          vim_connection_info=None):
     vl_rsc_infos_v2 = []
     ext_vl_ids = [ext_vl_info.get("tacker_object.data").get("id") for
             ext_vl_info in ext_vl_infos]
@@ -627,15 +648,17 @@ def _to_vnf_virtual_link_resource_info_v2(vl_rsc_infos,
             fields = {
                 "id": _vl_rsc_info.get("id"),
                 "vnfVirtualLinkDescId": vl_desc_id,
-                "networkResource": _to_resource_handle(resource_handle_data),
+                "networkResource": _to_resource_handle(
+                    resource_handle_data, vim_connection_info),
                 "vnfLinkPorts": _to_vnf_link_port_info_v2(
-                    _vl_rsc_info.get("vnf_link_ports"))}
+                    _vl_rsc_info.get("vnf_link_ports"), vim_connection_info)}
             vl_rsc_infos_v2.append(
                 objects_v2.VnfVirtualLinkResourceInfoV2(**fields))
     return vl_rsc_infos_v2
 
 
-def _to_virtual_storage_resource_info_v2(vstorage_infos):
+def _to_virtual_storage_resource_info_v2(vstorage_infos,
+                                         vim_connection_info=None):
     vstorage_infos_v2 = []
     for vstorage_info in vstorage_infos:
         _vstorage_info = vstorage_info.get("tacker_object.data")
@@ -645,7 +668,8 @@ def _to_virtual_storage_resource_info_v2(vstorage_infos):
             "id": _vstorage_info.get("id"),
             "virtualStorageDescId":
                 _vstorage_info.get("virtual_storage_desc_id"),
-            "storageResource": _to_resource_handle(resource_handle_data)}
+            "storageResource": _to_resource_handle(
+                resource_handle_data, vim_connection_info)}
         vstorage_infos_v2.append(
             objects_v2.VirtualStorageResourceInfoV2(**fields))
     return vstorage_infos_v2
@@ -734,6 +758,8 @@ def create_vnf_instance_v2(context, vnf_id):
     nfvo = nfvo_db_plugin.NfvoPluginDb()
     _vim_infos = \
         [nfvo.get_vim(context, vim.id, mask_password=False) for vim in _vims]
+    vim_connection_info = _to_vim_connection_info(
+        _vnf_instance.vim_connection_info, _vim_infos)
 
     inst_v2 = objects_v2.VnfInstanceV2(
         id=_vnf_instance.id,
@@ -746,11 +772,10 @@ def create_vnf_instance_v2(context, vnf_id):
         vnfdVersion=_vnf_instance.vnfd_version,
         vnfConfigurableProperties=_to_vnf_configurable_properties(
             _vnf.attributes),
-        vimConnectionInfo=_to_vim_connection_info(
-            _vnf_instance.vim_connection_info, _vim_infos),
+        vimConnectionInfo=vim_connection_info,
         instantiationState=_vnf_instance.instantiation_state,
         instantiatedVnfInfo=_to_vnf_instance_v2_instantiated_vnf_info(
-            _vnf_info, _vnf, _vnf_op_occs),
+            _vnf_info, _vnf, _vnf_op_occs, vim_connection_info),
         metadata=_vnf_instance.vnf_metadata,)
     if inst_v2.instantiatedVnfInfo:
         _set_cp_instance_type(inst_v2)
@@ -807,12 +832,16 @@ def _create_operation_params_v2(dict_operation_params_v1, operation):
     return cls.from_dict(fields)
 
 
-def _create_resource_changes_v2(dict_resource_changes):
+def _create_resource_changes_v2(dict_resource_changes,
+                                vim_connection_info=None):
     resource_changes = dict_resource_changes
 
     # create affected_vnfcs_v2 list
     affected_vnfcs_v2 = []
     for affected_vnfc in resource_changes["affected_vnfcs"]:
+        compute_res = affected_vnfc["compute_resource"]
+        compute_res["vim_connection_id"] = _get_vim_key_by_id(
+            compute_res["vim_connection_id"], vim_connection_info)
         fields = {
             "id": affected_vnfc["id"],
             'vduId': affected_vnfc["vdu_id"],
@@ -835,6 +864,9 @@ def _create_resource_changes_v2(dict_resource_changes):
     # create affected_virtual_links_v2 list
     affected_vls_v2 = []
     for affected_vl in resource_changes["affected_virtual_links"]:
+        network_res = affected_vl["network_resource"]
+        network_res["vim_connection_id"] = _get_vim_key_by_id(
+            network_res["vim_connection_id"], vim_connection_info)
         fields = {
             'id': affected_vl["id"],
             'vnfVirtualLinkDescId':
@@ -856,6 +888,10 @@ def _create_resource_changes_v2(dict_resource_changes):
     affected_vstorages_v2 = []
     for affected_vstorage \
             in resource_changes.get("affected_virtual_storages", []):
+        storage_res = affected_vstorage["storage_resource"]
+        storage_res["vim_connection_id"] = _get_vim_key_by_id(
+            storage_res["vim_connection_id"], vim_connection_info)
+
         fields = {
             'id': affected_vstorage["id"],
             'virtualStorageDescId':
@@ -909,7 +945,8 @@ def _create_vnf_info_modifications_v2(
 
 
 def _create_list_of_ext_virtual_link_infos_v2(
-        list_of_dict_changed_ext_connectivity, operation, operation_param_v2):
+        list_of_dict_changed_ext_connectivity, operation, operation_param_v2,
+        vim_connection_info=None):
     changed_ext_connectivity = list_of_dict_changed_ext_connectivity
 
     if changed_ext_connectivity is None or \
@@ -921,7 +958,9 @@ def _create_list_of_ext_virtual_link_infos_v2(
             # create resourceHandle
             resource_handle_v1 = ext_vl_info["resource_handle"]
             fields = {
-                'vimConnectionId': resource_handle_v1["vim_connection_id"],
+                'vimConnectionId': _get_vim_key_by_id(
+                    resource_handle_v1["vim_connection_id"],
+                    vim_connection_info),
                 'resourceId': resource_handle_v1["resource_id"],
                 'vimLevelResourceType':
                     resource_handle_v1["vim_level_resource_type"],
@@ -936,7 +975,9 @@ def _create_list_of_ext_virtual_link_infos_v2(
                 resource_handle_v1 = ext_link_port["resource_handle"]
                 fields = {
                     'vimConnectionId':
-                        resource_handle_v1["vim_connection_id"],
+                        _get_vim_key_by_id(
+                            resource_handle_v1["vim_connection_id"],
+                            vim_connection_info),
                     'resourceProviderId': None,
                     'resourceId': resource_handle_v1["resource_id"],
                     'vimLevelResourceType':
@@ -968,6 +1009,20 @@ def _create_list_of_ext_virtual_link_infos_v2(
         return ext_vl_infos_v2
 
 
+def _get_vim_key_by_id(vim_id, vim_connection_info):
+    if not vim_id:
+        return vim_id
+    # Note: If no vimId matching vim_id is found in vim_connection_info,
+    # "vim_0" is returned as vim_connection_id.
+    vim_connection_id = "vim_0"
+    if vim_connection_info:
+        for key, value in vim_connection_info.items():
+            if value.vimId == vim_id:
+                vim_connection_id = key
+                break
+    return vim_connection_id
+
+
 def _create_vnf_lcm_op_occ_v2(context, op_occ_v1):
     # create v2 ProblemDetails
     _ProblemDetails_v2 = None
@@ -985,8 +1040,10 @@ def _create_vnf_lcm_op_occ_v2(context, op_occ_v1):
     # create VnfLcmOpOccV2_ResourceChanges
     _dict_resource_changes = jsonutils.loads(op_occ_v1.resource_changes)
 
+    inst_v2 = inst_utils.get_inst(context, op_occ_v1.vnf_instance_id)
     _VnfLcmOpOccV2_ResourceChanges = \
-        _create_resource_changes_v2(_dict_resource_changes)
+        _create_resource_changes_v2(
+            _dict_resource_changes, inst_v2.vimConnectionInfo)
 
     # create VnfInfoModificationsV2
     _VnfInfoModificationsV2 = None
@@ -1008,7 +1065,8 @@ def _create_vnf_lcm_op_occ_v2(context, op_occ_v1):
 
         _list_of_ExtVirtualLinkInfoV2 = \
             _create_list_of_ext_virtual_link_infos_v2(
-                _list_of_dict_changed_ext_conn, _operation, _OperationParam_v2)
+                _list_of_dict_changed_ext_conn, _operation, _OperationParam_v2,
+                inst_v2.vimConnectionInfo)
 
     vnf_lcm_op_occ_v2 = objects_v2.VnfLcmOpOccV2(
         id=op_occ_v1.id,

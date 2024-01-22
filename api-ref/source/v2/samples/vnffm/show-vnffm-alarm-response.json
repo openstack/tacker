@@ -3,7 +3,7 @@
     "managedObjectId": "c61314d0-f583-4ab3-a457-46426bce02d3",
     "rootCauseFaultyResource": {
         "faultyResource": {
-            "vimConnectionId": "0d57e928-86a4-4445-a4bd-1634edae73f3",
+            "vimConnectionId": "vim1",
             "resourceId": "4e6ccbe1-38ec-4b1b-a278-64de09ba01b3",
             "vimLevelResourceType": "OS::Nova::Server"
         },

@@ -323,7 +323,7 @@
                     "id": "74411165-b969-4539-99a9-3ffdbc8b1ae7",
                     "networkResource": {
                         "resourceId": "5f4cc2e3-7bce-4e90-ad1a-0d43812a4af5",
-                        "vimConnectionId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+                        "vimConnectionId": "vim1",
                         "vimLevelResourceType": "OS::Neutron::Net"
                     },
                     "vnfLinkPortIds": [
@@ -337,7 +337,7 @@
                     "id": "5b696739-1a38-4df2-8f95-f3826fc3b0b7",
                     "networkResource": {
                         "resourceId": "349a4dbb-41e9-4db9-b044-0653507b9728",
-                        "vimConnectionId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+                        "vimConnectionId": "vim1",
                         "vimLevelResourceType": "OS::Neutron::Net"
                     },
                     "vnfLinkPortIds": [
@@ -353,7 +353,7 @@
                     "id": "359a20f2-2c66-49b4-bc4e-3cf673513688",
                     "storageResource": {
                         "resourceId": "496a70a0-c9df-43ce-8e49-3c708583eef0",
-                        "vimConnectionId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+                        "vimConnectionId": "vim1",
                         "vimLevelResourceType": "OS::Cinder::Volume"
                     },
                     "virtualStorageDescId": "VirtualStorage"
@@ -371,7 +371,7 @@
                     "changeType": "ADDED",
                     "computeResource": {
                         "resourceId": "7fceb009-ed81-4b95-ad4d-8487870cac48",
-                        "vimConnectionId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+                        "vimConnectionId": "vim1",
                         "vimLevelResourceType": "OS::Nova::Server"
                     },
                     "id": "c4453bf6-d185-4d4f-9e6b-fb745bf21229",
@@ -391,7 +391,7 @@
                     "changeType": "ADDED",
                     "computeResource": {
                         "resourceId": "2f0f1954-0b5f-48a6-8591-f05ca2c3c74e",
-                        "vimConnectionId": "03e608b2-e7d4-44fa-bd84-74fb24be3ed5",
+                        "vimConnectionId": "vim1",
                         "vimLevelResourceType": "OS::Nova::Server"
                     },
                     "id": "795985f6-f2c1-4a32-b318-6ac424ddf2bf",
