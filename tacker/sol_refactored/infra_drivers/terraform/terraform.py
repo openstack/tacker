@@ -99,7 +99,24 @@ class Terraform():
 
     def instantiate_rollback(self, req, inst, grant_req, grant, vnfd):
         '''Calls terminate'''
-        self.terminate(req, inst, grant_req, grant, vnfd)
+        vim_conn_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
+        tf_dir_path = req.additionalParams.get('tf_dir_path')
+        tf_var_path = req.additionalParams.get('tf_var_path')
+        working_dir = self._get_tf_vnfpkg(
+            inst.id, grant_req.vnfdId, tf_dir_path)
+
+        # NOTE: Checks the terraform.tfstate file state to call
+        # the terminate function. The reason is as follows.
+        #  - For fails terraform apply command, the size of
+        #    the terraform.tfstate file is 0.
+        #  - For fails before terraform apply command,
+        #    terraform.tfstate file does not exist.
+        tfstate_file = f"{working_dir}/terraform.tfstate"
+        if os.path.exists(tfstate_file):
+            if os.path.getsize(tfstate_file) != 0:
+                self._terminate(vim_conn_info, working_dir, tf_var_path)
+            else:
+                shutil.rmtree(working_dir)
 
     def change_vnfpkg(self, req, inst, grant_req, grant, vnfd):
         '''Calls Terraform Apply and replicates new files'''

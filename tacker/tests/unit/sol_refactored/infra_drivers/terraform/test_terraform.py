@@ -166,8 +166,10 @@ class TestTerraform(base.BaseTestCase):
             f"/var/lib/tacker/terraform/{inst.id}",
             inst.instantiatedVnfInfo.metadata['tf_var_path'])
 
+    @mock.patch.object(terraform.Terraform, '_get_tf_vnfpkg')
     @mock.patch.object(terraform.Terraform, '_terminate')
-    def test_instantiate_rollback(self, mock_instantiate_rollback):
+    def test_instantiate_rollback(self, mock_instantiate_rollback,
+                                  mock_working_dir):
         '''Verifies instantiate_rollback is called once'''
 
         req = objects.InstantiateVnfRequest.from_dict(_instantiate_req_example)
@@ -190,19 +192,57 @@ class TestTerraform(base.BaseTestCase):
         )
 
         grant_req = objects.GrantRequestV1(
-            operation=fields.LcmOperationType.INSTANTIATE
+            operation=fields.LcmOperationType.INSTANTIATE,
+            vnfdId=SAMPLE_VNFD_ID
         )
 
         grant = objects.GrantV1()
 
-        # Execute
-        self.driver.instantiate_rollback(req, inst, grant_req,
-                                         grant, self.vnfd_2)
+        # Create a temporary directory
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Create the tfstate content
+            provider = "provider[\"registry.terraform.io/hashicorp/aws\"]"
+            tfstate_content = {
+                "version": 4,
+                "terraform_version": "1.4.4",
+                "serial": 4,
+                "lineage": "5745b992-04a2-5811-2e02-19d64f6f4b44",
+                "outputs": {},
+                "resources": [
+                    {
+                        "mode": "managed",
+                        "type": "aws_instance",
+                        "name": "vdu1",
+                        "provider": provider
+                    },
+                    {
+                        "mode": "managed",
+                        "type": "aws_subnet",
+                        "name": "hoge-subnet01",
+                        "provider": provider
+                    }
+                ]
+            }
+
+            # Set the desired return value for _get_tf_vnfpkg
+            mock_working_dir.return_value = f"{temp_dir}/{inst.id}"
+            os.mkdir(mock_working_dir())
+
+            # Write the tfstate content to a temporary file
+            tfstate_file_path = os.path.join(mock_working_dir(),
+                                             'terraform.tfstate')
+            with open(tfstate_file_path, "w") as tfstate_file:
+                json.dump(tfstate_content, tfstate_file)
+
+            # Execute
+            self.driver.instantiate_rollback(req, inst, grant_req,
+                                     grant, self.vnfd_2)
+
         # Verify _terminate is called once
         mock_instantiate_rollback.assert_called_once_with(
             req.vimConnectionInfo["vim1"],
-            f"/var/lib/tacker/terraform/{inst.id}",
-            inst.instantiatedVnfInfo.metadata['tf_var_path'])
+            f"{temp_dir}/{inst.id}",
+            req.additionalParams.get('tf_var_path'))
 
     @mock.patch.object(terraform.Terraform, '_get_tf_vnfpkg')
     @mock.patch.object(terraform.Terraform, '_generate_provider_tf')

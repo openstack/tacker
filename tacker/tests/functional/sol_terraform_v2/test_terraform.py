@@ -333,4 +333,55 @@ class VnfLcmTerraformTest(base_v2.BaseVnfLcmTerraformV2Test):
         self.assertEqual(404, resp.status_code)
         self.check_package_usage(self.basic_pkg, state='NOT_IN_USE')
 
-        # TODO(yasufum) consider to add a test for instantiate_rollback here.
+    def test_instantiate_rollback(self):
+        """Test rollback operation for instantiation.
+
+        * About LCM operations:
+          This test includes the following operations.
+          - 1. Create VNF instance
+          - 2. Instantiate VNF => FAILED_TEMP
+          - 3. Show VNF instance
+          - 4. Rollback instantiate
+          - 5. Show VNF instance
+          - 6. Delete a VNF instance
+        """
+
+        # 1. Create VNF instance
+        create_req = tf_paramgen.create_req_by_vnfd_id(self.basic_vnfd_id)
+        resp, body = self.create_vnf_instance(create_req)
+        self.assertEqual(201, resp.status_code)
+        self.check_resp_headers_in_create(resp)
+        inst_id = body['id']
+
+        # 2. Instantiate VNF => FAILED_TEMP
+        self.put_fail_file('instantiate_end')
+        instantiate_req = tf_paramgen.instantiate_req()
+        resp, body = self.instantiate_vnf_instance(inst_id, instantiate_req)
+        self.assertEqual(202, resp.status_code)
+        self.check_resp_headers_in_operation_task(resp)
+
+        lcmocc_id = os.path.basename(resp.headers['Location'])
+        self.wait_lcmocc_failed_temp(lcmocc_id)
+        self.rm_fail_file('instantiate_end')
+
+        # 3. Show VNF instance
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+        self.assertEqual('NOT_INSTANTIATED', body['instantiationState'])
+
+        # 4. Rollback instantiate
+        resp, body = self.rollback_lcmocc(lcmocc_id)
+        self.assertEqual(202, resp.status_code)
+        self.wait_lcmocc_rolled_back(lcmocc_id)
+
+        # 5. Show VNF instance
+        resp, body = self.show_vnf_instance(inst_id)
+        self.assertEqual(200, resp.status_code)
+        self.check_resp_headers_in_get(resp)
+        self.assertEqual('NOT_INSTANTIATED', body['instantiationState'])
+
+        # 6. Delete a VNF instance
+        resp, body = self.delete_vnf_instance(inst_id)
+        self.assertEqual(204, resp.status_code)
+        self.check_resp_headers_in_delete(resp)
