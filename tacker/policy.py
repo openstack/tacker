@@ -188,6 +188,20 @@ def authorize(context, action, target, do_raise=True, exc=None):
 
     init()
     credentials = context.to_policy_values()
+    # NOTE(gmann): For system, scope token, oslo.policy check
+    # for a key 'system' in creds. The oslo.context library uses
+    # `system_scope` instead. Because we are converting the context
+    # attribute to creds via context.to_policy_values which does not
+    # convert 'system_scope' key. There are two ways to solve this:
+    # 1. Pass full context to oslo.policy and their it convert this key
+    # but Tacker has special case of enhanced policy conversion
+    # (via _pre_enhanced_policy_check(), method which sets its own
+    # key in creds. So passing full context to oslo.policy make enhance
+    # policy conversion more complex.
+    # 2. Set 'system' key in creds explicitly. This is easy and more
+    # readable way.
+    if context.system_scope:
+        credentials['system'] = context.system_scope
     target, credentials = _pre_enhanced_policy_check(target, credentials)
     if not exc:
         exc = exceptions.PolicyNotAuthorized
@@ -197,6 +211,12 @@ def authorize(context, action, target, do_raise=True, exc=None):
     except policy.PolicyNotRegistered:
         with excutils.save_and_reraise_exception():
             LOG.error('Policy not registered')
+    except policy.InvalidScope:
+        LOG.debug('Policy check for %(action)s failed with scope check '
+                  '%(credentials)s',
+                  {'action': action,
+                   'credentials': credentials})
+        raise exc(action=action)
     except Exception:
         with excutils.save_and_reraise_exception():
             LOG.error('Policy check for %(action)s failed with credentials '
