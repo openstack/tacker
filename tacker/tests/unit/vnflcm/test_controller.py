@@ -2196,12 +2196,19 @@ class TestController(base.TestCase):
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
         return_value={'VNFM': FakeVNFMPlugin()})
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
     def test_show_lcm_op_occs(self, mock_get_by_id,
-            mock_get_service_plugins):
+            mock_vnf_instance, mock_get_service_plugins):
         req = fake_request.HTTPRequest.blank(
             '/vnf_lcm_op_occs/%s' % constants.UUID)
         mock_get_by_id.return_value = fakes.return_vnf_lcm_opoccs_obj()
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.NOT_INSTANTIATED,
+            task_state=fields.VnfInstanceTaskState.ERROR,
+            tenant_id=req.environ['tacker.context'].project_id)
+        mock_vnf_instance.return_value = vnf_instance
+
         expected_result = fakes.VNFLCMOPOCC_RESPONSE
         res_dict = self.controller.show_lcm_op_occs(req, constants.UUID)
         self.assertEqual(expected_result, res_dict)

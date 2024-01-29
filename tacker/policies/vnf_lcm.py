@@ -36,7 +36,7 @@ rules = [
     ),
     policy.DocumentedRuleDefault(
         name=VNFLCM % 'create',
-        check_str=base.RULE_ADMIN_OR_OWNER,
+        check_str=base.RULE_PROJECT_MEMBER_OR_ADMIN,
         description="Creates vnf instance.",
         operations=[
             {
@@ -48,7 +48,7 @@ rules = [
     ),
     policy.DocumentedRuleDefault(
         name=VNFLCM % 'instantiate',
-        check_str=base.RULE_ADMIN_OR_OWNER,
+        check_str=base.RULE_PROJECT_MEMBER_OR_ADMIN,
         description="Instantiate vnf instance.",
         operations=[
             {
@@ -60,7 +60,7 @@ rules = [
     ),
     policy.DocumentedRuleDefault(
         name=VNFLCM % 'show',
-        check_str=base.RULE_ADMIN_OR_OWNER,
+        check_str=base.RULE_PROJECT_READER_OR_ADMIN,
         description="Query an Individual VNF instance.",
         operations=[
             {
@@ -72,7 +72,7 @@ rules = [
     ),
     policy.DocumentedRuleDefault(
         name=VNFLCM % 'terminate',
-        check_str=base.RULE_ADMIN_OR_OWNER,
+        check_str=base.RULE_PROJECT_MEMBER_OR_ADMIN,
         description="Terminate a VNF instance.",
         operations=[
             {
@@ -84,7 +84,7 @@ rules = [
     ),
     policy.DocumentedRuleDefault(
         name=VNFLCM % 'heal',
-        check_str=base.RULE_ADMIN_OR_OWNER,
+        check_str=base.RULE_PROJECT_MEMBER_OR_ADMIN,
         description="Heal a VNF instance.",
         operations=[
             {
@@ -96,7 +96,7 @@ rules = [
     ),
     policy.DocumentedRuleDefault(
         name=VNFLCM % 'scale',
-        check_str=base.RULE_ADMIN_OR_OWNER,
+        check_str=base.RULE_PROJECT_MEMBER_OR_ADMIN,
         description="Scale a VNF instance.",
         operations=[
             {
@@ -108,7 +108,7 @@ rules = [
     ),
     policy.DocumentedRuleDefault(
         name=VNFLCM % 'show_lcm_op_occs',
-        check_str=base.RULE_ADMIN_OR_OWNER,
+        check_str=base.RULE_PROJECT_READER_OR_ADMIN,
         description="Query an Individual VNF LCM operation occurrence",
         operations=[
             {
@@ -120,7 +120,7 @@ rules = [
     ),
     policy.DocumentedRuleDefault(
         name=VNFLCM % 'list_lcm_op_occs',
-        check_str=base.RULE_ADMIN_OR_OWNER,
+        check_str=base.RULE_PROJECT_READER_OR_ADMIN,
         description="Query VNF LCM operation occurrence",
         operations=[
             {
@@ -132,7 +132,7 @@ rules = [
     ),
     policy.DocumentedRuleDefault(
         name=VNFLCM % 'index',
-        check_str=base.RULE_ADMIN_OR_OWNER,
+        check_str=base.RULE_PROJECT_READER_OR_ADMIN,
         description="Query VNF instances.",
         operations=[
             {
@@ -144,7 +144,7 @@ rules = [
     ),
     policy.DocumentedRuleDefault(
         name=VNFLCM % 'delete',
-        check_str=base.RULE_ADMIN_OR_OWNER,
+        check_str=base.RULE_PROJECT_MEMBER_OR_ADMIN,
         description="Delete an Individual VNF instance.",
         operations=[
             {
@@ -156,7 +156,7 @@ rules = [
     ),
     policy.DocumentedRuleDefault(
         name=VNFLCM % 'update_vnf',
-        check_str=base.RULE_ADMIN_OR_OWNER,
+        check_str=base.RULE_PROJECT_MEMBER_OR_ADMIN,
         description="Update an Individual VNF instance.",
         operations=[
             {
@@ -168,7 +168,7 @@ rules = [
     ),
     policy.DocumentedRuleDefault(
         name=VNFLCM % 'rollback',
-        check_str=base.RULE_ADMIN_OR_OWNER,
+        check_str=base.RULE_PROJECT_MEMBER_OR_ADMIN,
         description="Rollback a VNF instance.",
         operations=[
             {
@@ -180,7 +180,7 @@ rules = [
     ),
     policy.DocumentedRuleDefault(
         name=VNFLCM % 'cancel',
-        check_str=base.RULE_ADMIN_OR_OWNER,
+        check_str=base.RULE_PROJECT_MEMBER_OR_ADMIN,
         description="Cancel a VNF instance.",
         operations=[
             {
@@ -192,7 +192,7 @@ rules = [
     ),
     policy.DocumentedRuleDefault(
         name=VNFLCM % 'fail',
-        check_str=base.RULE_ADMIN_OR_OWNER,
+        check_str=base.RULE_PROJECT_MEMBER_OR_ADMIN,
         description="Fail a VNF instance.",
         operations=[
             {
@@ -204,7 +204,7 @@ rules = [
     ),
     policy.DocumentedRuleDefault(
         name=VNFLCM % 'retry',
-        check_str=base.RULE_ADMIN_OR_OWNER,
+        check_str=base.RULE_PROJECT_MEMBER_OR_ADMIN,
         description="Retry a VNF instance.",
         operations=[
             {
@@ -216,7 +216,7 @@ rules = [
     ),
     policy.DocumentedRuleDefault(
         name=VNFLCM % 'change_ext_conn',
-        check_str=base.RULE_ADMIN_OR_OWNER,
+        check_str=base.RULE_PROJECT_MEMBER_OR_ADMIN,
         description="Change external VNF connectivity.",
         operations=[
             {

@@ -930,13 +930,18 @@ class VnfLcmController(wsgi.Controller):
     @wsgi.expected_errors((http_client.FORBIDDEN, http_client.NOT_FOUND))
     def show_lcm_op_occs(self, request, id):
         context = request.environ['tacker.context']
-        context.can(vnf_lcm_policies.VNFLCM % 'show_lcm_op_occs')
 
         try:
             vnf_lcm_op_occs = objects.VnfLcmOpOcc.get_by_id(context, id)
+            vnf_instance = self._get_vnf_instance(
+                context, vnf_lcm_op_occs.vnf_instance_id)
+            context.can(vnf_lcm_policies.VNFLCM % 'show_lcm_op_occs',
+                        target={'project_id': vnf_instance.tenant_id})
         except exceptions.NotFound as occ_e:
             return self._make_problem_detail(str(occ_e),
                 404, title='VnfLcmOpOcc NOT FOUND')
+        except exceptions.PolicyNotAuthorized:
+            raise
         except Exception as e:
             LOG.error(traceback.format_exc())
             return self._make_problem_detail(str(e),

@@ -15,11 +15,13 @@
 
 import copy
 
+from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils.fixture import uuidsentinel as uuids
 
 from tacker.common import exceptions
 from tacker import context
+from tacker import policy
 from tacker.tests.unit import base
 
 
@@ -27,9 +29,26 @@ LOG = logging.getLogger(__name__)
 
 
 class BasePolicyTest(base.TestCase):
+    # NOTE(gmann): Set this flag to True if you would like to tests the
+    # new behaviour of policy without deprecated rules.
+    # This means you can simulate the phase when policies completely
+    # switch to new behaviour by removing the support of old rules.
+    enforce_new_defaults = False
 
     def setUp(self):
         super(BasePolicyTest, self).setUp()
+        if self.enforce_new_defaults:
+            cfg.CONF.set_override('enforce_new_defaults', True,
+                                  group='oslo_policy')
+            # NOTE(gmann): oslo policy config option enforce_new_defaults
+            # is changed here which is used while loading the rule in
+            # oslo_policy.init() method that is why we need to reset the
+            # policy and initialize again so that rule will be re-loaded
+            # considering the enforce_new_defaults new value.
+            policy.reset()
+            policy.init()
+            self.addCleanup(policy.reset)
+
         self.admin_project_id = uuids.admin_project_id
         self.project_id = uuids.project_id
         self.other_project_id = uuids.project_id_other

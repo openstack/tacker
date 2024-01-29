@@ -70,19 +70,38 @@ class VNFLCMPolicyTest(base_test.BasePolicyTest):
         ]
         self.project_unauthorized_contexts = []
 
-        # Admin or any user in same project will be allowed to get,
-        # instantiate, terminate etc operations of VNF of their project.
+        # Admin or any user in same project will be allowed to instantiate,
+        # terminate etc write operations of VNF of their project.
         self.project_member_authorized_contexts = [
             self.legacy_admin_context, self.project_admin_context,
             self.project_member_context, self.project_reader_context,
             self.project_foo_context
         ]
-        # User from other project will not be allowed to get or perform
-        # the other project's VNF operations.
+        # User from other project will not be allowed to perform write
+        # operation on the other project's VNF operations.
         self.project_member_unauthorized_contexts = [
             self.other_project_member_context,
             self.other_project_reader_context
         ]
+
+        # Admin or any user in same project will be allowed to get,
+        # VNF of their project.
+        self.project_reader_authorized_contexts = (
+            self.project_member_authorized_contexts)
+        # User from other project will not be allowed to get
+        # the other project's VNF.
+        self.project_reader_unauthorized_contexts = (
+            self.project_member_unauthorized_contexts)
+
+        # Below user's context will be allowed to list VNF or
+        # get VNF LCM operation occurrence.
+        self.get_authorized_contexts = [
+            self.legacy_admin_context, self.project_admin_context,
+            self.project_member_context, self.project_reader_context,
+            self.project_foo_context, self.other_project_member_context,
+            self.other_project_reader_context
+        ]
+        self.get_unauthorized_contexts = []
 
     @mock.patch.object(vim_client.VimClient, "get_vim")
     @mock.patch.object(objects.VnfPackage, 'get_by_id')
@@ -136,8 +155,8 @@ class VNFLCMPolicyTest(base_test.BasePolicyTest):
             fields.VnfInstanceState.INSTANTIATED,
             tenant_id=self.project_id)
         rule_name = policies.VNFLCM % 'show'
-        self.common_policy_check(self.project_member_authorized_contexts,
-                                 self.project_member_unauthorized_contexts,
+        self.common_policy_check(self.project_reader_authorized_contexts,
+                                 self.project_reader_unauthorized_contexts,
                                  rule_name,
                                  self.controller.show,
                                  req, uuidsentinel.instance_id)
@@ -149,8 +168,8 @@ class VNFLCMPolicyTest(base_test.BasePolicyTest):
         vnf_instance_2 = fakes.return_vnf_instance()
         mock_vnf_list.return_value = [vnf_instance_1, vnf_instance_2]
         rule_name = policies.VNFLCM % 'index'
-        self.common_policy_check(self.project_authorized_contexts,
-                                 self.project_unauthorized_contexts,
+        self.common_policy_check(self.get_authorized_contexts,
+                                 self.get_unauthorized_contexts,
                                  rule_name,
                                  self.controller.index,
                                  req)
@@ -386,13 +405,17 @@ class VNFLCMPolicyTest(base_test.BasePolicyTest):
                                  req, uuidsentinel.instance_id)
 
     @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
-    def test_show_lcm_op_occs(self, mock_lcm_by_id):
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    def test_show_lcm_op_occs(self, mock_vnf_by_id, mock_lcm_by_id):
         req = fake_request.HTTPRequest.blank(
             '/vnf_lcm_op_occs/%s' % uuidsentinel.instance_id)
         mock_lcm_by_id.return_value = fakes.return_vnf_lcm_opoccs_obj()
+        mock_vnf_by_id.return_value = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=self.project_id)
         rule_name = policies.VNFLCM % 'show_lcm_op_occs'
-        self.common_policy_check(self.project_authorized_contexts,
-                                 self.project_unauthorized_contexts,
+        self.common_policy_check(self.project_reader_authorized_contexts,
+                                 self.project_reader_unauthorized_contexts,
                                  rule_name,
                                  self.controller.show_lcm_op_occs,
                                  req, uuidsentinel.instance_id)
@@ -402,8 +425,8 @@ class VNFLCMPolicyTest(base_test.BasePolicyTest):
         req = fake_request.HTTPRequest.blank(
             '/vnflcm/v1/vnf_lcm_op_occs')
         rule_name = policies.VNFLCM % 'list_lcm_op_occs'
-        self.common_policy_check(self.project_authorized_contexts,
-                                 self.project_unauthorized_contexts,
+        self.common_policy_check(self.get_authorized_contexts,
+                                 self.get_unauthorized_contexts,
                                  rule_name,
                                  self.controller.list_lcm_op_occs,
                                  req)
@@ -470,3 +493,149 @@ class VNFLCMScopeTypePolicyTest(VNFLCMPolicyTest):
             self.system_reader_context, self.system_foo_context,
             self.other_project_member_context,
             self.other_project_reader_context]
+
+        self.get_authorized_contexts = [
+            self.legacy_admin_context, self.project_admin_context,
+            self.project_member_context, self.project_reader_context,
+            self.project_foo_context, self.other_project_member_context,
+            self.other_project_reader_context
+        ]
+        # With scope enabled, system scoped users will not be allowed
+        # to list VNF and get VNF LCM operation occurrence.
+        self.get_unauthorized_contexts = [
+            self.system_admin_context, self.system_member_context,
+            self.system_reader_context, self.system_foo_context,
+        ]
+
+
+class VNFLCMNewDefaultsPolicyTest(VNFLCMPolicyTest):
+    """Test VNF LCM APIs policies with new defaults enabled
+
+    This test class enable the new defaults means no legacy old rules
+    and check how permission level looks like.
+    """
+
+    enforce_new_defaults = True
+
+    def setUp(self):
+        super(VNFLCMNewDefaultsPolicyTest, self).setUp()
+
+        # In new defaults, admin or member roles users will be allowed
+        # to create VNF or a few of the VNF operations in their project.
+        # Project reader will not be able to create VNF.
+        self.project_authorized_contexts = [
+            self.legacy_admin_context, self.project_admin_context,
+            self.project_member_context, self.other_project_member_context,
+        ]
+        # In new defaults, non admin or non member role (Project reader)
+        # user will not be able to create VNF.
+        self.project_unauthorized_contexts = [
+            self.project_reader_context, self.project_foo_context,
+            self.other_project_reader_context]
+
+        # In new defaults, all admin, project members will be allowed to
+        # instantiate, terminate etc write operations of VNF of their project.
+        self.project_member_authorized_contexts = [
+            self.legacy_admin_context, self.project_admin_context,
+            self.project_member_context
+        ]
+        # In new defaults, Project reader or any other non admin|member
+        # role (say foo role) will not be allowed to perform any write
+        # operation on VNF.
+        self.project_member_unauthorized_contexts = [
+            self.project_reader_context, self.project_foo_context,
+            self.other_project_member_context,
+            self.other_project_reader_context
+        ]
+
+        # In new defaults, Project reader also can get VNF.
+        self.project_reader_authorized_contexts = [
+            self.legacy_admin_context, self.project_admin_context,
+            self.project_member_context,
+            self.project_reader_context
+        ]
+        # In new defaults, non admin|member|reader role (say foo role)
+        # will not be able to get VNF.
+        self.project_reader_unauthorized_contexts = [
+            self.project_foo_context,
+            self.other_project_member_context,
+            self.other_project_reader_context
+        ]
+
+        # In new defaults, project random role like foo will not
+        # be allowed.
+        self.get_authorized_contexts = [
+            self.legacy_admin_context, self.project_admin_context,
+            self.project_member_context, self.project_reader_context,
+            self.other_project_member_context,
+            self.other_project_reader_context
+        ]
+        self.get_unauthorized_contexts = [
+            self.project_foo_context,
+        ]
+
+
+class VNFLCMNewDefaultsWithScopePolicyTest(VNFLCMNewDefaultsPolicyTest):
+    """Test VNF LCM APIs policies with new defaults rules and scope enabled
+
+    This means scope enabled and no legacy old rules. This is the end goal
+    when operators will enable scope and new defaults.
+    """
+
+    def setUp(self):
+        super(VNFLCMNewDefaultsWithScopePolicyTest, self).setUp()
+        cfg.CONF.set_override('enforce_scope', True,
+                              group='oslo_policy')
+
+        # With scope enable and no legacy rule, only project admin/member
+        # will be able to create VNF in their project.
+        self.project_authorized_contexts = [
+            self.legacy_admin_context, self.project_admin_context,
+            self.project_member_context, self.other_project_member_context
+        ]
+        # System scoped users will not be allowed.
+        self.project_unauthorized_contexts = [
+            self.system_admin_context, self.system_member_context,
+            self.system_reader_context, self.system_foo_context,
+            self.project_reader_context, self.project_foo_context,
+            self.other_project_reader_context]
+
+        self.project_member_authorized_contexts = [
+            self.legacy_admin_context, self.project_admin_context,
+            self.project_member_context,
+        ]
+        # System scoped users will not be allowed.
+        self.project_member_unauthorized_contexts = [
+            self.system_admin_context, self.system_member_context,
+            self.system_reader_context, self.system_foo_context,
+            self.project_reader_context, self.project_foo_context,
+            self.other_project_member_context,
+            self.other_project_reader_context]
+
+        self.project_reader_authorized_contexts = [
+            self.legacy_admin_context, self.project_admin_context,
+            self.project_member_context,
+            self.project_reader_context
+        ]
+        # System scoped users will not be allowed.
+        self.project_reader_unauthorized_contexts = [
+            self.system_admin_context, self.system_member_context,
+            self.system_reader_context, self.system_foo_context,
+            self.project_foo_context,
+            self.other_project_member_context,
+            self.other_project_reader_context
+        ]
+
+        self.get_authorized_contexts = [
+            self.legacy_admin_context, self.project_admin_context,
+            self.project_member_context, self.project_reader_context,
+            self.other_project_member_context,
+            self.other_project_reader_context
+        ]
+        # With scope enabled, system scoped users will not be allowed
+        # to list VNF and get VNF LCM operation occurrence.
+        self.get_unauthorized_contexts = [
+            self.project_foo_context, self.system_admin_context,
+            self.system_member_context, self.system_reader_context,
+            self.system_foo_context,
+        ]
