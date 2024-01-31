@@ -55,6 +55,13 @@ def env(*_vars, **kwargs):
     return kwargs.get('default', '')
 
 
+DEFAULT_OPTS = [
+    cfg.BoolOpt('use_credential_encryption', default=False,
+                help=_("Enable to encrypt the credential"))
+]
+
+CONF.register_opts(DEFAULT_OPTS)
+
 OPTS = [cfg.StrOpt('user_domain_id',
                    default=env("OS_USER_DOMAIN_ID", default='default'),
                    help='User Domain Id'),
@@ -264,7 +271,7 @@ def _to_vim_connection_info(vim_con_infos, vim_infos):
                 "accessInfo": _info.get("access_info"),
                 "extra": _info.get("extra")}
             vim_info_obj = objects_v2.VimConnectionInfo(**fields)
-        dict_info["vim{}".format(i)] = vim_info_obj
+        dict_info["vim_{}".format(i)] = vim_info_obj
     return dict_info
 
 
@@ -720,7 +727,7 @@ def _get_vim(context, vim_con_info):
 
 
 def _set_stack_id(inst_v2, vnf):
-    heat_client = heat_utils.HeatClient(inst_v2.vimConnectionInfo["vim0"])
+    heat_client = heat_utils.HeatClient(inst_v2.vimConnectionInfo["vim_0"])
     stack_names = []
     stack_names.append(f"vnflcm_{inst_v2.id}")
     stack_names.append(f"{inst_v2.vnfInstanceName}_{inst_v2.id}")
@@ -779,7 +786,7 @@ def create_vnf_instance_v2(context, vnf_id):
         metadata=_vnf_instance.vnf_metadata,)
     if inst_v2.instantiatedVnfInfo:
         _set_cp_instance_type(inst_v2)
-    if inst_v2.vimConnectionInfo["vim0"].accessInfo.get("project"):
+    if inst_v2.vimConnectionInfo["vim_0"].accessInfo.get("project"):
         _set_stack_id(inst_v2, _vnf)
     inst_v2.create(context)
     return inst_v2
@@ -853,7 +860,7 @@ def _create_resource_changes_v2(dict_resource_changes,
                 affected_vnfc["removed_storage_resource_ids"],
             # v1 -> v2
             'computeResource':
-                objects_v2.ResourceHandle(**affected_vnfc["compute_resource"]),
+                _to_resource_handle(affected_vnfc["compute_resource"]),
             'vnfdId': None,
             'resourceDefinitionId': None,
             'zoneId': None,
@@ -875,8 +882,7 @@ def _create_resource_changes_v2(dict_resource_changes,
             # v1 -> v2
             'vnfdId': None,
             'networkResource':
-                objects_v2.ResourceHandle(
-                    **affected_vl["network_resource"]),
+                _to_resource_handle(affected_vl["network_resource"]),
             'vnfLinkPortIds': None,
             'resourceDefinitionId': None,
             'zoneId': None,
@@ -898,8 +904,8 @@ def _create_resource_changes_v2(dict_resource_changes,
                 affected_vstorage["virtual_storage_desc_id"],
             'changeType': affected_vstorage["change_type"],
             # v1 -> v2
-            'storageResource': objects_v2.ResourceHandle(
-                **affected_vstorage["storage_resource"]),
+            'storageResource':
+                _to_resource_handle(affected_vstorage["storage_resource"]),
             'vnfdId': None,
             'resourceDefinitionId': None,
             'zoneId': None,
