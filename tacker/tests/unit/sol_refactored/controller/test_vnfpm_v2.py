@@ -388,7 +388,8 @@ class TestVnfpmV2(base.BaseTestCase):
 
     def test_allowed_content_types(self):
         result = self.controller.allowed_content_types('update')
-        top = ['application/mergepatch+json', 'application/json', 'text/plain']
+        top = ['application/merge-patch+json', 'application/json',
+               'text/plain']
         self.assertEqual(top, result)
 
         result = self.controller.allowed_content_types('create')

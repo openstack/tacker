@@ -18,6 +18,8 @@ from tacker.sol_refactored.api.policies import vnffm_v1 as vnffm_policy_v1
 from tacker.sol_refactored.api.policies import vnflcm_v2 as vnflcm_policy_v2
 from tacker.sol_refactored.api.policies import vnfpm_v2 as vnfpm_policy_v2
 from tacker.sol_refactored.api import wsgi as sol_wsgi
+from tacker.sol_refactored.controller import prometheus_plugin_controller
+from tacker.sol_refactored.controller import server_notification
 from tacker.sol_refactored.controller import vnffm_v1
 from tacker.sol_refactored.controller import vnflcm_v2
 from tacker.sol_refactored.controller import vnflcm_versions
@@ -89,4 +91,53 @@ class VnfPmAPIRouterV2(sol_wsgi.SolAPIRouter):
         ("/thresholds/{thresholdId}", {"PATCH": "update_threshold",
                                        "GET": "show_threshold",
                                        "DELETE": "delete_threshold"}),
+    ]
+
+
+# The definitions after here are of tacker original APIs.
+# Although these APIs are not included in ESTI SOL specification,
+# these APIs are (should be) designed as same as SOL APIs and
+# use same API frameworks (i.e. modules in this directory).
+class PmEventRouter(sol_wsgi.SolAPIRouter):
+    controller = sol_wsgi.SolResource(
+        prometheus_plugin_controller.PmEventController(),
+        policy_name=vnfpm_policy_v2.POLICY_NAME_PROM_PLUGIN)
+    route_list = [("", {"POST": "pm_event"})]
+
+
+class PmThresholdRouter(sol_wsgi.SolAPIRouter):
+    controller = sol_wsgi.SolResource(
+        prometheus_plugin_controller.PmThresholdController(),
+        policy_name=vnfpm_policy_v2.POLICY_NAME_PROM_PLUGIN)
+    route_list = [("", {"POST": "pm_threshold"})]
+
+
+class FmAlertRouter(sol_wsgi.SolAPIRouter):
+    controller = sol_wsgi.SolResource(
+        prometheus_plugin_controller.FmAlertController(),
+        policy_name=vnffm_policy_v1.POLICY_NAME_PROM_PLUGIN)
+    route_list = [("", {"POST": "alert"})]
+
+
+class AutoHealingRouter(sol_wsgi.SolAPIRouter):
+    controller = sol_wsgi.SolResource(
+        prometheus_plugin_controller.AutoHealingController(),
+        policy_name=vnfpm_policy_v2.POLICY_NAME_PROM_PLUGIN)
+    route_list = [("", {"POST": "auto_healing"})]
+
+
+class AutoScalingRouter(sol_wsgi.SolAPIRouter):
+    controller = sol_wsgi.SolResource(
+        prometheus_plugin_controller.AutoScalingController(),
+        policy_name=vnfpm_policy_v2.POLICY_NAME_PROM_PLUGIN)
+    route_list = [("", {"POST": "auto_scaling"})]
+
+
+class ServerNotificationRouter(sol_wsgi.SolAPIRouter):
+    controller = sol_wsgi.SolResource(
+        server_notification.ServerNotificationController(),
+        policy_name=vnflcm_policy_v2.SERVER_NOTIFICATION_POLICY_NAME)
+    route_list = [
+        ("/vnf_instances/{vnf_instance_id}/servers/{server_id}/notify",
+            {"POST": "notify"})
     ]

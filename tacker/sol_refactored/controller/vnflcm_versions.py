@@ -29,3 +29,7 @@ class VnfLcmVersionsController(sol_wsgi.SolAPIController):
     def supported_api_versions(self, action):
         # support all versions and it is OK there is no Version header.
         return None
+
+    def set_default_to_response(self, result, action):
+        result.headers.setdefault('version', api_version.CURRENT_VERSION)
+        result.headers.setdefault('accept-ranges', 'none')

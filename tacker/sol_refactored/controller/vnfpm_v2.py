@@ -278,15 +278,15 @@ class VnfPmControllerV2(sol_wsgi.SolAPIController):
     def allowed_content_types(self, action):
         if action in {'update', 'update_threshold'}:
             # Content-Type of Modify request shall be
-            # 'application/mergepatch+json' according to SOL spec.
+            # 'application/merge-patch+json' according to SOL spec.
             # But 'application/json' and 'text/plain' is OK for backward
             # compatibility.
-            return ['application/mergepatch+json', 'application/json',
+            return ['application/merge-patch+json', 'application/json',
                     'text/plain']
         return ['application/json', 'text/plain']
 
     def allowed_accept(self, action):
-        return ['application/json', 'application/mergepatch+json',
+        return ['application/json', 'application/merge-patch+json',
                 'text/plain']
 
     def supported_api_versions(self, action):
@@ -441,3 +441,7 @@ class VnfPmControllerV2(sol_wsgi.SolAPIController):
 
         return sol_wsgi.SolResponse(204, None,
                                     version=api_version.CURRENT_PM_VERSION)
+
+    def set_default_to_response(self, result, action):
+        result.headers.setdefault('version', api_version.CURRENT_PM_VERSION)
+        result.headers.setdefault('accept-ranges', 'none')

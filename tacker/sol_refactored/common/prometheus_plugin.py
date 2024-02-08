@@ -26,8 +26,8 @@ from keystoneauth1 import exceptions as ks_exc
 from oslo_log import log as logging
 from oslo_utils import uuidutils
 from tacker.common import utils
-from tacker.sol_refactored.api import prometheus_plugin_validator as validator
 from tacker.sol_refactored.api.schemas import prometheus_plugin_schemas
+from tacker.sol_refactored.api import validator
 from tacker.sol_refactored.common import config as cfg
 from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import fm_alarm_utils
@@ -505,7 +505,7 @@ class PrometheusPluginPm(PrometheusPluginPmBase, mon_base.MonitoringPlugin):
                 f"doesn't match pmJob.")
             raise sol_ex.PrometheusPluginSkipped()
 
-    @validator.schema(prometheus_plugin_schemas.AlertMessage)
+    @validator.schema_nover(prometheus_plugin_schemas.AlertMessage)
     def _alert(self, request, body):
         result = []
         context = request.context
@@ -762,7 +762,7 @@ class PrometheusPluginThreshold(PrometheusPluginPmBase,
             crossing_direction = "DOWN"
         return crossing_direction
 
-    @validator.schema(prometheus_plugin_schemas.AlertMessage)
+    @validator.schema_nover(prometheus_plugin_schemas.AlertMessage)
     def _alert(self, request, body):
         result = []
         context = request.context
@@ -1100,7 +1100,7 @@ class PrometheusPluginFm(PrometheusPlugin, mon_base.MonitoringPlugin):
             return [new_alarm]
         raise sol_ex.PrometheusPluginSkipped()
 
-    @validator.schema(prometheus_plugin_schemas.AlertMessage)
+    @validator.schema_nover(prometheus_plugin_schemas.AlertMessage)
     def _alert(self, request, body):
         now = datetime.datetime.now(datetime.timezone.utc)
         result = []
@@ -1153,7 +1153,7 @@ class PrometheusPluginAutoHealing(PrometheusPlugin, mon_base.MonitoringPlugin):
         self.rpc.enqueue_auto_heal_instance(
             context, vnf_instance_id, vnfc_info_id)
 
-    @validator.schema(prometheus_plugin_schemas.AlertMessage)
+    @validator.schema_nover(prometheus_plugin_schemas.AlertMessage)
     def _alert(self, request, body):
         context = request.context
         alerts = (alert for alert in body['alerts'] if
@@ -1225,7 +1225,7 @@ class PrometheusPluginAutoScaling(PrometheusPlugin, mon_base.MonitoringPlugin):
     def default_callback(self, context, vnf_instance_id, scaling_param):
         self.rpc.trigger_scale(context, vnf_instance_id, scaling_param)
 
-    @validator.schema(prometheus_plugin_schemas.AlertMessage)
+    @validator.schema_nover(prometheus_plugin_schemas.AlertMessage)
     def _alert(self, request, body):
         context = request.context
         alerts = (alert for alert in body['alerts'] if

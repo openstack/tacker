@@ -124,7 +124,7 @@ class TestServerNotification(base.TestCase):
         sn = mon_base.MonitoringPlugin.get_instance(
             server_notification.ServerNotification)
         self.assertRaises(
-            sol_ex.ServerNotificationValidationError,
+            sol_ex.SolValidationError,
             sn.notify, self.request, 'test_id')
 
     def test_constructor_error(self):
