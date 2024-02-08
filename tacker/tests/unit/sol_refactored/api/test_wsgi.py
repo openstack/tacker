@@ -46,7 +46,9 @@ class TestWsgi(base.TestCase):
         self.assertEqual(problem_details, response.body)
 
     def test_check_api_version_no_version(self):
-        resource = sol_wsgi.SolResource(sol_wsgi.SolAPIController())
+        controller = sol_wsgi.SolAPIController()
+        controller.supported_api_versions = mock.Mock(return_value=['1.0'])
+        resource = sol_wsgi.SolResource(controller)
         request = mock.Mock()
         request.headers = {}
         self.assertRaises(sol_ex.APIVersionMissing,

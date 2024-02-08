@@ -69,8 +69,6 @@ class SolResponse(object):
         for hdr in self.allowed_headers:
             if kwargs.get(hdr):
                 self.headers[hdr] = kwargs[hdr]
-        self.headers.setdefault('version', api_version.CURRENT_VERSION)
-        self.headers.setdefault('accept-ranges', 'none')
 
     def serialize(self, content_type):
         self.headers.setdefault('content_type', content_type)
@@ -132,13 +130,11 @@ class SolResource(object):
             self._check_api_version(request, action)
             self._check_policy(request, action)
             result = self._dispatch(request, action, args)
+            self.controller.set_default_to_response(result, action)
             response = result.serialize(accept)
         except Exception as ex:
             result = SolErrorResponse(ex, request.best_match_language())
-            if type(self.controller).__name__ == 'VnfFmControllerV1':
-                result.headers['version'] = api_version.CURRENT_FM_VERSION
-            if type(self.controller).__name__ == 'VnfPmControllerV2':
-                result.headers['version'] = api_version.CURRENT_PM_VERSION
+            self.controller.set_default_to_response(result, action)
             try:
                 response = result.serialize('application/problem+json')
             except Exception:
@@ -202,7 +198,7 @@ class SolResource(object):
             return request.body_file
         else:
             # assume json format
-            # ex. 'application/json', 'application/mergepatch+json'
+            # ex. 'application/json', 'application/merge-patch+json'
             try:
                 return request.json
             except Exception:
@@ -275,10 +271,10 @@ class SolAPIController(object):
         raise sol_ex.MethodNotAllowed(method=request.method)
 
     def supported_api_versions(self, action):
-        # NOTE: support v2 API by default. if a contorller supports
-        # and/or v1 API, or depending on action, override this method
-        # in the subclass.
-        return api_version.v2_versions
+        # NOTE: if a contorller supports versions header, override
+        # this method in the subclass. return None means version is
+        # not checked.
+        return None
 
     def allowed_content_types(self, action):
         # NOTE: if other than 'application/json' is expected depending
@@ -291,3 +287,6 @@ class SolAPIController(object):
         # NOTE: if other than 'application/json' is expected depending
         # on action, override this method in the subclass.
         return ['application/json']
+
+    def set_default_to_response(self, result, action):
+        pass

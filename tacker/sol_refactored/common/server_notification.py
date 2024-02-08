@@ -15,8 +15,7 @@
 
 from oslo_log import log as logging
 from tacker.sol_refactored.api.schemas import server_notification_schemas
-from tacker.sol_refactored.api import server_notification_validator\
-    as validator
+from tacker.sol_refactored.api import validator
 from tacker.sol_refactored.common import config as cfg
 from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import monitoring_plugin_base as mon_base
@@ -69,11 +68,11 @@ class ServerNotification(mon_base.MonitoringPlugin):
                     'vnfcResourceInfo') or
                 not vnf_instance.instantiatedVnfInfo.obj_attr_is_set(
                     'vnfcInfo')):
-            raise sol_ex.ServerNotificationValidationError(
+            raise sol_ex.SolValidationError(
                 detail="access info not found in the vnf instance.")
         if fault_id not in vnf_instance.instantiatedVnfInfo.metadata.get(
                 'ServerNotifierFaultID', []):
-            raise sol_ex.ServerNotificationValidationError(
+            raise sol_ex.SolValidationError(
                 detail="fault_id does not match.")
 
         # Get the list of instantiatedVnfInfo.vnfcInfo[x].id where
@@ -91,16 +90,16 @@ class ServerNotification(mon_base.MonitoringPlugin):
         vnfc_ids = list(map(lambda x: x.id, vnfc_info))
 
         if len(vnfc_ids) == 0:
-            raise sol_ex.ServerNotificationValidationError(
+            raise sol_ex.SolValidationError(
                 detail="target vnfc not found.")
         return vnfc_ids
 
-    @validator.schema(server_notification_schemas.ServerNotification)
+    @validator.schema_nover(server_notification_schemas.ServerNotification)
     def notify(self, request, vnf_instance_id, body):
         context = request.context
         vnf_instance = inst_utils.get_inst(context, vnf_instance_id)
         if not vnf_instance:
-            raise sol_ex.ServerNotificationValidationError(
+            raise sol_ex.SolValidationError(
                 detail="target vnf instance not found.")
         if (not vnf_instance.obj_attr_is_set(
                 'vnfConfigurableProperties') or
