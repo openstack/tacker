@@ -254,38 +254,38 @@ For example:
 .. code-block:: yaml
 
     global:
-        scrape_interval: 30s
-        evaluation_interval: 30s
+      scrape_interval: 30s
+      evaluation_interval: 30s
 
     rule_files:
-        - /etc/prometheus/rules/*.json
+    - /etc/prometheus/rules/*
 
     alerting:
-        alertmanagers:
-        - static_configs:
-            - targets:
-                - <alertmanager_host>
+      alertmanagers:
+      - static_configs:
+        - targets:
+          - <alertmanager_host>
 
     scrape_configs:
     - job_name: "kubestatemetrics"
-        static_configs:
-        - targets: ["<kube-state-metrics exporter host>"]
+      static_configs:
+      - targets: ["<kube-state-metrics exporter host>"]
     - job_name: "k8smetricsresourceworker1"
-        static_configs:
-        - targets: ["<worker1 exporter host>"]
-        metrics_path: "/api/v1/nodes/worker1/proxy/metrics/resource"
+      static_configs:
+      - targets: ["<worker1 exporter host>"]
+      metrics_path: "/api/v1/nodes/worker1/proxy/metrics/resource"
     - job_name: "k8smetricscadvisorworker1"
-        static_configs:
-        - targets: ["<worker1 exporter host>"]
-        metrics_path: "/api/v1/nodes/worker1/proxy/metrics/cadvisor"
+      static_configs:
+      - targets: ["<worker1 exporter host>"]
+      metrics_path: "/api/v1/nodes/worker1/proxy/metrics/cadvisor"
     - job_name: "k8smetricsresourceworker2"
-        static_configs:
-        - targets: ["<worker2 exporter host>"]
-        metrics_path: "/api/v1/nodes/worker2/proxy/metrics/resource"
+      static_configs:
+      - targets: ["<worker2 exporter host>"]
+      metrics_path: "/api/v1/nodes/worker2/proxy/metrics/resource"
     - job_name: "k8smetricscadvisorworker2"
-        static_configs:
-        - targets: ["<worker2 exporter host>"]
-        metrics_path: "/api/v1/nodes/worker2/proxy/metrics/cadvisor"
+      static_configs:
+      - targets: ["<worker2 exporter host>"]
+      metrics_path: "/api/v1/nodes/worker2/proxy/metrics/cadvisor"
 
 Alert Manager
 -------------
@@ -299,31 +299,31 @@ For example:
 
     route:
       group_by:
-        - "kubestatemetrics"
-        - "k8smetricsresourceworker1"
-        - "k8smetricscadvisorworker1"
-        - "k8smetricsresourceworker2"
-        - "k8smetricscadvisorworker2"
+      - "kubestatemetrics"
+      - "k8smetricsresourceworker1"
+      - "k8smetricscadvisorworker1"
+      - "k8smetricsresourceworker2"
+      - "k8smetricscadvisorworker2"
       group_wait: 30s
       group_interval: 30s
       repeat_interval: 30s
       receiver: default-receiver
       routes:
-        - matchers:
-          - function_type = vnfpm
-          receiver: vnfpm
-        - matchers:
-          - function_type = vnfpm_threshold
-          receiver: vnfpm-threshold
-        - matchers:
-          - function_type = vnffm
-          receiver: vnffm
-        - matchers:
-          - function_type = auto-scale
-          receiver: auto-scale
-        - matchers:
-          - function_type = auto-heal
-          receiver: auto-heal
+      - matchers:
+        - function_type = vnfpm
+        receiver: vnfpm
+      - matchers:
+        - function_type = vnfpm_threshold
+        receiver: vnfpm-threshold
+      - matchers:
+        - function_type = vnffm
+        receiver: vnffm
+      - matchers:
+        - function_type = auto_scale
+        receiver: auto-scale
+      - matchers:
+        - function_type = auto_heal
+        receiver: auto-heal
 
     receivers:
     - name: default-receiver
@@ -365,6 +365,11 @@ Tacker Antelope release
 
 - Prometheus: 2.37
 - Alertmanager: 0.25
+
+Tacker Bobcat and Caracal release
+
+- Prometheus: 2.45
+- Alertmanager: 0.26
 
 Alert rule registration
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -490,22 +495,22 @@ rule file directly. Below is an example of alert rule.
 .. code-block:: yaml
 
   groups:
-    - name: example
-      rules:
-      - alert: Test
-        expr: sum(pod_memory_working_set_bytes{namespace="default"}) > 10000000000
-        for: 30s
-        labels:
-          receiver_type: tacker
-          function_type: vnffm
-          vnf_instance_id: 3721ab69-3f33-44bc-85f1-f416ad1b765e
-          pod: test\\-test1\\-[0-9a-f]{1,10}-[0-9a-z]{5}$
-          perceived_severity: CRITICAL
-          event_type: PROCESSING_ERROR_ALARM
-        annotations:
-          probable_cause: Server is down.
-          fault_type: Error
-          fault_details: Fault detail
+  - name: example
+    rules:
+    - alert: Test
+      expr: sum(pod_memory_working_set_bytes{namespace="default"}) > 10000000000
+      for: 30s
+      labels:
+        receiver_type: tacker
+        function_type: vnffm
+        vnf_instance_id: 3721ab69-3f33-44bc-85f1-f416ad1b765e
+        pod: test\\-test1\\-[0-9a-f]{1,10}-[0-9a-z]{5}$
+        perceived_severity: CRITICAL
+        event_type: PROCESSING_ERROR_ALARM
+      annotations:
+        probable_cause: Server is down.
+        fault_type: Error
+        fault_details: Fault detail
 
 Prometheus Plugin AutoScaling
 -----------------------------
@@ -516,18 +521,18 @@ rule file directly. Below is an example of alert rule.
 .. code-block:: yaml
 
   groups:
-    - name: example
-      rules:
-      - alert: Test
-        expr: sum(pod_memory_working_set_bytes{namespace="default"}) > 10000000000
-        for: 30s
-        labels:
-          receiver_type: tacker
-          function_type: auto_scale
-          vnf_instance_id: 3721ab69-3f33-44bc-85f1-f416ad1b765e
-          auto_scale_type: SCALE_OUT
-          aspect_id: VDU1_aspect
-        annotations:
+  - name: example
+    rules:
+    - alert: Test
+      expr: sum(pod_memory_working_set_bytes{namespace="default"}) > 10000000000
+      for: 30s
+      labels:
+        receiver_type: tacker
+        function_type: auto_scale
+        vnf_instance_id: 3721ab69-3f33-44bc-85f1-f416ad1b765e
+        auto_scale_type: SCALE_OUT
+        aspect_id: VDU1_aspect
+      annotations:
 
 Prometheus Plugin AutoHealing
 -----------------------------
@@ -538,17 +543,17 @@ rule file directly. Below is example of alert rule.
 .. code-block:: yaml
 
   groups:
-    - name: example
-      rules:
-      - alert: Test
-        expr: sum(pod_memory_working_set_bytes{namespace="default"}) > 10000000000
-        for: 30s
-        labels:
-          receiver_type: tacker
-          function_type: auto_heal
-          vnf_instance_id: 3721ab69-3f33-44bc-85f1-f416ad1b765e
-          vnfc_info_id: VDU1-85adebfa-d71c-49ab-9d39-d8dd7e393541
-        annotations:
+  - name: example
+    rules:
+    - alert: Test
+      expr: sum(pod_memory_working_set_bytes{namespace="default"}) > 10000000000
+      for: 30s
+      labels:
+        receiver_type: tacker
+        function_type: auto_heal
+        vnf_instance_id: 3721ab69-3f33-44bc-85f1-f416ad1b765e
+        vnfc_info_id: VDU1-85adebfa-d71c-49ab-9d39-d8dd7e393541
+      annotations:
 
 External data file
 ~~~~~~~~~~~~~~~~~~

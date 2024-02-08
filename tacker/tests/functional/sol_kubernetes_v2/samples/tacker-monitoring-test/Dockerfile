@@ -41,7 +41,7 @@ RUN mkdir -p /work/src && chmod 777 /work/src
 RUN mkdir -p /etc/prometheus/rules && chmod 777 /etc/prometheus/rules
 
 # prometheus & promtool
-ARG PROM_VERSION="2.37.5"
+ARG PROM_VERSION="2.45.3"
 RUN cd /tmp && \
     wget -q https://github.com/prometheus/prometheus/releases/download/v${PROM_VERSION}/prometheus-${PROM_VERSION}.linux-amd64.tar.gz && \
     tar zxf /tmp/prometheus-${PROM_VERSION}.linux-amd64.tar.gz -C /usr/local/src/&& \

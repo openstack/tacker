@@ -288,7 +288,7 @@ as follows:
                             "ssh_username": "ssh_username",
                             "ssh_password": "ssh_password"
                         },
-                        "alertRuleConfigPath": "/etc/prometheus/rules/tacker-rule.yml",
+                        "alertRuleConfigPath": "/etc/prometheus/rules",
                         "prometheusReloadApiEndpoint": "http://localhost:9990/-/reload"
                     }
                 ]
