@@ -52,7 +52,7 @@ class TestKubernetes(base.TestCase):
         target_k8s_files = [not_exist]
         ex = self.assertRaises(sol_ex.CnfDefinitionNotFound,
             self.driver._setup_k8s_reses, self.vnfd_1,
-            target_k8s_files, mock.Mock(), mock.Mock())
+            target_k8s_files, mock.Mock(), mock.Mock(), mock.Mock())
         self.assertEqual(expected_ex.detail, ex.detail)
 
     def test_wait_k8s_reses_ready(self):

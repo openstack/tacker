@@ -312,6 +312,13 @@ The following is a simple example of ``deployment`` resource.
           ``topology_template.node_templates.VDU1.properties.name``
           in the helloworld3_df_simple.yaml file.
 
+.. note:: In version 2 API, the ``tacker_vnf_instance_id`` key and
+          VNF instance ID value are added to the ``metadata.labels`` to
+          identify which VNF instance created the resource.
+          Please note that if you have defined the ``tacker_vnf_instance_id``
+          label in advance, the value will be overwritten with
+          the VNF instance ID.
+
 3. Create a TOSCA.meta File
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 The TOSCA.Meta file contains version information for the TOSCA.Meta file, CSAR,

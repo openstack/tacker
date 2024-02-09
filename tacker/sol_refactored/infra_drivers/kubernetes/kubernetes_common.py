@@ -34,8 +34,6 @@ LOG = logging.getLogger(__name__)
 CONF = config.CONF
 CHECK_INTERVAL = 10
 
-TARGET_KIND = {"Pod", "Deployment", "DaemonSet", "StatefulSet", "ReplicaSet"}
-
 
 class KubernetesCommon(object):
 

@@ -31,7 +31,7 @@ from tacker.sol_refactored.infra_drivers.kubernetes import kubernetes_resource
 
 LOG = logging.getLogger(__name__)
 
-SUPPORTED_NAMESPACE_KINDS = {
+SUPPORTED_NAMESPACE_KIND = {
     "Binding",
     "ConfigMap",
     "ControllerRevision",
@@ -55,10 +55,15 @@ SUPPORTED_NAMESPACE_KINDS = {
     "ServiceAccount",
     "StatefulSet",
 }
+SCALABLE_KIND = {"Deployment", "ReplicaSet", "StatefulSet"}
+TARGET_KIND = {"Pod", "Deployment", "DaemonSet", "StatefulSet", "ReplicaSet"}
+UNLABELED_KIND = {"SubjectAccessReview", "LocalSubjectAccessReview",
+                  "SelfSubjectAccessReview", "SelfSubjectRulesReview",
+                  "TokenReview"}
 
 
 def get_k8s_reses_from_json_files(target_k8s_files, vnfd, k8s_api_client,
-        namespace):
+        namespace, inst_id):
 
     k8s_resources = []
 
@@ -78,18 +83,24 @@ def get_k8s_reses_from_json_files(target_k8s_files, vnfd, k8s_api_client,
     for k8s_res in k8s_resources:
         if not k8s_res.get('kind'):
             raise sol_ex.K8sInvalidManifestFound()
-        if k8s_res['kind'] in SUPPORTED_NAMESPACE_KINDS:
+        if k8s_res['kind'] in SUPPORTED_NAMESPACE_KIND:
             k8s_res.setdefault('metadata', {})
             if namespace is None:
                 k8s_res['metadata'].setdefault('namespace', 'default')
             else:
                 k8s_res['metadata']['namespace'] = namespace
+        # Set label to identify the VnfInstance
+        if k8s_res['kind'] not in UNLABELED_KIND:
+            k8s_res.setdefault('metadata', {})
+            k8s_res['metadata'].setdefault('labels', {})
+            k8s_res['metadata']['labels'][
+                kubernetes_resource.VNF_INSTANCE_ID_LABEL] = inst_id
 
     # check namespace
     if namespace is None:
         namespaces = {k8s_res['metadata']['namespace']
                       for k8s_res in k8s_resources
-                      if k8s_res['kind'] in SUPPORTED_NAMESPACE_KINDS}
+                      if k8s_res['kind'] in SUPPORTED_NAMESPACE_KIND}
         if len(namespaces) > 1:
             raise sol_ex.NamespaceNotUniform()
         namespace = namespaces.pop() if namespaces else 'default'

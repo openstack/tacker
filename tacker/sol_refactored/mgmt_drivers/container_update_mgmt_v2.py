@@ -226,14 +226,16 @@ class ContainerUpdateMgmtDriver(kubernetes.Kubernetes):
         old_vnfd = vnfd_utils.Vnfd(uuidutils.generate_uuid())
         old_vnfd.init_from_csar_dir(self.old_csar_dir)
         old_k8s_objs, _ = self._setup_k8s_reses(
-            old_vnfd, target_k8s_files, k8s_api_client, namespace)
+            old_vnfd, target_k8s_files, k8s_api_client, namespace,
+            vnf_instance['id'])
         # Get new_k8s_objs
         target_k8s_files = new_inst_vnf_info['metadata'][
             'lcm-kubernetes-def-files']
         new_vnfd = vnfd_utils.Vnfd(self.req['vnfdId'])
         new_vnfd.init_from_csar_dir(self.new_csar_dir)
         new_k8s_objs, _ = self._setup_k8s_reses(
-            new_vnfd, target_k8s_files, k8s_api_client, namespace)
+            new_vnfd, target_k8s_files, k8s_api_client, namespace,
+            vnf_instance['id'])
         # Initialize k8s_pod_objs and k8s_config_objs
         k8s_pod_objs = []
         k8s_config_objs = []
