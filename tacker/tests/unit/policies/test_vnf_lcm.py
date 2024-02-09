@@ -16,14 +16,22 @@
 from unittest import mock
 
 from tacker.api.vnflcm.v1 import controller
+import tacker.conductor.conductorrpc.vnf_lcm_rpc as vnf_lcm_rpc
 from tacker import objects
+from tacker.objects import fields
 from tacker.policies import vnf_lcm as policies
+from tacker.tests.unit.db import utils
 from tacker.tests.unit import fake_request
-import tacker.tests.unit.nfvo.test_nfvo_plugin as test_nfvo_plugin
 from tacker.tests.unit.policies import base as base_test
 from tacker.tests.unit.vnflcm import fakes
 from tacker.tests import uuidsentinel
 from tacker.vnfm import vim_client
+
+
+class FakePlugin(mock.Mock):
+
+    def get_vnf(self, *args, **kwargs):
+        return utils.get_dummy_vnf(status='ACTIVE')
 
 
 class VNFLCMPolicyTest(base_test.BasePolicyTest):
@@ -39,7 +47,7 @@ class VNFLCMPolicyTest(base_test.BasePolicyTest):
         super(VNFLCMPolicyTest, self).setUp()
         self.patcher = mock.patch(
             'tacker.manager.TackerManager.get_service_plugins',
-            return_value={'VNFM': test_nfvo_plugin.FakeVNFMPlugin()})
+            return_value={'VNFM': FakePlugin()})
         self.mock_manager = self.patcher.start()
         self.controller = controller.VnfLcmController()
         self.vim_info = {
@@ -50,15 +58,29 @@ class VNFLCMPolicyTest(base_test.BasePolicyTest):
             'tenant': 'test',
             'extra': {}
         }
-        # Below user's context will be allowed to create the VNF
-        # in their project.
-        self.create_authorized_contexts = [
+        # Below user's context will be allowed to create VNF or a few of
+        # the VNF operations in their project.
+        self.project_authorized_contexts = [
             self.legacy_admin_context, self.project_admin_context,
             self.project_member_context, self.project_reader_context,
             self.project_foo_context, self.other_project_member_context,
             self.other_project_reader_context
         ]
-        self.create_unauthorized_contexts = []
+        self.project_unauthorized_contexts = []
+
+        # Admin or any user in same project will be allowed to get,
+        # instantiate, terminate etc operations of VNF of their project.
+        self.project_member_authorized_contexts = [
+            self.legacy_admin_context, self.project_admin_context,
+            self.project_member_context, self.project_reader_context,
+            self.project_foo_context
+        ]
+        # User from other project will not be allowed to get or perform
+        # the other project's VNF operations.
+        self.project_member_unauthorized_contexts = [
+            self.other_project_member_context,
+            self.other_project_reader_context
+        ]
 
     @mock.patch.object(vim_client.VimClient, "get_vim")
     @mock.patch.object(objects.VnfPackage, 'get_by_id')
@@ -98,8 +120,311 @@ class VNFLCMPolicyTest(base_test.BasePolicyTest):
                 'metadata': {'key': 'value'}}
         req = fake_request.HTTPRequest.blank('/vnf_instances')
         rule_name = policies.VNFLCM % 'create'
-        self.common_policy_check(self.create_authorized_contexts,
-                                 self.create_unauthorized_contexts,
+        self.common_policy_check(self.project_authorized_contexts,
+                                 self.project_unauthorized_contexts,
                                  rule_name,
                                  self.controller.create,
                                  req, body=body)
+
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    def test_show_vnf(self, mock_vnf_by_id):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s' % uuidsentinel.instance_id)
+        mock_vnf_by_id.return_value = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=self.project_id)
+        rule_name = policies.VNFLCM % 'show'
+        self.common_policy_check(self.project_member_authorized_contexts,
+                                 self.project_member_unauthorized_contexts,
+                                 rule_name,
+                                 self.controller.show,
+                                 req, uuidsentinel.instance_id)
+
+    @mock.patch.object(objects.VnfInstanceList, "get_by_marker_filter")
+    def test_index_vnf(self, mock_vnf_list):
+        req = fake_request.HTTPRequest.blank('/vnf_instances')
+        vnf_instance_1 = fakes.return_vnf_instance()
+        vnf_instance_2 = fakes.return_vnf_instance()
+        mock_vnf_list.return_value = [vnf_instance_1, vnf_instance_2]
+        rule_name = policies.VNFLCM % 'index'
+        self.common_policy_check(self.project_authorized_contexts,
+                                 self.project_unauthorized_contexts,
+                                 rule_name,
+                                 self.controller.index,
+                                 req)
+
+    @mock.patch.object(objects.VNF, "vnf_index_list")
+    @mock.patch.object(objects.VnfInstanceList, "vnf_instance_list")
+    @mock.patch.object(objects.VnfPackageVnfd, 'get_vnf_package_vnfd')
+    @mock.patch.object(vnf_lcm_rpc.VNFLcmRPCAPI, "update")
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    def test_update_vnf(
+            self, mock_vnf_by_id, mock_update,
+            mock_vnf_package_vnf_get_vnf_package_vnfd,
+            mock_vnf_instance_list,
+            mock_vnf_index_list,):
+        mock_vnf_by_id.return_value = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=self.project_id)
+        mock_vnf_index_list.return_value = fakes._get_vnf()
+        mock_vnf_instance_list.return_value = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=self.project_id)
+        mock_vnf_package_vnf_get_vnf_package_vnfd.return_value =\
+            fakes.return_vnf_package_vnfd()
+
+        body = {"vnfInstanceName": "new_instance_name",
+                "vnfInstanceDescription": "new_instance_discription",
+                "vnfdId": "2c69a161-0000-4b0f-bcf8-391f8fc76600",
+                "vnfConfigurableProperties": {
+                    "test": "test_value"
+                },
+                "vnfcInfoModificationsDeleteIds": ["test1"],
+                "metadata": {"testkey": "test_value"},
+                "vimConnectionInfo": {"id": "testid"}}
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s' % uuidsentinel.instance_id)
+        rule_name = policies.VNFLCM % 'update_vnf'
+        self.common_policy_check(self.project_member_authorized_contexts,
+                                 self.project_member_unauthorized_contexts,
+                                 rule_name,
+                                 self.controller.update,
+                                 req, uuidsentinel.instance_id,
+                                 body=body)
+
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._get_vnf')
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._instantiate')
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    def test_instantiate_vnf(
+            self, mock_vnf_by_id, mock_instantiate, mock_vnf):
+        mock_vnf_by_id.return_value = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=self.project_id)
+        mock_vnf.return_value = utils.get_dummy_vnf()
+        mock_instantiate.return_value = {
+            'status': 202, 'Location': 'vnf status check link'}
+        body = {"flavourId": "simple",
+                "instantiationLevelId": "instantiation_level_1"}
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/instantiate' % uuidsentinel.instance_id)
+        rule_name = policies.VNFLCM % 'instantiate'
+        self.common_policy_check(self.project_member_authorized_contexts,
+                                 self.project_member_unauthorized_contexts,
+                                 rule_name,
+                                 self.controller.instantiate,
+                                 req, uuidsentinel.instance_id,
+                                 body=body)
+
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._get_vnf')
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._terminate')
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    def test_terminate_vnf(self, mock_vnf_by_id, mock_terminate, mock_vnf):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/terminate' % uuidsentinel.instance_id)
+        body = {'terminationType': 'GRACEFUL',
+                'gracefulTerminationTimeout': 10}
+        mock_vnf_by_id.return_value = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=self.project_id)
+        mock_vnf.return_value = utils.get_dummy_vnf()
+        mock_terminate.return_value = {
+            'status': 202, 'Location': 'vnf status check link'}
+        rule_name = policies.VNFLCM % 'terminate'
+        self.common_policy_check(self.project_member_authorized_contexts,
+                                 self.project_member_unauthorized_contexts,
+                                 rule_name,
+                                 self.controller.terminate,
+                                 req, uuidsentinel.instance_id,
+                                 body=body)
+
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._get_vnf')
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._delete')
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    def test_delete_vnf(self, mock_vnf_by_id, mock_delete, mock_vnf):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s' % uuidsentinel.instance_id)
+        mock_vnf_by_id.return_value = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=self.project_id)
+        mock_vnf.return_value = utils.get_dummy_vnf()
+        rule_name = policies.VNFLCM % 'delete'
+        self.common_policy_check(self.project_member_authorized_contexts,
+                                 self.project_member_unauthorized_contexts,
+                                 rule_name,
+                                 self.controller.delete,
+                                 req, uuidsentinel.instance_id)
+
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._get_vnf')
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._heal')
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    def test_heal_vnf(self, mock_vnf_by_id, mock_heal, mock_vnf):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/heal' % uuidsentinel.instance_id)
+        body = {'cause': 'healing'}
+        mock_vnf_by_id.return_value = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=self.project_id)
+        mock_vnf.return_value = utils.get_dummy_vnf()
+        rule_name = policies.VNFLCM % 'heal'
+        self.common_policy_check(self.project_member_authorized_contexts,
+                                 self.project_member_unauthorized_contexts,
+                                 rule_name,
+                                 self.controller.heal,
+                                 req, uuidsentinel.instance_id,
+                                 body=body)
+
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._scale')
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    def test_scale_vnf(self, mock_vnf_by_id, mock_scale):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/scale' % uuidsentinel.instance_id)
+        body = {
+            "type": "SCALE_OUT",
+            "aspectId": "SP1",
+            "numberOfSteps": 1,
+            "additionalParams": {
+                "test": "test_value"}}
+        mock_vnf_by_id.return_value = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=self.project_id)
+        rule_name = policies.VNFLCM % 'scale'
+        self.common_policy_check(self.project_member_authorized_contexts,
+                                 self.project_member_unauthorized_contexts,
+                                 rule_name,
+                                 self.controller.scale,
+                                 req, uuidsentinel.instance_id,
+                                 body=body)
+
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._get_rollback_vnf')
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    def test_rollback_vnf(self, mock_vnf_by_id, mock_rollback,
+            mock_lcm_by_id):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s/rollback' % uuidsentinel.instance_id)
+        mock_lcm_by_id.return_value = fakes.vnflcm_rollback_active()
+        mock_vnf_by_id.return_value = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=self.project_id)
+        rule_name = policies.VNFLCM % 'rollback'
+        self.common_policy_check(self.project_member_authorized_contexts,
+                                 self.project_member_unauthorized_contexts,
+                                 rule_name,
+                                 self.controller.rollback,
+                                 req, uuidsentinel.instance_id)
+
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    def test_cancel_vnf(self, mock_save_occ, mock_vnf, mock_vnf_by_id,
+                        mock_lcm_by_id):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s/cancel' % uuidsentinel.instance_id)
+        body = {'cancelMode': 'FORCEFUL'}
+        mock_lcm_by_id.return_value = fakes.vnflcm_cancel_insta()
+        mock_vnf_by_id.return_value = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=self.project_id)
+        rule_name = policies.VNFLCM % 'cancel'
+        self.common_policy_check(self.project_member_authorized_contexts,
+                                 self.project_member_unauthorized_contexts,
+                                 rule_name,
+                                 self.controller.cancel,
+                                 req, uuidsentinel.instance_id,
+                                 body=body)
+
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    @mock.patch.object(objects.VnfInstance, "save")
+    @mock.patch.object(objects.VnfLcmOpOcc, "save")
+    def test_fail_vnf(self, mock_save_occ, mock_vnf, mock_vnf_by_id,
+                      mock_lcm_by_id):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s/fail' % uuidsentinel.instance_id)
+        mock_lcm_by_id.return_value = fakes.vnflcm_fail_insta()
+        mock_vnf_by_id.return_value = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=self.project_id)
+        rule_name = policies.VNFLCM % 'fail'
+        self.common_policy_check(self.project_member_authorized_contexts,
+                                 self.project_member_unauthorized_contexts,
+                                 rule_name,
+                                 self.controller.fail,
+                                 req, uuidsentinel.instance_id)
+
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._get_vnf')
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    @mock.patch.object(controller.VnfLcmController, "_instantiate")
+    def test_retry_vnf(self, mock_instantiate, mock_vnf_by_id,
+                       mock_lcm_by_id, mock_vnf):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s/fail' % uuidsentinel.instance_id)
+        mock_lcm_by_id.return_value = fakes.vnflcm_op_occs_retry_data()
+        mock_vnf.return_value = utils.get_dummy_vnf()
+        mock_vnf_by_id.return_value = fakes.return_vnf_instance(
+            tenant_id=self.project_id)
+        rule_name = policies.VNFLCM % 'retry'
+        self.common_policy_check(self.project_member_authorized_contexts,
+                                 self.project_member_unauthorized_contexts,
+                                 rule_name,
+                                 self.controller.retry,
+                                 req, uuidsentinel.instance_id)
+
+    @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    def test_show_lcm_op_occs(self, mock_lcm_by_id):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_lcm_op_occs/%s' % uuidsentinel.instance_id)
+        mock_lcm_by_id.return_value = fakes.return_vnf_lcm_opoccs_obj()
+        rule_name = policies.VNFLCM % 'show_lcm_op_occs'
+        self.common_policy_check(self.project_authorized_contexts,
+                                 self.project_unauthorized_contexts,
+                                 rule_name,
+                                 self.controller.show_lcm_op_occs,
+                                 req, uuidsentinel.instance_id)
+
+    @mock.patch.object(objects.VnfLcmOpOccList, "get_by_marker_filter")
+    def test_list_lcm_op_occs(self, mock_op_occ_list):
+        req = fake_request.HTTPRequest.blank(
+            '/vnflcm/v1/vnf_lcm_op_occs')
+        rule_name = policies.VNFLCM % 'list_lcm_op_occs'
+        self.common_policy_check(self.project_authorized_contexts,
+                                 self.project_unauthorized_contexts,
+                                 rule_name,
+                                 self.controller.list_lcm_op_occs,
+                                 req)
+
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._get_vnf')
+    @mock.patch('tacker.api.vnflcm.v1.controller.'
+                'VnfLcmController._change_ext_conn')
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    def test_change_ext_conn_vnf(self, mock_vnf_by_id,
+                                 mock_change_ext_conn, mock_vnf):
+        req = fake_request.HTTPRequest.blank(
+            '/vnflcm/v1/vnf_instances/%s/change_ext_conn' %
+            uuidsentinel.instance_id)
+        body = fakes.get_change_ext_conn_request_body()
+        mock_vnf_by_id.return_value = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=self.project_id)
+        mock_vnf.return_value = utils.get_dummy_vnf()
+        rule_name = policies.VNFLCM % 'change_ext_conn'
+        self.common_policy_check(self.project_member_authorized_contexts,
+                                 self.project_member_unauthorized_contexts,
+                                 rule_name,
+                                 self.controller.change_ext_conn,
+                                 req, uuidsentinel.instance_id,
+                                 body=body)
