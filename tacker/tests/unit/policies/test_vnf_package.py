@@ -57,20 +57,38 @@ class VNFPackagePolicyTest(base_test.BasePolicyTest):
         ]
         self.project_unauthorized_contexts = []
 
-        # Admin or any user in same project will be allowed to get,
-        # instantiate, terminate etc operations of VNF package of
-        # their project.
+        # Admin or any user in same project will be allowed to
+        # upload package content, delete, patch VNF package in their
+        # project.
         self.project_member_authorized_contexts = [
             self.legacy_admin_context, self.project_admin_context,
             self.project_member_context, self.project_reader_context,
             self.project_foo_context
         ]
-        # User from other project will not be allowed to get or perform
-        # the other project's VNF package operations.
+        # User from other project will not be allowed to upload
+        # package content,delete, patch the other project's VNF package.
         self.project_member_unauthorized_contexts = [
             self.other_project_member_context,
             self.other_project_reader_context
         ]
+
+        # Admin or any user in same project will be allowed to get,
+        # VNF package.
+        self.project_reader_authorized_contexts = (
+            self.project_member_authorized_contexts)
+        # User from other project will not be allowed to get
+        # the other project's VNF package.
+        self.project_reader_unauthorized_contexts = (
+            self.project_member_unauthorized_contexts)
+
+        # Below user's context will be allowed to list VNF package
+        self.get_authorized_contexts = [
+            self.legacy_admin_context, self.project_admin_context,
+            self.project_member_context, self.project_reader_context,
+            self.project_foo_context, self.other_project_member_context,
+            self.other_project_reader_context
+        ]
+        self.get_unauthorized_contexts = []
 
     @mock.patch.object(vnf_package, '_vnf_package_create')
     @mock.patch.object(vnf_package.VnfPackage, '_from_db_object')
@@ -95,8 +113,8 @@ class VNFPackagePolicyTest(base_test.BasePolicyTest):
             vnf_package_updates={'tenant_id': self.project_id})
         mock_sw_image_by_id.return_value = fakes.return_software_image()
         rule_name = policies.VNFPKGM % 'show'
-        self.common_policy_check(self.project_member_authorized_contexts,
-                                 self.project_member_unauthorized_contexts,
+        self.common_policy_check(self.project_reader_authorized_contexts,
+                                 self.project_reader_unauthorized_contexts,
                                  rule_name,
                                  self.controller.show,
                                  req, constants.UUID)
@@ -106,8 +124,8 @@ class VNFPackagePolicyTest(base_test.BasePolicyTest):
             self, mock_vnf_list):
         req = fake_request.HTTPRequest.blank('/vnf_packages/')
         rule_name = policies.VNFPKGM % 'index'
-        self.common_policy_check(self.project_authorized_contexts,
-                                 self.project_unauthorized_contexts,
+        self.common_policy_check(self.get_authorized_contexts,
+                                 self.get_unauthorized_contexts,
                                  rule_name,
                                  self.controller.index,
                                  req)
@@ -149,8 +167,8 @@ class VNFPackagePolicyTest(base_test.BasePolicyTest):
         mock_get_range.return_value = "10-20, 21-30"
         mock_download.return_value = "Response"
         rule_name = policies.VNFPKGM % 'fetch_package_content'
-        self.common_policy_check(self.project_member_authorized_contexts,
-                                 self.project_member_unauthorized_contexts,
+        self.common_policy_check(self.project_reader_authorized_contexts,
+                                 self.project_reader_unauthorized_contexts,
                                  rule_name,
                                  self.controller.fetch_vnf_package_content,
                                  req, constants.UUID)
@@ -274,8 +292,8 @@ class VNFPackagePolicyTest(base_test.BasePolicyTest):
         fake_vnfd_data = fakes.return_vnfd_data(csar_without_tosca_meta=True)
         mock_get_vnf_package_vnfd.return_value = fake_vnfd_data
         rule_name = policies.VNFPKGM % 'get_vnf_package_vnfd'
-        self.common_policy_check(self.project_member_authorized_contexts,
-                                 self.project_member_unauthorized_contexts,
+        self.common_policy_check(self.project_reader_authorized_contexts,
+                                 self.project_reader_unauthorized_contexts,
                                  rule_name,
                                  self.controller.get_vnf_package_vnfd,
                                  req, constants.UUID)
@@ -302,8 +320,8 @@ class VNFPackagePolicyTest(base_test.BasePolicyTest):
             data = f.read()
         mock_download_vnf_artifact.return_value = data
         rule_name = policies.VNFPKGM % 'fetch_artifact'
-        self.common_policy_check(self.project_member_authorized_contexts,
-                                 self.project_member_unauthorized_contexts,
+        self.common_policy_check(self.project_reader_authorized_contexts,
+                                 self.project_reader_unauthorized_contexts,
                                  rule_name,
                                  self.controller.fetch_vnf_package_artifacts,
                                  req, constants.UUID, absolute_artifact_path)
@@ -343,9 +361,155 @@ class VNFPackageScopeTypePolicyTest(VNFPackagePolicyTest):
             self.project_foo_context
         ]
         # With scope enabled, system scoped users will not be allowed
-        # to get, detele etc operations of VNF Package.
+        # to upload content, delete, patch VNF Package.
         self.project_member_unauthorized_contexts = [
             self.system_admin_context, self.system_member_context,
             self.system_reader_context, self.system_foo_context,
             self.other_project_member_context,
             self.other_project_reader_context]
+
+        self.get_authorized_contexts = [
+            self.legacy_admin_context, self.project_admin_context,
+            self.project_member_context, self.project_reader_context,
+            self.project_foo_context, self.other_project_member_context,
+            self.other_project_reader_context
+        ]
+        # With scope enabled, system scoped users will not be allowed
+        # to list VNF package
+        self.get_unauthorized_contexts = [
+            self.system_admin_context, self.system_member_context,
+            self.system_reader_context, self.system_foo_context,
+        ]
+
+
+class VNFPackageNewDefaultsPolicyTest(VNFPackagePolicyTest):
+    """Test VNF Package APIs policies with new defaults enabled
+
+    This test class enable the new defaults means no legacy old rules
+    and check how permission level looks like.
+    """
+
+    enforce_new_defaults = True
+
+    def setUp(self):
+        super(VNFPackageNewDefaultsPolicyTest, self).setUp()
+
+        # In new defaults, admin or member roles users will be allowed
+        # to create VNF package in their project.
+        # Project reader will not be able to create VNF package.
+        self.project_authorized_contexts = [
+            self.legacy_admin_context, self.project_admin_context,
+            self.project_member_context, self.other_project_member_context,
+        ]
+        # In new defaults, non admin or non member role (Project reader)
+        # user will not be able to create VNF package.
+        self.project_unauthorized_contexts = [
+            self.project_reader_context, self.project_foo_context,
+            self.other_project_reader_context]
+
+        # In new defaults, all admin, project members will be allowed to
+        # upload content, delete, patch VNF of their project.
+        self.project_member_authorized_contexts = [
+            self.legacy_admin_context, self.project_admin_context,
+            self.project_member_context
+        ]
+        # In new defaults, Project reader or any other non admin|member
+        # role (say foo role) will not be allowed to upload content,
+        # delete, patch VNF package.
+        self.project_member_unauthorized_contexts = [
+            self.project_reader_context, self.project_foo_context,
+            self.other_project_member_context,
+            self.other_project_reader_context
+        ]
+
+        # In new defaults, Project reader also can get VNF package.
+        self.project_reader_authorized_contexts = [
+            self.legacy_admin_context, self.project_admin_context,
+            self.project_member_context,
+            self.project_reader_context
+        ]
+        # In new defaults, non admin|member|reader role (say foo role)
+        # will not be able to get VNF package.
+        self.project_reader_unauthorized_contexts = [
+            self.project_foo_context,
+            self.other_project_member_context,
+            self.other_project_reader_context
+        ]
+
+        self.get_authorized_contexts = [
+            self.legacy_admin_context, self.project_admin_context,
+            self.project_member_context, self.project_reader_context,
+            self.other_project_member_context,
+            self.other_project_reader_context
+        ]
+        # In new defaults, project random role like foo will not
+        # be allowed to list the VNF package.
+        self.get_unauthorized_contexts = [
+            self.project_foo_context
+        ]
+
+
+class VNFPackageNewDefaultsWithScopePolicyTest(
+        VNFPackageNewDefaultsPolicyTest):
+    """Test VNF Package APIs policies with new defaults rules and scope enabled
+
+    This means scope enabled and no legacy old rules. This is the end goal
+    when operators will enable scope and new defaults.
+    """
+
+    def setUp(self):
+        super(VNFPackageNewDefaultsWithScopePolicyTest, self).setUp()
+        cfg.CONF.set_override('enforce_scope', True,
+                              group='oslo_policy')
+
+        # With scope enable and no legacy rule, only project admin/member
+        # will be able to create VNF Package in their project.
+        self.project_authorized_contexts = [
+            self.legacy_admin_context, self.project_admin_context,
+            self.project_member_context, self.other_project_member_context
+        ]
+        # System scoped users will not be allowed.
+        self.project_unauthorized_contexts = [
+            self.system_admin_context, self.system_member_context,
+            self.system_reader_context, self.system_foo_context,
+            self.project_reader_context, self.project_foo_context,
+            self.other_project_reader_context]
+
+        self.project_member_authorized_contexts = [
+            self.legacy_admin_context, self.project_admin_context,
+            self.project_member_context,
+        ]
+        # System scoped users will not be allowed.
+        self.project_member_unauthorized_contexts = [
+            self.system_admin_context, self.system_member_context,
+            self.system_reader_context, self.system_foo_context,
+            self.project_reader_context, self.project_foo_context,
+            self.other_project_member_context,
+            self.other_project_reader_context]
+
+        self.project_reader_authorized_contexts = [
+            self.legacy_admin_context, self.project_admin_context,
+            self.project_member_context,
+            self.project_reader_context
+        ]
+        # System scoped users will not be allowed.
+        self.project_reader_unauthorized_contexts = [
+            self.system_admin_context, self.system_member_context,
+            self.system_reader_context, self.system_foo_context,
+            self.project_foo_context,
+            self.other_project_member_context,
+            self.other_project_reader_context
+        ]
+
+        self.get_authorized_contexts = [
+            self.legacy_admin_context, self.project_admin_context,
+            self.project_member_context, self.project_reader_context,
+            self.other_project_member_context,
+            self.other_project_reader_context
+        ]
+        # With scope enabled, system scoped users will not be allowed
+        self.get_unauthorized_contexts = [
+            self.project_foo_context, self.system_admin_context,
+            self.system_member_context, self.system_reader_context,
+            self.system_foo_context,
+        ]
