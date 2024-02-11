@@ -31,7 +31,8 @@ rules = [
                 'method': 'POST',
                 'path': '/vnf_packages'
             }
-        ]),
+        ],
+        scope_types=['project']),
     policy.DocumentedRuleDefault(
         name=VNFPKGM % 'show',
         check_str=base.RULE_ADMIN_OR_OWNER,
@@ -41,7 +42,8 @@ rules = [
                 'method': 'GET',
                 'path': '/vnf_packages/{vnf_package_id}'
             }
-        ]),
+        ],
+        scope_types=['project']),
     policy.DocumentedRuleDefault(
         name=VNFPKGM % 'index',
         check_str=base.RULE_ADMIN_OR_OWNER,
@@ -51,7 +53,8 @@ rules = [
                 'method': 'GET',
                 'path': '/vnf_packages/'
             }
-        ]),
+        ],
+        scope_types=['project']),
     policy.DocumentedRuleDefault(
         name=VNFPKGM % 'delete',
         check_str=base.RULE_ADMIN_OR_OWNER,
@@ -61,7 +64,8 @@ rules = [
                 'method': 'DELETE',
                 'path': '/vnf_packages/{vnf_package_id}'
             }
-        ]),
+        ],
+        scope_types=['project']),
     policy.DocumentedRuleDefault(
         name=VNFPKGM % 'fetch_package_content',
         check_str=base.RULE_ADMIN_OR_OWNER,
@@ -72,7 +76,8 @@ rules = [
                 'path': '/vnf_packages/{vnf_package_id}/'
                         'package_content'
             }
-        ]),
+        ],
+        scope_types=['project']),
     policy.DocumentedRuleDefault(
         name=VNFPKGM % 'upload_package_content',
         check_str=base.RULE_ADMIN_OR_OWNER,
@@ -83,7 +88,8 @@ rules = [
                 'path': '/vnf_packages/{vnf_package_id}/'
                         'package_content'
             }
-        ]),
+        ],
+        scope_types=['project']),
     policy.DocumentedRuleDefault(
         name=VNFPKGM % 'upload_from_uri',
         check_str=base.RULE_ADMIN_OR_OWNER,
@@ -94,7 +100,8 @@ rules = [
                 'path': '/vnf_packages/{vnf_package_id}/package_content/'
                         'upload_from_uri'
             }
-        ]),
+        ],
+        scope_types=['project']),
     policy.DocumentedRuleDefault(
         name=VNFPKGM % 'patch',
         check_str=base.RULE_ADMIN_OR_OWNER,
@@ -104,7 +111,8 @@ rules = [
                 'method': 'PATCH',
                 'path': '/vnf_packages/{vnf_package_id}'
             }
-        ]),
+        ],
+        scope_types=['project']),
     policy.DocumentedRuleDefault(
         name=VNFPKGM % 'get_vnf_package_vnfd',
         check_str=base.RULE_ADMIN_OR_OWNER,
@@ -114,7 +122,8 @@ rules = [
                 'method': 'GET',
                 'path': '/vnf_packages/{vnf_package_id}/vnfd'
             }
-        ]),
+        ],
+        scope_types=['project']),
     policy.DocumentedRuleDefault(
         name=VNFPKGM % 'fetch_artifact',
         check_str=base.RULE_ADMIN_OR_OWNER,
@@ -124,7 +133,8 @@ rules = [
                 'method': 'GET',
                 'path': '/vnf_packages/{vnfPkgId}/artifacts/{artifactPath}'
             }
-        ]),
+        ],
+        scope_types=['project']),
 ]
 
 
