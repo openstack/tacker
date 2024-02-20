@@ -233,7 +233,7 @@ def copy_csar_files(fake_csar_path, csar_dir_name,
     :param fake_csar_path: a temporary directory in which csar data will be
                            copied.
     :param csar_dir_name: the relative path of csar directory with respect to
-                          './tacker/tests/etc/samples/etsi/nfv' directory.
+                          './samples/tests/etc/samples/etsi/nfv' directory.
                           for ex. 'vnfpkgm1'.
     :param csar_without_tosca_meta: when set to 'True', it will only copy root
                                     level yaml file and image file.

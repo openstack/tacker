@@ -15,7 +15,7 @@
 #  --os-auth-url
 #  --config-file
 
-conf_dir=/opt/stack/tacker/tacker/tests/etc/samples
+conf_dir=/opt/stack/tacker/samples/tests/etc/samples
 
 register_vim() {
     openstack vim register \

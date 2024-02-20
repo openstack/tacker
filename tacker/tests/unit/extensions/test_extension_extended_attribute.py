@@ -44,7 +44,7 @@ class ExtensionExtendedAttributeTestCase(base.BaseTestCase):
             "ExtensionExtendedAttributeTestPlugin"
         )
 
-        # point config file to: tacker/tests/etc/tacker.conf.test
+        # point config file to: samples/tests/etc/tacker.conf.test
         self.config_parse()
 
         self.setup_coreplugin(plugin)
