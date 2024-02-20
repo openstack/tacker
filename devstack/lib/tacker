@@ -252,12 +252,7 @@ function configure_tacker {
     _create_tacker_data_dirs
 
     # Format logging
-    if [ "$LOG_COLOR" == "True" ] && [ "$SYSLOG" == "False" ]; then
-        setup_colorized_logging $TACKER_CONF DEFAULT project_id
-    else
-        # Show user_name and project_name by default like in nova
-        iniset $TACKER_CONF DEFAULT logging_context_format_string "%(asctime)s.%(msecs)03d %(levelname)s %(name)s [%(request_id)s %(user_name)s %(project_name)s] %(instance)s%(message)s"
-    fi
+    setup_logging $TACKER_CONF
 
     # server
     TACKER_API_PASTE_FILE=$TACKER_CONF_DIR/api-paste.ini
