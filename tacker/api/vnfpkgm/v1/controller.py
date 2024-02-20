@@ -104,8 +104,6 @@ class VnfPkgmController(wsgi.Controller):
     @wsgi.expected_errors((http_client.FORBIDDEN, http_client.NOT_FOUND))
     def show(self, request, id):
         context = request.environ['tacker.context']
-        if not CONF.oslo_policy.enhanced_tacker_policy:
-            context.can(vnf_package_policies.VNFPKGM % 'show')
 
         # check if id is of type uuid format
         if not uuidutils.is_uuid_like(id):
@@ -119,6 +117,9 @@ class VnfPkgmController(wsgi.Controller):
             if CONF.oslo_policy.enhanced_tacker_policy:
                 context.can(vnf_package_policies.VNFPKGM % 'show',
                             target=self._get_policy_target(vnf_package))
+            else:
+                context.can(vnf_package_policies.VNFPKGM % 'show',
+                            target={'project_id': vnf_package.tenant_id})
         except exceptions.VnfPackageNotFound:
             msg = _("Can not find requested vnf package: %s") % id
             raise webob.exc.HTTPNotFound(explanation=msg)
@@ -229,13 +230,14 @@ class VnfPkgmController(wsgi.Controller):
                            http_client.CONFLICT))
     def delete(self, request, id):
         context = request.environ['tacker.context']
-        if not CONF.oslo_policy.enhanced_tacker_policy:
-            context.can(vnf_package_policies.VNFPKGM % 'delete')
 
         vnf_package = self._get_vnf_package(id, request)
         if CONF.oslo_policy.enhanced_tacker_policy:
             context.can(vnf_package_policies.VNFPKGM % 'delete',
                         target=self._get_policy_target(vnf_package))
+        else:
+            context.can(vnf_package_policies.VNFPKGM % 'delete',
+                        target={'project_id': vnf_package.tenant_id})
 
         if (vnf_package.operational_state ==
                 fields.PackageOperationalStateType.ENABLED or
@@ -271,14 +273,14 @@ class VnfPkgmController(wsgi.Controller):
                            http_client.REQUESTED_RANGE_NOT_SATISFIABLE))
     def fetch_vnf_package_content(self, request, id):
         context = request.environ['tacker.context']
-        if not CONF.oslo_policy.enhanced_tacker_policy:
-            context.can(vnf_package_policies.VNFPKGM % 'fetch_package_content')
 
         vnf_package = self._get_vnf_package(id, request)
         if CONF.oslo_policy.enhanced_tacker_policy:
             context.can(vnf_package_policies.VNFPKGM % 'fetch_package_content',
                         target=self._get_policy_target(vnf_package))
-
+        else:
+            context.can(vnf_package_policies.VNFPKGM % 'fetch_package_content',
+                        target={'project_id': vnf_package.tenant_id})
         if vnf_package.onboarding_state != \
            fields.PackageOnboardingStateType.ONBOARDED:
             msg = _("VNF Package %(id)s onboarding state "
@@ -398,9 +400,6 @@ class VnfPkgmController(wsgi.Controller):
                            http_client.CONFLICT))
     def upload_vnf_package_content(self, request, id, body):
         context = request.environ['tacker.context']
-        if not CONF.oslo_policy.enhanced_tacker_policy:
-            context.can(
-                vnf_package_policies.VNFPKGM % 'upload_package_content')
 
         # check if id is of type uuid format
         if not uuidutils.is_uuid_like(id):
@@ -410,9 +409,15 @@ class VnfPkgmController(wsgi.Controller):
         try:
             vnf_package = vnf_package_obj.VnfPackage.get_by_id(
                 request.context, id)
+            if not CONF.oslo_policy.enhanced_tacker_policy:
+                context.can(
+                    vnf_package_policies.VNFPKGM % 'upload_package_content',
+                    target={'project_id': vnf_package.tenant_id})
         except exceptions.VnfPackageNotFound:
             msg = _("Can not find requested vnf package: %s") % id
             return self._make_problem_detail('Not Found', msg, 404)
+        except exceptions.PolicyNotAuthorized:
+            raise
         except Exception as e:
             return self._make_problem_detail(
                 'Internal Server Error', str(e), 500)
@@ -495,7 +500,6 @@ class VnfPkgmController(wsgi.Controller):
     def upload_vnf_package_from_uri(self, request, id, body):
 
         context = request.environ['tacker.context']
-        context.can(vnf_package_policies.VNFPKGM % 'upload_from_uri')
 
         url = body['addressInformation']
         if not utils.is_valid_url(url):
@@ -503,6 +507,10 @@ class VnfPkgmController(wsgi.Controller):
             raise webob.exc.HTTPBadRequest(explanation=msg)
 
         vnf_package = self._get_vnf_package(id, request)
+        if not CONF.oslo_policy.enhanced_tacker_policy:
+            context.can(
+                vnf_package_policies.VNFPKGM % 'upload_from_uri',
+                target={'project_id': vnf_package.tenant_id})
 
         if vnf_package.onboarding_state != \
                 fields.PackageOnboardingStateType.CREATED:
@@ -528,13 +536,16 @@ class VnfPkgmController(wsgi.Controller):
     @validation.schema(vnf_packages.patch)
     def patch(self, request, id, body):
         context = request.environ['tacker.context']
-        if not CONF.oslo_policy.enhanced_tacker_policy:
-            context.can(vnf_package_policies.VNFPKGM % 'patch')
 
         old_vnf_package = self._get_vnf_package(id, request)
         if CONF.oslo_policy.enhanced_tacker_policy:
             context.can(vnf_package_policies.VNFPKGM % 'patch',
                         target=self._get_policy_target(old_vnf_package))
+        else:
+            context.can(
+                vnf_package_policies.VNFPKGM % 'patch',
+                target={'project_id': old_vnf_package.tenant_id})
+
         vnf_package = old_vnf_package.obj_clone()
 
         user_data = body.get('userDefinedData')
@@ -586,8 +597,6 @@ class VnfPkgmController(wsgi.Controller):
                            http_client.INTERNAL_SERVER_ERROR))
     def get_vnf_package_vnfd(self, request, id):
         context = request.environ['tacker.context']
-        if not CONF.oslo_policy.enhanced_tacker_policy:
-            context.can(vnf_package_policies.VNFPKGM % 'get_vnf_package_vnfd')
 
         valid_accept_headers = ['application/zip', 'text/plain']
         accept_headers = request.headers['Accept'].split(',')
@@ -604,7 +613,10 @@ class VnfPkgmController(wsgi.Controller):
         if CONF.oslo_policy.enhanced_tacker_policy:
             context.can(vnf_package_policies.VNFPKGM % 'get_vnf_package_vnfd',
                         target=self._get_policy_target(vnf_package))
-
+        else:
+            context.can(
+                vnf_package_policies.VNFPKGM % 'get_vnf_package_vnfd',
+                target={'project_id': vnf_package.tenant_id})
         if vnf_package.onboarding_state != \
                 fields.PackageOnboardingStateType.ONBOARDED:
             msg = _("VNF Package %(id)s state is not "
@@ -646,9 +658,6 @@ class VnfPkgmController(wsgi.Controller):
                            http_client.REQUESTED_RANGE_NOT_SATISFIABLE))
     def fetch_vnf_package_artifacts(self, request, id, artifact_path):
         context = request.environ['tacker.context']
-        # get policy
-        if not CONF.oslo_policy.enhanced_tacker_policy:
-            context.can(vnf_package_policies.VNFPKGM % 'fetch_artifact')
 
         # get vnf_package
         if not uuidutils.is_uuid_like(id):
@@ -663,6 +672,11 @@ class VnfPkgmController(wsgi.Controller):
                 # get policy
                 context.can(vnf_package_policies.VNFPKGM % 'fetch_artifact',
                             target=self._get_policy_target(vnf_package))
+            else:
+                context.can(
+                    vnf_package_policies.VNFPKGM % 'fetch_artifact',
+                    target={'project_id': vnf_package.tenant_id})
+
         except exceptions.VnfPackageNotFound:
             msg = _("Can not find requested vnf package: %s") % id
             raise webob.exc.HTTPNotFound(explanation=msg)
