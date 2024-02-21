@@ -62,8 +62,8 @@ class ConductorV2(object):
         self.vnfpm_driver = vnfpm_driver_v2.VnfPmDriverV2()
         self.endpoint = CONF.v2_vnfm.endpoint
         self.nfvo_client = nfvo_client.NfvoClient()
-        self.prom_driver = pp_drv.PrometheusPluginDriver.instance()
-        self.sn_driver = sdrv.ServerNotificationDriver.instance()
+        self.prom_driver = pp_drv.PrometheusPluginDriver(self)
+        self.sn_driver = sdrv.ServerNotificationDriver(self)
         self._change_lcm_op_state()
 
         self._periodic_call()
@@ -119,10 +119,10 @@ class ConductorV2(object):
     def start_lcm_op(self, context, lcmocc_id):
         lcmocc = lcmocc_utils.get_lcmocc(context, lcmocc_id)
 
-        self._start_lcm_op(context, lcmocc)
+        self.start_lcm_op_internal(context, lcmocc)
 
     @coordinate.lock_vnf_instance('{lcmocc.vnfInstanceId}', delay=True)
-    def _start_lcm_op(self, context, lcmocc):
+    def start_lcm_op_internal(self, context, lcmocc):
         # just consistency check
         if lcmocc.operationState != fields.LcmOperationStateType.STARTING:
             LOG.error("VnfLcmOpOcc unexpected operationState.")

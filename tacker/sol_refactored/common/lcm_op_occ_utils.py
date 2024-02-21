@@ -612,3 +612,21 @@ def check_lcmocc_in_progress(context, inst_id):
 def update_lcmocc_status(lcmocc, op_state):
     lcmocc.operationState = op_state
     lcmocc.stateEnteredTime = datetime.utcnow()
+
+
+def new_lcmocc(inst_id, operation, req_body,
+               op_state=fields.LcmOperationStateType.STARTING,
+               auto_invocation=False):
+    now = datetime.utcnow()
+    lcmocc = objects.VnfLcmOpOccV2(
+        id=uuidutils.generate_uuid(),
+        operationState=op_state,
+        stateEnteredTime=now,
+        startTime=now,
+        vnfInstanceId=inst_id,
+        operation=operation,
+        isAutomaticInvocation=auto_invocation,
+        isCancelPending=False,
+        operationParams=req_body)
+
+    return lcmocc

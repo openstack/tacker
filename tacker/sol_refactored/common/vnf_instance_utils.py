@@ -112,3 +112,47 @@ def check_metadata_format(metadata):
             raise sol_ex.SolValidationError(
                 detail="Duplicated vnfcInfo ids found in "
                 "metadata['VDU_VNFc_mapping'].")
+
+
+def _get_current_scale_level(inst, aspect_id):
+    if (inst.obj_attr_is_set('instantiatedVnfInfo') and
+            inst.instantiatedVnfInfo.obj_attr_is_set('scaleStatus')):
+        for scale_info in inst.instantiatedVnfInfo.scaleStatus:
+            if scale_info.aspectId == aspect_id:
+                return scale_info.scaleLevel
+
+
+def _get_max_scale_level(inst, aspect_id):
+    if (inst.obj_attr_is_set('instantiatedVnfInfo') and
+            inst.instantiatedVnfInfo.obj_attr_is_set('maxScaleLevels')):
+        for scale_info in inst.instantiatedVnfInfo.maxScaleLevels:
+            if scale_info.aspectId == aspect_id:
+                return scale_info.scaleLevel
+
+
+def check_scale_level(inst, aspect_id, scale_type, num_steps):
+    orig_num_steps = num_steps
+
+    scale_level = _get_current_scale_level(inst, aspect_id)
+    max_scale_level = _get_max_scale_level(inst, aspect_id)
+    if scale_level is None or max_scale_level is None:
+        raise sol_ex.InvalidScaleAspectId(aspect_id=aspect_id)
+
+    if scale_type == 'SCALE_IN':
+        num_steps *= -1
+    scale_level += num_steps
+    if scale_level < 0 or scale_level > max_scale_level:
+        raise sol_ex.InvalidScaleNumberOfSteps(
+            num_steps=orig_num_steps)
+
+
+def check_vnfc_ids(inst, vnfc_ids):
+    inst_vnfc_ids = []
+    if (inst.obj_attr_is_set('instantiatedVnfInfo') and
+            inst.instantiatedVnfInfo.obj_attr_is_set('vnfcInfo')):
+        inst_vnfc_ids = [vnfc.id for vnfc in inst.instantiatedVnfInfo.vnfcInfo]
+
+    for req_vnfc_id in vnfc_ids:
+        if req_vnfc_id not in inst_vnfc_ids:
+            raise sol_ex.SolValidationError(
+                detail="vnfcInstanceId(%s) does not exist." % req_vnfc_id)
