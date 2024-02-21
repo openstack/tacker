@@ -145,5 +145,5 @@ class TestVnfPmDriverV2(base.BaseTestCase):
         mock_update.return_value = None
         result = VnfPmDriverV2()._update_job_reports(
             context=self.context, job_id='pm_job_1', report='report',
-            timestamp='timestamp')
+            timestamp='timestamp', endpoint='endpoint')
         self.assertEqual('pm_job_1', result.id)

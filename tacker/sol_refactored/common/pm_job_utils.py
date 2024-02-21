@@ -26,11 +26,11 @@ LOG = logging.getLogger(__name__)
 CONF = config.CONF
 
 
-def update_report(context, job_id, report, timestamp):
+def update_report(context, job_id, report, timestamp, endpoint):
     # update reports in the pmJob
     pm_job = get_pm_job(context, job_id)
 
-    job_report = _gen_job_report(job_id, report, timestamp)
+    job_report = _gen_job_report(job_id, report, timestamp, endpoint)
 
     if pm_job.obj_attr_is_set('reports'):
         pm_job.reports.append(job_report)
@@ -40,9 +40,9 @@ def update_report(context, job_id, report, timestamp):
     return pm_job
 
 
-def _gen_job_report(job_id, report, timestamp):
+def _gen_job_report(job_id, report, timestamp, endpoint):
     return objects.VnfPmJobV2_Reports(
-        href=f'/vnfpm/v2/pm_jobs/{job_id}/reports/{report.id}',
+        href=f'{endpoint}/vnfpm/v2/pm_jobs/{job_id}/reports/{report.id}',
         readyTime=timestamp
     )
 

@@ -26,7 +26,7 @@ class PmJobModificationsV2(base.TackerObject, base.TackerObjectDictCompat):
     VERSION = '1.0'
 
     fields = {
-        'callbackUri': fields.StringField(nullable=False),
+        'callbackUri': fields.StringField(nullable=True),
         'authentication': fields.ObjectField(
-            'SubscriptionAuthentication', nullable=False),
+            'SubscriptionAuthentication', nullable=True),
     }

@@ -244,9 +244,9 @@ class VnfPmControllerV2(sol_wsgi.SolAPIController):
         with context.session.begin(subtransactions=True):
             pm_job.update(context)
 
-        pm_job_modifications = objects.PmJobModificationsV2(
-            callbackUri=pm_job.callbackUri,
-        )
+        pm_job_modifications = objects.PmJobModificationsV2()
+        if body.get("callbackUri"):
+            setattr(pm_job_modifications, "callbackUri", body["callbackUri"])
         resp = pm_job_modifications.to_dict()
 
         return sol_wsgi.SolResponse(200, resp,
@@ -418,8 +418,10 @@ class VnfPmControllerV2(sol_wsgi.SolAPIController):
         with context.session.begin(subtransactions=True):
             pm_threshold.update(context)
 
-        pm_threshold_modifications = objects.ThresholdModificationsV2(
-            callbackUri=pm_threshold.callbackUri)
+        pm_threshold_modifications = objects.ThresholdModificationsV2()
+        if body.get("callbackUri"):
+            setattr(
+                pm_threshold_modifications, "callbackUri", body["callbackUri"])
         resp = pm_threshold_modifications.to_dict()
         return sol_wsgi.SolResponse(200, resp,
                                     version=api_version.CURRENT_PM_VERSION)
