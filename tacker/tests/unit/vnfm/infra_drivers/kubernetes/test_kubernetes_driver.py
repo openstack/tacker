@@ -39,10 +39,8 @@ from tacker.tests.unit.vnfm.infra_drivers.openstack.fixture_data import \
     fixture_data_utils as fd_utils
 from tacker.tests import utils as test_utils
 from tacker.vnflcm import utils as vnflcm_utils
-from tacker.vnfm.infra_drivers.kubernetes.k8s import tosca_kube_object
 from tacker.vnfm.infra_drivers.kubernetes.k8s import translate_outputs
 from tacker.vnfm.infra_drivers.kubernetes import kubernetes_driver
-from tacker.vnfm.infra_drivers.kubernetes import translate_template
 from unittest import mock
 
 
@@ -510,23 +508,6 @@ class TestKubernetes(base.TestCase):
             stack=self.vnf_instance.id
         )
         self.assertEqual(msg, exc.format_message())
-
-    @mock.patch.object(translate_template.TOSCAToKubernetes,
-                       'deploy_kubernetes_objects')
-    def test_create(self, mock_deploy_kubernetes_objects):
-        auth_attr = fakes.fake_auth_attr()
-        vnf = {
-            'vnfd': {
-                'attributes': {
-                    'vnfd': {
-                        'tosca_definitions_version': 'tosca_simple_yaml_1_0'}
-                }}}
-        plugin = ""
-        mock_deploy_kubernetes_objects.return_value = \
-            tosca_kube_object.ToscaKubeObject(
-                namespace='namespace').namespace
-        result = self.kubernetes.create(plugin, self.context, vnf, auth_attr)
-        self.assertEqual("namespace", result)
 
     @mock.patch.object(client.CoreV1Api, 'read_namespaced_service')
     @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
@@ -1775,144 +1756,6 @@ class TestKubernetes(base.TestCase):
             resource_type=resource_type)
         mock_read_namespaced_pod.assert_called()
 
-    @mock.patch.object(client.AppsV1Api, 'delete_namespaced_deployment')
-    @mock.patch.object(client.AutoscalingV1Api,
-            'delete_namespaced_horizontal_pod_autoscaler')
-    @mock.patch.object(client.CoreV1Api, 'delete_namespaced_service')
-    @mock.patch.object(client.CoreV1Api, 'delete_namespaced_config_map')
-    @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
-    def test_delete_legacy(self, mock_vnf_resource_list,
-                           mock_delete_namespaced_config_map,
-                           mock_delete_namespaced_service,
-                           mock_delete_namespaced_horizontal_pod_autoscaler,
-                           mock_delete_namespaced_deployment):
-        vnf_id = "fake_namespace,fake_name"
-        mock_vnf_resource_list.return_value = list()
-        mock_delete_namespaced_config_map.return_value = client.V1Status()
-        mock_delete_namespaced_service.return_value = client.V1Status()
-        mock_delete_namespaced_horizontal_pod_autoscaler.return_value = \
-            client.V1Status()
-        mock_delete_namespaced_deployment.return_value = client.V1Status()
-        self.kubernetes.delete(plugin=None, context=self.context,
-                               vnf_id=vnf_id,
-                               auth_attr=utils.get_vim_auth_obj(),
-                               vnf_instance=None,
-                               terminate_vnf_req=None)
-        mock_delete_namespaced_config_map.assert_called_once()
-        mock_delete_namespaced_horizontal_pod_autoscaler.assert_called_once()
-        mock_delete_namespaced_service.assert_called_once()
-        mock_delete_namespaced_config_map.assert_called_once()
-
-    @mock.patch.object(client.AppsV1Api, 'delete_namespaced_deployment')
-    @mock.patch.object(client.AutoscalingV1Api,
-            'delete_namespaced_horizontal_pod_autoscaler')
-    @mock.patch.object(client.CoreV1Api, 'delete_namespaced_service')
-    @mock.patch.object(client.CoreV1Api, 'delete_namespaced_config_map')
-    @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
-    def test_delete_legacy_delete_api_fail(self, mock_vnf_resource_list,
-                           mock_delete_namespaced_config_map,
-                           mock_delete_namespaced_service,
-                           mock_delete_namespaced_horizontal_pod_autoscaler,
-                           mock_delete_namespaced_deployment):
-        vnf_id = "fake_namespace,fake_name"
-        mock_vnf_resource_list.return_value = list()
-        mock_delete_namespaced_config_map.side_effect = Exception()
-        mock_delete_namespaced_service.side_effect = Exception()
-        mock_delete_namespaced_horizontal_pod_autoscaler.side_effect = \
-            Exception()
-        mock_delete_namespaced_deployment.side_effect = Exception()
-        self.kubernetes.delete(plugin=None, context=self.context,
-                               vnf_id=vnf_id,
-                               auth_attr=utils.get_vim_auth_obj(),
-                               vnf_instance=None,
-                               terminate_vnf_req=None)
-        mock_delete_namespaced_config_map.assert_called_once()
-        mock_delete_namespaced_horizontal_pod_autoscaler.assert_called_once()
-        mock_delete_namespaced_service.assert_called_once()
-        mock_delete_namespaced_config_map.assert_called_once()
-
-    @mock.patch.object(client.AppsV1Api, 'read_namespaced_deployment')
-    @mock.patch.object(client.AutoscalingV1Api,
-            'read_namespaced_horizontal_pod_autoscaler')
-    @mock.patch.object(client.CoreV1Api, 'read_namespaced_service')
-    @mock.patch.object(client.CoreV1Api, 'read_namespaced_config_map')
-    @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
-    def test_delete_wait_legacy(self, mock_vnf_resource_list,
-                            mock_read_namespaced_config_map,
-                            mock_read_namespaced_service,
-                            mock_read_namespaced_horizontal_pod_autoscaler,
-                            mock_read_namespaced_deployment):
-        vnf_id = "fake_namespace,fake_name"
-        mock_vnf_resource_list.return_value = list()
-        mock_read_namespaced_config_map.side_effect = Exception()
-        mock_read_namespaced_service.side_effect = Exception()
-        mock_read_namespaced_horizontal_pod_autoscaler.side_effect = \
-            Exception()
-        mock_read_namespaced_deployment.side_effect = Exception()
-        self.kubernetes.delete_wait(plugin=None, context=self.context,
-                                    vnf_id=vnf_id,
-                                    auth_attr=utils.get_vim_auth_obj(),
-                                    region_name=None,
-                                    vnf_instance=None)
-        mock_read_namespaced_config_map.assert_called_once()
-        mock_read_namespaced_service.assert_called_once()
-        mock_read_namespaced_horizontal_pod_autoscaler.assert_called_once()
-        mock_read_namespaced_deployment.assert_called_once()
-
-    @mock.patch.object(client.AppsV1Api, 'read_namespaced_deployment')
-    @mock.patch.object(client.AutoscalingV1Api,
-            'read_namespaced_horizontal_pod_autoscaler')
-    @mock.patch.object(client.CoreV1Api, 'read_namespaced_service')
-    @mock.patch.object(client.CoreV1Api, 'read_namespaced_config_map')
-    @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
-    def test_delete_wait_legacy_retry(self, mock_vnf_resource_list,
-                            mock_read_namespaced_config_map,
-                            mock_read_namespaced_service,
-                            mock_read_namespaced_horizontal_pod_autoscaler,
-                            mock_read_namespaced_deployment):
-        vnf_id = "fake_namespace,fake_name"
-        mock_vnf_resource_list.return_value = list()
-        mock_read_namespaced_config_map.return_value = client.V1Status()
-        mock_read_namespaced_service.return_value = client.V1Status()
-        mock_read_namespaced_horizontal_pod_autoscaler.return_value = \
-            client.V1Status()
-        mock_read_namespaced_deployment.return_value = client.V1Status()
-        self.kubernetes.delete_wait(plugin=None, context=self.context,
-                                    vnf_id=vnf_id,
-                                    auth_attr=utils.get_vim_auth_obj(),
-                                    region_name=None,
-                                    vnf_instance=None)
-        mock_read_namespaced_config_map.assert_called()
-        mock_read_namespaced_service.assert_called()
-        mock_read_namespaced_horizontal_pod_autoscaler.assert_called()
-        mock_read_namespaced_deployment.assert_called()
-
-    @mock.patch.object(translate_template.TOSCAToKubernetes,
-                       'deploy_kubernetes_objects')
-    def test_instantiate_vnf_without_target_k8s_files(
-            self, mock_deploy_kubernetes_objects):
-        vnf = objects.VnfInstance(vnf_metadata={'namespace': 'default'})
-        vim_connection_info = objects.VimConnectionInfo(
-            access_info={'auth_url': 'http://fake-url/identity/v3'})
-        vnfd_dict = fakes.fake_vnf_dict()
-        test_tosca_kube_object = tosca_kube_object.ToscaKubeObject(
-            namespace='test_namespace', name='test_name')
-        test_deployment_name = (
-            test_tosca_kube_object.namespace + "," +
-            test_tosca_kube_object.name)
-        mock_deploy_kubernetes_objects.return_value = \
-            test_deployment_name
-        instantiate_vnf_req = objects.InstantiateVnfRequest(
-            additional_params={'dummy_key': ["dummy_value"]})
-        grant_response = None
-        base_hot_dict = None
-        vnf_package_path = self.yaml_path
-        result = self.kubernetes.instantiate_vnf(
-            self.context, vnf, vnfd_dict, vim_connection_info,
-            instantiate_vnf_req, grant_response, vnf_package_path,
-            base_hot_dict)
-        self.assertEqual(result, "test_namespace,test_name")
-
     @mock.patch.object(translate_outputs.Transformer, 'get_k8s_objs_from_yaml')
     @mock.patch.object(translate_outputs.Transformer, 'deploy_k8s')
     @mock.patch.object(client.AppsV1Api, 'read_namespaced_deployment')
@@ -2566,108 +2409,6 @@ class TestKubernetes(base.TestCase):
                           self.context, None,
                           utils.get_vim_auth_obj(), policy, None)
 
-    def _test_scale_legacy(self, scale_type,
-                           current_replicas, after_replicas,
-                           mock_vnf_resource_list,
-                           mock_read_namespaced_deployment,
-                           mock_patch_namespaced_deployment_scale,
-                           mock_read_namespaced_horizontal_pod_autoscaler):
-        policy = fakes.get_scale_policy(
-            type=scale_type, aspect_id='SP1', is_legacy=True)
-        policy['instance_id'] = "fake_namespace,fake_name"
-        mock_vnf_resource_list.return_value = []
-        mock_read_namespaced_deployment.return_value = \
-            client.V1Deployment(
-                spec=client.V1ScaleSpec(replicas=current_replicas),
-                status=client.V1DeploymentStatus(replicas=current_replicas),
-                metadata=client.V1ObjectMeta(labels={'scaling_name': 'SP1'}))
-        mock_read_namespaced_horizontal_pod_autoscaler.return_value = \
-            client.V1HorizontalPodAutoscaler(
-                spec=client.V1HorizontalPodAutoscalerSpec(
-                    min_replicas=1, max_replicas=3,
-                    scale_target_ref=client.V1CrossVersionObjectReference(
-                        kind='Deployment', name='fake_name')))
-        mock_patch_namespaced_deployment_scale.return_value = \
-            client.V1Scale(
-                spec=client.V1ScaleSpec(replicas=after_replicas),
-                status=client.V1ScaleStatus(replicas=after_replicas))
-        self.kubernetes.scale(context=self.context, plugin=None,
-                              auth_attr=utils.get_vim_auth_obj(),
-                              policy=policy,
-                              region_name=None)
-
-    @mock.patch.object(client.AutoscalingV1Api,
-            'read_namespaced_horizontal_pod_autoscaler')
-    @mock.patch.object(client.AppsV1Api, 'patch_namespaced_deployment_scale')
-    @mock.patch.object(client.AppsV1Api, 'read_namespaced_deployment')
-    @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
-    def test_scale_legacy_in(self, mock_vnf_resource_list,
-                    mock_read_namespaced_deployment,
-                    mock_patch_namespaced_deployment_scale,
-                    mock_read_namespaced_horizontal_pod_autoscaler):
-        self._test_scale_legacy('in', 2, 1,
-            mock_vnf_resource_list,
-            mock_read_namespaced_deployment,
-            mock_patch_namespaced_deployment_scale,
-            mock_read_namespaced_horizontal_pod_autoscaler)
-        mock_read_namespaced_deployment.assert_called_once()
-        mock_read_namespaced_horizontal_pod_autoscaler.assert_called_once()
-        mock_patch_namespaced_deployment_scale.assert_called_once()
-
-    @mock.patch.object(client.AutoscalingV1Api,
-            'read_namespaced_horizontal_pod_autoscaler')
-    @mock.patch.object(client.AppsV1Api, 'patch_namespaced_deployment_scale')
-    @mock.patch.object(client.AppsV1Api, 'read_namespaced_deployment')
-    @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
-    def test_scale_legacy_out(self, mock_vnf_resource_list,
-                    mock_read_namespaced_deployment,
-                    mock_patch_namespaced_deployment_scale,
-                    mock_read_namespaced_horizontal_pod_autoscaler):
-        self._test_scale_legacy('out', 2, 3,
-            mock_vnf_resource_list,
-            mock_read_namespaced_deployment,
-            mock_patch_namespaced_deployment_scale,
-            mock_read_namespaced_horizontal_pod_autoscaler)
-        mock_read_namespaced_deployment.assert_called_once()
-        mock_read_namespaced_horizontal_pod_autoscaler.assert_called_once()
-        mock_patch_namespaced_deployment_scale.assert_called_once()
-
-    @mock.patch.object(client.AutoscalingV1Api,
-            'read_namespaced_horizontal_pod_autoscaler')
-    @mock.patch.object(client.AppsV1Api, 'patch_namespaced_deployment_scale')
-    @mock.patch.object(client.AppsV1Api, 'read_namespaced_deployment')
-    @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
-    def test_scale_legacy_in_less_than_min(self, mock_vnf_resource_list,
-                    mock_read_namespaced_deployment,
-                    mock_patch_namespaced_deployment_scale,
-                    mock_read_namespaced_horizontal_pod_autoscaler):
-        self._test_scale_legacy('in', 1, 1,
-            mock_vnf_resource_list,
-            mock_read_namespaced_deployment,
-            mock_patch_namespaced_deployment_scale,
-            mock_read_namespaced_horizontal_pod_autoscaler)
-        mock_read_namespaced_deployment.assert_called_once()
-        mock_read_namespaced_horizontal_pod_autoscaler.assert_called_once()
-        mock_patch_namespaced_deployment_scale.assert_called_once()
-
-    @mock.patch.object(client.AutoscalingV1Api,
-            'read_namespaced_horizontal_pod_autoscaler')
-    @mock.patch.object(client.AppsV1Api, 'patch_namespaced_deployment_scale')
-    @mock.patch.object(client.AppsV1Api, 'read_namespaced_deployment')
-    @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
-    def test_scale_legacy_out_over_max(self, mock_vnf_resource_list,
-                    mock_read_namespaced_deployment,
-                    mock_patch_namespaced_deployment_scale,
-                    mock_read_namespaced_horizontal_pod_autoscaler):
-        self._test_scale_legacy('out', 3, 3,
-            mock_vnf_resource_list,
-            mock_read_namespaced_deployment,
-            mock_patch_namespaced_deployment_scale,
-            mock_read_namespaced_horizontal_pod_autoscaler)
-        mock_read_namespaced_deployment.assert_called_once()
-        mock_read_namespaced_horizontal_pod_autoscaler.assert_called_once()
-        mock_patch_namespaced_deployment_scale.assert_called_once()
-
     @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(client.AppsV1Api, 'read_namespaced_deployment_scale')
     @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
@@ -2812,56 +2553,6 @@ class TestKubernetes(base.TestCase):
         scale_vnf_instance.vnf_metadata['namespace'] = "default"
         mock_vnf_instance.return_value = scale_vnf_instance
         self.assertRaises(vnfm.CNFScaleWaitFailed,
-                          self.kubernetes.scale_wait,
-                          self.context, None,
-                          utils.get_vim_auth_obj(), policy, None, None)
-
-    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
-    @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
-    def test_scale_wait_legacy(self, mock_vnf_resource_list,
-                        mock_list_namespaced_pod):
-        policy = fakes.get_scale_policy(
-            type='out', aspect_id='SP1', is_legacy=True)
-        mock_vnf_resource_list.return_value = []
-        mock_list_namespaced_pod.return_value = \
-            client.V1PodList(items=[
-                fakes.get_fake_pod_info(
-                    kind='Deployment', pod_status='Running')])
-        self.kubernetes.scale_wait(context=self.context, plugin=None,
-                                   auth_attr=utils.get_vim_auth_obj(),
-                                   policy=policy,
-                                   region_name=None,
-                                   last_event_id=None)
-        mock_list_namespaced_pod.assert_called_once()
-
-    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
-    @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
-    def test_scale_wait_legacy_retry_over(self, mock_vnf_resource_list,
-                        mock_list_namespaced_pod):
-        policy = fakes.get_scale_policy(
-            type='out', aspect_id='SP1', is_legacy=True)
-        mock_vnf_resource_list.return_value = []
-        mock_list_namespaced_pod.return_value = \
-            client.V1PodList(items=[
-                fakes.get_fake_pod_info(
-                    kind='Deployment', pod_status='Pending')])
-        self.assertRaises(vnfm.VNFCreateWaitFailed,
-                          self.kubernetes.scale_wait,
-                          self.context, None,
-                          utils.get_vim_auth_obj(), policy, None, None)
-
-    @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
-    @mock.patch.object(objects.VnfResourceList, "get_by_vnf_instance_id")
-    def test_scale_wait_legacy_status_unknown(self, mock_vnf_resource_list,
-                        mock_list_namespaced_pod):
-        policy = fakes.get_scale_policy(
-            type='out', aspect_id='SP1', is_legacy=True)
-        mock_vnf_resource_list.return_value = []
-        mock_list_namespaced_pod.return_value = \
-            client.V1PodList(items=[
-                fakes.get_fake_pod_info(
-                    kind='Deployment', pod_status='Unknown')])
-        self.assertRaises(vnfm.VNFCreateWaitFailed,
                           self.kubernetes.scale_wait,
                           self.context, None,
                           utils.get_vim_auth_obj(), policy, None, None)

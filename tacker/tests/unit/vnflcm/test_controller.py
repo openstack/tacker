@@ -48,7 +48,6 @@ from tacker.tests import constants
 from tacker.tests.unit import base
 from tacker.tests.unit.db import utils
 from tacker.tests.unit import fake_request
-import tacker.tests.unit.nfvo.test_nfvo_plugin as test_nfvo_plugin
 from tacker.tests.unit.vnflcm import fakes
 from tacker.tests import uuidsentinel
 import tacker.vnfm.nfvo_client as nfvo_client
@@ -72,82 +71,25 @@ class FakeVNFMPlugin(mock.Mock):
         super(FakeVNFMPlugin, self).__init__()
         self.vnf1_vnfd_id = 'eb094833-995e-49f0-a047-dfb56aaf7c4e'
         self.vnf1_vnf_id = '91e32c20-6d1f-47a4-9ba7-08f5e5effe07'
-        self.vnf1_update_vnf_id = '91e32c20-6d1f-47a4-9ba7-08f5e5effaf6'
-        self.vnf2_vnfd_id = 'e4015e9f-1ef2-49fb-adb6-070791ad3c45'
         self.vnf3_vnfd_id = 'e4015e9f-1ef2-49fb-adb6-070791ad3c45'
         self.vnf3_vnf_id = '7168062e-9fa1-4203-8cb7-f5c99ff3ee1b'
-        self.vnf3_update_vnf_id = '10f66bc5-b2f1-45b7-a7cd-6dd6ad0017f5'
         self.vnf_for_cnf_vnfd_id = 'e889e4fe-52fe-437d-b1e1-a690dc95e3f8'
         self.vnf_for_cnf_vnf_id = '436aaa6e-2db6-4d6e-a3fc-e728b2f0ac56'
 
-        self.cp11_id = 'd18c8bae-898a-4932-bff8-d5eac981a9c9'
-        self.cp11_update_id = 'a18c8bae-898a-4932-bff8-d5eac981a9b8'
-        self.cp12_id = 'c8906342-3e30-4b2a-9401-a251a7a9b5dd'
-        self.cp12_update_id = 'b8906342-3e30-4b2a-9401-a251a7a9b5cc'
-        self.cp32_id = '3d1bd2a2-bf0e-44d1-87af-a2c6b2cad3ed'
-        self.cp32_update_id = '064c0d99-5a61-4711-9597-2a44dc5da14b'
-
     def get_vnfd(self, *args, **kwargs):
-        if 'VNF1' in args:
-            return {'id': self.vnf1_vnfd_id,
-                    'name': 'VNF1',
-                    'attributes': {'vnfd': _get_template(
-                                   'test-nsd-vnfd1.yaml')}}
-        elif 'VNF2' in args:
-            return {'id': self.vnf3_vnfd_id,
-                    'name': 'VNF2',
-                    'attributes': {'vnfd': _get_template(
-                                   'test-nsd-vnfd2.yaml')}}
-
-    def get_vnfds(self, *args, **kwargs):
-        if {'name': ['VNF1']} in args:
-            return [{'id': self.vnf1_vnfd_id}]
-        elif {'name': ['VNF3']} in args:
-            return [{'id': self.vnf3_vnfd_id}]
-        else:
-            return []
-
-    def get_vnfs(self, *args, **kwargs):
-        if {'vnfd_id': [self.vnf1_vnfd_id]} in args:
-            return [{'id': self.vnf1_vnf_id}]
-        elif {'vnfd_id': [self.vnf3_vnfd_id]} in args:
-            return [{'id': self.vnf3_vnf_id}]
-        else:
-            return None
+        return {'id': self.vnf1_vnfd_id,
+                'name': 'dummy VNF',
+                'attributes': {'vnfd': "dummy"}}
 
     def get_vnf(self, *args, **kwargs):
         if self.vnf1_vnf_id in args:
             return self.get_dummy_vnf_error()
         elif self.vnf3_vnf_id in args:
-            return self.get_dummy_vnf_not_error()
+            return self.get_dummy_vnf_not_found_error()
         elif self.vnf_for_cnf_vnf_id in args:
             return fakes.vnf_dict_cnf()
         else:
             return self.get_dummy_vnf_active()
-
-    def get_vnf_resources(self, *args, **kwargs):
-        if self.vnf1_vnf_id in args:
-            return self.get_dummy_vnf1_details()
-        elif self.vnf1_update_vnf_id in args:
-            return self.get_dummy_vnf1_update_details()
-        elif self.vnf3_vnf_id in args:
-            return self.get_dummy_vnf3_details()
-        elif self.vnf3_update_vnf_id in args:
-            return self.get_dummy_vnf3_update_details()
-
-    def get_dummy_vnf1_details(self):
-        return [{'name': 'CP11', 'id': self.cp11_id},
-                {'name': 'CP12', 'id': self.cp12_id}]
-
-    def get_dummy_vnf1_update_details(self):
-        return [{'name': 'CP11', 'id': self.cp11_update_id},
-                {'name': 'CP12', 'id': self.cp12_update_id}]
-
-    def get_dummy_vnf3_details(self):
-        return [{'name': 'CP32', 'id': self.cp32_id}]
-
-    def get_dummy_vnf3_update_details(self):
-        return [{'name': 'CP32', 'id': self.cp32_update_id}]
 
     def get_dummy_vnf_active(self):
         return {'tenant_id': uuidsentinel.tenant_id,
@@ -179,9 +121,12 @@ class FakeVNFMPlugin(mock.Mock):
                 "scale_group": '{"scaleGroupDict":' +
                     '{"SP1": {"maxLevel" : 3}}}'}}
 
-    def get_dummy_vnf_not_error(self):
+    def get_dummy_vnf_not_found_error(self):
         msg = _('VNF %(vnf_id)s could not be found')
         raise vnfm.VNFNotFound(explanation=msg)
+
+    def _update_vnf_scaling(self, *args, **kwargs):
+        pass
 
 
 @ddt.ddt
@@ -193,7 +138,7 @@ class TestController(base.TestCase):
         super(TestController, self).setUp()
         self.patcher = mock.patch(
             'tacker.manager.TackerManager.get_service_plugins',
-            return_value={'VNFM': test_nfvo_plugin.FakeVNFMPlugin()})
+            return_value={'VNFM': FakeVNFMPlugin()})
         self.mock_manager = self.patcher.start()
         self.controller = controller.VnfLcmController()
         self.vim_info = {
@@ -206,12 +151,9 @@ class TestController(base.TestCase):
         }
         self.context = context.get_admin_context()
 
-        with mock.patch.object(tacker.db.vnfm.vnfm_db.VNFMPluginDb, 'get_vnfs',
-                               return_value=[]):
-            with mock.patch.object(TackerManager, 'get_service_plugins',
-                                   return_value={'VNFM':
-                                   test_nfvo_plugin.FakeVNFMPlugin()}):
-                self.controller = controller.VnfLcmController()
+        with mock.patch.object(TackerManager, 'get_service_plugins',
+                               return_value={'VNFM': FakeVNFMPlugin()}):
+            self.controller = controller.VnfLcmController()
 
     def tearDown(self):
         self.mock_manager.stop()
@@ -222,7 +164,7 @@ class TestController(base.TestCase):
         return fakes.wsgi_app_v1()
 
     def _get_dummy_vnf(self, vnf_id=None, status=None):
-        vnf_dict = utils.get_dummy_vnf()
+        vnf_dict = utils.get_dummy_vnf_etsi()
 
         if status:
             vnf_dict['status'] = status
@@ -261,8 +203,7 @@ class TestController(base.TestCase):
                 'VnfLcmController._create_vnf')
     @mock.patch.object(objects.vnf_package.VnfPackage, 'save')
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(objects.vnf_instance, '_vnf_instance_update')
     @mock.patch.object(objects.vnf_instance, '_vnf_instance_create')
     @mock.patch.object(objects.vnf_package_vnfd.VnfPackageVnfd, 'get_by_id')
@@ -316,8 +257,7 @@ class TestController(base.TestCase):
         self.assertEqual(location_header, resp.headers['location'])
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @ddt.data(
         {'attribute': 'vnfdId', 'value': True,
          'expected_type': 'uuid'},
@@ -370,7 +310,7 @@ class TestController(base.TestCase):
     @mock.patch.object(sync_resource.SyncVnfPackage, 'create_package')
     @mock.patch.object(nfvo_client.VnfPackageRequest, "index")
     @mock.patch.object(TackerManager, 'get_service_plugins',
-        return_value={'VNFM': test_nfvo_plugin.FakeVNFMPlugin()})
+        return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(objects.vnf_package_vnfd.VnfPackageVnfd, 'get_by_id')
     def test_create_non_existing_vnf_package_vnfd(self, mock_vnf_by_id,
             mock_get_service_plugins,
@@ -399,7 +339,7 @@ class TestController(base.TestCase):
     @mock.patch('tacker.api.vnflcm.v1.controller.'
                 'VnfLcmController._create_vnf')
     @mock.patch.object(TackerManager, 'get_service_plugins',
-        return_value={'VNFM': test_nfvo_plugin.FakeVNFMPlugin()})
+        return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(sync_resource.SyncVnfPackage, 'create_package')
     @mock.patch.object(nfvo_client.VnfPackageRequest, "index")
     @mock.patch.object(objects.vnf_instance, '_vnf_instance_update')
@@ -445,7 +385,7 @@ class TestController(base.TestCase):
         self.assertEqual(http_client.CREATED, resp.status_code)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-        return_value={'VNFM': test_nfvo_plugin.FakeVNFMPlugin()})
+        return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(sync_resource.SyncVnfPackage, 'create_package')
     @mock.patch.object(nfvo_client.VnfPackageRequest, "index")
     @mock.patch.object(objects.vnf_instance, '_vnf_instance_create')
@@ -481,7 +421,7 @@ class TestController(base.TestCase):
         self.assertEqual(http_client.INTERNAL_SERVER_ERROR, resp.status_code)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-        return_value={'VNFM': test_nfvo_plugin.FakeVNFMPlugin()})
+        return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(nfvo_client.VnfPackageRequest, "index")
     @mock.patch.object(objects.vnf_instance, '_vnf_instance_create')
     @mock.patch.object(objects.vnf_package_vnfd.VnfPackageVnfd, 'get_by_id')
@@ -515,7 +455,7 @@ class TestController(base.TestCase):
         self.assertEqual(http_client.NOT_FOUND, resp.status_code)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-        return_value={'VNFM': test_nfvo_plugin.FakeVNFMPlugin()})
+        return_value={'VNFM': FakeVNFMPlugin()})
     def test_create_without_vnfd_id(self, mock_get_service_plugins):
         body = {"vnfInstanceName": "SampleVnfInstance",
                 "metadata": {"key": "value"}}
@@ -529,8 +469,7 @@ class TestController(base.TestCase):
         self.assertEqual(http_client.BAD_REQUEST, resp.status_code)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @ddt.data('PATCH', 'PUT', 'HEAD', 'DELETE')
     def test_create_not_allowed_http_method(self, method,
                                             mock_get_service_plugins):
@@ -545,7 +484,7 @@ class TestController(base.TestCase):
         self.assertEqual(http_client.METHOD_NOT_ALLOWED, resp.status_code)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-        return_value={'VNFM': test_nfvo_plugin.FakeVNFMPlugin()})
+        return_value={'VNFM': FakeVNFMPlugin()})
     @ddt.data({'name': "A" * 256,
     'description': "VNF Description",
     'meta': {"key": "value"}},
@@ -576,8 +515,7 @@ class TestController(base.TestCase):
         self.assertEqual(http_client.BAD_REQUEST, resp.status_code)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch('tacker.api.vnflcm.v1.controller.'
                 'VnfLcmController._notification_process')
     @mock.patch('tacker.api.vnflcm.v1.controller.'
@@ -633,8 +571,7 @@ class TestController(base.TestCase):
         mock_instantiate.assert_called_once()
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch('tacker.api.vnflcm.v1.controller.'
                 'VnfLcmController._get_vnf')
     @mock.patch.object(objects.vnf_instance, "_vnf_instance_get_by_id")
@@ -676,8 +613,7 @@ class TestController(base.TestCase):
         mock_get_vnf.assert_called_once()
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch('tacker.api.vnflcm.v1.controller.'
                 'VnfLcmController._notification_process')
     @mock.patch('tacker.api.vnflcm.v1.controller.'
@@ -730,8 +666,7 @@ class TestController(base.TestCase):
         mock_insta_notif_process.assert_called_once()
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch('tacker.api.vnflcm.v1.controller.'
                 'VnfLcmController._get_vnf')
     @mock.patch.object(vim_client.VimClient, "get_vim")
@@ -781,8 +716,7 @@ class TestController(base.TestCase):
         mock_get_vnf.assert_called_once()
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch('tacker.api.vnflcm.v1.controller.'
                 'VnfLcmController._get_vnf')
     @mock.patch.object(objects.vnf_instance, "_vnf_instance_get_by_id")
@@ -826,8 +760,7 @@ class TestController(base.TestCase):
         mock_get_vnf.assert_called_once()
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch('tacker.api.vnflcm.v1.controller.VnfLcmController.'
                 '_notification_process')
     @mock.patch('tacker.api.vnflcm.v1.controller.'
@@ -885,8 +818,7 @@ class TestController(base.TestCase):
         mock_insta_notif_process.assert_called_once()
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch('tacker.api.vnflcm.v1.controller.'
                 'VnfLcmController._get_vnf')
     @mock.patch.object(vim_client.VimClient, "get_vim")
@@ -935,8 +867,7 @@ class TestController(base.TestCase):
         mock_get_vnf.assert_called_once()
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch('tacker.api.vnflcm.v1.controller.'
                 'VnfLcmController._get_vnf')
     @mock.patch.object(vim_client.VimClient, "get_vim")
@@ -986,8 +917,7 @@ class TestController(base.TestCase):
         mock_get_vnf.assert_called_once()
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch('tacker.api.vnflcm.v1.controller.'
                 'VnfLcmController._get_vnf')
     @mock.patch.object(vim_client.VimClient, "get_vim")
@@ -1030,8 +960,7 @@ class TestController(base.TestCase):
         mock_get_vnf.assert_called_once()
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch('tacker.api.vnflcm.v1.controller.'
                 'VnfLcmController._get_vnf')
     @mock.patch.object(objects.vnf_instance, "_vnf_instance_get_by_id")
@@ -1055,8 +984,7 @@ class TestController(base.TestCase):
         self.assertEqual(http_client.CONFLICT, resp.status_code)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch('tacker.api.vnflcm.v1.controller.'
                 'VnfLcmController._get_vnf')
     @mock.patch.object(objects.vnf_instance, "_vnf_instance_get_by_id")
@@ -1087,8 +1015,7 @@ class TestController(base.TestCase):
                          resp.json['detail'])
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @ddt.data({'attribute': 'flavourId', 'value': 123,
                'expected_type': 'string'},
               {'attribute': 'flavourId', 'value': True,
@@ -1128,8 +1055,7 @@ class TestController(base.TestCase):
         self.assertEqual(expected_message, exception.msg)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     def test_instantiate_without_flavour_id(self,
                                             mock_get_service_plugins):
         req = fake_request.HTTPRequest.blank(
@@ -1147,8 +1073,7 @@ class TestController(base.TestCase):
                          resp.json['detail'])
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     def test_instantiate_invalid_request_parameter(self,
                                                    mock_get_service_plugins):
         body = {"flavourId": "simple"}
@@ -1169,8 +1094,7 @@ class TestController(base.TestCase):
         self.assertEqual(http_client.INTERNAL_SERVER_ERROR, resp.status_code)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     def test_instantiate_with_invalid_uuid(self,
                                            mock_get_service_plugins):
         req = fake_request.HTTPRequest.blank(
@@ -1190,8 +1114,7 @@ class TestController(base.TestCase):
             resp.json['detail'])
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch('tacker.api.vnflcm.v1.controller.'
                 'VnfLcmController._get_vnf')
     @mock.patch.object(objects.VnfInstance, "get_by_id")
@@ -1217,8 +1140,7 @@ class TestController(base.TestCase):
         mock_get_vnf.assert_called_once()
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @ddt.data('HEAD', 'PUT', 'DELETE', 'PATCH', 'GET')
     def test_instantiate_invalid_http_method(self, method,
                                              mock_get_service_plugins):
@@ -1234,7 +1156,7 @@ class TestController(base.TestCase):
         self.assertEqual(http_client.METHOD_NOT_ALLOWED, resp.status_code)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-        return_value={'VNFM': test_nfvo_plugin.FakeVNFMPlugin()})
+        return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(objects.vnf_instance, "_vnf_instance_get_by_id")
     def test_show_vnf_not_instantiated(self, mock_vnf_by_id,
             mock_get_service_plugins):
@@ -1247,8 +1169,7 @@ class TestController(base.TestCase):
         self.assertEqual(expected_result, res_dict)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(objects.VnfInstance, "get_by_id")
     def test_show_vnf_instantiated(self, mock_vnf_by_id,
                                    mock_get_service_plugins):
@@ -1263,8 +1184,7 @@ class TestController(base.TestCase):
         self.assertEqual(expected_result, res_dict)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(objects.VnfInstance, "get_by_id")
     def test_show_vnf_instantiated_with_vim_info(
             self, mock_vnf_by_id, mock_get_service_plugins):
@@ -1306,8 +1226,7 @@ class TestController(base.TestCase):
         self.assertEqual(expected_result, res_dict)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(objects.vnf_instance, "_vnf_instance_get_by_id")
     def test_show_with_non_existing_vnf_instance(self, mock_vnf_by_id,
                                                  mock_get_service_plugins):
@@ -1324,8 +1243,7 @@ class TestController(base.TestCase):
                          resp.json['detail'])
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     def test_show_with_invalid_uuid(self,
                                     mock_get_service_plugins):
         req = fake_request.HTTPRequest.blank(
@@ -1339,8 +1257,7 @@ class TestController(base.TestCase):
                          resp.json['detail'])
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @ddt.data('HEAD', 'PUT', 'POST')
     def test_show_invalid_http_method(self, http_method,
                                       mock_get_service_plugins):
@@ -1353,8 +1270,7 @@ class TestController(base.TestCase):
         self.assertEqual(http_client.METHOD_NOT_ALLOWED, resp.status_code)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch('tacker.api.vnflcm.v1.controller.'
                 'VnfLcmController._notification_process')
     @mock.patch('tacker.api.vnflcm.v1.controller.'
@@ -1393,8 +1309,7 @@ class TestController(base.TestCase):
         mock_notification_process.assert_called_once()
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @ddt.data(
         {'attribute': 'terminationType', 'value': "TEST",
          'expected_type': 'enum'},
@@ -1430,8 +1345,7 @@ class TestController(base.TestCase):
         self.assertIn(expected_message, exception.msg)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     def test_terminate_missing_termination_type(self,
                                                 mock_get_service_plugins):
         body = {'gracefulTerminationTimeout': 10}
@@ -1450,8 +1364,7 @@ class TestController(base.TestCase):
                          resp.json['detail'])
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @ddt.data('GET', 'HEAD', 'PUT', 'DELETE', 'PATCH')
     def test_terminate_invalid_http_method(self, method,
                                            mock_get_service_plugins):
@@ -1468,8 +1381,7 @@ class TestController(base.TestCase):
         self.assertEqual(http_client.METHOD_NOT_ALLOWED, resp.status_code)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch('tacker.api.vnflcm.v1.controller.'
                 'VnfLcmController._get_vnf')
     @mock.patch.object(objects.vnf_instance, "_vnf_instance_get_by_id")
@@ -1494,8 +1406,7 @@ class TestController(base.TestCase):
         mock_get_vnf.assert_called_once()
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch('tacker.api.vnflcm.v1.controller.'
                 'VnfLcmController._get_vnf')
     @mock.patch.object(objects.VnfInstance, "get_by_id")
@@ -1528,8 +1439,7 @@ class TestController(base.TestCase):
         mock_get_vnf.assert_called_once()
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch('tacker.api.vnflcm.v1.controller.'
                 'VnfLcmController._notification_process')
     @mock.patch('tacker.api.vnflcm.v1.controller.'
@@ -1564,8 +1474,7 @@ class TestController(base.TestCase):
         mock_rpc_heal.assert_called_once()
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     def test_heal_cause_max_length_exceeded(self,
                                             mock_get_service_plugins):
         body = {'cause': 'A' * 256}
@@ -1580,8 +1489,7 @@ class TestController(base.TestCase):
         self.assertEqual(http_client.BAD_REQUEST, resp.status_code)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch('tacker.api.vnflcm.v1.controller.'
                 'VnfLcmController._notification_process')
     @mock.patch('tacker.api.vnflcm.v1.controller.'
@@ -1616,8 +1524,7 @@ class TestController(base.TestCase):
                          resp.json['detail'])
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch('tacker.api.vnflcm.v1.controller.'
                 'VnfLcmController._notification_process')
     @mock.patch('tacker.api.vnflcm.v1.controller.'
@@ -1649,8 +1556,7 @@ class TestController(base.TestCase):
                          resp.json['detail'])
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch('tacker.api.vnflcm.v1.controller.'
                 'VnfLcmController._notification_process')
     @mock.patch('tacker.api.vnflcm.v1.controller.'
@@ -1686,8 +1592,7 @@ class TestController(base.TestCase):
                          resp.json['detail'])
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @ddt.data('HEAD', 'PUT', 'DELETE', 'PATCH', 'GET')
     def test_heal_invalid_http_method(self, method,
                                       mock_get_service_plugins):
@@ -1703,8 +1608,7 @@ class TestController(base.TestCase):
         self.assertEqual(http_client.METHOD_NOT_ALLOWED, resp.status_code)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @ddt.data({'attribute': 'cause', 'value': 123,
                'expected_type': 'string'},
               {'attribute': 'cause', 'value': True,
@@ -1758,8 +1662,7 @@ class TestController(base.TestCase):
         self.assertEqual([], resp.json)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @ddt.data('HEAD', 'PUT', 'DELETE', 'PATCH')
     def test_index_invalid_http_method(self, method,
                                        mock_get_service_plugins):
@@ -1774,8 +1677,7 @@ class TestController(base.TestCase):
     @mock.patch('tacker.api.vnflcm.v1.controller.'
                 'VnfLcmController._delete')
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(objects.vnf_instance, "_vnf_instance_get_by_id")
     @mock.patch.object(objects.vnf_instance, '_destroy_vnf_instance')
     def test_delete(self, mock_destroy_vnf_instance, mock_vnf_by_id,
@@ -1793,8 +1695,7 @@ class TestController(base.TestCase):
         self.assertEqual(http_client.NO_CONTENT, resp.status_code)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(objects.VnfInstance, "get_by_id")
     def test_delete_with_non_existing_vnf_instance(self, mock_vnf_by_id,
                                                    mock_get_service_plugins):
@@ -1814,8 +1715,7 @@ class TestController(base.TestCase):
                          resp.json['detail'])
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     def test_delete_with_invalid_uuid(self, mock_get_service_plugins):
         req = fake_request.HTTPRequest.blank(
             '/vnf_instances/%s' % constants.INVALID_UUID)
@@ -1831,8 +1731,7 @@ class TestController(base.TestCase):
                          resp.json['detail'])
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(objects.VnfInstance, "get_by_id")
     def test_delete_with_incorrect_instantiation_state(
             self, mock_vnf_by_id, mock_get_service_plugins):
@@ -1857,8 +1756,7 @@ class TestController(base.TestCase):
                          resp.json['detail'])
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(objects.VnfInstance, "get_by_id")
     def test_delete_with_incorrect_task_state(self, mock_vnf_by_id,
                                               mock_get_service_plugins):
@@ -2223,8 +2121,7 @@ class TestController(base.TestCase):
 
     @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(objects.VNF, "vnf_index_list")
     @mock.patch.object(objects.VnfInstanceList, "vnf_instance_list")
     @mock.patch.object(objects.VnfPackageVnfd, 'get_vnf_package_vnfd')
@@ -2271,8 +2168,7 @@ class TestController(base.TestCase):
 
     @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(objects.VNF, "vnf_index_list")
     def test_update_vnf_none_vnf_data(
             self,
@@ -2309,8 +2205,7 @@ class TestController(base.TestCase):
 
     @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(objects.VNF, "vnf_index_list")
     def test_update_vnf_status_err(
             self,
@@ -2350,8 +2245,7 @@ class TestController(base.TestCase):
 
     @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(objects.VNF, "vnf_index_list")
     @mock.patch.object(objects.VnfInstanceList, "vnf_instance_list")
     def test_update_vnf_none_instance_data(
@@ -2393,8 +2287,7 @@ class TestController(base.TestCase):
 
     @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(sync_resource.SyncVnfPackage, 'create_package')
     @mock.patch.object(objects.vnf_package_vnfd.VnfPackageVnfd,
     "get_vnf_package_vnfd")
@@ -2450,8 +2343,7 @@ class TestController(base.TestCase):
         mock_update.assert_called_once()
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(objects.VNF, "vnf_index_list")
     @mock.patch.object(objects.VnfInstanceList, "vnf_instance_list")
     @mock.patch.object(objects.VnfPackageVnfd, 'get_vnf_package_vnfd')
@@ -2493,8 +2385,7 @@ class TestController(base.TestCase):
     @mock.patch.object(objects.VnfInstance, "get_by_id")
     @ddt.data("vnfdId", "vnfPkgId")
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(sync_resource.SyncVnfPackage, 'create_package')
     @mock.patch.object(objects.vnf_package_vnfd.VnfPackageVnfd,
     "get_vnf_package_vnfd")
@@ -2550,8 +2441,7 @@ class TestController(base.TestCase):
 
     @ddt.data("vnfdId", "vnfPkgId")
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(sync_resource.SyncVnfPackage, 'create_package')
     @mock.patch.object(objects.vnf_package_vnfd.VnfPackageVnfd,
     "get_vnf_package_vnfd")
@@ -4288,8 +4178,7 @@ class TestController(base.TestCase):
         mock_vnf_get_by_id.assert_called_once()
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch('tacker.api.vnflcm.v1.controller.'
                 'VnfLcmController._notification_process')
     @mock.patch('tacker.api.vnflcm.v1.controller.'
@@ -4323,8 +4212,7 @@ class TestController(base.TestCase):
     @mock.patch('tacker.api.vnflcm.v1.controller.'
             'VnfLcmController._notification_process')
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch('tacker.api.vnflcm.v1.controller.'
                 'VnfLcmController._notification_process')
     @mock.patch('tacker.api.vnflcm.v1.controller.'
@@ -4356,8 +4244,7 @@ class TestController(base.TestCase):
         self.assertEqual(http_client.ACCEPTED, resp.status_code)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch('tacker.api.vnflcm.v1.controller.'
                 'VnfLcmController._get_vnf')
     @mock.patch.object(objects.VnfInstance, "get_by_id")
@@ -4383,8 +4270,7 @@ class TestController(base.TestCase):
         self.assertEqual(expected_msg, resp.json['detail'])
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @ddt.data('HEAD', 'PUT', 'DELETE', 'PATCH', 'GET')
     def test_change_ext_conn_invalid_http_method(self, method,
                                       mock_get_service_plugins):
@@ -4400,8 +4286,7 @@ class TestController(base.TestCase):
         self.assertEqual(http_client.METHOD_NOT_ALLOWED, resp.status_code)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch('tacker.api.vnflcm.v1.controller.'
                 'VnfLcmController._notification_process')
     @mock.patch('tacker.api.vnflcm.v1.controller.'
@@ -4457,8 +4342,7 @@ class TestController(base.TestCase):
             resp.status_code, http_client.BAD_REQUEST)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     def test_change_ext_conn_with_invalid_uuid(self, mock_get_service_plugins):
         body = fakes.get_change_ext_conn_request_body()
         req = fake_request.HTTPRequest.blank(
@@ -4663,8 +4547,7 @@ class TestController(base.TestCase):
         self.assertEqual(http_client.CREATED, resp.status_code)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(vnf_subscription_view.ViewBuilder,
                        "subscription_list")
     @mock.patch.object(vnf_subscription_view.ViewBuilder,
@@ -4690,8 +4573,7 @@ class TestController(base.TestCase):
         self.assertEqual(expected_result, resp.json)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(vnf_subscription_view.ViewBuilder,
                        "subscription_list")
     @mock.patch.object(vnf_subscription_view.ViewBuilder,
@@ -4715,8 +4597,7 @@ class TestController(base.TestCase):
         self.assertEqual([], resp.json)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(vnf_subscription_view.ViewBuilder,
                        "validate_filter")
     def test_subscription_list_error(self,
@@ -4815,8 +4696,7 @@ class TestController(base.TestCase):
             self.assertEqual(expected_result_link, resp.headers['Link'])
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(objects.LccnSubscriptionRequest,
                        "vnf_lcm_subscriptions_show")
     def test_subscription_show(self, mock_get_subscription,
@@ -4836,8 +4716,7 @@ class TestController(base.TestCase):
         self.assertEqual(expected_vnf, resp.json)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(vnf_subscription_view.ViewBuilder,
                        "subscription_list")
     @mock.patch.object(vnf_subscription_view.ViewBuilder,
@@ -4892,8 +4771,7 @@ class TestController(base.TestCase):
             self.assertEqual(expected_result, resp.json)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(objects.LccnSubscriptionRequest,
                        "vnf_lcm_subscriptions_show")
     def test_subscription_show_not_found(self, mock_get_subscription,
@@ -4912,8 +4790,7 @@ class TestController(base.TestCase):
         self.assertEqual(res.text, resp.text)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     def test_subscription_list_filter_error(self,
             mock_get_service_plugins):
 
@@ -4925,8 +4802,7 @@ class TestController(base.TestCase):
         self.assertEqual(400, resp.status_code)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(objects.LccnSubscriptionRequest,
                        "vnf_lcm_subscriptions_show")
     def test_subscription_show_error(self, mock_get_subscription,
@@ -4946,8 +4822,7 @@ class TestController(base.TestCase):
     @mock.patch.object(objects.VnfPackage, 'get_by_id')
     @mock.patch.object(objects.vnf_package.VnfPackage, 'save')
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(objects.vnf_instance, '_vnf_instance_create')
     @mock.patch.object(objects.vnf_package_vnfd.VnfPackageVnfd, 'get_by_id')
     def test_create_using_internal_methods(
@@ -5007,8 +4882,7 @@ class TestControllerEnhancedPolicy(TestController):
 
     @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(objects.VNF, "vnf_index_list")
     @mock.patch.object(objects.VnfInstanceList, "vnf_instance_list")
     @mock.patch.object(objects.VnfPackageVnfd, 'get_vnf_package_vnfd')
@@ -5043,8 +4917,7 @@ class TestControllerEnhancedPolicy(TestController):
 
     @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(objects.VNF, "vnf_index_list")
     def test_update_vnf_status_err(
             self,
@@ -5081,8 +4954,7 @@ class TestControllerEnhancedPolicy(TestController):
 
     @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(sync_resource.SyncVnfPackage, 'create_package')
     @mock.patch.object(objects.vnf_package_vnfd.VnfPackageVnfd,
                        "get_vnf_package_vnfd")
@@ -5138,8 +5010,7 @@ class TestControllerEnhancedPolicy(TestController):
 
     @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(objects.VNF, "vnf_index_list")
     def test_update_vnf_none_vnf_data(
             self,
@@ -5173,8 +5044,7 @@ class TestControllerEnhancedPolicy(TestController):
 
     @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(objects.VNF, "vnf_index_list")
     @mock.patch.object(objects.VnfInstanceList, "vnf_instance_list")
     def test_update_vnf_none_instance_data(
@@ -5213,8 +5083,7 @@ class TestControllerEnhancedPolicy(TestController):
 
     @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(objects.VNF, "vnf_index_list")
     @mock.patch.object(objects.VnfInstanceList, "vnf_instance_list")
     @mock.patch.object(objects.VnfPackageVnfd, 'get_vnf_package_vnfd')
@@ -5258,8 +5127,7 @@ class TestControllerEnhancedPolicy(TestController):
     @ddt.data("vnfdId", "vnfPkgId")
     @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                           test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(sync_resource.SyncVnfPackage, 'create_package')
     @mock.patch.object(objects.vnf_package_vnfd.VnfPackageVnfd,
                        "get_vnf_package_vnfd")
@@ -5547,8 +5415,7 @@ class TestControllerEnhancedPolicy(TestController):
         'update_vnf', http_client.ACCEPTED))
     @ddt.unpack
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(objects.VNF, "vnf_index_list")
     @mock.patch.object(objects.VnfInstanceList, "vnf_instance_list")
     @mock.patch.object(objects.VnfPackageVnfd, 'get_vnf_package_vnfd')
@@ -5602,8 +5469,7 @@ class TestControllerEnhancedPolicy(TestController):
         'change_ext_conn', http_client.ACCEPTED))
     @ddt.unpack
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch('tacker.api.vnflcm.v1.controller.'
                 'VnfLcmController._notification_process')
     @mock.patch('tacker.api.vnflcm.v1.controller.'
@@ -5646,8 +5512,7 @@ class TestControllerEnhancedPolicy(TestController):
     @ddt.data(*fakes.get_test_data_policy_instantiate())
     @ddt.unpack
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch('tacker.api.vnflcm.v1.controller.VnfLcmController.'
                 '_notification_process')
     @mock.patch('tacker.api.vnflcm.v1.controller.'
@@ -5727,8 +5592,7 @@ class TestControllerEnhancedPolicy(TestController):
             expected_vnf_inst_ids, [inst.get('id') for inst in resp.json])
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
-                       return_value={'VNFM':
-                       test_nfvo_plugin.FakeVNFMPlugin()})
+                       return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch('tacker.api.vnflcm.v1.controller.VnfLcmController.'
                 '_notification_process')
     @mock.patch('tacker.api.vnflcm.v1.controller.'

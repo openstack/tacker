@@ -63,49 +63,10 @@ ALL_STATUSES = (
     *PENDING_STATUSES,
 )
 
-POLICY_SCALING = 'tosca.policies.tacker.Scaling'
-POLICY_SCALING_ACTIONS = (ACTION_SCALE_OUT,
-                          ACTION_SCALE_IN) = ('out', 'in')
-POLICY_ACTIONS = {POLICY_SCALING: POLICY_SCALING_ACTIONS}
-POLICY_ALARMING = 'tosca.policies.tacker.Alarming'
-POLICY_EVENT_ALARMING = 'tosca.policies.tacker.EventAlarming'
-VALID_POLICY_TYPES = [POLICY_SCALING, POLICY_ALARMING]
-POLICY_RESERVATION = 'tosca.policies.tacker.Reservation'
-RESERVATION_POLICY_ACTIONS = ['start_actions',
-                              'before_end_actions', 'end_actions']
-DEFAULT_ALARM_ACTIONS = ['respawn', 'log', 'log_and_kill', 'notify']
-
-RES_TYPE_VNFD = "vnfd"
-RES_TYPE_NSD = "nsd"
-RES_TYPE_NS = "ns"
-RES_TYPE_VNF = "vnf"
-RES_TYPE_VIM = "vim"
-
-RES_EVT_CREATE = "CREATE"
 RES_EVT_INSTANTIATE = "INSTANTIATE"
 RES_EVT_TERMINATE = "TERMINATE"
-RES_EVT_DELETE = "DELETE"
-RES_EVT_UPDATE = "UPDATE"
-RES_EVT_MONITOR = "MONITOR"
 RES_EVT_SCALE = "SCALE"
-RES_EVT_NA_STATE = "Not Applicable"
-RES_EVT_ONBOARDED = "OnBoarded"
 RES_EVT_HEAL = "HEAL"
-RES_EVT_MAINTENANCE = [
-    "MAINTENANCE", "SCALE_IN", "MAINTENANCE_COMPLETE",
-    "PREPARE_MAINTENANCE", "PLANNED_MAINTENANCE", "INSTANCE_ACTION_DONE"
-]
-
-
-VNF_STATUS_TO_EVT_TYPES = {PENDING_CREATE: RES_EVT_CREATE,
-                           PENDING_UPDATE: RES_EVT_UPDATE,
-                           PENDING_DELETE: RES_EVT_DELETE,
-                           PENDING_HEAL: RES_EVT_HEAL}
-
-
-RES_EVT_CREATED_FLD = "created_at"
-RES_EVT_DELETED_FLD = "deleted_at"
-RES_EVT_UPDATED_FLD = "updated_at"
 
 TYPE_COMPUTE = "COMPUTE"
 TYPE_LINKPORT = "LINKPORT"

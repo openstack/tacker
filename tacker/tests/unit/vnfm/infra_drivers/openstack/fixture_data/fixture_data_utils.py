@@ -375,11 +375,15 @@ def get_vim_connection_info_object():
 
 
 def get_vnfd_dict():
-    filename = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "../data/",
-        'test_tosca_image.yaml')
+    def_dir = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "../data/etsi_nfv")
+    filename = os.path.join(def_dir, 'tosca_vnfd.yaml')
     with open(filename) as f:
-        vnfd_dict = {'vnfd': {'attributes': {'vnfd': str(yaml.safe_load(f))}}}
+        vnfd = yaml.safe_load(f)
+        vnfd['imports'] = [
+            f'{def_dir}/etsi_nfv_sol001_common_types.yaml',
+            f'{def_dir}/etsi_nfv_sol001_vnfd_types.yaml']
+        vnfd_dict = {'vnfd': {'attributes': {'vnfd': str(vnfd)}}}
         vnfd_dict.update({'id': '7ed39362-c551-4ce7-9ad2-17a98a6cee3d',
             'name': None, 'attributes': {'param_values': "",
             'stack_name': 'vnflcm_7ed39362-c551-4ce7-9ad2-17a98a6cee3d'},

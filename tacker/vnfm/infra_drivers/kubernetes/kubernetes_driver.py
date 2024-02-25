@@ -46,7 +46,6 @@ from tacker.vnflcm import utils as vnflcm_utils
 from tacker.vnfm.infra_drivers import abstract_driver
 from tacker.vnfm.infra_drivers.kubernetes.helm import helm_client
 from tacker.vnfm.infra_drivers.kubernetes.k8s import translate_outputs
-from tacker.vnfm.infra_drivers.kubernetes import translate_template
 from tacker.vnfm.infra_drivers.kubernetes import utils as k8s_utils
 from tacker.vnfm.infra_drivers import scale_driver
 from urllib.parse import urlparse
@@ -119,105 +118,13 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
     def get_description(self):
         return 'Kubernetes infra driver'
 
-    @log.log
-    def create(self, plugin, context, vnf, auth_attr):
-        """Create function
-
-        Create ConfigMap, Deployment, Service and Horizontal Pod Autoscaler
-        objects. Return a string that contains all deployment namespace and
-        names for tracking resources.
-        """
-        LOG.debug('vnf %s', vnf)
-        # initialize Kubernetes APIs
-        auth_cred, file_descriptor = self.get_auth_creds(auth_attr)
-        try:
-            core_v1_api_client = self.kubernetes.get_core_v1_api_client(
-                auth=auth_cred)
-            app_v1_api_client = self.kubernetes.get_app_v1_api_client(
-                auth=auth_cred)
-            scaling_api_client = self.kubernetes.get_scaling_api_client(
-                auth=auth_cred)
-            tosca_to_kubernetes = translate_template.TOSCAToKubernetes(
-                vnf=vnf,
-                core_v1_api_client=core_v1_api_client,
-                app_v1_api_client=app_v1_api_client,
-                scaling_api_client=scaling_api_client)
-            deployment_names = tosca_to_kubernetes.deploy_kubernetes_objects()
-        except Exception as e:
-            LOG.error('Creating VNF got an error due to %s', e)
-            raise
-        finally:
-            self.clean_authenticate_vim(auth_cred, file_descriptor)
-        return deployment_names
+    def create(self, plugin, context, vnf):
+        # NOTE: This method was used for Legacy API, and leave this method
+        #       because define as abstractmethod in super class.
+        pass
 
     def create_wait(self, plugin, context, vnf_dict, vnf_id, auth_attr):
-        """Create wait function
-
-        Create wait function will marked VNF is ACTIVE when all status state
-        from Pod objects is RUNNING.
-        """
-        # initialize Kubernetes APIs
-        if '{' not in vnf_id and '}' not in vnf_id:
-            auth_cred, file_descriptor = self.get_auth_creds(auth_attr)
-            try:
-                core_v1_api_client = \
-                    self.kubernetes.get_core_v1_api_client(auth=auth_cred)
-                deployment_info = vnf_id.split(COMMA_CHARACTER)
-                mgmt_ips = dict()
-                pods_information = self._get_pods_information(
-                    core_v1_api_client=core_v1_api_client,
-                    deployment_info=deployment_info)
-                status = self.get_pod_status(pods_information)
-                stack_retries = self.STACK_RETRIES
-                error_reason = None
-                while status == 'Pending' and stack_retries > 0:
-                    time.sleep(self.STACK_RETRY_WAIT)
-                    pods_information = \
-                        self._get_pods_information(
-                            core_v1_api_client=core_v1_api_client,
-                            deployment_info=deployment_info)
-                    status = self.get_pod_status(pods_information)
-                    LOG.debug('status: %s', status)
-                    stack_retries = stack_retries - 1
-
-                LOG.debug('VNF initializing status: %(service_name)s '
-                          '%(status)s',
-                          {'service_name': str(deployment_info),
-                          'status': status})
-                if stack_retries == 0 and status != 'Running':
-                    error_reason = _(
-                        "Resource creation is not completed within"
-                        " {wait} seconds as creation of stack {stack}"
-                        " is not completed").format(
-                        wait=(
-                            self.STACK_RETRIES *
-                            self.STACK_RETRY_WAIT),
-                        stack=vnf_id)
-                    LOG.error("VNF Creation failed: %(reason)s",
-                              {'reason': error_reason})
-                    raise vnfm.VNFCreateWaitFailed(reason=error_reason)
-                elif stack_retries != 0 and status != 'Running':
-                    raise vnfm.VNFCreateWaitFailed(reason=error_reason)
-
-                for i in range(0, len(deployment_info), 2):
-                    namespace = deployment_info[i]
-                    deployment_name = deployment_info[i + 1]
-                    service_info = core_v1_api_client.read_namespaced_service(
-                        name=deployment_name,
-                        namespace=namespace)
-                    if service_info.metadata.labels.get(
-                            "management_connection"):
-                        vdu_name = service_info.metadata.labels.\
-                            get("vdu_name").split("-")[1]
-                        mgmt_ip = service_info.spec.cluster_ip
-                        mgmt_ips.update({vdu_name: mgmt_ip})
-                        vnf_dict['mgmt_ip_address'] = jsonutils.dump_as_bytes(
-                            mgmt_ips)
-            except Exception as e:
-                LOG.error('Creating wait VNF got an error due to %s', e)
-                raise
-            finally:
-                self.clean_authenticate_vim(auth_cred, file_descriptor)
+        pass
 
     def create_wait_k8s(self, k8s_objs, k8s_client_dict, vnf_instance):
         try:
@@ -642,73 +549,6 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         # TODO(phuoc): do nothing, will update it if we need actions
         pass
 
-    def _delete_legacy(self, vnf_id, auth_cred):
-        """Delete function"""
-        # initialize Kubernetes APIs
-        try:
-            core_v1_api_client = self.kubernetes.get_core_v1_api_client(
-                auth=auth_cred)
-            app_v1_api_client = self.kubernetes.get_app_v1_api_client(
-                auth=auth_cred)
-            scaling_api_client = self.kubernetes.get_scaling_api_client(
-                auth=auth_cred)
-            deployment_names = vnf_id.split(COMMA_CHARACTER)
-
-            for i in range(0, len(deployment_names), 2):
-                namespace = deployment_names[i]
-                deployment_name = deployment_names[i + 1]
-                # delete ConfigMap if it exists
-                try:
-                    body = {}
-                    core_v1_api_client.delete_namespaced_config_map(
-                        namespace=namespace,
-                        name=deployment_name,
-                        body=body)
-                    LOG.debug('Successfully deleted ConfigMap %s',
-                              deployment_name)
-                except Exception as e:
-                    LOG.debug(e)
-                    pass
-                # delete Service if it exists
-                try:
-                    core_v1_api_client.delete_namespaced_service(
-                        namespace=namespace,
-                        name=deployment_name)
-                    LOG.debug('Successfully deleted Service %s',
-                              deployment_name)
-                except Exception as e:
-                    LOG.debug(e)
-                    pass
-                # delete Horizon Pod Auto-scaling if it exists
-                try:
-                    body = client.V1DeleteOptions()
-                    scaling_api_client.\
-                        delete_namespaced_horizontal_pod_autoscaler(
-                            namespace=namespace,
-                            name=deployment_name,
-                            body=body)
-                    LOG.debug('Successfully deleted Horizon Pod Auto-Scaling '
-                              '%s', deployment_name)
-                except Exception as e:
-                    LOG.debug(e)
-                    pass
-                # delete Deployment if it exists
-                try:
-                    body = client.V1DeleteOptions(
-                        propagation_policy='Foreground',
-                        grace_period_seconds=5)
-                    app_v1_api_client.delete_namespaced_deployment(
-                        namespace=namespace,
-                        name=deployment_name,
-                        body=body)
-                    LOG.debug('Successfully deleted Deployment %s',
-                              deployment_name)
-                except Exception as e:
-                    LOG.debug(e)
-                    pass
-        except Exception:
-            raise
-
     def _select_delete_api(self, k8s_client_dict, namespace, name,
                            kind, api_version, body):
         """select kubernetes delete api and call"""
@@ -852,139 +692,71 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         """Delete function"""
         auth_cred, file_descriptor = self.get_auth_creds(auth_attr)
         try:
-            if not vnf_instance:
-                # execute legacy delete method
-                self._delete_legacy(vnf_id, auth_cred)
+            # check use_helm flag
+            inst_vnf_info = vnf_instance.instantiated_vnf_info
+            if self._is_use_helm_flag(inst_vnf_info.additional_params):
+                self._helm_uninstall(context, vnf_instance)
+                return
+            # initialize Kubernetes APIs
+            k8s_client_dict = self.kubernetes.\
+                get_k8s_client_dict(auth=auth_cred)
+            # get V1DeleteOptions for deleting an API object
+            body = {}
+            vnf_resources = objects.VnfResourceList.get_by_vnf_instance_id(
+                context, vnf_instance.id)
+            if terminate_vnf_req:
+                if terminate_vnf_req.termination_type == 'GRACEFUL':
+                    grace_period_seconds = terminate_vnf_req.\
+                        graceful_termination_timeout
+                elif terminate_vnf_req.termination_type == 'FORCEFUL':
+                    grace_period_seconds = 0
+
+                body = client.V1DeleteOptions(
+                    propagation_policy='Foreground',
+                    grace_period_seconds=grace_period_seconds)
             else:
-                # check use_helm flag
-                inst_vnf_info = vnf_instance.instantiated_vnf_info
-                if self._is_use_helm_flag(inst_vnf_info.additional_params):
-                    self._helm_uninstall(context, vnf_instance)
-                    return
-                # initialize Kubernetes APIs
-                k8s_client_dict = self.kubernetes.\
-                    get_k8s_client_dict(auth=auth_cred)
-                # get V1DeleteOptions for deleting an API object
-                body = {}
-                vnf_resources = objects.VnfResourceList.get_by_vnf_instance_id(
-                    context, vnf_instance.id)
-                if terminate_vnf_req:
-                    if terminate_vnf_req.termination_type == 'GRACEFUL':
-                        grace_period_seconds = terminate_vnf_req.\
-                            graceful_termination_timeout
-                    elif terminate_vnf_req.termination_type == 'FORCEFUL':
-                        grace_period_seconds = 0
+                body = client.V1DeleteOptions(
+                    propagation_policy='Foreground')
 
-                    body = client.V1DeleteOptions(
-                        propagation_policy='Foreground',
-                        grace_period_seconds=grace_period_seconds)
-                else:
-                    body = client.V1DeleteOptions(
-                        propagation_policy='Foreground')
-
-                # follow the order below to resolve dependency when deleting
-                ordered_kind = [
-                    # 1.
-                    'Deployment', 'Job', 'DaemonSet', 'StatefulSet',
-                    # 2.
-                    'Pod',
-                    # 3.
-                    'PersistentVolumeClaim', 'ConfigMap', 'Secret',
-                    'PriorityClass',
-                    # 4.
-                    'PersistentVolume',
-                    # 5.
-                    'StorageClass',
-                    # 6. Except for 1 to 5 above, delete before `Namespace`
-                    'Service', 'LimitRange', 'PodTemplate', 'Node',
-                    'ResourceQuota', 'ServiceAccount', 'APIService',
-                    'ReplicaSet', 'ControllerRevision',
-                    'HorizontalPodAutoscaler', 'Lease', 'NetworkPolicy',
-                    'ClusterRole', 'ClusterRoleBinding', 'Role', 'RoleBinding',
-                    'VolumeAttachment',
-                    # 7. Delete `Namespace` finally
-                    'Namespace'
-                ]
-                namespace = vnf_instance.vnf_metadata['namespace']
-                for kind in ordered_kind:
-                    for vnf_resource in vnf_resources:
-                        obj_kind = vnf_resource.resource_type.\
-                            split(COMMA_CHARACTER)[1]
-                        if obj_kind == kind:
-                            self._delete_k8s_obj(
-                                kind=obj_kind,
-                                k8s_client_dict=k8s_client_dict,
-                                vnf_resource=vnf_resource,
-                                body=body, namespace=namespace)
+            # follow the order below to resolve dependency when deleting
+            ordered_kind = [
+                # 1.
+                'Deployment', 'Job', 'DaemonSet', 'StatefulSet',
+                # 2.
+                'Pod',
+                # 3.
+                'PersistentVolumeClaim', 'ConfigMap', 'Secret',
+                'PriorityClass',
+                # 4.
+                'PersistentVolume',
+                # 5.
+                'StorageClass',
+                # 6. Except for 1 to 5 above, delete before `Namespace`
+                'Service', 'LimitRange', 'PodTemplate', 'Node',
+                'ResourceQuota', 'ServiceAccount', 'APIService',
+                'ReplicaSet', 'ControllerRevision',
+                'HorizontalPodAutoscaler', 'Lease', 'NetworkPolicy',
+                'ClusterRole', 'ClusterRoleBinding', 'Role', 'RoleBinding',
+                'VolumeAttachment',
+                # 7. Delete `Namespace` finally
+                'Namespace'
+            ]
+            namespace = vnf_instance.vnf_metadata['namespace']
+            for kind in ordered_kind:
+                for vnf_resource in vnf_resources:
+                    obj_kind = vnf_resource.resource_type.\
+                        split(COMMA_CHARACTER)[1]
+                    if obj_kind == kind:
+                        self._delete_k8s_obj(
+                            kind=obj_kind,
+                            k8s_client_dict=k8s_client_dict,
+                            vnf_resource=vnf_resource,
+                            body=body, namespace=namespace)
         except Exception as e:
             LOG.error('Deleting VNF got an error due to %s', e)
             raise
         finally:
             self.clean_authenticate_vim(auth_cred, file_descriptor)
-
-    def _delete_wait_legacy(self, vnf_id, auth_cred):
-        """Delete wait function for legacy
-
-        This function is used to checking a containerized VNF is deleted
-        completely or not. We do it by get information of Kubernetes objects.
-        When Tacker can not get any information about service, the VNF will be
-        marked as deleted.
-        """
-        try:
-            core_v1_api_client = self.kubernetes.get_core_v1_api_client(
-                auth=auth_cred)
-            app_v1_api_client = self.kubernetes.get_app_v1_api_client(
-                auth=auth_cred)
-            scaling_api_client = self.kubernetes.get_scaling_api_client(
-                auth=auth_cred)
-
-            deployment_names = vnf_id.split(COMMA_CHARACTER)
-            keep_going = True
-            stack_retries = self.STACK_RETRIES
-            while keep_going and stack_retries > 0:
-                count = 0
-                for i in range(0, len(deployment_names), 2):
-                    namespace = deployment_names[i]
-                    deployment_name = deployment_names[i + 1]
-                    try:
-                        core_v1_api_client.read_namespaced_config_map(
-                            namespace=namespace,
-                            name=deployment_name)
-                        count = count + 1
-                    except Exception:
-                        pass
-                    try:
-                        core_v1_api_client.read_namespaced_service(
-                            namespace=namespace,
-                            name=deployment_name)
-                        count = count + 1
-                    except Exception:
-                        pass
-                    try:
-                        scaling_api_client.\
-                            read_namespaced_horizontal_pod_autoscaler(
-                                namespace=namespace,
-                                name=deployment_name)
-                        count = count + 1
-                    except Exception:
-                        pass
-                    try:
-                        app_v1_api_client.read_namespaced_deployment(
-                            namespace=namespace,
-                            name=deployment_name)
-                        count = count + 1
-                    except Exception:
-                        pass
-                stack_retries = stack_retries - 1
-                # If one of objects is still alive, keeps on waiting
-                if count > 0:
-                    keep_going = True
-                    time.sleep(self.STACK_RETRY_WAIT)
-                else:
-                    keep_going = False
-        except Exception as e:
-            LOG.error('Deleting wait VNF got an error due to %s', e)
-            raise
 
     def select_k8s_obj_read_api(self, k8s_client_dict, namespace, name,
                                 kind, api_version):
@@ -1051,105 +823,55 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         auth_cred, file_descriptor = self.get_auth_creds(auth_attr)
 
         try:
-            if not vnf_instance:
-                # execute legacy delete_wait method
-                self._delete_wait_legacy(vnf_id, auth_cred)
-            else:
-                vnf_resources = objects.VnfResourceList.\
-                    get_by_vnf_instance_id(context, vnf_instance.id)
-                k8s_client_dict = self.kubernetes.\
-                    get_k8s_client_dict(auth=auth_cred)
-                namespace = vnf_instance.vnf_metadata['namespace']
+            vnf_resources = objects.VnfResourceList.\
+                get_by_vnf_instance_id(context, vnf_instance.id)
+            k8s_client_dict = self.kubernetes.\
+                get_k8s_client_dict(auth=auth_cred)
+            namespace = vnf_instance.vnf_metadata['namespace']
 
-                keep_going = True
-                stack_retries = self.STACK_RETRIES
+            keep_going = True
+            stack_retries = self.STACK_RETRIES
 
-                while keep_going and stack_retries > 0:
-                    count = 0
+            while keep_going and stack_retries > 0:
+                count = 0
 
-                    for vnf_resource in vnf_resources:
-                        name = vnf_resource.resource_name
-                        api_version = vnf_resource.resource_type.\
-                            split(COMMA_CHARACTER)[0]
-                        kind = vnf_resource.resource_type.\
-                            split(COMMA_CHARACTER)[1]
+                for vnf_resource in vnf_resources:
+                    name = vnf_resource.resource_name
+                    api_version = vnf_resource.resource_type.\
+                        split(COMMA_CHARACTER)[0]
+                    kind = vnf_resource.resource_type.\
+                        split(COMMA_CHARACTER)[1]
 
-                        if not k8s_client_dict.get(api_version):
-                            continue
-                        try:
-                            self.select_k8s_obj_read_api(
-                                k8s_client_dict=k8s_client_dict,
-                                namespace=namespace,
-                                name=name,
-                                kind=kind,
-                                api_version=api_version)
-                            count = count + 1
-                        except Exception:
-                            pass
+                    if not k8s_client_dict.get(api_version):
+                        continue
+                    try:
+                        self.select_k8s_obj_read_api(
+                            k8s_client_dict=k8s_client_dict,
+                            namespace=namespace,
+                            name=name,
+                            kind=kind,
+                            api_version=api_version)
+                        count = count + 1
+                    except Exception:
+                        pass
 
-                    stack_retries = stack_retries - 1
-                    # If one of objects is still alive, keeps on waiting
-                    if count > 0:
-                        keep_going = True
-                        time.sleep(self.STACK_RETRY_WAIT)
-                    else:
-                        keep_going = False
+                stack_retries = stack_retries - 1
+                # If one of objects is still alive, keeps on waiting
+                if count > 0:
+                    keep_going = True
+                    time.sleep(self.STACK_RETRY_WAIT)
+                else:
+                    keep_going = False
 
-                # check use_helm flag
-                inst_vnf_info = vnf_instance.instantiated_vnf_info
-                if self._is_use_helm_flag(inst_vnf_info.additional_params):
-                    self._post_helm_uninstall(context, vnf_instance)
+            # check use_helm flag
+            inst_vnf_info = vnf_instance.instantiated_vnf_info
+            if self._is_use_helm_flag(inst_vnf_info.additional_params):
+                self._post_helm_uninstall(context, vnf_instance)
         except Exception as e:
             LOG.error('Deleting wait VNF got an error due to %s', e)
             raise
         finally:
             self.clean_authenticate_vim(auth_cred, file_descriptor)
-
-    def _scale_legacy(self, policy, auth_cred):
-        LOG.debug("VNF are scaled by updating instance of deployment")
-
-        app_v1_api_client = self.kubernetes.get_app_v1_api_client(
-            auth=auth_cred)
-        scaling_api_client = self.kubernetes.get_scaling_api_client(
-            auth=auth_cred)
-        deployment_names = policy['instance_id'].split(COMMA_CHARACTER)
-        policy_name = policy['name']
-        policy_action = policy['action']
-
-        for i in range(0, len(deployment_names), 2):
-            namespace = deployment_names[i]
-            deployment_name = deployment_names[i + 1]
-            deployment_info = app_v1_api_client.\
-                read_namespaced_deployment(namespace=namespace,
-                                           name=deployment_name)
-            scaling_info = scaling_api_client.\
-                read_namespaced_horizontal_pod_autoscaler(
-                    namespace=namespace,
-                    name=deployment_name)
-
-            replicas = deployment_info.status.replicas
-            scale_replicas = replicas
-            vnf_scaling_name = deployment_info.metadata.labels.\
-                get("scaling_name")
-            if vnf_scaling_name == policy_name:
-                if policy_action == 'out':
-                    scale_replicas = replicas + 1
-                elif policy_action == 'in':
-                    scale_replicas = replicas - 1
-
-            min_replicas = scaling_info.spec.min_replicas
-            max_replicas = scaling_info.spec.max_replicas
-            if (scale_replicas < min_replicas) or \
-                    (scale_replicas > max_replicas):
-                LOG.debug("Scaling replicas is out of range. The number of"
-                          " replicas keeps %(number)s replicas",
-                          {'number': replicas})
-                scale_replicas = replicas
-            deployment_info.spec.replicas = scale_replicas
-            app_v1_api_client.patch_namespaced_deployment_scale(
-                namespace=namespace,
-                name=deployment_name,
-                body=deployment_info)
 
     def _call_read_scale_api(self, app_v1_api_client, namespace, name, kind):
         """select kubernetes read scale api and call"""
@@ -1328,105 +1050,61 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         # initialize Kubernetes APIs
         auth_cred, file_descriptor = self.get_auth_creds(auth_attr)
         try:
-            if not policy.get('vnf_instance_id'):
-                # execute legacy scale method
-                self._scale_legacy(policy, auth_cred)
-            else:
-                vnf_instance = objects.VnfInstance.get_by_id(
-                    context, policy['vnf_instance_id'])
-                # check use_helm flag
-                inst_vnf_info = vnf_instance.instantiated_vnf_info
-                additional_params = inst_vnf_info.additional_params
-                if self._is_use_helm_flag(additional_params):
-                    self._helm_scale(context, vnf_instance, policy)
-                    return
-                namespace = vnf_instance.vnf_metadata['namespace']
-                vnf_resources = objects.VnfResourceList.get_by_vnf_instance_id(
-                    context, policy['vnf_instance_id'])
-                app_v1_api_client = self.kubernetes.get_app_v1_api_client(
-                    auth=auth_cred)
-                aspect_id = policy['name']
-                vdu_defs = policy['vdu_defs']
-                vdu_mapping = additional_params.get('vdu_mapping')
-                kind, name, _, vdu_properties = self._get_scale_target_info(
-                    aspect_id, vdu_defs, vnf_resources, vdu_mapping)
+            vnf_instance = objects.VnfInstance.get_by_id(
+                context, policy['vnf_instance_id'])
+            # check use_helm flag
+            inst_vnf_info = vnf_instance.instantiated_vnf_info
+            additional_params = inst_vnf_info.additional_params
+            if self._is_use_helm_flag(additional_params):
+                self._helm_scale(context, vnf_instance, policy)
+                return
+            namespace = vnf_instance.vnf_metadata['namespace']
+            vnf_resources = objects.VnfResourceList.get_by_vnf_instance_id(
+                context, policy['vnf_instance_id'])
+            app_v1_api_client = self.kubernetes.get_app_v1_api_client(
+                auth=auth_cred)
+            aspect_id = policy['name']
+            vdu_defs = policy['vdu_defs']
+            vdu_mapping = additional_params.get('vdu_mapping')
+            kind, name, _, vdu_properties = self._get_scale_target_info(
+                aspect_id, vdu_defs, vnf_resources, vdu_mapping)
 
-                scale_info = self._call_read_scale_api(
-                    app_v1_api_client=app_v1_api_client,
-                    namespace=namespace,
-                    name=name,
-                    kind=kind)
+            scale_info = self._call_read_scale_api(
+                app_v1_api_client=app_v1_api_client,
+                namespace=namespace,
+                name=name,
+                kind=kind)
 
-                current_replicas = scale_info.status.replicas
-                vdu_profile = vdu_properties.get('vdu_profile')
-                if policy['action'] == 'out':
-                    scale_replicas = current_replicas + policy['delta_num']
-                elif policy['action'] == 'in':
-                    scale_replicas = current_replicas - policy['delta_num']
+            current_replicas = scale_info.status.replicas
+            vdu_profile = vdu_properties.get('vdu_profile')
+            if policy['action'] == 'out':
+                scale_replicas = current_replicas + policy['delta_num']
+            elif policy['action'] == 'in':
+                scale_replicas = current_replicas - policy['delta_num']
 
-                max_replicas = vdu_profile.get('max_number_of_instances')
-                min_replicas = vdu_profile.get('min_number_of_instances')
-                if (scale_replicas < min_replicas) or \
-                        (scale_replicas > max_replicas):
-                    error_reason = (
-                        "The number of target replicas after"
-                        " scaling [{after_replicas}] is out of range").\
-                        format(
-                            after_replicas=scale_replicas)
-                    raise vnfm.CNFScaleFailed(reason=error_reason)
+            max_replicas = vdu_profile.get('max_number_of_instances')
+            min_replicas = vdu_profile.get('min_number_of_instances')
+            if (scale_replicas < min_replicas) or \
+                    (scale_replicas > max_replicas):
+                error_reason = (
+                    "The number of target replicas after"
+                    " scaling [{after_replicas}] is out of range").\
+                    format(
+                        after_replicas=scale_replicas)
+                raise vnfm.CNFScaleFailed(reason=error_reason)
 
-                scale_info.spec.replicas = scale_replicas
-                self._call_patch_scale_api(
-                    app_v1_api_client=app_v1_api_client,
-                    namespace=namespace,
-                    name=name,
-                    kind=kind,
-                    body=scale_info)
+            scale_info.spec.replicas = scale_replicas
+            self._call_patch_scale_api(
+                app_v1_api_client=app_v1_api_client,
+                namespace=namespace,
+                name=name,
+                kind=kind,
+                body=scale_info)
         except Exception as e:
             LOG.error('Scaling VNF got an error due to %s', e)
             raise
         finally:
             self.clean_authenticate_vim(auth_cred, file_descriptor)
-
-    def _scale_wait_legacy(self, policy, auth_cred):
-        core_v1_api_client = self.kubernetes.get_core_v1_api_client(
-            auth=auth_cred)
-        deployment_info = policy['instance_id'].split(",")
-
-        pods_information = self._get_pods_information(
-            core_v1_api_client=core_v1_api_client,
-            deployment_info=deployment_info)
-        status = self.get_pod_status(pods_information)
-
-        stack_retries = self.STACK_RETRIES
-        error_reason = None
-        while status == 'Pending' and stack_retries > 0:
-            time.sleep(self.STACK_RETRY_WAIT)
-
-            pods_information = self._get_pods_information(
-                core_v1_api_client=core_v1_api_client,
-                deployment_info=deployment_info)
-            status = self.get_pod_status(pods_information)
-
-            # LOG.debug('status: %s', status)
-            stack_retries = stack_retries - 1
-
-        LOG.debug('VNF initializing status: %(service_name)s %(status)s',
-                  {'service_name': str(deployment_info), 'status': status})
-
-        if stack_retries == 0 and status != 'Running':
-            error_reason = _("Resource creation is not completed within"
-                             " {wait} seconds as creation of stack {stack}"
-                             " is not completed").format(
-                wait=(self.STACK_RETRIES *
-                      self.STACK_RETRY_WAIT),
-                stack=policy['instance_id'])
-            LOG.error("VNF Creation failed: %(reason)s",
-                      {'reason': error_reason})
-            raise vnfm.VNFCreateWaitFailed(reason=error_reason)
-
-        elif stack_retries != 0 and status != 'Running':
-            raise vnfm.VNFCreateWaitFailed(reason=error_reason)
 
     def is_match_pod_naming_rule(self, rsc_kind, rsc_name, pod_name):
         match_result = None
@@ -1469,70 +1147,65 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         # initialize Kubernetes APIs
         auth_cred, file_descriptor = self.get_auth_creds(auth_attr)
         try:
-            if not policy.get('vnf_instance_id'):
-                # execute legacy scale_wait method
-                self._scale_wait_legacy(policy, auth_cred)
-            else:
-                vnf_instance = objects.VnfInstance.get_by_id(
-                    context, policy['vnf_instance_id'])
-                namespace = vnf_instance.vnf_metadata['namespace']
-                vnf_resources = objects.VnfResourceList.get_by_vnf_instance_id(
-                    context, policy['vnf_instance_id'])
-                core_v1_api_client = self.kubernetes.get_core_v1_api_client(
-                    auth=auth_cred)
-                app_v1_api_client = self.kubernetes.get_app_v1_api_client(
-                    auth=auth_cred)
-                aspect_id = policy['name']
-                vdu_defs = policy['vdu_defs']
-                inst_vnf_info = vnf_instance.instantiated_vnf_info
-                additional_params = inst_vnf_info.additional_params
-                vdu_mapping = additional_params.get('vdu_mapping')
-                kind, name, _, _ = self._get_scale_target_info(
-                    aspect_id, vdu_defs, vnf_resources, vdu_mapping)
+            vnf_instance = objects.VnfInstance.get_by_id(
+                context, policy['vnf_instance_id'])
+            namespace = vnf_instance.vnf_metadata['namespace']
+            vnf_resources = objects.VnfResourceList.get_by_vnf_instance_id(
+                context, policy['vnf_instance_id'])
+            core_v1_api_client = self.kubernetes.get_core_v1_api_client(
+                auth=auth_cred)
+            app_v1_api_client = self.kubernetes.get_app_v1_api_client(
+                auth=auth_cred)
+            aspect_id = policy['name']
+            vdu_defs = policy['vdu_defs']
+            inst_vnf_info = vnf_instance.instantiated_vnf_info
+            additional_params = inst_vnf_info.additional_params
+            vdu_mapping = additional_params.get('vdu_mapping')
+            kind, name, _, _ = self._get_scale_target_info(
+                aspect_id, vdu_defs, vnf_resources, vdu_mapping)
 
-                scale_info = self._call_read_scale_api(
-                    app_v1_api_client=app_v1_api_client,
-                    namespace=namespace,
-                    name=name,
-                    kind=kind)
-                status = 'Pending'
-                stack_retries = self.STACK_RETRIES
-                error_reason = None
-                while status == 'Pending' and stack_retries > 0:
-                    pods_information = list()
-                    respone = core_v1_api_client.list_namespaced_pod(
-                        namespace=namespace)
-                    for pod in respone.items:
-                        match_result = self.is_match_pod_naming_rule(
-                            kind, name, pod.metadata.name)
-                        if match_result:
-                            pods_information.append(pod)
+            scale_info = self._call_read_scale_api(
+                app_v1_api_client=app_v1_api_client,
+                namespace=namespace,
+                name=name,
+                kind=kind)
+            status = 'Pending'
+            stack_retries = self.STACK_RETRIES
+            error_reason = None
+            while status == 'Pending' and stack_retries > 0:
+                pods_information = list()
+                respone = core_v1_api_client.list_namespaced_pod(
+                    namespace=namespace)
+                for pod in respone.items:
+                    match_result = self.is_match_pod_naming_rule(
+                        kind, name, pod.metadata.name)
+                    if match_result:
+                        pods_information.append(pod)
 
-                    status = self.get_pod_status(pods_information)
-                    if status == 'Running' and \
-                       scale_info.spec.replicas != len(pods_information):
-                        status = 'Pending'
+                status = self.get_pod_status(pods_information)
+                if status == 'Running' and \
+                        scale_info.spec.replicas != len(pods_information):
+                    status = 'Pending'
 
-                    if status == 'Pending':
-                        stack_retries = stack_retries - 1
-                        time.sleep(self.STACK_RETRY_WAIT)
-                    elif status == 'Unknown':
-                        error_reason = (
-                            "CNF Scale failed caused by the Pod status"
-                            " is Unknown")
-                        raise vnfm.CNFScaleWaitFailed(reason=error_reason)
-
-                if stack_retries == 0 and status != 'Running':
+                if status == 'Pending':
+                    stack_retries = stack_retries - 1
+                    time.sleep(self.STACK_RETRY_WAIT)
+                elif status == 'Unknown':
                     error_reason = (
-                        "CNF Scale failed to complete within"
-                        " {wait} seconds while waiting for the aspect_id"
-                        " {aspect_id} to be scaled").format(
-                        wait=(self.STACK_RETRIES *
-                              self.STACK_RETRY_WAIT),
-                        aspect_id=aspect_id)
-                    LOG.error("CNF Scale failed: %(reason)s",
-                            {'reason': error_reason})
+                        "CNF Scale failed caused by the Pod status"
+                        " is Unknown")
                     raise vnfm.CNFScaleWaitFailed(reason=error_reason)
+
+            if stack_retries == 0 and status != 'Running':
+                error_reason = (
+                    "CNF Scale failed to complete within"
+                    " {wait} seconds while waiting for the aspect_id"
+                    " {aspect_id} to be scaled").format(
+                    wait=(self.STACK_RETRIES * self.STACK_RETRY_WAIT),
+                    aspect_id=aspect_id)
+                LOG.error("CNF Scale failed: %(reason)s",
+                        {'reason': error_reason})
+                raise vnfm.CNFScaleWaitFailed(reason=error_reason)
         except Exception as e:
             LOG.error('Scaling wait CNF got an error due to %s', e)
             raise
@@ -1568,9 +1241,6 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         if file_descriptor is not None:
             file_path = vim_auth.pop('ca_cert_file')
             self.kubernetes.close_tmp_file(file_descriptor, file_path)
-
-    def heal_vdu(self, plugin, context, vnf_dict, heal_request_data):
-        pass
 
     def _is_use_helm_flag(self, additional_params):
         if not additional_params:
@@ -1896,50 +1566,42 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         auth_attr = vim_connection_info.access_info
         use_helm_flag = self._is_use_helm_flag(
             instantiate_vnf_req.additional_params)
-        if not target_k8s_files and not use_helm_flag:
-            # The case is based on TOSCA for CNF operation.
-            # It is out of the scope of this patch.
-            instance_id = self.create(
-                None, context, vnf_instance, auth_attr)
-            return instance_id
+        auth_cred, file_descriptor = self.get_auth_creds(auth_attr)
+        k8s_client_dict = self.kubernetes.get_k8s_client_dict(auth_cred)
+        transformer = translate_outputs.Transformer(
+            None, None, None, k8s_client_dict)
+        deployment_dict_list = list()
+        if use_helm_flag:
+            k8s_objs = self._helm_install(
+                context, vnf_instance, vim_connection_info,
+                instantiate_vnf_req, vnf_package_path, transformer)
         else:
-            auth_cred, file_descriptor = self.get_auth_creds(auth_attr)
-            k8s_client_dict = self.kubernetes.get_k8s_client_dict(auth_cred)
-            transformer = translate_outputs.Transformer(
-                None, None, None, k8s_client_dict)
-            deployment_dict_list = list()
-            if use_helm_flag:
-                k8s_objs = self._helm_install(
-                    context, vnf_instance, vim_connection_info,
-                    instantiate_vnf_req, vnf_package_path, transformer)
+            k8s_objs = transformer.get_k8s_objs_from_yaml(
+                target_k8s_files, vnf_package_path, namespace)
+            k8s_objs = transformer.deploy_k8s(k8s_objs)
+        vnfd_dict['current_error_point'] = EP.POST_VIM_CONTROL
+        k8s_objs = self.create_wait_k8s(
+            k8s_objs, k8s_client_dict, vnf_instance)
+        for k8s_obj in k8s_objs:
+            deployment_dict = dict()
+            deployment_dict['namespace'] = k8s_obj.get('namespace')
+            if k8s_obj.get('object').metadata:
+                deployment_dict['name'] = k8s_obj.get('object').\
+                    metadata.name
             else:
-                k8s_objs = transformer.\
-                    get_k8s_objs_from_yaml(target_k8s_files, vnf_package_path,
-                                           namespace)
-                k8s_objs = transformer.deploy_k8s(k8s_objs)
-            vnfd_dict['current_error_point'] = EP.POST_VIM_CONTROL
-            k8s_objs = self.create_wait_k8s(
-                k8s_objs, k8s_client_dict, vnf_instance)
-            for k8s_obj in k8s_objs:
-                deployment_dict = dict()
-                deployment_dict['namespace'] = k8s_obj.get('namespace')
-                if k8s_obj.get('object').metadata:
-                    deployment_dict['name'] = k8s_obj.get('object').\
-                        metadata.name
-                else:
-                    deployment_dict['name'] = ''
-                deployment_dict['apiVersion'] = k8s_obj.get(
-                    'object').api_version
-                deployment_dict['kind'] = k8s_obj.get('object').kind
-                deployment_dict['status'] = k8s_obj.get('status')
-                deployment_dict_list.append(deployment_dict)
-            deployment_str_list = [str(x) for x in deployment_dict_list]
-            # all the deployment object will store into resource_info_str.
-            # and the instance_id is created from all deployment_dict.
-            resource_info_str = ';'.join(deployment_str_list)
-            self.clean_authenticate_vim(auth_cred, file_descriptor)
-            vnfd_dict['instance_id'] = resource_info_str
-            return resource_info_str
+                deployment_dict['name'] = ''
+            deployment_dict['apiVersion'] = k8s_obj.get(
+                'object').api_version
+            deployment_dict['kind'] = k8s_obj.get('object').kind
+            deployment_dict['status'] = k8s_obj.get('status')
+            deployment_dict_list.append(deployment_dict)
+        deployment_str_list = [str(x) for x in deployment_dict_list]
+        # all the deployment object will store into resource_info_str.
+        # and the instance_id is created from all deployment_dict.
+        resource_info_str = ';'.join(deployment_str_list)
+        self.clean_authenticate_vim(auth_cred, file_descriptor)
+        vnfd_dict['instance_id'] = resource_info_str
+        return resource_info_str
 
     def _post_helm_install(self, context, vim_connection_info,
                            instantiate_vnf_req, transformer, namespace):

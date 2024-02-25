@@ -58,7 +58,7 @@ ETSI NFV-SOL Tacker Implementation
 
 Tacker ETSI NFV-SOL based implementation is described as the following:
 
-.. figure:: ../_images/tacker-design-etsi.png
+.. figure:: ../_images/tacker-design-etsi.svg
     :figwidth: 700 px
     :align: left
     :width: 700 px
@@ -77,12 +77,8 @@ executed in tacker-server with DB queries. The others are redirected to
 infra-driver to execute the actual logics for control and management of
 virtualised resources.
 
-Tacker also provides configuring and monitoring system for VNF. The
-mgmt-driver or monitor-driver can be called by `Conductor Server`. In Ussuri
-release, OpenWRT for mgmt-driver and Ping/Zabbix for monitor-driver are
-available.
-
-.. TODO(yoshito-ito): add ActionDriver after the implementation.
+Tacker also provides configuring system for VNF. The mgmt-driver can be called
+by `Conductor Server`.
 
 .. note:: VIM related operations such as "Register VIM" and "Update VIM" are
           not defined in ETSI NFV-SOL. Users may need to use legacy Tacker.
@@ -92,18 +88,20 @@ Legacy Tacker Implementation
 
 Legacy Tacker implementation is described as the following:
 
-.. figure:: ../_images/tacker-design-legacy.png
+.. figure:: ../_images/tacker-design-legacy.svg
     :figwidth: 800 px
     :align: left
     :width: 800 px
 
 When a REST API call is sent to tacker-server, VNFM and NFVO plugins handle
-the request and execute connected methods in each plugin. The each plugin
-(NFVOPlugin or VNFMPlugin) invokes required driver methods such as
-mgmt-driver, monitor-driver, infra-driver, and vim-driver.
+the request and execute connected methods in each plugin. The NFVO plugin
+invokes required vim-driver methods.
 
-.. TODO(yoshito-ito): check the new fenix driver to add here.
+.. note:: Legacy API features other than the VIM feature have been deprecated.
+          So only Nfvo receives the API from the tacker-client, but Vnfm and
+          VNFMPlugin remain because they are used by VNF LCM API V1.
 
 .. _NFV-SOL002 : https://portal.etsi.org/webapp/WorkProgram/Report_WorkItem.asp?WKI_ID=49492
 .. _NFV-SOL003 : https://portal.etsi.org/webapp/WorkProgram/Report_WorkItem.asp?WKI_ID=49506
 .. _NFV-SOL005 : https://portal.etsi.org/webapp/WorkProgram/Report_WorkItem.asp?WKI_ID=50935
+

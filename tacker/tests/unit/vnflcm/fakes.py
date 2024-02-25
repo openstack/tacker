@@ -717,19 +717,6 @@ def get_vnfd_dict(image_path=None):
     return vnfd_dict
 
 
-def get_dummy_vnf_instance():
-    connection_info = get_dummy_vim_connection_info()
-    return {'created_at': '', 'deleted': False, 'deleted_at': None,
-            'id': 'fake_id', 'instantiated_vnf_info': None,
-            'instantiation_state': 'NOT_INSTANTIATED',
-            'tenant_id': 'fake_tenant_id', 'updated_at': '',
-            'vim_connection_info': [connection_info],
-            'vnf_instance_description': 'VNF Description',
-            'vnf_instance_name': 'test', 'vnf_product_name': 'Sample VNF',
-            'vnf_provider': 'Company', 'vnf_software_version': '1.0',
-            'vnfd_id': 'fake_vnfd_id', 'vnfd_version': '1.0'}
-
-
 def get_dummy_vim_connection_info():
     return {'access_info': {
         'auth_url': 'fake/url',

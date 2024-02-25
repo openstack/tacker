@@ -56,7 +56,7 @@ class FakeVNFMPlugin(mock.Mock):
     def get_vnf(self, context, vnf_id):
         filename = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), "./data/",
-            'test_tosca_image.yaml')
+            'etsi_nfv/tosca_vnfd.yaml')
         with open(filename) as f:
             vnfd_dict = {'vnfd_simple': str(yaml.safe_load(f))}
         return {

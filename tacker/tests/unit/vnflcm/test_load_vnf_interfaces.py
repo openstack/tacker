@@ -27,8 +27,8 @@ from tacker.manager import TackerManager
 from tacker import objects
 from tacker.objects import fields
 from tacker.tests.unit.db import base as db_base
-from tacker.tests.unit.nfvo.test_nfvo_plugin import FakeVNFMPlugin
 from tacker.tests.unit.vnflcm import fakes
+from tacker.tests.unit.vnflcm.test_controller import FakeVNFMPlugin
 from tacker.tests import utils as test_utils
 from tacker.tests import uuidsentinel
 from tacker.vnflcm import vnflcm_driver

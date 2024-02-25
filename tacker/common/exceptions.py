@@ -161,48 +161,8 @@ class InvalidContentType(TackerException):
     message = _("Invalid content type %(content_type)s")
 
 
-class NetworkVlanRangeError(TackerException):
-    message = _("Invalid network VLAN range: '%(vlan_range)s' - '%(error)s'")
-
-    def __init__(self, **kwargs):
-        # Convert vlan_range tuple to 'start:end' format for display
-        if isinstance(kwargs['vlan_range'], tuple):
-            kwargs['vlan_range'] = "%d:%d" % kwargs['vlan_range']
-        super(NetworkVlanRangeError, self).__init__(**kwargs)
-
-
 class DuplicatedExtension(TackerException):
     message = _("Found duplicate extension: %(alias)s")
-
-
-class MgmtDriverException(TackerException):
-    message = _("VNF configuration failed")
-
-
-class AlarmUrlInvalid(BadRequest):
-    message = _("Invalid alarm url for VNF %(vnf_id)s")
-
-
-class TriggerNotFound(NotFound):
-    message = _("Trigger %(trigger_name)s does not exist for VNF %(vnf_id)s")
-
-
-class VnfPolicyNotFound(NotFound):
-    message = _("Policy %(policy)s does not exist for VNF %(vnf_id)s")
-
-
-class VnfPolicyActionInvalid(BadRequest):
-    message = _("Invalid action %(action)s for policy %(policy)s, "
-                "should be one of %(valid_actions)s")
-
-
-class VnfPolicyTypeInvalid(BadRequest):
-    message = _("Invalid type %(type)s for policy %(policy)s, "
-                "should be one of %(valid_types)s")
-
-
-class DuplicateResourceName(TackerException):
-    message = _("%(resource)s with name %(name)s already exists")
 
 
 class DuplicateEntity(Conflict):

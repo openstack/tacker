@@ -49,11 +49,6 @@ if is_service_enabled tacker; then
             tacker_check_and_download_images
             echo_summary "Setup default VIM resources"
             tacker_setup_default_vim_resources
-
-            if is_service_enabled ceilometer; then
-                echo_summary "Configure maintenance event types"
-                configure_maintenance_event_types
-            fi
         fi
     fi
 

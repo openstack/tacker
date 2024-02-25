@@ -68,10 +68,6 @@ class VnfAbstractDriver(extensions.PluginInterface, metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def heal_vdu(self, plugin, context, vnf_dict, heal_request_data):
-        pass
-
-    @abc.abstractmethod
     def pre_instantiation_vnf(self, context, vnf_instance,
                               vim_connection_info, vnf_software_images):
         """Create resources required for instantiating Vnf.

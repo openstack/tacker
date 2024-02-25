@@ -1,0 +1,4 @@
+---
+upgrade:
+  - |
+    Legacy APIs excluding VIM feature are obsoleted.

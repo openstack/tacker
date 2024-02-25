@@ -11,13 +11,9 @@ frame "tacker-server" {
 }
 
 frame "tacker-conductor" {
-    component "mgmt-driver" as mgmt {
+    component "mgmt-driver" {
         'component Noop as noop
-        component OpenWRT as wrt
-    }
-    component "monitor-driver" as monitor {
-        component Ping as ping
-        component Zabbix as zabbix
+        component "Vnflcm Mgmt Driver" as mgmt
     }
     component conductor {
         component "Conductor Server" as cond
@@ -64,18 +60,5 @@ lcm_driver <-down-> ks_driver
 ks_driver <-down-> ks
 
 lcm_driver <-[hidden]down-> mgmt
-lcm_driver <-[hidden]down-> monitor
-'cond <-down-> mgmt
-'cond <-down-> monitor
-/'
-'cond <-right-> noop
-cond <-right-> wrt
-wrt <-down-> vm
-cond <-down-> ping
-ping <-down-> vm
-cond <-down-> zabbix
-zabbix <-down-> vm
-mgmt <-[hidden]down-> monitor
-'/
 
 @enduml

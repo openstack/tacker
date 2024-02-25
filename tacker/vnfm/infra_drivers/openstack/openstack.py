@@ -34,7 +34,6 @@ from tacker._i18n import _
 from tacker.common import exceptions
 from tacker.common import log
 from tacker.common import utils
-from tacker.db.common_services import common_services_db_plugin
 from tacker.extensions import vnflcm
 from tacker.extensions import vnfm
 from tacker import manager
@@ -50,7 +49,6 @@ from tacker.vnfm.infra_drivers.openstack import glance_client as gc
 from tacker.vnfm.infra_drivers.openstack import heat_client as hc
 from tacker.vnfm.infra_drivers.openstack import translate_template
 from tacker.vnfm.infra_drivers.openstack import update_template as ut
-from tacker.vnfm.infra_drivers.openstack import vdu
 from tacker.vnfm.infra_drivers import scale_driver
 from tacker.vnfm.lcm_user_data.constants import USER_DATA_TIMEOUT
 from tacker.vnfm.lcm_user_data import utils as user_data_utils
@@ -120,7 +118,6 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
         self.IMAGE_RETRY_WAIT = 10
         self.LOCK_RETRIES = 10
         self.LOCK_RETRY_WAIT = 10
-        self._cos_db_plg = common_services_db_plugin.CommonServicesPluginDb()
 
     def get_type(self):
         return 'openstack'
@@ -959,14 +956,6 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
         # Raise exception when Heat API service is not available
         except Exception:
             raise vnfm.InfraDriverUnreachable(service="Heat API service")
-
-    def heal_vdu(self, plugin, context, vnf_dict, heal_request_data_obj):
-        try:
-            heal_vdu = vdu.Vdu(context, vnf_dict, heal_request_data_obj)
-            heal_vdu.heal_vdu()
-        except Exception:
-            LOG.error("VNF '%s' failed to heal", vnf_dict['id'])
-            raise vnfm.VNFHealFailed(vnf_id=vnf_dict['id'])
 
     @log.log
     def pre_instantiation_vnf(

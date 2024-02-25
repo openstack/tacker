@@ -74,9 +74,6 @@ class VnfNoop(abstract_driver.VnfAbstractDriver):
                           region_name=None):
         return {'noop': {'id': uuidutils.generate_uuid(), 'type': 'noop'}}
 
-    def heal_vdu(self, plugin, context, vnf_dict, heal_request_data):
-        pass
-
     def pre_instantiation_vnf(self, context, vnf_instance,
                               vim_connection_info, image_data):
         pass
