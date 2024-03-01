@@ -4456,13 +4456,18 @@ class TestController(base.TestCase):
     @mock.patch.object(TackerManager, 'get_service_plugins',
         return_value={'VNFM': FakeVNFMPlugin()})
     def test_register_subscription(
-            self, mock_get_service_plugins, mock_save):
+            self, mock_get_service_plugins, mock_create):
         cfg.CONF.set_override('test_callback_uri', False,
                               group='vnf_lcm')
         body = {
             'callbackUri': 'http://sample_callback_uri'
         }
-
+        res_create = {
+            'id': uuidsentinel.subscription_id,
+            'callback_uri': body['callbackUri']
+        }
+        mock_create.return_value = objects.LccnSubscriptionRequest(
+            **res_create)
         req = fake_request.HTTPRequest.blank(
             '/subscriptions')
         req.body = jsonutils.dump_as_bytes(body)
@@ -4478,7 +4483,7 @@ class TestController(base.TestCase):
     @mock.patch.object(TackerManager, 'get_service_plugins',
                        return_value={'VNFM': FakeVNFMPlugin()})
     def test_register_subscription_authentication(
-            self, mock_create, mock_get_service_plugins,
+            self, mock_get_service_plugins, mock_create,
             mock_test_notification):
         cfg.CONF.set_override('test_callback_uri', True,
                               group='vnf_lcm')
@@ -4497,6 +4502,13 @@ class TestController(base.TestCase):
                 }
             }
         }
+        res_create = {
+            'id': uuidsentinel.subscription_id,
+            'callback_uri': body['callbackUri'],
+            "authentication": jsonutils.dumps(body["authentication"])
+        }
+        mock_create.return_value = objects.LccnSubscriptionRequest(
+            **res_create)
 
         req = fake_request.HTTPRequest.blank(
             '/subscriptions')

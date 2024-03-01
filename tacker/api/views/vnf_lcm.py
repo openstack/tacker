@@ -16,12 +16,15 @@
 import json
 
 from oslo_log import log as logging
+from sqlalchemy.engine import row
 
 from tacker.api import views as base
+from tacker.common.exceptions import TackerException
 from tacker.common import utils
 import tacker.conf
 from tacker.objects import fields
 from tacker.objects import vnf_instance as _vnf_instance
+from tacker.objects.vnf_lcm_subscriptions import LccnSubscriptionRequest
 
 CONF = tacker.conf.CONF
 
@@ -200,8 +203,19 @@ class ViewBuilder(base.BaseViewBuilder):
                         id=decode_id)}}}
 
     def _basic_subscription_info(self, vnf_lcm_subscription, filter=None):
+        def key_exists(obj, key):
+            # NOTE(ueha): Check `row.LegacyRow` type for back compatibility
+            #             of oslo.db<15.0.0 environment.
+            if (isinstance(obj, LccnSubscriptionRequest) or
+                    isinstance(obj, row.LegacyRow)):
+                return key in vnf_lcm_subscription
+            elif isinstance(obj, row.Row):
+                return key in vnf_lcm_subscription._mapping
+            # should not occur. code bug.
+            raise TackerException(f'Unexpected obj type: {type(obj)}')
+
         if not filter:
-            if 'filter' in vnf_lcm_subscription:
+            if key_exists(vnf_lcm_subscription, 'filter'):
                 filter_dict = json.loads(vnf_lcm_subscription.filter)
                 return {
                     'id': vnf_lcm_subscription.id,
