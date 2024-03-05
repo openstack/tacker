@@ -1026,15 +1026,15 @@ class TestDbMigrationToV2(SqlTestCase):
         # vimConnectionInfo
         vim_conn_info_v2 = vnf_instance_v2.vimConnectionInfo
         vim_conn_info_v1 = vnf_instance_v1.vim_connection_info
-        self.assertEqual(vim_conn_info_v2["vim0"].vimId,
+        self.assertEqual(vim_conn_info_v2["vim_0"].vimId,
                          vim_conn_info_v1[0].vim_id)
-        self.assertEqual(vim_conn_info_v2["vim0"].vimType,
+        self.assertEqual(vim_conn_info_v2["vim_0"].vimType,
                          vim_conn_info_v1[0].vim_type)
-        self.assertEqual(vim_conn_info_v2["vim0"].interfaceInfo,
+        self.assertEqual(vim_conn_info_v2["vim_0"].interfaceInfo,
                          vim_conn_info_v1[0].interface_info)
-        self.assertEqual(vim_conn_info_v2["vim0"].accessInfo,
+        self.assertEqual(vim_conn_info_v2["vim_0"].accessInfo,
                          vim_conn_info_v1[0].access_info)
-        self.assertEqual(vim_conn_info_v2["vim0"].extra,
+        self.assertEqual(vim_conn_info_v2["vim_0"].extra,
                          vim_conn_info_v1[0].extra)
 
         self.assertEqual(vnf_instance_v2.instantiationState,
