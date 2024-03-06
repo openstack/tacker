@@ -598,8 +598,11 @@ class TestController(base.TestCase):
         vim = fakes.return_default_vim()
         vim.update({'extra': {"area": "area_A@region_A"}})
         mock_get_vim.return_value = vim
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/instantiate' % uuidsentinel.vnf_instance_id)
         mock_vnf_instance_get_by_id.return_value =\
-            fakes.return_vnf_instance_model()
+            fakes.return_vnf_instance_model(
+                tenant_id=req.environ['tacker.context'].project_id)
         mock_vnf_package_vnfd_get_by_id.return_value = \
             fakes.return_vnf_package_vnfd()
         mock_vnf_package_get_by_id.return_value = \
@@ -616,8 +619,6 @@ class TestController(base.TestCase):
                      "vimType": 'openstack'}
                 ]}
         body.update({"additionalParams": {"foo_number": 12}})
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_instances/%s/instantiate' % uuidsentinel.vnf_instance_id)
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'POST'
@@ -645,8 +646,12 @@ class TestController(base.TestCase):
             mock_vnf_instance_get_by_id, mock_get_vnf,
             mock_get_service_plugins):
 
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/instantiate' % uuidsentinel.vnf_instance_id)
+
         mock_vnf_instance_get_by_id.return_value =\
-            fakes.return_vnf_instance_model()
+            fakes.return_vnf_instance_model(
+                tenant_id=req.environ['tacker.context'].project_id)
         mock_vnf_package_vnfd_get_by_id.return_value = \
             fakes.return_vnf_package_vnfd()
         mock_vnf_package_get_by_id.return_value = \
@@ -657,8 +662,6 @@ class TestController(base.TestCase):
                 status='INACTIVE')
 
         body = {"flavourId": "invalid"}
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_instances/%s/instantiate' % uuidsentinel.vnf_instance_id)
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'POST'
@@ -692,11 +695,14 @@ class TestController(base.TestCase):
             mock_get_vnf, mock_insta_notif_process,
             mock_get_service_plugins):
 
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/instantiate' % uuidsentinel.vnf_instance_id)
         vim = fakes.return_default_vim()
         vim.update({'extra': {"area": "area_A@region_A"}})
         mock_get_vim.return_value = vim
         mock_vnf_instance_get_by_id.return_value =\
-            fakes.return_vnf_instance_model()
+            fakes.return_vnf_instance_model(
+                tenant_id=req.environ['tacker.context'].project_id)
         mock_vnf_package_vnfd_get_by_id.return_value = \
             fakes.return_vnf_package_vnfd()
         mock_vnf_package_get_by_id.return_value = \
@@ -708,8 +714,6 @@ class TestController(base.TestCase):
 
         body = {"flavourId": "simple",
                 "instantiationLevelId": "instantiation_level_1"}
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_instances/%s/instantiate' % uuidsentinel.vnf_instance_id)
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'POST'
@@ -742,8 +746,12 @@ class TestController(base.TestCase):
             mock_vnf_instance_get_by_id, mock_get_vim,
             mock_get_vnf, mock_get_service_plugins):
 
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/instantiate' % uuidsentinel.vnf_instance_id)
+
         mock_vnf_instance_get_by_id.return_value =\
-            fakes.return_vnf_instance_model()
+            fakes.return_vnf_instance_model(
+                tenant_id=req.environ['tacker.context'].project_id)
         mock_vnf_package_vnfd_get_by_id.return_value = \
             fakes.return_vnf_package_vnfd()
         vnf_package = fakes.return_vnf_package_with_deployment_flavour()
@@ -758,8 +766,6 @@ class TestController(base.TestCase):
         # request
         body = {"flavourId": "simple",
                 "instantiationLevelId": "instantiation_level_1"}
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_instances/%s/instantiate' % uuidsentinel.vnf_instance_id)
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'POST'
@@ -789,8 +795,12 @@ class TestController(base.TestCase):
             mock_vnf_instance_get_by_id, mock_get_vnf,
             mock_get_service_plugins):
 
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/instantiate' % uuidsentinel.vnf_instance_id)
+
         mock_vnf_instance_get_by_id.return_value =\
-            fakes.return_vnf_instance_model()
+            fakes.return_vnf_instance_model(
+                tenant_id=req.environ['tacker.context'].project_id)
         mock_vnf_package_vnfd_get_by_id.return_value = \
             fakes.return_vnf_package_vnfd()
         mock_vnf_package_get_by_id.return_value = \
@@ -802,8 +812,6 @@ class TestController(base.TestCase):
 
         body = {"flavourId": "simple",
                 "instantiationLevelId": "non-existing"}
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_instances/%s/instantiate' % uuidsentinel.vnf_instance_id)
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'POST'
@@ -840,8 +848,11 @@ class TestController(base.TestCase):
         vim = fakes.return_default_vim()
         vim.update({'extra': {"area": "area_A@region_A"}})
         mock_get_vim.return_value = vim
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/instantiate' % uuidsentinel.vnf_instance_id)
         mock_vnf_instance_get_by_id.return_value =\
-            fakes.return_vnf_instance_model()
+            fakes.return_vnf_instance_model(
+                tenant_id=req.environ['tacker.context'].project_id)
         mock_vnf_package_vnfd_get_by_id.return_value = \
             fakes.return_vnf_package_vnfd()
         mock_vnf_package_get_by_id.return_value = \
@@ -858,8 +869,6 @@ class TestController(base.TestCase):
                      "vimType": 'openstack'}
                 ]}
 
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_instances/%s/instantiate' % uuidsentinel.vnf_instance_id)
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'POST'
@@ -890,8 +899,11 @@ class TestController(base.TestCase):
             mock_vnf_instance_get_by_id, mock_get_vim,
             mock_get_vnf, mock_get_service_plugins):
 
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/instantiate' % uuidsentinel.vnf_instance_id)
         mock_vnf_instance_get_by_id.return_value =\
-            fakes.return_vnf_instance_model()
+            fakes.return_vnf_instance_model(
+                tenant_id=req.environ['tacker.context'].project_id)
         mock_vnf_package_vnfd_get_by_id.return_value = \
             fakes.return_vnf_package_vnfd()
         mock_vnf_package_get_by_id.return_value = \
@@ -908,8 +920,6 @@ class TestController(base.TestCase):
                      "vimId": uuidsentinel.vim_id,
                      "vimType": 'openstack'}
                 ]}
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_instances/%s/instantiate' % uuidsentinel.vnf_instance_id)
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'POST'
@@ -939,8 +949,11 @@ class TestController(base.TestCase):
             mock_vnf_instance_get_by_id, mock_get_vim,
             mock_get_vnf, mock_get_service_plugins):
 
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/instantiate' % uuidsentinel.vnf_instance_id)
         mock_vnf_instance_get_by_id.return_value =\
-            fakes.return_vnf_instance_model()
+            fakes.return_vnf_instance_model(
+                tenant_id=req.environ['tacker.context'].project_id)
         mock_vnf_package_vnfd_get_by_id.return_value = \
             fakes.return_vnf_package_vnfd()
         mock_vnf_package_get_by_id.return_value = \
@@ -958,8 +971,6 @@ class TestController(base.TestCase):
                      'vimType': 'openstack',
                      'accessInfo': {"region": 'region_non_existing'}}
                 ]}
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_instances/%s/instantiate' % uuidsentinel.vnf_instance_id)
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'POST'
@@ -989,8 +1000,11 @@ class TestController(base.TestCase):
             mock_vnf_instance_get_by_id, mock_get_vim,
             mock_get_vnf, mock_get_service_plugins):
 
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/instantiate' % uuidsentinel.vnf_instance_id)
         mock_vnf_instance_get_by_id.return_value =\
-            fakes.return_vnf_instance_model()
+            fakes.return_vnf_instance_model(
+                tenant_id=req.environ['tacker.context'].project_id)
         mock_vnf_package_vnfd_get_by_id.return_value = \
             fakes.return_vnf_package_vnfd()
         mock_vnf_package_get_by_id.return_value = \
@@ -1002,8 +1016,6 @@ class TestController(base.TestCase):
                 status='INACTIVE')
 
         body = {"flavourId": "simple"}
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_instances/%s/instantiate' % uuidsentinel.vnf_instance_id)
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'POST'
@@ -1025,13 +1037,14 @@ class TestController(base.TestCase):
     @mock.patch.object(objects.vnf_instance, "_vnf_instance_get_by_id")
     def test_instantiate_incorrect_instantiation_state(
             self, mock_vnf_by_id, mock_get_vnf, mock_get_service_plugins):
-        vnf_instance = fakes.return_vnf_instance_model()
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/instantiate' % uuidsentinel.vnf_instance_id)
+        vnf_instance = fakes.return_vnf_instance_model(
+            tenant_id=req.environ['tacker.context'].project_id)
         vnf_instance.instantiation_state = 'INSTANTIATED'
         mock_vnf_by_id.return_value = vnf_instance
 
         body = {"flavourId": "simple"}
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_instances/%s/instantiate' % uuidsentinel.vnf_instance_id)
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'POST'
@@ -1052,13 +1065,14 @@ class TestController(base.TestCase):
             mock_vnf_by_id,
             mock_get_vnf,
             mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/instantiate' % uuidsentinel.vnf_instance_id)
         vnf_instance = fakes.return_vnf_instance_model(
-            task_state=fields.VnfInstanceTaskState.INSTANTIATING)
+            task_state=fields.VnfInstanceTaskState.INSTANTIATING,
+            tenant_id=req.environ['tacker.context'].project_id)
         mock_vnf_by_id.return_value = vnf_instance
 
         body = {"flavourId": "simple"}
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_instances/%s/instantiate' % uuidsentinel.vnf_instance_id)
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'POST'
@@ -1226,7 +1240,8 @@ class TestController(base.TestCase):
             mock_get_service_plugins):
         req = fake_request.HTTPRequest.blank(
             '/vnf_instances/%s' % uuidsentinel.instance_id)
-        mock_vnf_by_id.return_value = fakes.return_vnf_instance_model()
+        mock_vnf_by_id.return_value = fakes.return_vnf_instance_model(
+            tenant_id=req.environ['tacker.context'].project_id)
         expected_result = fakes.fake_vnf_instance_response()
         res_dict = self.controller.show(req, uuidsentinel.instance_id)
         self.assertEqual(expected_result, res_dict)
@@ -1240,7 +1255,8 @@ class TestController(base.TestCase):
         req = fake_request.HTTPRequest.blank(
             '/vnf_instances/%s' % uuidsentinel.instance_id)
         mock_vnf_by_id.return_value = fakes.return_vnf_instance(
-            fields.VnfInstanceState.INSTANTIATED)
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=req.environ['tacker.context'].project_id)
         expected_result = fakes.fake_vnf_instance_response(
             fields.VnfInstanceState.INSTANTIATED)
         res_dict = self.controller.show(req, uuidsentinel.instance_id)
@@ -1278,7 +1294,8 @@ class TestController(base.TestCase):
 
         mock_vnf_by_id.return_value = fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED,
-            vim_connection_info=[vim_connection_info])
+            vim_connection_info=[vim_connection_info],
+            tenant_id=req.environ['tacker.context'].project_id)
 
         vim_info = common_utils.convert_snakecase_to_camelcase(vim_info)
         expected_result = fakes.fake_vnf_instance_response(
@@ -1353,14 +1370,15 @@ class TestController(base.TestCase):
                        mock_get_by_id, mock_get_vnf,
                        mock_notification_process,
                        mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/terminate' % uuidsentinel.vnf_instance_id)
         vnf_instance_obj = fakes.return_vnf_instance(
-            fields.VnfInstanceState.INSTANTIATED)
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=req.environ['tacker.context'].project_id)
         mock_get_by_id.return_value = vnf_instance_obj
         mock_get_vnf.return_value = \
             self._get_dummy_vnf(vnf_id=vnf_instance_obj.id, status='ACTIVE')
 
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_instances/%s/terminate' % uuidsentinel.vnf_instance_id)
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'POST'
@@ -1486,14 +1504,15 @@ class TestController(base.TestCase):
             mock_vnf_by_id,
             mock_get_vnf,
             mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/terminate' % uuidsentinel.vnf_instance_id)
         vnf_instance = fakes.return_vnf_instance(
             instantiated_state=fields.VnfInstanceState.INSTANTIATED,
-            task_state=fields.VnfInstanceTaskState.TERMINATING)
+            task_state=fields.VnfInstanceTaskState.TERMINATING,
+            tenant_id=req.environ['tacker.context'].project_id)
         mock_vnf_by_id.return_value = vnf_instance
 
         body = {"terminationType": "FORCEFUL"}
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_instances/%s/terminate' % uuidsentinel.vnf_instance_id)
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'POST'
@@ -1523,14 +1542,15 @@ class TestController(base.TestCase):
                   mock_vnf_by_id, mock_get_vnf,
                   mock_heal_notif_process,
                   mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/heal' % uuidsentinel.vnf_instance_id)
         vnf_instance_obj = fakes.return_vnf_instance(
-            fields.VnfInstanceState.INSTANTIATED)
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=req.environ['tacker.context'].project_id)
         mock_vnf_by_id.return_value = vnf_instance_obj
         mock_get_vnf.return_value = \
             self._get_dummy_vnf(vnf_id=vnf_instance_obj.id, status='ACTIVE')
 
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_instances/%s/heal' % uuidsentinel.vnf_instance_id)
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'POST'
@@ -1573,13 +1593,14 @@ class TestController(base.TestCase):
             mock_get_vnf,
             mock_notif,
             mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/heal' % uuidsentinel.vnf_instance_id)
         vnf_instance_obj = fakes.return_vnf_instance(
-            fields.VnfInstanceState.NOT_INSTANTIATED)
+            fields.VnfInstanceState.NOT_INSTANTIATED,
+            tenant_id=req.environ['tacker.context'].project_id)
         mock_vnf_by_id.return_value = vnf_instance_obj
 
         body = {}
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_instances/%s/heal' % uuidsentinel.vnf_instance_id)
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'POST'
@@ -1604,14 +1625,15 @@ class TestController(base.TestCase):
     @mock.patch.object(objects.VnfInstance, "get_by_id")
     def test_heal_incorrect_task_state(self, mock_vnf_by_id, mock_get_vnf,
                                        mock_notif, mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/heal' % uuidsentinel.vnf_instance_id)
         vnf_instance_obj = fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED,
-            task_state=fields.VnfInstanceTaskState.HEALING)
+            task_state=fields.VnfInstanceTaskState.HEALING,
+            tenant_id=req.environ['tacker.context'].project_id)
         mock_vnf_by_id.return_value = vnf_instance_obj
 
         body = {}
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_instances/%s/heal' % uuidsentinel.vnf_instance_id)
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'POST'
@@ -1640,15 +1662,16 @@ class TestController(base.TestCase):
             mock_get_vnf,
             mock_notif,
             mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/heal' % uuidsentinel.vnf_instance_id)
         vnf_instance_obj = fakes.return_vnf_instance(
-            fields.VnfInstanceState.INSTANTIATED)
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=req.environ['tacker.context'].project_id)
         mock_vnf_by_id.return_value = vnf_instance_obj
         mock_get_vnf.return_value = \
             self._get_dummy_vnf(vnf_id=vnf_instance_obj.id, status='ACTIVE')
 
         body = {'vnfcInstanceId': [uuidsentinel.vnfc_instance_id]}
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_instances/%s/heal' % uuidsentinel.vnf_instance_id)
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'POST'
@@ -1760,7 +1783,8 @@ class TestController(base.TestCase):
         req = fake_request.HTTPRequest.blank(
             '/vnf_instances/%s' % uuidsentinel.vnf_instance_id)
         req.method = 'DELETE'
-        mock_vnf_by_id.return_value = fakes.return_vnf_instance_delete()
+        mock_vnf_by_id.return_value = fakes.return_vnf_instance_delete(
+            tenant_id=req.environ['tacker.context'].project_id)
         req.headers['Content-Type'] = 'application/json'
 
         # Call delete API
@@ -1817,7 +1841,8 @@ class TestController(base.TestCase):
         req.method = 'DELETE'
 
         vnf_instance = fakes.return_vnf_instance(
-            fields.VnfInstanceState.INSTANTIATED)
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=req.environ['tacker.context'].project_id)
         mock_vnf_by_id.return_value = vnf_instance
 
         # Call delete API
@@ -1843,7 +1868,8 @@ class TestController(base.TestCase):
 
         vnf_instance = fakes.return_vnf_instance(
             fields.VnfInstanceState.NOT_INSTANTIATED,
-            task_state=fields.VnfInstanceTaskState.ERROR)
+            task_state=fields.VnfInstanceTaskState.ERROR,
+            tenant_id=req.environ['tacker.context'].project_id)
         mock_vnf_by_id.return_value = vnf_instance
 
         # Call delete API
@@ -2195,6 +2221,7 @@ class TestController(base.TestCase):
 
         self.assertEqual(http_client.NOT_FOUND, resp.status_code)
 
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(TackerManager, 'get_service_plugins',
                        return_value={'VNFM':
                        test_nfvo_plugin.FakeVNFMPlugin()})
@@ -2208,11 +2235,19 @@ class TestController(base.TestCase):
             mock_vnf_package_vnf_get_vnf_package_vnfd,
             mock_vnf_instance_list,
             mock_vnf_index_list,
-            mock_get_service_plugins):
+            mock_get_service_plugins,
+            mock_vnf_instance):
 
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s' % constants.UUID)
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=req.environ['tacker.context'].project_id)
+        mock_vnf_instance.return_value = vnf_instance
         mock_vnf_index_list.return_value = fakes._get_vnf()
         mock_vnf_instance_list.return_value = fakes.return_vnf_instance(
-            fields.VnfInstanceState.INSTANTIATED)
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=req.environ['tacker.context'].project_id)
         mock_vnf_package_vnf_get_vnf_package_vnfd.return_value =\
             fakes.return_vnf_package_vnfd()
 
@@ -2225,8 +2260,6 @@ class TestController(base.TestCase):
                 "vnfcInfoModificationsDeleteIds": ["test1"],
                 "metadata": {"testkey": "test_value"},
                 "vimConnectionInfo": {"id": "testid"}}
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_instances/%s' % constants.UUID)
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'PATCH'
@@ -2236,6 +2269,7 @@ class TestController(base.TestCase):
         self.assertEqual(http_client.ACCEPTED, resp.status_code)
         mock_update.assert_called_once()
 
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(TackerManager, 'get_service_plugins',
                        return_value={'VNFM':
                        test_nfvo_plugin.FakeVNFMPlugin()})
@@ -2243,7 +2277,8 @@ class TestController(base.TestCase):
     def test_update_vnf_none_vnf_data(
             self,
             mock_vnf_index_list,
-            mock_get_service_plugins):
+            mock_get_service_plugins,
+            mock_vnf_instance):
 
         mock_vnf_index_list.return_value = None
 
@@ -2258,6 +2293,10 @@ class TestController(base.TestCase):
                 "vimConnectionInfo": {"id": "testid"}}
         req = fake_request.HTTPRequest.blank(
             '/vnf_instances/%s' % constants.UUID)
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=req.environ['tacker.context'].project_id)
+        mock_vnf_instance.return_value = vnf_instance
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'PATCH'
@@ -2268,6 +2307,7 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
         self.assertEqual(res.text, resp.text)
 
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(TackerManager, 'get_service_plugins',
                        return_value={'VNFM':
                        test_nfvo_plugin.FakeVNFMPlugin()})
@@ -2275,7 +2315,8 @@ class TestController(base.TestCase):
     def test_update_vnf_status_err(
             self,
             mock_vnf_index_list,
-            mock_get_service_plugins):
+            mock_get_service_plugins,
+            mock_vnf_instance):
         updates = {'status': 'ERROR'}
         mock_vnf_index_list.return_value = fakes._get_vnf(**updates)
 
@@ -2290,6 +2331,10 @@ class TestController(base.TestCase):
                 "vimConnectionInfo": {"id": "testid"}}
         req = fake_request.HTTPRequest.blank(
             '/vnf_instances/%s' % constants.UUID)
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=req.environ['tacker.context'].project_id)
+        mock_vnf_instance.return_value = vnf_instance
         req.body = jsonutils.dump_as_bytes(body)
 
         req.headers['Content-Type'] = 'application/json'
@@ -2303,6 +2348,7 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
         self.assertEqual(res.text, resp.text)
 
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(TackerManager, 'get_service_plugins',
                        return_value={'VNFM':
                        test_nfvo_plugin.FakeVNFMPlugin()})
@@ -2312,7 +2358,8 @@ class TestController(base.TestCase):
             self,
             mock_vnf_instance_list,
             mock_vnf_index_list,
-            mock_get_service_plugins):
+            mock_get_service_plugins,
+            mock_vnf_instance):
 
         mock_vnf_index_list.return_value = fakes._get_vnf()
         mock_vnf_instance_list.return_value = ""
@@ -2328,6 +2375,10 @@ class TestController(base.TestCase):
                 "vimConnectionInfo": {"id": "testid"}}
         req = fake_request.HTTPRequest.blank(
             '/vnf_instances/%s' % constants.UUID)
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=req.environ['tacker.context'].project_id)
+        mock_vnf_instance.return_value = vnf_instance
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'PATCH'
@@ -2340,6 +2391,7 @@ class TestController(base.TestCase):
         resp = req.get_response(self.app)
         self.assertEqual(res.text, resp.text)
 
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(TackerManager, 'get_service_plugins',
                        return_value={'VNFM':
                        test_nfvo_plugin.FakeVNFMPlugin()})
@@ -2360,11 +2412,19 @@ class TestController(base.TestCase):
             mock_index,
             mock_get_vnf_package_vnfd,
             mock_create_package,
-            mock_get_service_plugins):
+            mock_get_service_plugins,
+            mock_vnf_instance):
 
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s' % constants.UUID)
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=req.environ['tacker.context'].project_id)
+        mock_vnf_instance.return_value = vnf_instance
         mock_vnf_index_list.return_value = fakes._get_vnf()
         mock_vnf_instance_list.return_value = fakes.return_vnf_instance(
-            fields.VnfInstanceState.INSTANTIATED)
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=req.environ['tacker.context'].project_id)
         mock_vnf_package_vnf_get_vnf_package_vnfd.return_value = ""
         mock_get_vnf_package_vnfd.side_effect =\
             exceptions.VnfPackageVnfdNotFound
@@ -2381,8 +2441,6 @@ class TestController(base.TestCase):
     "vnfPkgId": "2c69a161-0000-4b0f-bcf8-391f8fc76600",
     "vnfConfigurableProperties": {"test": "test_value"},
      "vnfcInfoModificationsDeleteIds": ["test1"]}
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_instances/%s' % constants.UUID)
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'PATCH'
@@ -2398,15 +2456,23 @@ class TestController(base.TestCase):
     @mock.patch.object(objects.VnfInstanceList, "vnf_instance_list")
     @mock.patch.object(objects.VnfPackageVnfd, 'get_vnf_package_vnfd')
     @mock.patch.object(vnf_lcm_rpc.VNFLcmRPCAPI, "update")
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
     def test_update_vnf_with_pkg_id(
-            self, mock_update,
+            self, mock_vnf_instance, mock_update,
             mock_vnf_package_vnf_get_vnf_package_vnfd,
             mock_vnf_instance_list, mock_vnf_index_list,
             mock_get_service_plugins):
 
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s' % constants.UUID)
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=req.environ['tacker.context'].project_id)
+        mock_vnf_instance.return_value = vnf_instance
         mock_vnf_index_list.return_value = fakes._get_vnf()
         mock_vnf_instance_list.return_value = fakes.return_vnf_instance(
-            fields.VnfInstanceState.INSTANTIATED)
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=req.environ['tacker.context'].project_id)
         mock_vnf_package_vnf_get_vnf_package_vnfd.return_value =\
             fakes.return_vnf_package_vnfd()
 
@@ -2415,8 +2481,6 @@ class TestController(base.TestCase):
                 "vnfPkgId": "2c69a161-0000-4b0f-bcf8-391f8fc76600",
                 "vnfConfigurableProperties": {"test": "test_value"},
                 "vnfcInfoModificationsDeleteIds": ["test1"]}
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_instances/%s' % constants.UUID)
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'PATCH'
@@ -2426,6 +2490,7 @@ class TestController(base.TestCase):
         self.assertEqual(http_client.ACCEPTED, resp.status_code)
         mock_update.assert_called_once()
 
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
     @ddt.data("vnfdId", "vnfPkgId")
     @mock.patch.object(TackerManager, 'get_service_plugins',
                        return_value={'VNFM':
@@ -2447,11 +2512,19 @@ class TestController(base.TestCase):
             mock_index,
             mock_get_vnf_package_vnfd,
             mock_create_package,
-            mock_get_service_plugins):
+            mock_get_service_plugins,
+            mock_vnf_instance):
 
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s' % constants.UUID)
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=req.environ['tacker.context'].project_id)
+        mock_vnf_instance.return_value = vnf_instance
         mock_vnf_index_list.return_value = fakes._get_vnf()
         mock_vnf_instance_list.return_value = fakes.return_vnf_instance(
-            fields.VnfInstanceState.INSTANTIATED)
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=req.environ['tacker.context'].project_id)
         mock_vnf_package_vnf_get_vnf_package_vnfd.return_value = ""
         mock_get_vnf_package_vnfd.side_effect =\
             exceptions.VnfPackageVnfdNotFound
@@ -2468,8 +2541,6 @@ class TestController(base.TestCase):
     input_id: "2c69a161-0000-4b0f-bcf8-391f8fc76600",
     "vnfConfigurableProperties": {"test": "test_value"},
      "vnfcInfoModificationsDeleteIds": ["test1"]}
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_instances/%s' % constants.UUID)
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'PATCH'
@@ -2500,9 +2571,12 @@ class TestController(base.TestCase):
             mock_create_package,
             mock_get_service_plugins):
 
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s' % constants.UUID)
         mock_vnf_index_list.return_value = fakes._get_vnf()
         mock_vnf_instance_list.return_value = fakes.return_vnf_instance(
-            fields.VnfInstanceState.INSTANTIATED)
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=req.environ['tacker.context'].project_id)
         mock_vnf_package_vnf_get_vnf_package_vnfd.return_value = ""
         mock_get_vnf_package_vnfd.return_value = None
         mock_create_package.return_value = None
@@ -2518,8 +2592,6 @@ class TestController(base.TestCase):
     input_id: "2c69a161-0000-4b0f-bcf8-391f8fc76600",
     "vnfConfigurableProperties": {"test": "test_value"},
      "vnfcInfoModificationsDeleteIds": ["test1"]}
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_instances/%s' % constants.UUID)
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'PATCH'
@@ -2534,8 +2606,12 @@ class TestController(base.TestCase):
             self,
             mock_vnf_instance_get_by_id,
             mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/scale' %
+            constants.UUID)
         mock_vnf_instance_get_by_id.return_value =\
-            fakes.return_vnf_instance(fields.VnfInstanceState.INSTANTIATED)
+            fakes.return_vnf_instance(fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=req.environ['tacker.context'].project_id)
 
         body = {
             "type": "SCALE_OUT",
@@ -2543,9 +2619,6 @@ class TestController(base.TestCase):
             "numberOfSteps": 1,
             "additionalParams": {
                 "test": "test_value"}}
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_instances/%s/scale' %
-            constants.UUID)
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'POST'
@@ -2622,7 +2695,11 @@ class TestController(base.TestCase):
         mock_get_vnf.return_value = fakes._get_vnf()
         vim_connection_info = objects.VimConnectionInfo(
             vim_type="openstack")
-        update = {'vim_connection_info': [vim_connection_info]}
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/scale' %
+            constants.UUID)
+        update = {'vim_connection_info': [vim_connection_info],
+                  'tenant_id': req.environ['tacker.context'].project_id}
         mock_vnf_instance_get_by_id.return_value = fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED, scale_status="scale_status",
             **update)
@@ -2636,9 +2713,6 @@ class TestController(base.TestCase):
             "numberOfSteps": 1,
             "additionalParams": {
                 "test": "test_value"}}
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_instances/%s/scale' %
-            constants.UUID)
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'POST'
@@ -2669,7 +2743,11 @@ class TestController(base.TestCase):
         mock_get_vnf.return_value = fakes._get_vnf()
         vim_connection_info = objects.VimConnectionInfo(
             vim_type="openstack")
-        update = {'vim_connection_info': [vim_connection_info]}
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/scale' %
+            constants.UUID)
+        update = {'vim_connection_info': [vim_connection_info],
+                  'tenant_id': req.environ['tacker.context'].project_id}
         mock_vnf_instance_get_by_id.return_value = fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED, scale_status="scale_status",
             **update)
@@ -2683,9 +2761,6 @@ class TestController(base.TestCase):
             "numberOfSteps": 1,
             "additionalParams": {
                 "test": "test_value"}}
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_instances/%s/scale' %
-            constants.UUID)
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'POST'
@@ -2714,7 +2789,11 @@ class TestController(base.TestCase):
         mock_get_vnf.return_value = fakes._get_vnf()
         vim_connection_info = objects.VimConnectionInfo(
             vim_type="openstack")
-        update = {'vim_connection_info': [vim_connection_info]}
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/scale' %
+            constants.UUID)
+        update = {'vim_connection_info': [vim_connection_info],
+                  'tenant_id': req.environ['tacker.context'].project_id}
         mock_vnf_instance_get_by_id.return_value = fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED, scale_status="scale_status",
             **update)
@@ -2729,9 +2808,6 @@ class TestController(base.TestCase):
             "numberOfSteps": 1,
             "additionalParams": {
                 "test": "test_value"}}
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_instances/%s/scale' %
-            constants.UUID)
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'POST'
@@ -2760,7 +2836,11 @@ class TestController(base.TestCase):
         mock_get_vnf.return_value = fakes._get_vnf()
         vim_connection_info = objects.VimConnectionInfo(
             vim_type="openstack")
-        update = {'vim_connection_info': [vim_connection_info]}
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/scale' %
+            constants.UUID)
+        update = {'vim_connection_info': [vim_connection_info],
+                  'tenant_id': req.environ['tacker.context'].project_id}
         mock_vnf_instance_get_by_id.return_value = fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED, scale_status="scale_status",
             **update)
@@ -2774,9 +2854,6 @@ class TestController(base.TestCase):
             "numberOfSteps": 1,
             "additionalParams": {
                 "test": "test_value"}}
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_instances/%s/scale' %
-            constants.UUID)
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'POST'
@@ -2817,7 +2894,8 @@ class TestController(base.TestCase):
 
         vim_connection_info = objects.VimConnectionInfo(
             vim_type="openstack")
-        update = {'vim_connection_info': [vim_connection_info]}
+        update = {'vim_connection_info': [vim_connection_info],
+                  'tenant_id': req.environ['tacker.context'].project_id}
         vnf_instance = fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED,
             scale_status="scale_status",
@@ -2881,7 +2959,11 @@ class TestController(base.TestCase):
         mock_get_vnf.return_value = fakes.vnf_dict_cnf()
         vim_connection_info = objects.VimConnectionInfo(
             vim_type="kubernetes")
-        update = {'vim_connection_info': [vim_connection_info]}
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/scale' %
+            FakeVNFMPlugin().vnf_for_cnf_vnf_id)
+        update = {'vim_connection_info': [vim_connection_info],
+                  'tenant_id': req.environ['tacker.context'].project_id}
         scale_status = objects.ScaleInfo(
             aspect_id='vdu1_aspect', scale_level=1)
         mock_vnf_instance_get_by_id.return_value = fakes.return_vnf_instance(
@@ -2899,9 +2981,6 @@ class TestController(base.TestCase):
             "aspectId": "vdu1_aspect",
             "numberOfSteps": 1,
             "additionalParams": {}}
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_instances/%s/scale' %
-            FakeVNFMPlugin().vnf_for_cnf_vnf_id)
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'POST'
@@ -2937,7 +3016,11 @@ class TestController(base.TestCase):
         mock_get_vnf.return_value = vnf_info
         vim_connection_info = objects.VimConnectionInfo(
             vim_type="kubernetes")
-        update = {'vim_connection_info': [vim_connection_info]}
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/scale' %
+            FakeVNFMPlugin().vnf_for_cnf_vnf_id)
+        update = {'vim_connection_info': [vim_connection_info],
+                  'tenant_id': req.environ['tacker.context'].project_id}
         scale_status = objects.ScaleInfo(
             aspect_id='vdu1_aspect', scale_level=1)
         mock_vnf_instance_get_by_id.return_value = fakes.return_vnf_instance(
@@ -2956,9 +3039,6 @@ class TestController(base.TestCase):
             "aspectId": "vdu1_aspect",
             "numberOfSteps": 1,
             "additionalParams": {}}
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_instances/%s/scale' %
-            FakeVNFMPlugin().vnf_for_cnf_vnf_id)
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'POST'
@@ -2989,7 +3069,11 @@ class TestController(base.TestCase):
         mock_get_vnf.return_value = fakes.vnf_dict_cnf()
         vim_connection_info = objects.VimConnectionInfo(
             vim_type="kubernetes")
-        update = {'vim_connection_info': [vim_connection_info]}
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/scale' %
+            FakeVNFMPlugin().vnf_for_cnf_vnf_id)
+        update = {'vim_connection_info': [vim_connection_info],
+                  'tenant_id': req.environ['tacker.context'].project_id}
         scale_status = objects.ScaleInfo(
             aspect_id='vdu1_aspect', scale_level=1)
         mock_vnf_instance_get_by_id.return_value = fakes.return_vnf_instance(
@@ -3007,9 +3091,6 @@ class TestController(base.TestCase):
             "numberOfSteps": 1,
             "additionalParams": {
                 "is_reverse": "True"}}
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_instances/%s/scale' %
-            FakeVNFMPlugin().vnf_for_cnf_vnf_id)
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'POST'
@@ -3047,7 +3128,11 @@ class TestController(base.TestCase):
         mock_get_vnf.return_value = vnf_info
         vim_connection_info = objects.VimConnectionInfo(
             vim_type="kubernetes")
-        update = {'vim_connection_info': [vim_connection_info]}
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/scale' %
+            FakeVNFMPlugin().vnf_for_cnf_vnf_id)
+        update = {'vim_connection_info': [vim_connection_info],
+                  'tenant_id': req.environ['tacker.context'].project_id}
         scale_status = objects.ScaleInfo(
             aspect_id='vdu1_aspect', scale_level=1)
         mock_vnf_instance_get_by_id.return_value = fakes.return_vnf_instance(
@@ -3068,9 +3153,6 @@ class TestController(base.TestCase):
             "aspectId": "vdu1_aspect",
             "numberOfSteps": 3,
             "additionalParams": {}}
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_instances/%s/scale' %
-            FakeVNFMPlugin().vnf_for_cnf_vnf_id)
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'POST'
@@ -3103,7 +3185,8 @@ class TestController(base.TestCase):
 
         vnf_instance = fakes.return_vnf_instance(
             fields.VnfInstanceState.NOT_INSTANTIATED,
-            task_state=fields.VnfInstanceTaskState.ERROR)
+            task_state=fields.VnfInstanceTaskState.ERROR,
+            tenant_id=req.environ['tacker.context'].project_id)
         mock_vnf_instance.return_value = vnf_instance
 
         resp = req.get_response(self.app)
@@ -3135,7 +3218,8 @@ class TestController(base.TestCase):
 
         vnf_instance = fakes.return_vnf_instance(
             fields.VnfInstanceState.NOT_INSTANTIATED,
-            task_state=fields.VnfInstanceTaskState.ERROR)
+            task_state=fields.VnfInstanceTaskState.ERROR,
+            tenant_id=req.environ['tacker.context'].project_id)
         mock_vnf_instance.return_value = vnf_instance
 
         resp = req.get_response(self.app)
@@ -3173,12 +3257,17 @@ class TestController(base.TestCase):
     @mock.patch.object(TackerManager, 'get_service_plugins',
         return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
-    def test_rollback_not_failed_temp(self, mock_lcm_by_id,
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    def test_rollback_not_failed_temp(self, mock_vnf_get_by_id,
+            mock_lcm_by_id,
             mock_get_service_plugins):
         req = fake_request.HTTPRequest.blank(
             '/vnf_lcm_op_occs/%s/rollback' % uuidsentinel.vnf_instance_id)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'POST'
+        vnf_instance = fakes.return_vnf_instance(
+            tenant_id=req.environ['tacker.context'].project_id)
+        mock_vnf_get_by_id.return_value = vnf_instance
 
         vnf_lcm_op_occs = fakes.vnflcm_rollback_active()
         mock_lcm_by_id.return_value = vnf_lcm_op_occs
@@ -3189,12 +3278,17 @@ class TestController(base.TestCase):
     @mock.patch.object(TackerManager, 'get_service_plugins',
         return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id",)
-    def test_rollback_not_ope(self, mock_lcm_by_id,
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    def test_rollback_not_ope(self, mock_vnf_get_by_id,
+            mock_lcm_by_id,
             mock_get_service_plugins):
         req = fake_request.HTTPRequest.blank(
             '/vnf_lcm_op_occs/%s/rollback' % uuidsentinel.vnf_instance_id)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'POST'
+        vnf_instance = fakes.return_vnf_instance(
+            tenant_id=req.environ['tacker.context'].project_id)
+        mock_vnf_get_by_id.return_value = vnf_instance
 
         vnf_lcm_op_occs = fakes.vnflcm_rollback_ope()
         mock_lcm_by_id.return_value = vnf_lcm_op_occs
@@ -3205,12 +3299,17 @@ class TestController(base.TestCase):
     @mock.patch.object(TackerManager, 'get_service_plugins',
         return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
-    def test_rollback_not_scale_in(self, mock_lcm_by_id,
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    def test_rollback_not_scale_in(self, mock_vnf_get_by_id,
+            mock_lcm_by_id,
             mock_get_service_plugins):
         req = fake_request.HTTPRequest.blank(
             '/vnf_lcm_op_occs/%s/rollback' % uuidsentinel.vnf_instance_id)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'POST'
+        vnf_instance = fakes.return_vnf_instance(
+            tenant_id=req.environ['tacker.context'].project_id)
+        mock_vnf_get_by_id.return_value = vnf_instance
 
         vnf_lcm_op_occs = fakes.vnflcm_rollback_scale_in()
         mock_lcm_by_id.return_value = vnf_lcm_op_occs
@@ -3240,12 +3339,17 @@ class TestController(base.TestCase):
         return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
     @mock.patch.object(controller.VnfLcmController, "_get_rollback_vnf")
-    def test_rollback_vnf_not_found(self, mock_get_vnf, mock_lcm_by_id,
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    def test_rollback_vnf_not_found(self, mock_vnf_get_by_id,
+            mock_get_vnf, mock_lcm_by_id,
             mock_get_service_plugins):
         req = fake_request.HTTPRequest.blank(
             '/vnf_lcm_op_occs/%s/rollback' % uuidsentinel.vnf_instance_id)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'POST'
+        vnf_instance = fakes.return_vnf_instance(
+            tenant_id=req.environ['tacker.context'].project_id)
+        mock_vnf_get_by_id.return_value = vnf_instance
 
         vnf_lcm_op_occs = fakes.vnflcm_rollback_insta()
         mock_lcm_by_id.return_value = vnf_lcm_op_occs
@@ -3320,7 +3424,8 @@ class TestController(base.TestCase):
         mock_lcm_get_by_id.return_value = fakes.vnflcm_cancel_insta()
         vnf_instance = fakes.return_vnf_instance(
             fields.VnfInstanceState.NOT_INSTANTIATED,
-            task_state=fields.VnfInstanceTaskState.INSTANTIATING)
+            task_state=fields.VnfInstanceTaskState.INSTANTIATING,
+            tenant_id=req.environ['tacker.context'].project_id)
         mock_vnf_get_by_id.return_value = vnf_instance
 
         resp = req.get_response(self.app)
@@ -3353,7 +3458,8 @@ class TestController(base.TestCase):
         mock_lcm_get_by_id.return_value = fakes.vnflcm_cancel_insta()
         vnf_instance = fakes.return_vnf_instance(
             fields.VnfInstanceState.NOT_INSTANTIATED,
-            task_state=fields.VnfInstanceTaskState.INSTANTIATING)
+            task_state=fields.VnfInstanceTaskState.INSTANTIATING,
+            tenant_id=req.environ['tacker.context'].project_id)
         mock_vnf_get_by_id.return_value = vnf_instance
 
         resp = req.get_response(self.app)
@@ -3380,7 +3486,8 @@ class TestController(base.TestCase):
         mock_lcm_get_by_id.return_value = fakes.vnflcm_cancel_insta()
         vnf_instance = fakes.return_vnf_instance(
             fields.VnfInstanceState.NOT_INSTANTIATED,
-            task_state=fields.VnfInstanceTaskState.INSTANTIATING)
+            task_state=fields.VnfInstanceTaskState.INSTANTIATING,
+            tenant_id=req.environ['tacker.context'].project_id)
         mock_vnf_get_by_id.return_value = vnf_instance
 
         resp = req.get_response(self.app)
@@ -3407,7 +3514,8 @@ class TestController(base.TestCase):
         mock_lcm_get_by_id.return_value = fake_cancel_opocc
         vnf_instance = fakes.return_vnf_instance(
             fields.VnfInstanceState.NOT_INSTANTIATED,
-            task_state=fields.VnfInstanceTaskState.INSTANTIATING)
+            task_state=fields.VnfInstanceTaskState.INSTANTIATING,
+            tenant_id=req.environ['tacker.context'].project_id)
         mock_vnf_get_by_id.return_value = vnf_instance
 
         resp = req.get_response(self.app)
@@ -3492,7 +3600,8 @@ class TestController(base.TestCase):
         mock_lcm_get_by_id.return_value = fakes.vnflcm_cancel_insta()
         vnf_instance = fakes.return_vnf_instance(
             fields.VnfInstanceState.NOT_INSTANTIATED,
-            task_state=fields.VnfInstanceTaskState.INSTANTIATING)
+            task_state=fields.VnfInstanceTaskState.INSTANTIATING,
+            tenant_id=req.environ['tacker.context'].project_id)
         mock_vnf_get_by_id.return_value = vnf_instance
         mock_lcm_save.side_effect = Exception()
 
@@ -3514,6 +3623,10 @@ class TestController(base.TestCase):
             mock_send_notification):
         req = fake_request.HTTPRequest.blank(
             '/vnf_lcm_op_occs/%s/fail' % constants.UUID)
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=req.environ['tacker.context'].project_id)
+        mock_vnf_get_by_id.return_value = vnf_instance
         mock_lcm_get_by_id.return_value = fakes.vnflcm_fail_insta()
         res_dict = self.controller.fail(req, constants.UUID)
         self.assertEqual('FAILED', res_dict['operationState'])
@@ -3556,9 +3669,15 @@ class TestController(base.TestCase):
         self.assertEqual(http_client.NOT_FOUND, res_dict.status_code)
 
     @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
-    def test_fail_lcm_op_occs_vnf_not_failed_temp(self, mock_lcm_get_by_id):
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    def test_fail_lcm_op_occs_vnf_not_failed_temp(
+            self, mock_vnf_instance, mock_lcm_get_by_id):
         req = fake_request.HTTPRequest.blank(
             '/vnf_lcm_op_occs/%s/fail' % constants.UUID)
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=req.environ['tacker.context'].project_id)
+        mock_vnf_instance.return_value = vnf_instance
         vnflcm_fail_object = fakes.vnflcm_fail_insta()
         vnflcm_fail_object.operation_state = 'STARTED'
         mock_lcm_get_by_id.return_value = vnflcm_fail_object
@@ -3589,7 +3708,8 @@ class TestController(base.TestCase):
         mock_get_vnf.return_value = vnf_obj
 
         vnf_instance = fakes.return_vnf_instance(
-            fields.VnfInstanceState.INSTANTIATED)
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=req.environ['tacker.context'].project_id)
         mock_vnf_instance.return_value = vnf_instance
 
         resp = req.get_response(self.app)
@@ -3617,7 +3737,8 @@ class TestController(base.TestCase):
         mock_get_vnf.return_value = vnf_obj
 
         vnf_instance = fakes.return_vnf_instance(
-            fields.VnfInstanceState.INSTANTIATED)
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=req.environ['tacker.context'].project_id)
         mock_vnf_instance.return_value = vnf_instance
 
         resp = req.get_response(self.app)
@@ -3644,7 +3765,8 @@ class TestController(base.TestCase):
         mock_get_vnf.return_value = vnf_obj
 
         vnf_instance = fakes.return_vnf_instance(
-            fields.VnfInstanceState.INSTANTIATED)
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=req.environ['tacker.context'].project_id)
         mock_vnf_instance.return_value = vnf_instance
 
         resp = req.get_response(self.app)
@@ -3671,7 +3793,8 @@ class TestController(base.TestCase):
         mock_get_vnf.return_value = vnf_obj
 
         vnf_instance = fakes.return_vnf_instance(
-            fields.VnfInstanceState.INSTANTIATED)
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=req.environ['tacker.context'].project_id)
         mock_vnf_instance.return_value = vnf_instance
 
         resp = req.get_response(self.app)
@@ -3699,7 +3822,8 @@ class TestController(base.TestCase):
         mock_get_vnf.return_value = vnf_obj
 
         vnf_instance = fakes.return_vnf_instance(
-            fields.VnfInstanceState.INSTANTIATED)
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=req.environ['tacker.context'].project_id)
         mock_vnf_instance.return_value = vnf_instance
 
         resp = req.get_response(self.app)
@@ -3739,13 +3863,17 @@ class TestController(base.TestCase):
     @mock.patch.object(TackerManager, 'get_service_plugins',
         return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(objects.VnfLcmOpOcc, "get_by_id")
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
     def test_retry_vnf_lcm_occ_conflict(
-            self, mock_lcm_by_id, mock_get_service_plugins):
+            self, mock_vnf_instance, mock_lcm_by_id, mock_get_service_plugins):
         req = fake_request.HTTPRequest.blank(
             '/vnf_lcm_op_occs/%s/retry' % uuidsentinel.vnf_lcm_op_occs_id)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'POST'
-
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=req.environ['tacker.context'].project_id)
+        mock_vnf_instance.return_value = vnf_instance
         vnf_lcm_op_occs = fakes.vnflcm_op_occs_retry_data(
             operation_state='invalid operation state')
         mock_lcm_by_id.return_value = vnf_lcm_op_occs
@@ -3849,7 +3977,10 @@ class TestController(base.TestCase):
             '/vnf_lcm_op_occs/%s/retry' % uuidsentinel.vnf_lcm_op_occs_id)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'POST'
-
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=req.environ['tacker.context'].project_id)
+        mock_get_vnf_instance.return_value = vnf_instance
         vnf_lcm_op_occs = fakes.vnflcm_op_occs_retry_data(
             operation='Invalid operation type')
         mock_lcm_by_id.return_value = vnf_lcm_op_occs
@@ -4112,6 +4243,10 @@ class TestController(base.TestCase):
             '/vnf_lcm_op_occs/%s/fail' % constants.UUID)
         mock_lcm_get_by_id.return_value = \
             fakes.vnflcm_fail_insta()
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=req.environ['tacker.context'].project_id)
+        mock_vnf_get_by_id.return_value = vnf_instance
 
         res_dict = self.controller.fail(req, constants.UUID)
         ref_dict = copy.deepcopy(fakes.VNFLCMOPOCC_RESPONSE)
@@ -4133,6 +4268,10 @@ class TestController(base.TestCase):
             '/vnf_lcm_op_occs/%s/fail' % constants.UUID)
         mock_lcm_get_by_id.return_value = \
             fakes.vnflcm_fail_check_added_params()
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=req.environ['tacker.context'].project_id)
+        mock_vnf_get_by_id.return_value = vnf_instance
 
         res_dict = self.controller.fail(req, constants.UUID)
         ref_dict = fakes.VNFLCMOPOCC_RESPONSE
@@ -4162,15 +4301,16 @@ class TestController(base.TestCase):
                   mock_vnf_by_id, mock_get_vnf,
                   mock_notification_process,
                   mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/change_ext_conn' % uuidsentinel.vnf_instance_id)
         vnf_instance_obj = fakes.return_vnf_instance(
-            fields.VnfInstanceState.INSTANTIATED)
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=req.environ['tacker.context'].project_id)
         mock_vnf_by_id.return_value = vnf_instance_obj
         mock_get_vnf.return_value = \
             self._get_dummy_vnf(vnf_id=vnf_instance_obj.id, status='ACTIVE')
 
         body = fakes.get_change_ext_conn_request_body()
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_instances/%s/change_ext_conn' % uuidsentinel.vnf_instance_id)
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'POST'
@@ -4196,14 +4336,15 @@ class TestController(base.TestCase):
             mock_vnf_by_id, mock_get_vnf,
             mock_notification_process,
             mock_get_service_plugins, mock_insta_notfi_process):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/change_ext_conn' % uuidsentinel.vnf_instance_id)
         vnf_instance_obj = fakes.return_vnf_instance(
-            fields.VnfInstanceState.INSTANTIATED)
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=req.environ['tacker.context'].project_id)
         mock_vnf_by_id.return_value = vnf_instance_obj
         mock_get_vnf.return_value = \
             self._get_dummy_vnf(vnf_id=vnf_instance_obj.id, status='ACTIVE')
         body = fakes.get_change_ext_conn_request_body()
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_instances/%s/change_ext_conn' % uuidsentinel.vnf_instance_id)
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'POST'
@@ -4223,13 +4364,14 @@ class TestController(base.TestCase):
     def test_change_ext_conn_incorrect_instantiated_state(
             self, mock_vnf_by_id, mock_get_vnf,
             mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/change_ext_conn' % uuidsentinel.vnf_instance_id)
         vnf_instance_obj = fakes.return_vnf_instance(
-            fields.VnfInstanceState.NOT_INSTANTIATED)
+            fields.VnfInstanceState.NOT_INSTANTIATED,
+            tenant_id=req.environ['tacker.context'].project_id)
         mock_vnf_by_id.return_value = vnf_instance_obj
 
         body = fakes.get_change_ext_conn_request_body()
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_instances/%s/change_ext_conn' % uuidsentinel.vnf_instance_id)
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'POST'
@@ -4292,8 +4434,11 @@ class TestController(base.TestCase):
             mock_get_vnf,
             mock_notification_process,
             mock_get_service_plugins):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s/change_ext_conn' % uuidsentinel.vnf_instance_id)
         vnf_instance_obj = fakes.return_vnf_instance(
-            fields.VnfInstanceState.INSTANTIATED)
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=req.environ['tacker.context'].project_id)
         mock_vnf_by_id.return_value = vnf_instance_obj
         mock_get_vnf.return_value = \
             self._get_dummy_vnf(vnf_id=vnf_instance_obj.id, status='ACTIVE')
@@ -4302,8 +4447,6 @@ class TestController(base.TestCase):
         body['extVirtualLinks'][0]['extCps'][0]['cpConfig'][0][
             'cpProtocolData'][0]['ipOverEthernet'][
                 'ipAddresses'] = [ip_address]
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_instances/%s/change_ext_conn' % uuidsentinel.vnf_instance_id)
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'POST'
@@ -4820,11 +4963,13 @@ class TestController(base.TestCase):
         mock_vnf_package_get_by_id.return_value = \
             fakes.return_vnf_package_with_deployment_flavour()
 
+        req = fake_request.HTTPRequest.blank('/vnf_instances')
         updates = {'vnfd_id': uuidsentinel.vnfd_id,
                 'vnf_instance_description': 'SampleVnf Description',
                 'vnf_instance_name': 'SampleVnf',
                 'vnf_pkg_id': uuidsentinel.vnf_pkg_id,
-                'vnf_metadata': {"key": "value"}}
+                'vnf_metadata': {"key": "value"},
+                'tenant_id': req.environ['tacker.context'].project_id}
 
         mock_vnf_instance_create.return_value =\
             fakes.return_vnf_instance_model(**updates)
@@ -4833,7 +4978,6 @@ class TestController(base.TestCase):
                 "vnfInstanceName": "SampleVnf",
                 "vnfInstanceDescription": "SampleVnf Description",
                 'metadata': {"key": "value"}}
-        req = fake_request.HTTPRequest.blank('/vnf_instances')
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'POST'
@@ -4874,6 +5018,8 @@ class TestControllerEnhancedPolicy(TestController):
             mock_vnf_package_vnf_get_vnf_package_vnfd,
             mock_vnf_instance_list, mock_vnf_index_list,
             mock_get_service_plugins, mock_vnf_by_id):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s' % constants.UUID)
         mock_vnf_by_id.return_value = fakes.return_vnf_instance()
         mock_vnf_index_list.return_value = fakes._get_vnf()
         mock_vnf_instance_list.return_value = fakes.return_vnf_instance(
@@ -4886,8 +5032,6 @@ class TestControllerEnhancedPolicy(TestController):
                 "vnfPkgId": "2c69a161-0000-4b0f-bcf8-391f8fc76600",
                 "vnfConfigurableProperties": {"test": "test_value"},
                 "vnfcInfoModificationsDeleteIds": ["test1"]}
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_instances/%s' % constants.UUID)
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'PATCH'
@@ -4907,6 +5051,8 @@ class TestControllerEnhancedPolicy(TestController):
             mock_vnf_index_list,
             mock_get_service_plugins,
             mock_vnf_by_id):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s' % constants.UUID)
         mock_vnf_by_id.return_value = fakes.return_vnf_instance()
         updates = {'status': 'ERROR'}
         mock_vnf_index_list.return_value = fakes._get_vnf(**updates)
@@ -4920,8 +5066,6 @@ class TestControllerEnhancedPolicy(TestController):
                 "vnfcInfoModificationsDeleteIds": ["test1"],
                 "metadata": {"testkey": "test_value"},
                 "vimConnectionInfo": {"id": "testid"}}
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_instances/%s' % constants.UUID)
         req.body = jsonutils.dump_as_bytes(body)
 
         req.headers['Content-Type'] = 'application/json'
@@ -4959,10 +5103,13 @@ class TestControllerEnhancedPolicy(TestController):
             mock_get_service_plugins,
             mock_vnf_by_id):
 
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_instances/%s' % constants.UUID)
         mock_vnf_by_id.return_value = fakes.return_vnf_instance()
         mock_vnf_index_list.return_value = fakes._get_vnf()
         mock_vnf_instance_list.return_value = fakes.return_vnf_instance(
-            fields.VnfInstanceState.INSTANTIATED)
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=req.environ['tacker.context'].project_id)
         mock_vnf_package_vnf_get_vnf_package_vnfd.return_value = ""
         mock_get_vnf_package_vnfd.side_effect =\
             exceptions.VnfPackageVnfdNotFound
@@ -4981,8 +5128,6 @@ class TestControllerEnhancedPolicy(TestController):
             "vnfConfigurableProperties": {"test": "test_value"},
             "vnfcInfoModificationsDeleteIds": ["test1"]
         }
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_instances/%s' % constants.UUID)
         req.body = jsonutils.dump_as_bytes(body)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'PATCH'

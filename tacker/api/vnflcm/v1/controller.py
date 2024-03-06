@@ -608,12 +608,13 @@ class VnfLcmController(wsgi.Controller):
     @wsgi.expected_errors((http_client.FORBIDDEN, http_client.NOT_FOUND))
     def show(self, request, id):
         context = request.environ['tacker.context']
-        if not CONF.oslo_policy.enhanced_tacker_policy:
-            context.can(vnf_lcm_policies.VNFLCM % 'show')
         vnf_instance = self._get_vnf_instance(context, id)
         if CONF.oslo_policy.enhanced_tacker_policy:
             context.can(vnf_lcm_policies.VNFLCM % 'show',
                         target=self._get_policy_target(vnf_instance))
+        else:
+            context.can(vnf_lcm_policies.VNFLCM % 'show',
+                        target={'project_id': vnf_instance.tenant_id})
 
         return self._view_builder.show(vnf_instance)
 
@@ -708,6 +709,9 @@ class VnfLcmController(wsgi.Controller):
         if CONF.oslo_policy.enhanced_tacker_policy:
             context.can(vnf_lcm_policies.VNFLCM % 'delete',
                         target=self._get_policy_target(vnf_instance))
+        else:
+            context.can(vnf_lcm_policies.VNFLCM % 'delete',
+                        target={'project_id': vnf_instance.tenant_id})
 
         vnf = self._get_vnf(context, id)
         self._delete(context, vnf_instance, vnf)
@@ -779,14 +783,15 @@ class VnfLcmController(wsgi.Controller):
     @validation.schema(vnf_lcm.instantiate)
     def instantiate(self, request, id, body):
         context = request.environ['tacker.context']
-        if not CONF.oslo_policy.enhanced_tacker_policy:
-            context.can(vnf_lcm_policies.VNFLCM % 'instantiate')
 
         vnf = self._get_vnf(context, id)
         vnf_instance = self._get_vnf_instance(context, id)
         if CONF.oslo_policy.enhanced_tacker_policy:
             context.can(vnf_lcm_policies.VNFLCM % 'instantiate',
                         target=self._get_policy_target(vnf_instance))
+        else:
+            context.can(vnf_lcm_policies.VNFLCM % 'instantiate',
+                        target={'project_id': vnf_instance.tenant_id})
 
         return self._instantiate(context, vnf_instance, vnf, body)
 
@@ -834,14 +839,15 @@ class VnfLcmController(wsgi.Controller):
     @validation.schema(vnf_lcm.terminate)
     def terminate(self, request, id, body):
         context = request.environ['tacker.context']
-        if not CONF.oslo_policy.enhanced_tacker_policy:
-            context.can(vnf_lcm_policies.VNFLCM % 'terminate')
-
         vnf = self._get_vnf(context, id)
         vnf_instance = self._get_vnf_instance(context, id)
         if CONF.oslo_policy.enhanced_tacker_policy:
             context.can(vnf_lcm_policies.VNFLCM % 'terminate',
                         target=self._get_policy_target(vnf_instance))
+        else:
+            context.can(vnf_lcm_policies.VNFLCM % 'terminate',
+                        target={'project_id': vnf_instance.tenant_id})
+
         return self._terminate(context, vnf_instance, vnf, body)
 
     @check_vnf_status_and_error_point(action="heal",
@@ -894,14 +900,15 @@ class VnfLcmController(wsgi.Controller):
     @validation.schema(vnf_lcm.heal)
     def heal(self, request, id, body):
         context = request.environ['tacker.context']
-        if not CONF.oslo_policy.enhanced_tacker_policy:
-            context.can(vnf_lcm_policies.VNFLCM % 'heal')
 
         vnf = self._get_vnf(context, id)
         vnf_instance = self._get_vnf_instance(context, id)
         if CONF.oslo_policy.enhanced_tacker_policy:
             context.can(vnf_lcm_policies.VNFLCM % 'heal',
                         target=self._get_policy_target(vnf_instance))
+        else:
+            context.can(vnf_lcm_policies.VNFLCM % 'heal',
+                        target={'project_id': vnf_instance.tenant_id})
 
         if vnf_instance.instantiation_state not in \
            [fields.VnfInstanceState.INSTANTIATED]:
@@ -941,12 +948,13 @@ class VnfLcmController(wsgi.Controller):
     @wsgi.expected_errors((http_client.FORBIDDEN, http_client.NOT_FOUND))
     def update(self, request, id, body):
         context = request.environ['tacker.context']
+        vnf_instance = self._get_vnf_instance(context, id)
         if CONF.oslo_policy.enhanced_tacker_policy:
-            vnf_instance = self._get_vnf_instance(context, id)
             context.can(vnf_lcm_policies.VNFLCM % 'update_vnf',
                         target=self._get_policy_target(vnf_instance))
         else:
-            context.can(vnf_lcm_policies.VNFLCM % 'update_vnf')
+            context.can(vnf_lcm_policies.VNFLCM % 'update_vnf',
+                    target={'project_id': vnf_instance.tenant_id})
 
         # get body
         body_data = {}
@@ -1425,8 +1433,6 @@ class VnfLcmController(wsgi.Controller):
                            http_client.NOT_FOUND, http_client.CONFLICT))
     def scale(self, request, id, body):
         context = request.environ['tacker.context']
-        if not CONF.oslo_policy.enhanced_tacker_policy:
-            context.can(vnf_lcm_policies.VNFLCM % 'scale')
 
         try:
             vnf_info = self._vnfm_plugin.get_vnf(context, id)
@@ -1437,6 +1443,9 @@ class VnfLcmController(wsgi.Controller):
             if CONF.oslo_policy.enhanced_tacker_policy:
                 context.can(vnf_lcm_policies.VNFLCM % 'scale',
                             target=self._get_policy_target(vnf_instance))
+            else:
+                context.can(vnf_lcm_policies.VNFLCM % 'scale',
+                            target={'project_id': vnf_instance.tenant_id})
             if not vnf_instance.instantiated_vnf_info.scale_status:
                 return self._make_problem_detail(
                     'NOT SCALE VNF', 409, title='NOT SCALE VNF')
@@ -1485,10 +1494,14 @@ class VnfLcmController(wsgi.Controller):
                            http_client.NOT_FOUND, http_client.CONFLICT))
     def rollback(self, request, id):
         context = request.environ['tacker.context']
-        context.can(vnf_lcm_policies.VNFLCM % 'rollback')
 
         try:
             vnf_lcm_op_occs = objects.VnfLcmOpOcc.get_by_id(context, id)
+            vnf_instance = self._get_vnf_instance(
+                context, vnf_lcm_op_occs.vnf_instance_id)
+            context.can(vnf_lcm_policies.VNFLCM % 'rollback',
+                        target={'project_id': vnf_instance.tenant_id})
+
             if vnf_lcm_op_occs.operation_state != 'FAILED_TEMP':
                 return self._make_problem_detail(
                     'OperationState IS NOT FAILED_TEMP',
@@ -1513,8 +1526,6 @@ class VnfLcmController(wsgi.Controller):
 
             vnf_info = self._get_rollback_vnf(
                 context, vnf_lcm_op_occs.vnf_instance_id)
-            vnf_instance = self._get_vnf_instance(
-                context, vnf_lcm_op_occs.vnf_instance_id)
 
             inst_vnf_info = vnf_instance.instantiated_vnf_info
             if inst_vnf_info is not None:
@@ -1537,6 +1548,8 @@ class VnfLcmController(wsgi.Controller):
         except webob.exc.HTTPNotFound as inst_e:
             return self._make_problem_detail(
                 str(inst_e), 404, title='VNF NOT FOUND')
+        except exceptions.PolicyNotAuthorized:
+            raise
         except Exception as e:
             LOG.error(traceback.format_exc())
             return self._make_problem_detail(
@@ -1573,7 +1586,6 @@ class VnfLcmController(wsgi.Controller):
         """
 
         context = request.environ['tacker.context']
-        context.can(vnf_lcm_policies.VNFLCM % 'cancel')
         req_body = utils.convert_camelcase_to_snakecase(body)
         _ = objects.CancelMode(context=context, **req_body)
 
@@ -1581,9 +1593,13 @@ class VnfLcmController(wsgi.Controller):
             vnf_lcm_op_occs = objects.VnfLcmOpOcc.get_by_id(context, id)
             vnf_instance = self._get_vnf_instance(
                 context, vnf_lcm_op_occs.vnf_instance_id)
+            context.can(vnf_lcm_policies.VNFLCM % 'cancel',
+                        target={'project_id': vnf_instance.tenant_id})
         except (webob.exc.HTTPNotFound, exceptions.NotFound) as e:
             return self._make_problem_detail(
                 str(e), 404, title='VNF NOT FOUND')
+        except exceptions.PolicyNotAuthorized:
+            raise
         except Exception as e:
             LOG.error(traceback.format_exc())
             return self._make_problem_detail(
@@ -1652,11 +1668,15 @@ class VnfLcmController(wsgi.Controller):
                            http_client.NOT_FOUND))
     def fail(self, request, id):
         context = request.environ['tacker.context']
-        context.can(vnf_lcm_policies.VNFLCM % 'fail')
 
         try:
             vnf_lcm_op_occs = objects.VnfLcmOpOcc.get_by_id(context, id)
             operation = vnf_lcm_op_occs.operation
+
+            vnf_instance_id = vnf_lcm_op_occs.vnf_instance_id
+            vnf_instance = self._get_vnf_instance(context, vnf_instance_id)
+            context.can(vnf_lcm_policies.VNFLCM % 'fail',
+                        target={'project_id': vnf_instance.tenant_id})
 
             if (vnf_lcm_op_occs.operation_state
                     != fields.LcmOccsOperationState.FAILED_TEMP):
@@ -1664,14 +1684,14 @@ class VnfLcmController(wsgi.Controller):
                     'Transitions to FAIL from state %s is not allowed' %
                     vnf_lcm_op_occs.operation_state, 409, title='Conflict')
 
-            vnf_instance_id = vnf_lcm_op_occs.vnf_instance_id
-            vnf_instance = self._get_vnf_instance(context, vnf_instance_id)
         except webob.exc.HTTPNotFound as e:
             return self._make_problem_detail(
                 str(e), 404, title='VNF NOT FOUND')
         except exceptions.NotFound as e:
             return self._make_problem_detail(
                 str(e), 404, title='VNF LCM NOT FOUND')
+        except exceptions.PolicyNotAuthorized:
+            raise
         except Exception as e:
             LOG.error(traceback.format_exc())
             return self._make_problem_detail(
@@ -1741,7 +1761,6 @@ class VnfLcmController(wsgi.Controller):
                            http_client.NOT_FOUND, http_client.CONFLICT))
     def retry(self, request, id):
         context = request.environ['tacker.context']
-        context.can(vnf_lcm_policies.VNFLCM % 'retry')
 
         try:
             vnf_lcm_op_occs = objects.VnfLcmOpOcc.get_by_id(context, id)
@@ -1752,14 +1771,6 @@ class VnfLcmController(wsgi.Controller):
             LOG.exception(exc)
             return self._make_problem_detail(str(exc),
                 500, title='Internal Server Error')
-
-        # operation state checking
-        if vnf_lcm_op_occs.operation_state != \
-           fields.LcmOccsOperationState.FAILED_TEMP:
-            error_msg = ('Cannot proceed with operation_state %s'
-                % vnf_lcm_op_occs.operation_state)
-            return self._make_problem_detail(error_msg,
-                409, title='Conflict')
 
         # get vnf
         try:
@@ -1776,15 +1787,27 @@ class VnfLcmController(wsgi.Controller):
         try:
             vnf_instance = objects.VnfInstance.get_by_id(
                 context, vnf_lcm_op_occs.vnf_instance_id)
+            context.can(vnf_lcm_policies.VNFLCM % 'retry',
+                        target={'project_id': vnf_instance.tenant_id})
         except exceptions.VnfInstanceNotFound:
             msg = (_("Can not find requested vnf instance: %s")
                 % vnf_lcm_op_occs.vnf_instance_id)
             return self._make_problem_detail(msg,
                 404, title='Not Found')
+        except exceptions.PolicyNotAuthorized:
+            raise
         except Exception as exc:
             LOG.exception(exc)
             return self._make_problem_detail(str(exc),
                 500, title='Internal Server Error')
+
+        # operation state checking
+        if vnf_lcm_op_occs.operation_state != \
+           fields.LcmOccsOperationState.FAILED_TEMP:
+            error_msg = ('Cannot proceed with operation_state %s'
+                % vnf_lcm_op_occs.operation_state)
+            return self._make_problem_detail(error_msg,
+                409, title='Conflict')
 
         operation = vnf_lcm_op_occs.operation
         body = jsonutils.loads(vnf_lcm_op_occs.operation_params)
@@ -1907,14 +1930,15 @@ class VnfLcmController(wsgi.Controller):
     @validation.schema(vnf_lcm.change_ext_conn)
     def change_ext_conn(self, request, id, body):
         context = request.environ['tacker.context']
-        if not CONF.oslo_policy.enhanced_tacker_policy:
-            context.can(vnf_lcm_policies.VNFLCM % 'change_ext_conn')
 
         vnf = self._get_vnf(context, id)
         vnf_instance = self._get_vnf_instance(context, id)
         if CONF.oslo_policy.enhanced_tacker_policy:
             context.can(vnf_lcm_policies.VNFLCM % 'change_ext_conn',
                         target=self._get_policy_target(vnf_instance))
+        else:
+            context.can(vnf_lcm_policies.VNFLCM % 'change_ext_conn',
+                        target={'project_id': vnf_instance.tenant_id})
         if (vnf_instance.instantiation_state !=
                 fields.VnfInstanceState.INSTANTIATED):
             return self._make_problem_detail(
