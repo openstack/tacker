@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Add a sample of management driver for Cilium CNI deployment. It provides
+    two usecases, one is a simple flavor of 1-master/2-workers and another is
+    more complex flavor of 3-masters/2-workers cases, for demonstrating
+    Tacker's basic scenarios such as heal, scale-out or so.
