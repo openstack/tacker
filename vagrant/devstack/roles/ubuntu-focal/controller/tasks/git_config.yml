@@ -1,4 +1,0 @@
----
-- name: copy .gitconfig on host to VM
-  template: src=templates/gitconfig.j2 dest={{ ansible_env.HOME }}/.gitconfig
-            mode=664

@@ -30,16 +30,6 @@ environment.
 $ vagrant plugin install vagrant-disksize
 ```
 
-Here is a list of current supported boxes in this tool.
-
-* bento/ubuntu-22.04
-* bento/ubuntu-20.04
-* ubuntu/jammy64
-* ubuntu/focal64
-* bento/centos-stream-8
-* centos/stream8
-
-
 ### Configure and Fire Up VMs
 
 Before launching VMs with vagrant, configure `machines.yml`, which defines

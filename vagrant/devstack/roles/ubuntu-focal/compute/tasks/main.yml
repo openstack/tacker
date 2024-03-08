@@ -1,6 +1,0 @@
----
-- include: basic_pkgs.yml
-  tags: basic_pkgs
-
-- include: devstack.yml
-  tags: devstack

@@ -37,12 +37,6 @@
       - line: 'SERVICE_TOKEN={{ service_token }}'
         regexp: '^SERVICE_TOKEN=devstack'
 
-- name: update HOST_IP in devstack/local.conf.kubernetes
-  lineinfile:
-      path={{ ansible_env.HOME }}/devstack/local.conf.kubernetes
-      line='HOST_IP={{ service_host }}'
-      regexp='^HOST_IP=127\.0\.0\.1'
-
 - name: update other params in devstack/local.conf.kubernetes
   lineinfile:
       path={{ ansible_env.HOME }}/devstack/local.conf.kubernetes
