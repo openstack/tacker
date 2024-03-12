@@ -583,7 +583,7 @@ Please refer to the procedure in Section `Create and Upload VNF Package`_.
     * Scripts/
 
     Please get the contents of the ``Files`` folder from the
-    ``tacker/tests/etc/samples/etsi/nfv/common/Files/``.
+    ``samples/tests/etc/samples/etsi/nfv/common/Files/``.
 
 
 2. VNF Create/Instantiate

@@ -443,7 +443,7 @@ function tacker_create_initial_network {
 }
 
 function tacker_setup_default_vim_resources {
-    # Note: These must be the same as in tacker/tests/etc/samples/local-vim.yaml
+    # Note: These must be the same as in samples/tests/etc/samples/local-vim.yaml
     # and devstack/vim_config.yaml
     DEFAULT_VIM_PROJECT_NAME="nfv"
     DEFAULT_VIM_USER="nfv_user"
