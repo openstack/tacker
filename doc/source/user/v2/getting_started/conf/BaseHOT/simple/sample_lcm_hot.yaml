@@ -1,0 +1,27 @@
+heat_template_version: 2013-05-23
+description: 'imple Base HOT for Sample VNF'
+
+parameters:
+  nfv:
+    type: json
+
+resources:
+  VDU1:
+    type: VDU1.yaml
+    properties:
+      flavor: { get_param: [ nfv, VDU, VDU1, computeFlavourId ] }
+      image: { get_param: [ nfv, VDU, VDU1, vcImageId ] }
+      net: { get_resource: internalVL1 }
+
+  internalVL1:
+    type: OS::Neutron::Net
+
+  internalVL1_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      ip_version: 4
+      network:
+        get_resource: internalVL1
+      cidr: 10.0.0.0/24
+
+outputs: {}

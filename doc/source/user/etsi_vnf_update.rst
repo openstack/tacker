@@ -2,7 +2,13 @@
 ETSI NFV-SOL VNF Update
 =======================
 
-This document describes how to update VNF in Tacker.
+This document describes how to update VNF in Tacker v1 API.
+
+.. note::
+
+  This is a document for Tacker v1 API.
+  See :doc:`/user/v2/vnf/update` for Tacker v2 API.
+
 
 Prerequisites
 -------------
@@ -13,13 +19,13 @@ The following packages should be installed:
 * python-tackerclient
 
 A default VIM should be registered according to
-:doc:`../cli/cli-legacy-vim`.
+:doc:`/cli/cli-legacy-vim`.
 
-The VNF Package(sample_vnf_pkg.zip) used below is prepared
-by referring to :doc:`./vnf-package`.
+The VNF Package(sample_vnf_package_csar.zip) used below is prepared
+by referring to :doc:`/user/vnf-package`.
 
 Execute before "Instantiate VNF" in the procedure of
-:doc:`./etsi_vnf_deployment_as_vm_with_tosca`.
+:doc:`/user/etsi_vnf_deployment_as_vm_with_tosca`.
 
 
 VNF Update Procedures
@@ -29,7 +35,7 @@ As mentioned in Prerequisites, the VNF must be created
 before performing update.
 
 Details of CLI commands are described in
-:doc:`../cli/cli-etsi-vnflcm`.
+:doc:`/cli/cli-etsi-vnflcm`.
 
 For update VNF instance, you need to prepare a JSON-formatted definition file.
 
@@ -39,7 +45,9 @@ For update VNF instance, you need to prepare a JSON-formatted definition file.
     "vnfInstanceName": "sample"
   }
 
+
 .. note::
+
   sample_param_file.json contains the VNF name as an example.
   For v1 update operation, the following attributes of
   ``VnfInfoModificationRequest`` are not supported.
@@ -49,14 +57,6 @@ For update VNF instance, you need to prepare a JSON-formatted definition file.
   * extensions
   * vnfcInfoModifications
   * vimConnectionInfo
-
-.. note::
-  The v2 update operation can change the ``vimConnectionInfo``
-  associated with an existing VNF instance.
-  Even if update operation specify multiple ``vimConnectionInfo``
-  associated with one VNF instance, only one of them will be used for life
-  cycle management operations.
-  It is not possible to delete the key of registered ``vimConnectionInfo``.
 
 
 How to Update VNF
@@ -78,11 +78,11 @@ Result:
 
 .. code-block:: console
 
-  +-------------------+-------+
-  | Field             | Value |
-  +-------------------+-------+
-  | VNF Instance Name | None  |
-  +-------------------+-------+
+  +-------------------+------------------------------------------+
+  | Field             | Value                                    |
+  +-------------------+------------------------------------------+
+  | VNF Instance Name | vnf-810d8c9b-e467-4b06-9265-ac9dce015fce |
+  +-------------------+------------------------------------------+
 
 
 Update VNF can be executed by the following CLI command.
@@ -96,9 +96,11 @@ Result:
 
 .. code-block:: console
 
-  Update vnf:c64ea0fd-a90c-4754-95f4-dc0751db519d
+  Update vnf:810d8c9b-e467-4b06-9265-ac9dce015fce
+
 
 .. note::
+
   Create a parameter file that describes the resource information to be
   changed in advance.
 
@@ -114,25 +116,18 @@ Result:
 
 .. code-block:: console
 
-  +-------------------+---------+
-  | Field             | Value   |
-  +-------------------+---------+
-  | VNF Instance Name | sample  |
-  +-------------------+---------+
+  +-------------------+--------+
+  | Field             | Value  |
+  +-------------------+--------+
+  | VNF Instance Name | sample |
+  +-------------------+--------+
 
 
 You can confirm that the VNF Instance Name has been changed by the update
 operation.
 
-
 If the ``vnfdId`` is not changed by update operation, the current value
 shall be updated using the request parameter.
-The following attributes are updated by performing JSON Merge Patch with the
-values set in the request parameter to the current values.
-
-* vnfConfigurableProperties
-* metadata
-* extensions
 
 If the ``vnfdId`` is requested to be changed by v1 update operation, the
 following attributes of VNF instance shall be updated in addition to those

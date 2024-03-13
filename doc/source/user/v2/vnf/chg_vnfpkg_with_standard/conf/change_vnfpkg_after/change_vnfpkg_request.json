@@ -1,0 +1,150 @@
+{
+    "vnfdId": "dde36cfb-b802-4632-944d-84e4a2238202",
+    "extVirtualLinks": [
+      {
+        "id": "ext_vl_id_net4",
+        "resourceId": "859db81a-2d3f-4634-be04-bdf052af5792",
+        "extCps": [
+          {
+            "cpdId": "VDU1_CP4",
+            "cpConfig": {
+              "VDU1_CP4_1": {
+                "cpProtocolData": [
+                  {
+                    "layerProtocol": "IP_OVER_ETHERNET",
+                    "ipOverEthernet": {
+                      "ipAddresses": [
+                        {
+                          "type": "IPV4",
+                          "numDynamicAddresses": 1
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "cpdId": "VDU2_CP4",
+            "cpConfig": {
+              "VDU2_CP4_1": {
+                "cpProtocolData": [
+                  {
+                    "layerProtocol": "IP_OVER_ETHERNET",
+                    "ipOverEthernet": {
+                      "ipAddresses": [
+                        {
+                          "type": "IPV4",
+                          "numDynamicAddresses": 1
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "extManagedVirtualLinks": [
+      {
+        "id": "ext_managed_vl_1",
+        "vnfVirtualLinkDescId": "internalVL1",
+        "resourceId": "87512249-79b9-4e25-b173-18c327436c12"
+      }
+    ],
+    "additionalParams": {
+      "upgrade_type": "RollingUpdate",
+      "lcm-operation-coordinate-new-vnf": "./Scripts/coordinate_vnf.py",
+      "lcm-operation-coordinate-old-vnf": "./Scripts/coordinate_vnf.py",
+      "vdu_params": [
+        {
+          "vdu_id": "VDU1",
+          "old_vnfc_param": {
+            "cp_name": "VDU1_CP1",
+            "username": "ubuntu",
+            "password": "ubuntu",
+            "endpoint": "http://127.0.0.1:6789",
+            "authentication": {
+              "authType": [
+                "BASIC"
+              ],
+              "paramsBasic": {
+                "userName": "tacker",
+                "password": "tacker"
+              }
+            },
+            "timeout": 30
+          },
+          "new_vnfc_param": {
+            "cp_name": "VDU1_CP1",
+            "username": "ubuntu",
+            "password": "ubuntu",
+            "endpoint": "http://127.0.0.1:6789",
+            "authentication": {
+              "authType": [
+                "BASIC"
+              ],
+              "paramsBasic": {
+                "userName": "tacker",
+                "password": "tacker"
+              }
+            },
+            "timeout": 30
+          }
+        },
+        {
+          "vdu_id": "VDU2",
+          "old_vnfc_param": {
+            "cp_name": "VDU2_CP1",
+            "username": "ubuntu",
+            "password": "ubuntu",
+            "endpoint": "http://127.0.0.1:6789",
+            "authentication": {
+              "authType": [
+                "BASIC"
+              ],
+              "paramsBasic": {
+                "userName": "tacker",
+                "password": "tacker"
+              }
+            },
+            "timeout": 30
+          },
+          "new_vnfc_param": {
+            "cp_name": "VDU2_CP1",
+            "username": "ubuntu",
+            "password": "ubuntu",
+            "endpoint": "http://127.0.0.1:6789",
+            "authentication": {
+              "authType": [
+                "BASIC"
+              ],
+              "paramsBasic": {
+                "userName": "tacker",
+                "password": "tacker"
+              }
+            },
+            "timeout": 30
+          }
+        }
+      ],
+      "lcm-operation-user-data": "./UserData/userdata_standard.py",
+      "lcm-operation-user-data-class": "StandardUserData",
+      "nfv": {
+        "VDU": {
+          "VDU1-0": {
+            "name": "VDU1-a-001-change_vnfpkg"
+          },
+          "VDU1-1": {
+            "name": "VDU1-a-010-change_vnfpkg"
+          },
+          "VDU1-2": {
+            "name": "VDU1-a-011-change_vnfpkg"
+          }
+        }
+      }
+    }
+  }

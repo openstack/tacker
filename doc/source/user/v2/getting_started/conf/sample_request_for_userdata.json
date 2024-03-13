@@ -1,0 +1,7 @@
+{
+  "flavourId":"simple",
+  "additionalParams": {
+    "lcm-operation-user-data": "./UserData/userdata_standard.py",
+    "lcm-operation-user-data-class": "StandardUserData"
+  }
+}

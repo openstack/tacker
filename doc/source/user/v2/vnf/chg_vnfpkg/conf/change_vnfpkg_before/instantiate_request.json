@@ -1,0 +1,93 @@
+{
+  "flavourId": "simple",
+  "instantiationLevelId": "instantiation_level_1",
+  "extVirtualLinks": [
+    {
+      "id": "cea931f1-829f-4de5-8c0e-c2990bb53d04",
+      "resourceId": "859db81a-2d3f-4634-be04-bdf052af5792",
+      "extCps": [
+        {
+          "cpdId": "VDU1_CP1",
+          "cpConfig": {
+            "VDU1_CP1_1": {
+              "cpProtocolData": [
+                {
+                  "layerProtocol": "IP_OVER_ETHERNET",
+                  "ipOverEthernet": {
+                    "ipAddresses": [
+                      {
+                        "type": "IPV4",
+                        "numDynamicAddresses": 1
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "cpdId": "VDU2_CP1",
+          "cpConfig": {
+            "VDU2_CP1_1": {
+              "cpProtocolData": [
+                {
+                  "layerProtocol": "IP_OVER_ETHERNET",
+                  "ipOverEthernet": {
+                    "ipAddresses": [
+                      {
+                        "type": "IPV4",
+                        "fixedAddresses": [
+                          "10.10.0.101"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "cpdId": "VDU3_CP1",
+          "cpConfig": {
+            "VDU3_CP1_1": {
+              "cpProtocolData": [
+                {
+                  "layerProtocol": "IP_OVER_ETHERNET",
+                  "ipOverEthernet": {
+                    "ipAddresses": [
+                      {
+                        "type": "IPV4",
+                        "fixedAddresses": [
+                          "10.10.0.102"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "vimConnectionInfo": {
+    "vim1": {
+      "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_3",
+      "vimId": "4e4b7eef-cdff-43a1-93a8-63af4f962948",
+      "interfaceInfo": {
+        "endpoint": "http://localhost/identity/v3"
+      },
+      "accessInfo": {
+        "username": "nfv_user",
+        "region": "RegionOne",
+        "password": "devstack",
+        "project": "nfv",
+        "projectDomain": "Default",
+        "userDomain": "Default"
+      }
+    }
+  }
+}

@@ -2,7 +2,13 @@
 ETSI NFV-SOL VNF error-handling
 ===============================
 
-This document describes how to error-handling VNF in Tacker.
+This document describes how to error-handling VNF in Tacker v1 API.
+
+.. note::
+
+  This is a document for Tacker v1 API.
+  See :doc:`/user/v2/error_handling` for Tacker v2 API.
+
 
 Prerequisites
 -------------
@@ -13,14 +19,17 @@ The following packages should be installed:
 * python-tackerclient
 
 A default VIM should be registered according to
-:doc:`../cli/cli-legacy-vim`.
+:doc:`/cli/cli-legacy-vim`.
 
-The VNF Package(sample_vnf_pkg.zip) used below is prepared
-by referring to :doc:`./vnf-package`.
+The VNF Package(sample_vnf_package_csar.zip) used below is prepared
+by referring to :doc:`/user/vnf-package`.
 
-Execute up to "Instantiate VNF" in the procedure of
-:doc:`./etsi_vnf_deployment_as_vm_with_tosca`.
-In other words, the procedure after "Terminate VNF" is not executed.
+The procedure of prepare for healing operation that from "register VIM" to
+"Instantiate VNF", basically refer to
+:doc:`/user/etsi_vnf_deployment_as_vm_with_tosca` or
+:doc:`/user/etsi_vnf_deployment_as_vm_with_user_data`.
+
+This procedure uses an example using the sample VNF package.
 
 
 VNF Error-handling Procedures
@@ -30,7 +39,7 @@ As mentioned in Prerequisites, the VNF must be created
 before performing error-handling.
 
 Details of CLI commands are described in
-:doc:`../cli/cli-etsi-vnflcm`.
+:doc:`/cli/cli-etsi-vnflcm`.
 
 There are some operations to error-handling VNF.
 
@@ -46,17 +55,10 @@ First, the method of specifying the ID will be described.
 Identify VNF_LCM_OP_OCC_ID
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To identify the VNF_LCM_OP_OCC_ID, you can get with the following ways.
-
-* to check with CLI
-* to check with notification API body
-
-You can choose both ways.
-
-This case uses openstack CLI:
+The VNF_LCM_OP_OCC_ID can be obtained via CLI.
 
 Details of CLI commands are described in
-:doc:`../cli/cli-etsi-vnflcm`.
+:doc:`/cli/cli-etsi-vnflcm`.
 
 Before checking the "VNF_LCM_OP_OCC_ID", you should get VNF_INSTANCE_ID first.
 
@@ -69,232 +71,49 @@ Result:
 
 .. code-block:: console
 
-  +--------------------------------------+-----------------+--------------------------------------+-----------------+
-  | ID                                   | Operation State | VNF Instance ID                      | Operation       |
-  +--------------------------------------+-----------------+--------------------------------------+-----------------+
-  | 304538dd-d754-4661-9f17-5496dab9693d | FAILED_TEMP     | 3aa5c054-c162-4d5e-9808-0bc30f92a4c7 | INSTANTIATE     |
-  +--------------------------------------+-----------------+--------------------------------------+-----------------+
-
-
-For this case, check notification API body:
-
-In checking with Notification API, you should execute the following steps:
-
-* Create a new subscription
-* Execute LCM operations, such as 'Creates a new VNF instance resource'.
-
-The procedure for executing the API using the curl command is shown below.
-
-First, the method of generating Keystone-tokens will be described.
-See `Keystone API reference`_. for details on Keystone APIs.
-For **<username>** and **<password>**, **<project_name>**,
-set values according to your environment.
-
-Prepare get_token.json file to get token:
-
-.. code-block:: json
-
-  {
-    "auth": {
-      "identity": {
-        "methods": [
-          "password"
-        ],
-        "password": {
-          "user": {
-            "name": "<username>",
-            "password": "<password>",
-            "domain": {
-              "name": "Default"
-            }
-          }
-        }
-      },
-      "scope": {
-        "project": {
-          "name": "<project_name>",
-          "domain": {
-            "name": "Default"
-          }
-        }
-      }
-    }
-  }
-
-
-Get token:
-
-.. code-block:: console
-
-  $ curl -i -X POST -H "Content-Type: application/json" -d @./get_token.json  "$OS_AUTH_URL/v3/auth/tokens"
-
-
-Result:
-
-.. code-block:: console
-
-  HTTP/1.1 201 CREATED
-  Date: Tue, 17 Nov 2020 08:01:44 GMT
-  Server: Apache/2.4.41 (Ubuntu)
-  Content-Type: application/json
-  Content-Length: 7187
-  X-Subject-Token: gAAAAABfs4No8WVYIPagnJvnnImNHq_918oLgOiJwSXqXGJKfv_FEcgfeZajIl0NCk7Pr6YMn1Sa96ZhOnWioKGrOxBSEGVxgYqBFx3bFfKAHVmzgoEaN6zfHZvbm1QJgoeg1QV5i-VjfeeQRWZptYqd3yWMLzrWSfVBER9pL-nRi0CvMXJM0yE
-  Vary: X-Auth-Token
-  x-openstack-request-id: req-6b19a1ee-0eb0-4aa8-97e7-c54d750c9b64
-  Connection: close
-  ...snip response-body...
-
-
-Set the value of **X-Subject-Token** included in the above result to
-the environment variable **$OS_AUTH_TOKEN**.
-
-.. code-block:: console
-
-  $ export OS_AUTH_TOKEN="gAAAAABfs4No8WVYIPagnJvnnImNHq_918oLgOiJwSXqXGJKfv_FEcgfeZajIl0NCk7Pr6YMn1Sa96ZhOnWioKGrOxBSEGVxgYqBFx3bFfKAHVmzgoEaN6zfHZvbm1QJgoeg1QV5i-VjfeeQRWZptYqd3yWMLzrWSfVBER9pL-nRi0CvMXJM0yE"
-
-
-Create subscription:
-
-.. code-block:: console
-
-  $ curl -g -i -X POST http://127.0.0.1:9890/vnflcm/v1/subscriptions \
-    -H "Accept: application/json" \
-    -H "Content-Type: application/json" \
-    -H "X-Auth-Token: $OS_AUTH_TOKEN" \
-    -d '{"callbackUri": "http://127.0.0.1/"}'
-
-
-Result:
-
-.. code-block:: console
-
-  HTTP/1.1 201 Created
-  Content-Length: 199
-  Location: http://localhost:9890//vnflcm/v1/subscriptions/5bd3b81d-a6e9-45e7-922e-adc26328322d
-  Content-Type: application/json
-  X-Openstack-Request-Id: req-5f98782d-ca47-4144-a413-bd9641302f77
-  Date: Mon, 21 Dec 2020 08:21:47 GMT
-
-  {"id": "5bd3b81d-a6e9-45e7-922e-adc26328322d", "callbackUri": "http://127.0.0.1/", "_links": {"self": {"href": "http://localhost:9890//vnflcm/v1/subscriptions/5bd3b81d-a6e9-45e7-922e-adc26328322d"}}}
-
-
-Show subscription:
-
-.. code-block:: console
-
-  $ curl -g -i -X GET http://127.0.0.1:9890/vnflcm/v1/subscriptions/{subscriptionId} \
-    -H "Accept: application/json" \
-    -H "X-Auth-Token: $OS_AUTH_TOKEN"
-
-
-Result:
-
-.. code-block:: console
-
-  HTTP/1.1 200 OK
-  Content-Length: 213
-  Content-Type: application/json
-  X-Openstack-Request-Id: req-2d7503dc-1f75-40de-9d75-7c01180aee89
-  Date: Mon, 21 Dec 2020 08:22:59 GMT
-
-  {"id": "5bd3b81d-a6e9-45e7-922e-adc26328322d", "filter": {}, "callbackUri": "http://127.0.0.1/", "_links": {"self": {"href": "http://localhost:9890//vnflcm/v1/subscriptions/5bd3b81d-a6e9-45e7-922e-adc26328322d"}}}
-
-
-Show VNF LCM operation occurrence:
-
-.. code-block:: console
-
-  $ curl -g -i -X GET http://127.0.0.1:9890/vnflcm/v1/vnf_lcm_op_occs/{vnfLcmOpOccId} \
-    -H "Accept: application/json" \
-    -H "X-Auth-Token: $OS_AUTH_TOKEN"
-
-
-Result:
-
-.. code-block:: console
-
-  HTTP/1.1 200 OK
-  Content-Length: 3082
-  Content-Type: application/json
-  X-Openstack-Request-Id: req-d0720ffc-e7ee-4ee2-af61-a9a4a91c67cb
-  Date: Mon, 21 Dec 2020 08:30:25 GMT
-
-  {"id": "e3dc7530-e699-46ed-b65e-32911af1e414", "operationState": "FAILED_TEMP", "stateEnteredTime": "2020-12-21 06:52:06+00:00",
-  ...snip response-body...
+  $ openstack vnflcm op list
+  +--------------------------------------+-----------------+--------------------------------------+-------------+
+  | ID                                   | Operation State | VNF Instance ID                      | Operation   |
+  +--------------------------------------+-----------------+--------------------------------------+-------------+
+  | c7afb90a-351b-4d33-a945-8f937deeadb4 | FAILED_TEMP     | d45ae5cb-121b-4420-bc97-6a00f5fa63b6 | INSTANTIATE |
+  +--------------------------------------+-----------------+--------------------------------------+-------------+
 
 
 Error-handling can be executed only when **operationState** is **FAILED_TMP**.
 
-With the above LCM operation trigger, 'Notification' is sent to
-the **callbackUri** set in 'Create a new subscription'.
+If the Subscription is registered, the above operation trigger
+that caused the FAILED_TEMP send a 'Notification' to the **callbackUri**
+of the Subscription.
 
 **vnfLcmOpOccId** included in this 'Notification' corresponds
 to VNF_LCM_OP_OCC_ID.
 
-See `VNF LCM v1 API`_ and `VNF LCM v2 API`_
-for details on the APIs used here.
+See `VNF LCM v1 API`_ for details on the APIs used here.
 
 
 Rollback VNF LCM Operation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. note::
-    Rollback of Scale-Out has a difference in operation result between v1 and v2.
-    In v1, the oldest VNFc(VM) is deleted. In v2, the newest VNFc(VM) is deleted.
-
 .. list-table::
-   :widths: 10 40 15 15 10 10
+   :widths: 10 40 15 15
    :header-rows: 1
 
    * - LCM Operation
      - Description of Rollback
      - Precondition
      - Postcondition
-     - Support in v1
-     - Support in v2
    * - Instantiate
      - | VNFM removes all VMs and resources.
        | e.g. Tacker executes Heat stack-delete for deletion of the target VM.
      - FAILED_TEMP
      - ROLLED_BACK or FAILED_TEMP
-     - X
-     - X
    * - Scale-out
      - | VNFM reverts changes of VMs and resources specified in the middle of scale-out operation.
-       | There are differences in the operation results of v1 and v2. See note.
+       | As a result, the oldest VNFc(VM) is deleted.
        | e.g. Tacker reverts desired_capacity and executes Heat stack-update.
      - FAILED_TEMP
      - ROLLED_BACK or FAILED_TEMP
-     - X
-     - X
-   * - Modify
-     - VNFM reverts the update of the VNF instance information.
-     - FAILED_TEMP
-     - ROLLED_BACK or FAILED_TEMP
-     -
-     - X
-   * - Change external connectivity
-     - | VNFM reverts changes of the external connectivity for VNF instances.
-       | e.g. Tacker reverts stack parameters and executes Heat stack-update.
-     - FAILED_TEMP
-     - ROLLED_BACK or FAILED_TEMP
-     -
-     - X
-   * - Change Current VNF Package
-     - | VNFM reverts changes of current vnf package for VNF instances.
-       | e.g. Tacker reverts stack parameters and executes Heat stack-update.
-     - FAILED_TEMP
-     - ROLLED_BACK or FAILED_TEMP
-     -
-     - X
 
-.. note::
-    | In some cases, Rollback of Change external connectivity cannot recover
-      the IP address and Port Id of virtual resources.
-    | If the operation fails before performing VIM processing: updating stack,
-      the IP address and Port Id will be recovered by its rollback operation.
-    | Otherwise, dynamic IP address and Port Id are not recovered
-      by rollback operation.
 
 This manual describes the following operations as use cases for
 rollback operations.
@@ -315,7 +134,8 @@ Result:
 
 .. code-block:: console
 
-  Failed to delete vnf instance with ID '3aa5c054-c162-4d5e-9808-0bc30f92a4c7': Vnf 3aa5c054-c162-4d5e-9808-0bc30f92a4c7 in status ERROR. Cannot delete while the vnf is in this state.
+  Failed to delete vnf instance with ID 'd45ae5cb-121b-4420-bc97-6a00f5fa63b6': Vnf d45ae5cb-121b-4420-bc97-6a00f5fa63b6 in status ERROR. Cannot delete while the vnf is in this state.
+  Failed to delete 1 of 1 vnf instances.
 
 
 Therefore, "Rollback VNF lifecycle management operation" with
@@ -330,7 +150,7 @@ Result:
 
 .. code-block:: console
 
-  Rollback request for LCM operation 304538dd-d754-4661-9f17-5496dab9693d has been accepted
+  Rollback request for LCM operation c7afb90a-351b-4d33-a945-8f937deeadb4 has been accepted
 
 
 If "Rollback VNF lifecycle management operation" is successful,
@@ -345,64 +165,45 @@ Result:
 
 .. code-block:: console
 
-  Vnf instance '3aa5c054-c162-4d5e-9808-0bc30f92a4c7' deleted successfully
+  Vnf instance 'd45ae5cb-121b-4420-bc97-6a00f5fa63b6' is deleted successfully
 
 
 Fail VNF LCM Operation
 ~~~~~~~~~~~~~~~~~~~~~~
 
 .. list-table::
-   :widths: 10 40 15 15 10 10
+   :widths: 10 40 15 15
    :header-rows: 1
 
    * - LCM Operation
      - Description of Fail
      - Precondition
      - Postcondition
-     - Support in v1
-     - Support in v2
    * - Instantiate
      - Tacker simply changes LCM operation state to "FAILED" on Tacker-DB.
      - FAILED_TEMP
      - FAILED
-     - X
-     - X
    * - Terminate
      - Tacker simply changes LCM operation state to "FAILED" on Tacker-DB.
      - FAILED_TEMP
      - FAILED
-     - X
-     - X
    * - Heal
      - Tacker simply changes LCM operation state to "FAILED" on Tacker-DB.
      - FAILED_TEMP
      - FAILED
-     - X
-     - X
    * - Scale
      - Tacker simply changes LCM operation state to "FAILED" on Tacker-DB.
      - FAILED_TEMP
      - FAILED
-     - X
-     - X
    * - Modify
      - Tacker simply changes LCM operation state to "FAILED" on Tacker-DB.
      - FAILED_TEMP
      - FAILED
-     - X
-     - X
    * - Change external connectivity
      - Tacker simply changes LCM operation state to "FAILED" on Tacker-DB.
      - FAILED_TEMP
      - FAILED
-     - X
-     - X
-   * - Change Current VNF Package
-     - Tacker simply changes LCM operation state to "FAILED" on Tacker-DB.
-     - FAILED_TEMP
-     - FAILED
-     -
-     - X
+
 
 This manual describes the following operations as use cases for
 fail operations.
@@ -423,7 +224,8 @@ Result:
 
 .. code-block:: console
 
-  Failed to delete vnf instance with ID '3aa5c054-c162-4d5e-9808-0bc30f92a4c7': Vnf 3aa5c054-c162-4d5e-9808-0bc30f92a4c7 in status ERROR. Cannot delete while the vnf is in this state.
+  Failed to delete vnf instance with ID 'd45ae5cb-121b-4420-bc97-6a00f5fa63b6': Vnf d45ae5cb-121b-4420-bc97-6a00f5fa63b6 in status ERROR. Cannot delete while the vnf is in this state.
+  Failed to delete 1 of 1 vnf instances.
 
 
 Therefore, "Fail VNF lifecycle management operation" with
@@ -438,7 +240,59 @@ Result:
 
 .. code-block:: console
 
-  Fail request for LCM operation 304538dd-d754-4661-9f17-5496dab9693d has been accepted
+  +-------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+  | Field                   | Value                                                                                                                                                                                                                            |
+  +-------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+  | Error                   | {                                                                                                                                                                                                                                |
+  |                         |     "title": "",                                                                                                                                                                                                                 |
+  |                         |     "status": 500,                                                                                                                                                                                                               |
+  |                         |     "detail": "ProblemDetails(created_at=<?>,deleted=0,deleted_at=<?>,detail='Vnf instantiation wait failed for vnf d45ae5cb-121b-4420-bc97-6a00f5fa63b6, error: VNF Create Resource CREATE failed: ResourceInError:             |
+  |                         | resources.VDU1.resources.ril4bssciahp.resources.VDU1: Went to status ERROR due to \"Message: Build of instance 6dacc4a4-948f-4f40-97cf-2caeecbba013 aborted: privsep helper command exited non-zero (1), Code:                   |
+  |                         | 500\"',status=500,title='',updated_at=<?>)"                                                                                                                                                                                      |
+  |                         | }                                                                                                                                                                                                                                |
+  | ID                      | c7afb90a-351b-4d33-a945-8f937deeadb4                                                                                                                                                                                             |
+  | Is Automatic Invocation | False                                                                                                                                                                                                                            |
+  | Is Cancel Pending       | False                                                                                                                                                                                                                            |
+  | Links                   | {                                                                                                                                                                                                                                |
+  |                         |     "self": {                                                                                                                                                                                                                    |
+  |                         |         "href": "http://localhost:9890/vnflcm/v1/vnf_lcm_op_occs/c7afb90a-351b-4d33-a945-8f937deeadb4"                                                                                                                           |
+  |                         |     },                                                                                                                                                                                                                           |
+  |                         |     "vnfInstance": {                                                                                                                                                                                                             |
+  |                         |         "href": "http://localhost:9890/vnflcm/v1/vnf_instances/d45ae5cb-121b-4420-bc97-6a00f5fa63b6"                                                                                                                             |
+  |                         |     },                                                                                                                                                                                                                           |
+  |                         |     "retry": {                                                                                                                                                                                                                   |
+  |                         |         "href": "http://localhost:9890/vnflcm/v1/vnf_lcm_op_occs/c7afb90a-351b-4d33-a945-8f937deeadb4/retry"                                                                                                                     |
+  |                         |     },                                                                                                                                                                                                                           |
+  |                         |     "rollback": {                                                                                                                                                                                                                |
+  |                         |         "href": "http://localhost:9890/vnflcm/v1/vnf_lcm_op_occs/c7afb90a-351b-4d33-a945-8f937deeadb4/rollback"                                                                                                                  |
+  |                         |     },                                                                                                                                                                                                                           |
+  |                         |     "grant": {                                                                                                                                                                                                                   |
+  |                         |         "href": "http://localhost:9890/vnflcm/v1/vnf_lcm_op_occs/c7afb90a-351b-4d33-a945-8f937deeadb4/grant"                                                                                                                     |
+  |                         |     },                                                                                                                                                                                                                           |
+  |                         |     "fail": {                                                                                                                                                                                                                    |
+  |                         |         "href": "http://localhost:9890/vnflcm/v1/vnf_lcm_op_occs/c7afb90a-351b-4d33-a945-8f937deeadb4/fail"                                                                                                                      |
+  |                         |     }                                                                                                                                                                                                                            |
+  |                         | }                                                                                                                                                                                                                                |
+  | Operation               | INSTANTIATE                                                                                                                                                                                                                      |
+  | Operation State         | FAILED                                                                                                                                                                                                                           |
+  | Start Time              | 2023-12-27 07:05:59+00:00                                                                                                                                                                                                        |
+  | State Entered Time      | 2024-01-18 01:40:55.105358+00:00                                                                                                                                                                                                 |
+  | VNF Instance ID         | d45ae5cb-121b-4420-bc97-6a00f5fa63b6                                                                                                                                                                                             |
+  | grantId                 | None                                                                                                                                                                                                                             |
+  | operationParams         | "{\"flavourId\": \"simple\", \"instantiationLevelId\": \"instantiation_level_1\", \"extVirtualLinks\": [{\"id\": \"91bcff6d-4703-4ba9-b1c2-009e6db92a9c\", \"resourceId\": \"3019b1e7-99d8-4748-97ac-104922bc78d9\",             |
+  |                         | \"vimConnectionId\": \"79a97d01-e5f3-4eaa-b2bc-8f513ecb8a56\", \"extCps\": [{\"cpdId\": \"VDU1_CP1\", \"cpConfig\": [{\"linkPortId\": \"6b7c0b3a-cc2d-4b94-9f6f-81df69a7cc2f\"}]}, {\"cpdId\": \"VDU2_CP1\", \"cpConfig\":       |
+  |                         | [{\"linkPortId\": \"02d867e7-b955-4b4a-b92f-c78c7ede63bf\"}]}], \"extLinkPorts\": [{\"id\": \"6b7c0b3a-cc2d-4b94-9f6f-81df69a7cc2f\", \"resourceHandle\": {\"vimConnectionId\": \"79a97d01-e5f3-4eaa-b2bc-8f513ecb8a56\",        |
+  |                         | \"resourceId\": \"972a375d-921f-46f5-bfdb-19af95fc49e1\"}}, {\"id\": \"02d867e7-b955-4b4a-b92f-c78c7ede63bf\", \"resourceHandle\": {\"vimConnectionId\": \"79a97d01-e5f3-4eaa-b2bc-8f513ecb8a56\", \"resourceId\":               |
+  |                         | \"b853b5c5-cd97-4dfb-8750-cac6e5c62477\"}}]}, {\"id\": \"a96d2f5b-c01a-48e1-813c-76132965042c\", \"resourceId\": \"589a045a-65d9-4f4d-a9b3-35aa655374d0\", \"vimConnectionId\": \"79a97d01-e5f3-4eaa-b2bc-8f513ecb8a56\",        |
+  |                         | \"extCps\": [{\"cpdId\": \"VDU1_CP2\", \"cpConfig\": [{\"cpProtocolData\": [{\"layerProtocol\": \"IP_OVER_ETHERNET\", \"ipOverEthernet\": {\"ipAddresses\": [{\"type\": \"IPV4\", \"fixedAddresses\": [\"22.22.1.10\"],          |
+  |                         | \"subnetId\": \"d290cae3-0dbc-44a3-a043-1a50ded04a64\"}]}}]}]}, {\"cpdId\": \"VDU2_CP2\", \"cpConfig\": [{\"cpProtocolData\": [{\"layerProtocol\": \"IP_OVER_ETHERNET\", \"ipOverEthernet\": {\"ipAddresses\": [{\"type\":       |
+  |                         | \"IPV4\", \"fixedAddresses\": [\"22.22.1.20\"], \"subnetId\": \"d290cae3-0dbc-44a3-a043-1a50ded04a64\"}]}}]}]}]}], \"extManagedVirtualLinks\": [{\"id\": \"8f9d8da0-2386-4f00-bbb0-860f50d32a5a\", \"vnfVirtualLinkDescId\":     |
+  |                         | \"internalVL1\", \"resourceId\": \"0e498d08-ed3a-4212-83e0-1b6808f6fcb6\"}, {\"id\": \"11d68761-aab7-419c-955c-0c6497f13692\", \"vnfVirtualLinkDescId\": \"internalVL2\", \"resourceId\": \"38a8d4ba-                            |
+  |                         | ac1b-41a2-a92b-ff2a3e5e9b12\"}], \"vimConnectionInfo\": [{\"id\": \"79a97d01-e5f3-4eaa-b2bc-8f513ecb8a56\", \"vimType\": \"ETSINFV.OPENSTACK_KEYSTONE.v_2\", \"vimConnectionId\": \"79a97d01-e5f3-4eaa-b2bc-8f513ecb8a56\",      |
+  |                         | \"interfaceInfo\": {\"endpoint\": \"http://127.0.0.1/identity\"}, \"accessInfo\": {\"username\": \"nfv_user\", \"region\": \"RegionOne\", \"password\": \"devstack\", \"tenant\": \"1994d69783d64c00aadab564038c2fd7\"}}],       |
+  |                         | \"additionalParams\": {\"lcm-operation-user-data\": \"./UserData/lcm_user_data.py\", \"lcm-operation-user-data-class\": \"SampleUserData\"}}"                                                                                    |
+  | resourceChanges         | {}                                                                                                                                                                                                                               |
+  +-------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 
 If "Fail VNF lifecycle management operation" is successful,
@@ -453,64 +307,45 @@ Result:
 
 .. code-block:: console
 
-  Vnf instance '3aa5c054-c162-4d5e-9808-0bc30f92a4c7' deleted successfully
+  Vnf instance 'd45ae5cb-121b-4420-bc97-6a00f5fa63b6' is deleted successfully
 
 
 Retry VNF LCM Operation
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 .. list-table::
-   :widths: 10 40 15 15 10 10
+   :widths: 10 40 15 15
    :header-rows: 1
 
    * - LCM Operation
      - Description of Fail
      - Precondition
      - Postcondition
-     - Support in v1
-     - Support in v2
    * - Instantiate
      - VNFM retries a Instantiate operation.
      - FAILED_TEMP
      - COMPLETED or FAILED_TEMP
-     - X
-     - X
    * - Terminate
      - VNFM retries a Terminate operation.
      - FAILED_TEMP
      - COMPLETED or FAILED_TEMP
-     - X
-     - X
    * - Heal
      - VNFM retries a Heal operation.
      - FAILED_TEMP
      - COMPLETED or FAILED_TEMP
-     - X
-     - X
    * - Scale
      - VNFM retries a Scale operation.
      - FAILED_TEMP
      - COMPLETED or FAILED_TEMP
-     - X
-     - X
    * - Modify
      - VNFM retries a Modify operation.
      - FAILED_TEMP
      - COMPLETED or FAILED_TEMP
-     - X
-     - X
    * - Change external connectivity
      - VNFM retries a Change external connectivity operation.
      - FAILED_TEMP
      - COMPLETED or FAILED_TEMP
-     - X
-     - X
-   * - Change Current VNF Package
-     - VNFM retries a Change Current VNF Package operation.
-     - FAILED_TEMP
-     - COMPLETED or FAILED_TEMP
-     -
-     - X
+
 
 This manual describes the following operations as use cases for
 retry operations.
@@ -533,193 +368,11 @@ Result:
 
 .. code-block:: console
 
-  Retry request for LCM operation 304538dd-d754-4661-9f17-5496dab9693d has been accepted
+  Retry request for LCM operation c7afb90a-351b-4d33-a945-8f937deeadb4 has been accepted
 
 
 If "Retry VNF lifecycle management operation" is successful,
 then another LCM can be operational.
 
-Error-handling of MgmtDriver
-----------------------------
 
-This section only applies to the `VNF LCM v2 API`_.
-Error-handling includes Retry, Rollback and Fail operations.
-
-* For the fail operation, it will not perform LCM when it is executed,
-  so there is no need to use MgmtDriver.
-
-* For the retry operation, it will perform the LCM again when it is executed,
-  so as long as the LCM is configured with MgmtDriver, the MgmtDriver will
-  also be called during the retry operation, and no additional configuration
-  is required.
-
-* For the rollback operation,
-  because there is no definition of ``rollback_start`` and ``rollback_end`` in
-  ``6.7 Interface Types`` of `NFV-SOL001 v3.3.1`_, so when the rollback
-  operation is performed, MgmtDriver will not be called.
-
-The VNFD in the VNF Package must be modified before calling MgmtDriver in the
-rollback operation.
-
-.. note::
-
-    In the MgmtDriver, the user saves the data that needs to be kept
-    when the LCM fails in the ``user_script_err_handling_data`` variable.
-    It is saved in the corresponding VNF_LCM_OP_OCC, and can be viewed through
-    `Show VNF LCM OP OCC`_.
-
-    During error-handling (retry or rollback), use the data in the
-    ``user_script_err_handling_data`` variable to perform corresponding
-    processing.
-
-Modifications of VNF Package
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Users need to make the following modifications when creating a `VNF Package`_.
-
-The rollback operation currently supports multiple `LCM operations`_.
-The following takes the rollback operations of instantiate and scale-out
-as examples to demonstrate how to modify VNFD.
-
-.. note::
-
-    The following provides the sample files ``v2_sample2_df_simple.yaml`` and
-    ``v2_sample2_types.yaml`` that need to be modified, which are stored in
-    the Definitions directory of the VNF Package.
-
-    * ``v2_sample2_df_simple.yaml`` corresponds to
-      `Topology Template Files`_ in VNFD.
-
-    * ``v2_sample2_types.yaml`` corresponds to
-      `User defined types definition file`_ in VNFD.
-
-* In ``v2_sample2_df_simple.yaml``, ``xxx_rollback_start`` and
-  ``xxx_rollback_end`` need to be added under
-  ``topology_template.node_templates.VNF.interfaces.Vnflcm``.
-
-  The following is the content of ``v2_sample2_df_simple.yaml``, the unmodified
-  part is replaced by "``...``" :
-
-  .. code-block:: yaml
-
-    topology_template:
-      ...
-      node_templates:
-        VNF:
-          type: company.provider.VNF
-          properties:
-            flavour_description: A simple flavour
-          interfaces:
-            Vnflcm:
-              instantiate_start:
-                implementation: mgmt-driver-script
-              instantiate_end:
-                implementation: mgmt-driver-script
-              heal_start:
-                implementation: mgmt-driver-script
-              heal_end:
-                implementation: mgmt-driver-script
-              scale_start:
-                implementation: mgmt-driver-script
-              scale_end:
-                implementation: mgmt-driver-script
-              terminate_start:
-                implementation: mgmt-driver-script
-              terminate_end:
-                implementation: mgmt-driver-script
-              change_external_connectivity_start:
-                implementation: mgmt-driver-script
-              change_external_connectivity_end:
-                implementation: mgmt-driver-script
-              modify_information_start:
-                implementation: mgmt-driver-script
-              modify_information_end:
-                implementation: mgmt-driver-script
-              instantiate_rollback_start:
-                implementation: mgmt-driver-script
-              instantiate_rollback_end:
-                implementation: mgmt-driver-script
-              scale_rollback_start:
-                implementation: mgmt-driver-script
-              scale_rollback_end:
-                implementation: mgmt-driver-script
-          artifacts:
-            mgmt-driver-script:
-              description: Sample MgmtDriver Script
-              type: tosca.artifacts.Implementation.Python
-              file: ../Scripts/mgmt_driver_script.py
-
-  .. note::
-
-      If some definitions of ``xxx_start`` and ``xxx_end`` are added in VNFD,
-      corresponding ``xxx_start`` and ``xxx_end`` functions must also be
-      added in MgmtDriver.
-
-* In ``v2_sample2_types.yaml``, the definition of ``interface_types`` needs to
-  be added, and the definition of ``type`` needs to be modified under
-  ``node_types.company.provider.VNF.interfaces.Vnflcm``.
-
-  The following is the content of ``v2_sample2_types.yaml``, the unmodified
-  part is replaced by "``...``" :
-
-  .. code-block:: yaml
-
-    interface_types:
-      sample.test.Vnflcm:
-        derived_from: tosca.interfaces.nfv.Vnflcm
-        instantiate_start:
-          description: Invoked before instantiate
-        instantiate_end:
-          description: Invoked after instantiate
-        heal_start:
-          description: Invoked before heal
-        heal_end:
-          description: Invoked after heal
-        scale_start:
-          description: Invoked before scale
-        scale_end:
-          description: Invoked after scale
-        terminate_start:
-          description: Invoked before terminate
-        terminate_end:
-          description: Invoked after terminate
-        change_external_connectivity_start:
-          description: Invoked before change_external_connectivity
-        change_external_connectivity_end:
-          description: Invoked after change_external_connectivity
-        modify_information_start:
-          description: Invoked before modify_information
-        modify_information_end:
-          description: Invoked after modify_information
-        instantiate_rollback_start:
-          description: Invoked before instantiate_rollback
-        instantiate_rollback_end:
-          description: Invoked after instantiate_rollback
-        scale_rollback_start:
-          description: Invoked before scale_rollback
-        scale_rollback_end:
-          description: Invoked after scale_rollback
-
-    node_types:
-      company.provider.VNF:
-        ...
-        interfaces:
-          Vnflcm:
-            type: sample.test.Vnflcm
-
-After the above modification, MgmtDriver can also be called in error-handling.
-
-.. note::
-
-    In the process of error-handling, the specific action of MgmtDriver
-    needs to be customized by the user or provider.
-
-.. _VNF LCM v1 API : https://docs.openstack.org/api-ref/nfv-orchestration/v1/vnflcm.html
-.. _VNF LCM v2 API : https://docs.openstack.org/api-ref/nfv-orchestration/v2/vnflcm.html
-.. _Keystone API reference : https://docs.openstack.org/api-ref/identity/v3/#password-authentication-with-scoped-authorization
-.. _NFV-SOL001 v3.3.1 : https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/001/03.03.01_60/gs_nfv-sol001v030301p.pdf
-.. _Show VNF LCM OP OCC : https://docs.openstack.org/api-ref/nfv-orchestration/v2/vnflcm.html#show-vnf-lcm-operation-occurrence-v2
-.. _VNF Package : https://docs.openstack.org/tacker/latest/user/vnf-package.html
-.. _LCM operations : https://docs.openstack.org/tacker/latest/user/etsi_vnf_error_handling.html#rollback-vnf-lcm-operation
-.. _User defined types definition file : https://docs.openstack.org/tacker/latest/user/vnfd-sol001.html#user-defined-types-definition-file
-.. _Topology Template Files : https://docs.openstack.org/tacker/latest/user/vnfd-sol001.html#topology-template-file-with-deployment-flavour
+.. _VNF LCM v1 API: https://docs.openstack.org/api-ref/nfv-orchestration/v1/vnflcm.html

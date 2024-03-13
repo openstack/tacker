@@ -24,6 +24,7 @@ Getting Started
 .. toctree::
    :maxdepth: 2
 
+   v2/getting_started/index
    etsi_getting_started
 
 
@@ -33,5 +34,6 @@ Use Case Guide
 .. toctree::
    :maxdepth: 3
 
+   v2/use_case_guide
    etsi_use_case_guide
    encrypt_vim_auth_with_barbican

@@ -23,28 +23,36 @@ Summary
 
 This lecture enables you to:
 
--  create & delete a sample VNF on the OpenStack with Tacker
+-  create & delete a sample VNF on the OpenStack with Tacker v1 API
+
+.. note::
+
+  This is a document for Tacker v1 API.
+  See :doc:`/user/v2/getting_started/index` for Tacker v2 API.
+
 
 Following two types of VNF deployment supported by Tacker are introduced in
 this lecture.
 
-- VNF Deployment with TOSCA [#f1]_
-- VNF Deployment with LCM Operation User Data (optional) [#f2]_
+- :doc:`/user/etsi_vnf_deployment_as_vm_with_tosca`
+- :doc:`/user/etsi_vnf_deployment_as_vm_with_user_data`
 
 "VNF Deployment with LCM Operation User Data" is optional.
 The part will be clarified with the notation [This is UserData specific part].
 
 The following figure shows a sample VNF used in this lecture.
 
-.. figure:: ../_images/etsi-getting-started-sample-vnf.png
+.. figure:: /_images/etsi-getting-started-sample-vnf.png
     :align: left
+
 
 .. note::
 
   VIM config, a VNF package, and instantiation parameters used in this tutorial are placed at the repository.
 
-  - VNF Deployment with TOSCA [#f3]_
-  - VNF Deployment with LCM Operation User Data [#f4]_
+  - `samples/etsi_getting_started/tosca`_
+  - `samples/etsi_getting_started/userdata`_
+
 
 .. note::
 
@@ -59,7 +67,7 @@ The following figure shows a sample VNF used in this lecture.
 Prerequisites
 -------------
 
-The following packages should be installed [#f5]_:
+The following packages should be installed:
 
 * tacker
 * python-tackerclient
@@ -70,8 +78,28 @@ Configuration
 Load credentials for client operations
 """"""""""""""""""""""""""""""""""""""
 
-Before any Tacker commands can be run, your credentials need to be sourced
-[#f6]_.
+Before any Tacker commands can be run, your credentials need to be sourced.
+
+.. note::
+
+  See `Create OpenStack client environment scripts`_ for details.
+  In this document, the settings are as follows:
+
+  .. code-block::
+
+    OS_REGION_NAME=RegionOne
+    OS_PROJECT_DOMAIN_ID=default
+    OS_CACERT=
+    OS_AUTH_URL=http://192.168.56.10/identity
+    OS_TENANT_NAME=admin
+    OS_USER_DOMAIN_ID=default
+    OS_USERNAME=admin
+    OS_VOLUME_API_VERSION=3
+    OS_AUTH_TYPE=password
+    OS_PROJECT_NAME=admin
+    OS_PASSWORD=devstack
+    OS_IDENTITY_API_VERSION=3
+
 
 You can confirm that Tacker is available by checking this command works without
 error:
@@ -80,9 +108,10 @@ error:
 
   $ openstack vim list
 
+
 .. note::
 
-  See CLI reference [#f7]_ to find all the available commands.
+  See :doc:`/cli/index` to find all the available commands.
 
 
 Register VIM
@@ -91,7 +120,7 @@ Register VIM
 #. Prepare VIM configuration file:
 
    You can use a setup script for generating VIM configuration or edit it from
-   scratch as described in :doc:`here </reference/vim_config>`.
+   scratch as described in :doc:`/reference/vim_config`.
    This script finds parameters for the configuration, such as user
    name or password, from your environment variables.
    Here is an example of generating OpenStack VIM configuration as
@@ -102,6 +131,7 @@ Register VIM
 
      $ bash TACKER_ROOT/tools/gen_vim_config.sh
      Config for OpenStack VIM 'vim_config.yaml' generated.
+
 
    There are several options for configuring parameters from command
    line supported. Refer help with ``-h`` for details.
@@ -114,8 +144,10 @@ Register VIM
      $ cp TACKER_ROOT/samples/etsi_getting_started/tosca/vim/vim_config.yaml ./
      $ vi vim_config.yaml
 
+
    .. literalinclude:: ../../../samples/etsi_getting_started/tosca/vim/vim_config.yaml
-      :language: yaml
+            :language: yaml
+
 
 #. Register Default VIM:
 
@@ -126,57 +158,55 @@ Register VIM
 
      $ openstack vim register --config-file ./vim_config.yaml \
        --is-default --fit-width openstack-admin-vim
+     +----------------+-----------------------------------------------------+
+     | Field          | Value                                               |
+     +----------------+-----------------------------------------------------+
+     | auth_cred      | {                                                   |
+     |                |     "username": "admin",                            |
+     |                |     "user_domain_name": "default",                  |
+     |                |     "cert_verify": "True",                          |
+     |                |     "project_id": null,                             |
+     |                |     "project_name": "admin",                        |
+     |                |     "project_domain_name": "default",               |
+     |                |     "auth_url": "http://192.168.56.10/identity/v3", |
+     |                |     "key_type": "barbican_key",                     |
+     |                |     "secret_uuid": "***",                           |
+     |                |     "password": "***"                               |
+     |                | }                                                   |
+     | auth_url       | http://192.168.56.10/identity/v3                    |
+     | created_at     | 2023-12-21 07:39:09.617234                          |
+     | description    |                                                     |
+     | extra          |                                                     |
+     | id             | 662e5f4f-3b16-4ca6-b560-28b62dd0e13b                |
+     | is_default     | True                                                |
+     | name           | openstack-admin-vim                                 |
+     | placement_attr | {                                                   |
+     |                |     "regions": [                                    |
+     |                |         "RegionOne"                                 |
+     |                |     ]                                               |
+     |                | }                                                   |
+     | project_id     | 1994d69783d64c00aadab564038c2fd7                    |
+     | status         | ACTIVE                                              |
+     | type           | openstack                                           |
+     | updated_at     | None                                                |
+     | vim_project    | {                                                   |
+     |                |     "name": "admin",                                |
+     |                |     "project_domain_name": "default"                |
+     |                | }                                                   |
+     +----------------+-----------------------------------------------------+
 
-     +----------------+-------------------------------------------------+
-     | Field          | Value                                           |
-     +----------------+-------------------------------------------------+
-     | auth_cred      | {                                               |
-     |                |     "username": "admin",                        |
-     |                |     "user_domain_name": "Default",              |
-     |                |     "cert_verify": "True",                      |
-     |                |     "project_id": null,                         |
-     |                |     "project_name": "admin",                    |
-     |                |     "project_domain_name": "Default",           |
-     |                |     "auth_url": "http://127.0.0.1/identity/v3", |
-     |                |     "key_type": "barbican_key",                 |
-     |                |     "secret_uuid": "***",                       |
-     |                |     "password": "***"                           |
-     |                | }                                               |
-     | auth_url       | http://127.0.0.1/identity/v3                    |
-     | created_at     | 2020-05-24 07:00:25.923831                      |
-     | description    |                                                 |
-     | id             | 4bb57004-9e33-4c52-b5f9-629f876b4168            |
-     | is_default     | True                                            |
-     | name           | openstack-admin-vim                             |
-     | placement_attr | {                                               |
-     |                |     "regions": [                                |
-     |                |         "RegionOne"                             |
-     |                |     ]                                           |
-     |                | }                                               |
-     | project_id     | d413421abf074c9b8f54a1403857038c                |
-     | status         | PENDING                                         |
-     | type           | openstack                                       |
-     | updated_at     | None                                            |
-     | vim_project    | {                                               |
-     |                |     "name": "admin",                            |
-     |                |     "project_domain_name": "Default"            |
-     |                | }                                               |
-     +----------------+-------------------------------------------------+
 
-#. Confirm that the status of registered VIM is ``REACHABLE`` as ready to use:
+#. Confirm that the status of registered VIM is ``ACTIVE`` as ready to use:
 
    .. code-block:: console
 
      $ openstack vim list
+     +--------------------------------------+---------------------+----------------------------------+-----------+------------+--------+
+     | ID                                   | Name                | Tenant_id                        | Type      | Is Default | Status |
+     +--------------------------------------+---------------------+----------------------------------+-----------+------------+--------+
+     | 662e5f4f-3b16-4ca6-b560-28b62dd0e13b | openstack-admin-vim | 1994d69783d64c00aadab564038c2fd7 | openstack | True       | ACTIVE |
+     +--------------------------------------+---------------------+----------------------------------+-----------+------------+--------+
 
-     +------------+------------+------------+-----------+------------+-----------+
-     | ID         | Name       | Tenant_id  | Type      | Is Default | Status    |
-     +------------+------------+------------+-----------+------------+-----------+
-     | 4bb57004-9 | openstack- | d413421abf | openstack | True       | REACHABLE |
-     | e33-4c52-b | admin-vim  | 074c9b8f54 |           |            |           |
-     | 5f9-629f87 |            | a140385703 |           |            |           |
-     | 6b4168     |            | 8c         |           |            |           |
-     +------------+------------+------------+-----------+------------+-----------+
 
 Create and Upload VNF Package
 -----------------------------
@@ -189,15 +219,17 @@ Prepare VNF Package
    .. code-block:: console
 
      $ mkdir -p ./sample_vnf_package_csar/TOSCA-Metadata \
-         ./sample_vnf_package_csar/Definitions \
-         ./sample_vnf_package_csar/Files
+       ./sample_vnf_package_csar/Definitions \
+       ./sample_vnf_package_csar/Files/images
+
 
    [This is UserData specific part] When using UserData, create the following directories in addition.
 
    .. code-block:: console
 
      $ mkdir -p ./sample_vnf_package_csar/BaseHOT/simple \
-         ./sample_vnf_package_csar/UserData
+       ./sample_vnf_package_csar/UserData
+
 
 #. Create a ``TOSCA.meta`` file:
 
@@ -205,24 +237,38 @@ Prepare VNF Package
 
      $ vi ./sample_vnf_package_csar/TOSCA-Metadata/TOSCA.meta
 
+
    .. literalinclude:: ../../../samples/etsi_getting_started/tosca/sample_vnf_package_csar/TOSCA-Metadata/TOSCA.meta
-     :language: text
+            :language: text
+
+
+#. Download image file:
+
+   .. code-block:: console
+
+     $ cd ./sample_vnf_package_csar/Files/images
+     $ wget https://download.cirros-cloud.net/0.5.2/cirros-0.5.2-x86_64-disk.img
+
 
 #. Download ETSI definition files:
 
    You should set ``${TOSCA_VERSION}`` to one of the appropriate TOSCA service
-   template versions [#f8]_, e.g., ``export TOSCA_VERSION=v2.6.1``.
+   template versions (`SOL001`_), e.g., ``export TOSCA_VERSION=v2.6.1``.
 
    .. important::
 
      You should also check if the version of TOSCA service template is
-     supported by tacker [#f9]_.
+     supported by tacker.
+     See :doc:`/user/vnfd-sol001` for supported version.
+
 
    .. code-block:: console
 
+     $ cd -
      $ cd ./sample_vnf_package_csar/Definitions
      $ wget https://forge.etsi.org/rep/nfv/SOL001/raw/${TOSCA_VERSION}/etsi_nfv_sol001_common_types.yaml
      $ wget https://forge.etsi.org/rep/nfv/SOL001/raw/${TOSCA_VERSION}/etsi_nfv_sol001_vnfd_types.yaml
+
 
 #. Create VNFD files:
 
@@ -233,7 +279,8 @@ Prepare VNF Package
         $ vi ./sample_vnfd_top.yaml
 
       .. literalinclude:: ../../../samples/etsi_getting_started/tosca/sample_vnf_package_csar/Definitions/sample_vnfd_top.yaml
-         :language: yaml
+               :language: yaml
+
 
    -  Create ``sample_vnfd_types.yaml``
 
@@ -241,13 +288,16 @@ Prepare VNF Package
 
         $ vi ./sample_vnfd_types.yaml
 
+
       .. literalinclude:: ../../../samples/etsi_getting_started/tosca/sample_vnf_package_csar/Definitions/sample_vnfd_types.yaml
-        :language: yaml
+               :language: yaml
+
 
       .. note::
 
         ``description_id`` shall be globally unique, i.e., you cannot create
         multiple VNFDs with the same ``description_id``.
+
 
    -  Create ``sample_vnfd_df_simple.yaml``
 
@@ -255,14 +305,17 @@ Prepare VNF Package
 
         $ vi ./sample_vnfd_df_simple.yaml
 
+
       .. literalinclude:: ../../../samples/etsi_getting_started/tosca/sample_vnf_package_csar/Definitions/sample_vnfd_df_simple.yaml
-        :language: yaml
+               :language: yaml
+
 
       .. note::
 
         The ``flavour_description`` should be updated by the property in "VNF" but
         Tacker cannot handle it. After the instantiation, the default value in
         ``sample_vnfd_types.yaml`` is always used.
+
 
 #. [This is UserData specific part] Create BaseHOT files:
 
@@ -271,8 +324,10 @@ Prepare VNF Package
      $ cd -
      $ vi ./sample_vnf_package_csar/BaseHOT/simple/sample_lcm_with_user_data_hot.yaml
 
+
    .. literalinclude:: ../../../samples/etsi_getting_started/userdata/sample_vnf_package_csar/BaseHOT/simple/sample_lcm_with_user_data_hot.yaml
-     :language: yaml
+            :language: yaml
+
 
 #. [This is UserData specific part] Create UserData files:
 
@@ -282,8 +337,10 @@ Prepare VNF Package
      $ touch ./__init__.py
      $ vi ./lcm_user_data.py
 
+
    .. literalinclude:: ../../../samples/etsi_getting_started/userdata/sample_vnf_package_csar/UserData/lcm_user_data.py
-     :language: python
+            :language: python
+
 
 #. Compress the VNF Package CSAR to zip:
 
@@ -311,11 +368,13 @@ Prepare VNF Package
      TOSCA-Metadata/
      TOSCA-Metadata/TOSCA.meta
 
+
    - [This is UserData specific part] When using UserData, add ``BaseHOT`` and ``UserData`` directories.
 
      .. code-block:: console
 
        $ zip sample_vnf_package_csar.zip -r BaseHOT/ UserData/
+
 
      The contents of the zip file should look something like this.
 
@@ -340,10 +399,10 @@ Prepare VNF Package
        UserData/lcm_user_data.py
        UserData/__init__.py
 
+
    Here, you can find the structure of the sample VNF Package CSAR as a
    zip file.
 
-.. _Create VNF Package:
 
 Create VNF Package
 ^^^^^^^^^^^^^^^^^^
@@ -358,36 +417,42 @@ Create VNF Package
 
    .. code-block:: console
 
-     $ openstack vnf package create --fit-width
+     $ openstack vnf package create
+     +-------------------+-------------------------------------------------------------------------------------------------+
+     | Field             | Value                                                                                           |
+     +-------------------+-------------------------------------------------------------------------------------------------+
+     | ID                | 156f1c4f-bfe2-492b-a079-a1bad32c0c3d                                                            |
+     | Links             | {                                                                                               |
+     |                   |     "self": {                                                                                   |
+     |                   |         "href": "/vnfpkgm/v1/vnf_packages/156f1c4f-bfe2-492b-a079-a1bad32c0c3d"                 |
+     |                   |     },                                                                                          |
+     |                   |     "packageContent": {                                                                         |
+     |                   |         "href": "/vnfpkgm/v1/vnf_packages/156f1c4f-bfe2-492b-a079-a1bad32c0c3d/package_content" |
+     |                   |     }                                                                                           |
+     |                   | }                                                                                               |
+     | Onboarding State  | CREATED                                                                                         |
+     | Operational State | DISABLED                                                                                        |
+     | Usage State       | NOT_IN_USE                                                                                      |
+     | User Defined Data | {}                                                                                              |
+     +-------------------+-------------------------------------------------------------------------------------------------+
 
-     +-------------------+----------------------------------------------------------------------------------------------------------------+
-     | Field             | Value                                                                                                          |
-     +-------------------+----------------------------------------------------------------------------------------------------------------+
-     | ID                | e712a702-741f-4093-a971-b3ad69411ac1                                                                           |
-     | Links             | packageContent=href=/vnfpkgm/v1/vnf_packages/e712a702-741f-4093-a971-b3ad69411ac1/package_content,             |
-     |                   | self=href=/vnfpkgm/v1/vnf_packages/e712a702-741f-4093-a971-b3ad69411ac1                                        |
-     | Onboarding State  | CREATED                                                                                                        |
-     | Operational State | DISABLED                                                                                                       |
-     | Usage State       | NOT_IN_USE                                                                                                     |
-     | User Defined Data |                                                                                                                |
-     +-------------------+----------------------------------------------------------------------------------------------------------------+
 
 Upload VNF Package
 ^^^^^^^^^^^^^^^^^^
 
 #. Execute vnfpkgm upload:
 
-   The "VNF Package ID" ``e712a702-741f-4093-a971-b3ad69411ac1`` needs to be
-   replaced with the appropriate one that was obtained from :ref:`Create VNF
+   The "VNF Package ID" ``156f1c4f-bfe2-492b-a079-a1bad32c0c3d`` needs to be
+   replaced with the appropriate one that was obtained from `Create VNF
    Package`.
 
    .. code-block:: console
 
      $ openstack vnf package upload \
-         --path ./sample_vnf_package_csar/sample_vnf_package_csar.zip \
-         e712a702-741f-4093-a971-b3ad69411ac1
+       --path ./sample_vnf_package_csar/sample_vnf_package_csar.zip \
+       156f1c4f-bfe2-492b-a079-a1bad32c0c3d
+     Upload request for VNF package 156f1c4f-bfe2-492b-a079-a1bad32c0c3d has been accepted.
 
-     Upload request for VNF package e712a702-741f-4093-a971-b3ad69411ac1 has been accepted.
 
 Check the created VNF Package
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -398,20 +463,33 @@ Check the created VNF Package
    .. code-block:: console
 
      $ openstack vnf package list
-
-     +--------------------------------------+------------------+------------------+-------------+-------------------+
-     | Id                                   | Vnf Product Name | Onboarding State | Usage State | Operational State |
-     +--------------------------------------+------------------+------------------+-------------+-------------------+
-     | e712a702-741f-4093-a971-b3ad69411ac1 |                  | PROCESSING       | NOT_IN_USE  | DISABLED          |
-     +--------------------------------------+------------------+------------------+-------------+-------------------+
+     +--------------------------------------+------------------+------------------+-------------+-------------------+-------------------------------------------------------------------------------------------------+
+     | Id                                   | Vnf Product Name | Onboarding State | Usage State | Operational State | Links                                                                                           |
+     +--------------------------------------+------------------+------------------+-------------+-------------------+-------------------------------------------------------------------------------------------------+
+     | 156f1c4f-bfe2-492b-a079-a1bad32c0c3d |                  | PROCESSING       | NOT_IN_USE  | DISABLED          | {                                                                                               |
+     |                                      |                  |                  |             |                   |     "self": {                                                                                   |
+     |                                      |                  |                  |             |                   |         "href": "/vnfpkgm/v1/vnf_packages/156f1c4f-bfe2-492b-a079-a1bad32c0c3d"                 |
+     |                                      |                  |                  |             |                   |     },                                                                                          |
+     |                                      |                  |                  |             |                   |     "packageContent": {                                                                         |
+     |                                      |                  |                  |             |                   |         "href": "/vnfpkgm/v1/vnf_packages/156f1c4f-bfe2-492b-a079-a1bad32c0c3d/package_content" |
+     |                                      |                  |                  |             |                   |     }                                                                                           |
+     |                                      |                  |                  |             |                   | }                                                                                               |
+     +--------------------------------------+------------------+------------------+-------------+-------------------+-------------------------------------------------------------------------------------------------+
 
      $ openstack vnf package list
+     +--------------------------------------+------------------+------------------+-------------+-------------------+-------------------------------------------------------------------------------------------------+
+     | Id                                   | Vnf Product Name | Onboarding State | Usage State | Operational State | Links                                                                                           |
+     +--------------------------------------+------------------+------------------+-------------+-------------------+-------------------------------------------------------------------------------------------------+
+     | 156f1c4f-bfe2-492b-a079-a1bad32c0c3d | Sample VNF       | ONBOARDED        | NOT_IN_USE  | ENABLED           | {                                                                                               |
+     |                                      |                  |                  |             |                   |     "self": {                                                                                   |
+     |                                      |                  |                  |             |                   |         "href": "/vnfpkgm/v1/vnf_packages/156f1c4f-bfe2-492b-a079-a1bad32c0c3d"                 |
+     |                                      |                  |                  |             |                   |     },                                                                                          |
+     |                                      |                  |                  |             |                   |     "packageContent": {                                                                         |
+     |                                      |                  |                  |             |                   |         "href": "/vnfpkgm/v1/vnf_packages/156f1c4f-bfe2-492b-a079-a1bad32c0c3d/package_content" |
+     |                                      |                  |                  |             |                   |     }                                                                                           |
+     |                                      |                  |                  |             |                   | }                                                                                               |
+     +--------------------------------------+------------------+------------------+-------------+-------------------+-------------------------------------------------------------------------------------------------+
 
-     +--------------------------------------+------------------+------------------+-------------+-------------------+
-     | Id                                   | Vnf Product Name | Onboarding State | Usage State | Operational State |
-     +--------------------------------------+------------------+------------------+-------------+-------------------+
-     | e712a702-741f-4093-a971-b3ad69411ac1 | Sample VNF       | ONBOARDED        | NOT_IN_USE  | ENABLED           |
-     +--------------------------------------+------------------+------------------+-------------+-------------------+
 
 Create & Instantiate VNF
 ------------------------
@@ -427,13 +505,13 @@ Create VNF
    .. code-block:: console
 
      $ openstack vnf package show \
-         e712a702-741f-4093-a971-b3ad69411ac1 -c 'VNFD ID'
-
+       156f1c4f-bfe2-492b-a079-a1bad32c0c3d -c 'VNFD ID'
      +---------+--------------------------------------+
      | Field   | Value                                |
      +---------+--------------------------------------+
      | VNFD ID | b1bb0ce7-ebca-4fa7-95ed-4840d70a1177 |
      +---------+--------------------------------------+
+
 
 #. Create VNF:
 
@@ -442,24 +520,31 @@ Create VNF
 
    .. code-block:: console
 
-     $ openstack vnflcm create \
-         b1bb0ce7-ebca-4fa7-95ed-4840d70a1177 --fit-width
+     $ openstack vnflcm create b1bb0ce7-ebca-4fa7-95ed-4840d70a1177
+     +-----------------------------+------------------------------------------------------------------------------------------------------------------+
+     | Field                       | Value                                                                                                            |
+     +-----------------------------+------------------------------------------------------------------------------------------------------------------+
+     | ID                          | 810d8c9b-e467-4b06-9265-ac9dce015fce                                                                             |
+     | Instantiation State         | NOT_INSTANTIATED                                                                                                 |
+     | Links                       | {                                                                                                                |
+     |                             |     "self": {                                                                                                    |
+     |                             |         "href": "http://localhost:9890/vnflcm/v1/vnf_instances/810d8c9b-e467-4b06-9265-ac9dce015fce"             |
+     |                             |     },                                                                                                           |
+     |                             |     "instantiate": {                                                                                             |
+     |                             |         "href": "http://localhost:9890/vnflcm/v1/vnf_instances/810d8c9b-e467-4b06-9265-ac9dce015fce/instantiate" |
+     |                             |     }                                                                                                            |
+     |                             | }                                                                                                                |
+     | VNF Configurable Properties |                                                                                                                  |
+     | VNF Instance Description    |                                                                                                                  |
+     | VNF Instance Name           | vnf-810d8c9b-e467-4b06-9265-ac9dce015fce                                                                         |
+     | VNF Product Name            | Sample VNF                                                                                                       |
+     | VNF Provider                | Company                                                                                                          |
+     | VNF Software Version        | 1.0                                                                                                              |
+     | VNFD ID                     | b1bb0ce7-ebca-4fa7-95ed-4840d70a1177                                                                             |
+     | VNFD Version                | 1.0                                                                                                              |
+     | vnfPkgId                    |                                                                                                                  |
+     +-----------------------------+------------------------------------------------------------------------------------------------------------------+
 
-     +--------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------+
-     | Field                    | Value                                                                                                                                                       |
-     +--------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------+
-     | ID                       | 725f625e-f6b7-4bcd-b1b7-7184039fde45                                                                                                                        |
-     | Instantiation State      | NOT_INSTANTIATED                                                                                                                                            |
-     | Links                    | instantiate=href=/vnflcm/v1/vnf_instances/725f625e-f6b7-4bcd-b1b7-7184039fde45/instantiate,                                                                 |
-     |                          | self=href=/vnflcm/v1/vnf_instances/725f625e-f6b7-4bcd-b1b7-7184039fde45                                                                                     |
-     | VNF Instance Description | None                                                                                                                                                        |
-     | VNF Instance Name        | None                                                                                                                                                        |
-     | VNF Product Name         | Sample VNF                                                                                                                                                  |
-     | VNF Provider             | Company                                                                                                                                                     |
-     | VNF Software Version     | 1.0                                                                                                                                                         |
-     | VNFD ID                  | b1bb0ce7-ebca-4fa7-95ed-4840d70a1177                                                                                                                        |
-     | VNFD Version             | 1.0                                                                                                                                                         |
-     +--------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 Instantiate VNF
 ^^^^^^^^^^^^^^^
@@ -481,6 +566,7 @@ Instantiate VNF
 
      You can skip ``vimConnectionInfo`` only when you have the default VIM.
 
+
    A sample ``<param-file>`` named as ``sample_param_file.json`` with
    minimal parametes:
 
@@ -488,26 +574,32 @@ Instantiate VNF
 
      $ vi ./sample_param_file.json
 
+
    - When using TOSCA, use the following parameters.
 
      .. literalinclude:: ../../../samples/etsi_getting_started/tosca/lcm_instantiate_request/sample_param_file.json
-       :language: json
+              :language: json
+
 
    - [This is UserData specific part] When using UserData, use the following parameters instead.
 
      .. literalinclude:: ../../../samples/etsi_getting_started/userdata/lcm_instantiate_request/sample_param_file.json
-       :language: json
+              :language: json
+
 
    ``${network_uuid}``, ``${subnet_uuid}`` and ``${vim_uuid}`` should be
    replaced with the uuid of the network to use, the uuid of the subnet to use
    and the uuid of the VIM to use, respectively.
 
    .. hint::
-     You can find uuids of the network and the corresponding subnet with this command [#f10]_:
+
+     You can find uuids of the network and the corresponding subnet with
+     `network command`_:
 
      .. code-block:: console
 
        $ openstack network list
+
 
 #. Instantiate VNF:
 
@@ -517,48 +609,126 @@ Instantiate VNF
    .. code-block:: console
 
      $ openstack vnflcm instantiate \
-         725f625e-f6b7-4bcd-b1b7-7184039fde45 ./sample_param_file.json
+       810d8c9b-e467-4b06-9265-ac9dce015fce ./sample_param_file.json
+     Instantiate request for VNF Instance 810d8c9b-e467-4b06-9265-ac9dce015fce has been accepted.
 
-     instantiate request for vnf instance 725f625e-f6b7-4bcd-b1b7-7184039fde45 has been accepted.
 
    Check the details of the instantiated vnf.
 
    .. code-block:: console
 
      $ openstack vnflcm list
+     +--------------------------------------+------------------------------------------+---------------------+--------------+----------------------+------------------+--------------------------------------+
+     | ID                                   | VNF Instance Name                        | Instantiation State | VNF Provider | VNF Software Version | VNF Product Name | VNFD ID                              |
+     +--------------------------------------+------------------------------------------+---------------------+--------------+----------------------+------------------+--------------------------------------+
+     | 810d8c9b-e467-4b06-9265-ac9dce015fce | vnf-810d8c9b-e467-4b06-9265-ac9dce015fce | INSTANTIATED        | Company      | 1.0                  | Sample VNF       | b1bb0ce7-ebca-4fa7-95ed-4840d70a1177 |
+     +--------------------------------------+------------------------------------------+---------------------+--------------+----------------------+------------------+--------------------------------------+
 
-     +--------------------------------------+-------------------+---------------------+--------------+----------------------+------------------+--------------------------------------+
-     | ID                                   | VNF Instance Name | Instantiation State | VNF Provider | VNF Software Version | VNF Product Name | VNFD ID                              |
-     +--------------------------------------+-------------------+---------------------+--------------+----------------------+------------------+--------------------------------------+
-     | 725f625e-f6b7-4bcd-b1b7-7184039fde45 | None              | INSTANTIATED        | Company      | 1.0                  | Sample VNF       | b1bb0ce7-ebca-4fa7-95ed-4840d70a1177 |
-     +--------------------------------------+-------------------+---------------------+--------------+----------------------+------------------+--------------------------------------+
+     $ openstack vnflcm show 810d8c9b-e467-4b06-9265-ac9dce015fce
+     +-----------------------------+----------------------------------------------------------------------------------------------------------------------+
+     | Field                       | Value                                                                                                                |
+     +-----------------------------+----------------------------------------------------------------------------------------------------------------------+
+     | ID                          | 810d8c9b-e467-4b06-9265-ac9dce015fce                                                                                 |
+     | Instantiated Vnf Info       | {                                                                                                                    |
+     |                             |     "flavourId": "simple",                                                                                           |
+     |                             |     "vnfState": "STARTED",                                                                                           |
+     |                             |     "extCpInfo": [],                                                                                                 |
+     |                             |     "vnfcResourceInfo": [                                                                                            |
+     |                             |         {                                                                                                            |
+     |                             |             "id": "6894448f-4a88-45ec-801f-4ef455e8a613",                                                            |
+     |                             |             "vduId": "VDU1",                                                                                         |
+     |                             |             "computeResource": {                                                                                     |
+     |                             |                 "vimConnectionId": "662e5f4f-3b16-4ca6-b560-28b62dd0e13b",                                           |
+     |                             |                 "resourceId": "cfb5d6de-90a1-433a-9af4-1159ca279e27",                                                |
+     |                             |                 "vimLevelResourceType": "OS::Nova::Server"                                                           |
+     |                             |             },                                                                                                       |
+     |                             |             "storageResourceIds": [],                                                                                |
+     |                             |             "vnfcCpInfo": [                                                                                          |
+     |                             |                 {                                                                                                    |
+     |                             |                     "id": "b6dffe31-2e4b-44e6-8ddd-b94608a9210b",                                                    |
+     |                             |                     "cpdId": "CP1",                                                                                  |
+     |                             |                     "vnfExtCpId": null,                                                                              |
+     |                             |                     "vnfLinkPortId": "5040ae0d-ef8b-4d12-b96b-d9d05a0ba7fe"                                          |
+     |                             |                 }                                                                                                    |
+     |                             |             ]                                                                                                        |
+     |                             |         }                                                                                                            |
+     |                             |     ],                                                                                                               |
+     |                             |     "vnfVirtualLinkResourceInfo": [                                                                                  |
+     |                             |         {                                                                                                            |
+     |                             |             "id": "4b67e6f9-8133-4f7d-b384-abd64f9bcbac",                                                            |
+     |                             |             "vnfVirtualLinkDescId": "internalVL1",                                                                   |
+     |                             |             "networkResource": {                                                                                     |
+     |                             |                 "vimConnectionId": "662e5f4f-3b16-4ca6-b560-28b62dd0e13b",                                           |
+     |                             |                 "resourceId": "d04beb5f-b29a-4f7e-b32b-7ea669afa3eb",                                                |
+     |                             |                 "vimLevelResourceType": "OS::Neutron::Net"                                                           |
+     |                             |             },                                                                                                       |
+     |                             |             "vnfLinkPorts": [                                                                                        |
+     |                             |                 {                                                                                                    |
+     |                             |                     "id": "5040ae0d-ef8b-4d12-b96b-d9d05a0ba7fe",                                                    |
+     |                             |                     "resourceHandle": {                                                                              |
+     |                             |                         "vimConnectionId": "662e5f4f-3b16-4ca6-b560-28b62dd0e13b",                                   |
+     |                             |                         "resourceId": "84edd7c7-a02f-4f25-be2a-a0ee5b1c8dc7",                                        |
+     |                             |                         "vimLevelResourceType": "OS::Neutron::Port"                                                  |
+     |                             |                     },                                                                                               |
+     |                             |                     "cpInstanceId": "b6dffe31-2e4b-44e6-8ddd-b94608a9210b"                                           |
+     |                             |                 }                                                                                                    |
+     |                             |             ]                                                                                                        |
+     |                             |         }                                                                                                            |
+     |                             |     ],                                                                                                               |
+     |                             |     "vnfcInfo": [                                                                                                    |
+     |                             |         {                                                                                                            |
+     |                             |             "id": "6c0ba2a3-3f26-4ba0-9b4f-db609b2e843c",                                                            |
+     |                             |             "vduId": "VDU1",                                                                                         |
+     |                             |             "vnfcState": "STARTED"                                                                                   |
+     |                             |         }                                                                                                            |
+     |                             |     ],                                                                                                               |
+     |                             |     "additionalParams": {}                                                                                           |
+     |                             | }                                                                                                                    |
+     | Instantiation State         | INSTANTIATED                                                                                                         |
+     | Links                       | {                                                                                                                    |
+     |                             |     "self": {                                                                                                        |
+     |                             |         "href": "http://localhost:9890/vnflcm/v1/vnf_instances/810d8c9b-e467-4b06-9265-ac9dce015fce"                 |
+     |                             |     },                                                                                                               |
+     |                             |     "terminate": {                                                                                                   |
+     |                             |         "href": "http://localhost:9890/vnflcm/v1/vnf_instances/810d8c9b-e467-4b06-9265-ac9dce015fce/terminate"       |
+     |                             |     },                                                                                                               |
+     |                             |     "heal": {                                                                                                        |
+     |                             |         "href": "http://localhost:9890/vnflcm/v1/vnf_instances/810d8c9b-e467-4b06-9265-ac9dce015fce/heal"            |
+     |                             |     },                                                                                                               |
+     |                             |     "changeExtConn": {                                                                                               |
+     |                             |         "href": "http://localhost:9890/vnflcm/v1/vnf_instances/810d8c9b-e467-4b06-9265-ac9dce015fce/change_ext_conn" |
+     |                             |     }                                                                                                                |
+     |                             | }                                                                                                                    |
+     | VIM Connection Info         | [                                                                                                                    |
+     |                             |     {                                                                                                                |
+     |                             |         "id": "e24f9796-a8e9-4cb0-85ce-5920dcddafa1",                                                                |
+     |                             |         "vimId": "662e5f4f-3b16-4ca6-b560-28b62dd0e13b",                                                             |
+     |                             |         "vimType": "ETSINFV.OPENSTACK_KEYSTONE.v_2",                                                                 |
+     |                             |         "interfaceInfo": {},                                                                                         |
+     |                             |         "accessInfo": {},                                                                                            |
+     |                             |         "extra": {}                                                                                                  |
+     |                             |     },                                                                                                               |
+     |                             |     {                                                                                                                |
+     |                             |         "id": "67820f17-a82a-4e3a-b200-8ef119646749",                                                                |
+     |                             |         "vimId": "662e5f4f-3b16-4ca6-b560-28b62dd0e13b",                                                             |
+     |                             |         "vimType": "openstack",                                                                                      |
+     |                             |         "interfaceInfo": {},                                                                                         |
+     |                             |         "accessInfo": {},                                                                                            |
+     |                             |         "extra": {}                                                                                                  |
+     |                             |     }                                                                                                                |
+     |                             | ]                                                                                                                    |
+     | VNF Configurable Properties |                                                                                                                      |
+     | VNF Instance Description    |                                                                                                                      |
+     | VNF Instance Name           | vnf-810d8c9b-e467-4b06-9265-ac9dce015fce                                                                             |
+     | VNF Product Name            | Sample VNF                                                                                                           |
+     | VNF Provider                | Company                                                                                                              |
+     | VNF Software Version        | 1.0                                                                                                                  |
+     | VNFD ID                     | b1bb0ce7-ebca-4fa7-95ed-4840d70a1177                                                                                 |
+     | VNFD Version                | 1.0                                                                                                                  |
+     | metadata                    | tenant=admin                                                                                                         |
+     | vnfPkgId                    |                                                                                                                      |
+     +-----------------------------+----------------------------------------------------------------------------------------------------------------------+
 
-     $ openstack vnflcm show \
-       725f625e-f6b7-4bcd-b1b7-7184039fde45 --fit-width
-
-     +--------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------+
-     | Field                    | Value                                                                                                                                                       |
-     +--------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------+
-     | ID                       | 725f625e-f6b7-4bcd-b1b7-7184039fde45                                                                                                                        |
-     | Instantiated Vnf Info    | , extCpInfo='[]', flavourId='simple', vnfState='STARTED', vnfVirtualLinkResourceInfo='[{'id': '0163cea3-af88-4ef8-ae43-ef3e5e7e827d',                       |
-     |                          | 'vnfVirtualLinkDescId': 'internalVL1', 'networkResource': {'resourceId': '073c74b9-670d-4764-a933-6fe4f2f991c1', 'vimLevelResourceType':                    |
-     |                          | 'OS::Neutron::Net'}, 'vnfLinkPorts': [{'id': '3b667826-336c-4919-889e-e6c63d959ee6', 'resourceHandle': {'resourceId':                                       |
-     |                          | '5d3255b5-e9fb-449f-9c5f-5242049ce2fa', 'vimLevelResourceType': 'OS::Neutron::Port'}, 'cpInstanceId': '3091f046-de63-44c8-ad23-f86128409b27'}]}]',          |
-     |                          | vnfcResourceInfo='[{'id': '2a66f545-c90d-49e7-8f17-fb4e57b19c92', 'vduId': 'VDU1', 'computeResource': {'resourceId':                                        |
-     |                          | '6afc547d-0e19-46fc-b171-a3d9a0a80513', 'vimLevelResourceType': 'OS::Nova::Server'}, 'storageResourceIds': [], 'vnfcCpInfo': [{'id':                        |
-     |                          | '3091f046-de63-44c8-ad23-f86128409b27', 'cpdId': 'CP1', 'vnfExtCpId': None, 'vnfLinkPortId': '3b667826-336c-4919-889e-e6c63d959ee6'}]}]'                    |
-     | Instantiation State      | INSTANTIATED                                                                                                                                                |
-     | Links                    | heal=href=/vnflcm/v1/vnf_instances/725f625e-f6b7-4bcd-b1b7-7184039fde45/heal, self=href=/vnflcm/v1/vnf_instances/725f625e-f6b7-4bcd-b1b7-7184039fde45,      |
-     |                          | terminate=href=/vnflcm/v1/vnf_instances/725f625e-f6b7-4bcd-b1b7-7184039fde45/terminate                                                                      |
-     | VIM Connection Info      | []                                                                                                                                                          |
-     | VNF Instance Description | None                                                                                                                                                        |
-     | VNF Instance Name        | None                                                                                                                                                        |
-     | VNF Product Name         | Sample VNF                                                                                                                                                  |
-     | VNF Provider             | Company                                                                                                                                                     |
-     | VNF Software Version     | 1.0                                                                                                                                                         |
-     | VNFD ID                  | b1bb0ce7-ebca-4fa7-95ed-4840d70a1177                                                                                                                        |
-     | VNFD Version             | 1.0                                                                                                                                                         |
-     +--------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 Terminate & Delete VNF
 ----------------------
@@ -571,12 +741,12 @@ Terminate VNF
    .. code-block:: console
 
      $ openstack vnflcm list
+     +--------------------------------------+------------------------------------------+---------------------+--------------+----------------------+------------------+--------------------------------------+
+     | ID                                   | VNF Instance Name                        | Instantiation State | VNF Provider | VNF Software Version | VNF Product Name | VNFD ID                              |
+     +--------------------------------------+------------------------------------------+---------------------+--------------+----------------------+------------------+--------------------------------------+
+     | 810d8c9b-e467-4b06-9265-ac9dce015fce | vnf-810d8c9b-e467-4b06-9265-ac9dce015fce | INSTANTIATED        | Company      | 1.0                  | Sample VNF       | b1bb0ce7-ebca-4fa7-95ed-4840d70a1177 |
+     +--------------------------------------+------------------------------------------+---------------------+--------------+----------------------+------------------+--------------------------------------+
 
-     +--------------------------------------+-------------------+---------------------+--------------+----------------------+------------------+--------------------------------------+
-     | ID                                   | VNF Instance Name | Instantiation State | VNF Provider | VNF Software Version | VNF Product Name | VNFD ID                              |
-     +--------------------------------------+-------------------+---------------------+--------------+----------------------+------------------+--------------------------------------+
-     | 725f625e-f6b7-4bcd-b1b7-7184039fde45 | None              | INSTANTIATED        | Company      | 1.0                  | Sample VNF       | b1bb0ce7-ebca-4fa7-95ed-4840d70a1177 |
-     +--------------------------------------+-------------------+---------------------+--------------+----------------------+------------------+--------------------------------------+
 
 #. Terminate VNF Instance:
 
@@ -584,22 +754,21 @@ Terminate VNF
 
    .. code-block:: console
 
-     $ openstack vnflcm terminate 725f625e-f6b7-4bcd-b1b7-7184039fde45
+     $ openstack vnflcm terminate 810d8c9b-e467-4b06-9265-ac9dce015fce
+     Terminate request for VNF Instance '810d8c9b-e467-4b06-9265-ac9dce015fce' has been accepted.
 
-     Terminate request for VNF Instance '725f625e-f6b7-4bcd-b1b7-7184039fde45' has been accepted.
 
    Check the status of VNF Instance:
 
    .. code-block:: console
 
-     $ openstack vnflcm list --fit-width
+     $ openstack vnflcm list
+     +--------------------------------------+------------------------------------------+---------------------+--------------+----------------------+------------------+--------------------------------------+
+     | ID                                   | VNF Instance Name                        | Instantiation State | VNF Provider | VNF Software Version | VNF Product Name | VNFD ID                              |
+     +--------------------------------------+------------------------------------------+---------------------+--------------+----------------------+------------------+--------------------------------------+
+     | 810d8c9b-e467-4b06-9265-ac9dce015fce | vnf-810d8c9b-e467-4b06-9265-ac9dce015fce | NOT_INSTANTIATED    | Company      | 1.0                  | Sample VNF       | b1bb0ce7-ebca-4fa7-95ed-4840d70a1177 |
+     +--------------------------------------+------------------------------------------+---------------------+--------------+----------------------+------------------+--------------------------------------+
 
-     +----------------------+-------------------+---------------------+--------------+----------------------+------------------+-----------------------+
-     | ID                   | VNF Instance Name | Instantiation State | VNF Provider | VNF Software Version | VNF Product Name | VNFD ID               |
-     +----------------------+-------------------+---------------------+--------------+----------------------+------------------+-----------------------+
-     | 725f625e-f6b7-4bcd-b | None              | NOT_INSTANTIATED    | Company      | 1.0                  | Sample VNF       | b1bb0ce7-ebca-4fa7-95 |
-     | 1b7-7184039fde45     |                   |                     |              |                      |                  | ed-4840d70a1177       |
-     +----------------------+-------------------+---------------------+--------------+----------------------+------------------+-----------------------+
 
 Delete VNF
 ^^^^^^^^^^
@@ -608,9 +777,9 @@ Delete VNF
 
    .. code-block:: console
 
-     $ openstack vnflcm delete 725f625e-f6b7-4bcd-b1b7-7184039fde45
+     $ openstack vnflcm delete 810d8c9b-e467-4b06-9265-ac9dce015fce
+     Vnf instance '810d8c9b-e467-4b06-9265-ac9dce015fce' is deleted successfully
 
-     Vnf instance '725f625e-f6b7-4bcd-b1b7-7184039fde45' deleted successfully
 
 Delete VNF Package
 ------------------
@@ -622,46 +791,59 @@ Delete VNF Package
    .. code-block:: console
 
      $ openstack vnf package list
+     +--------------------------------------+------------------+------------------+-------------+-------------------+-------------------------------------------------------------------------------------------------+
+     | Id                                   | Vnf Product Name | Onboarding State | Usage State | Operational State | Links                                                                                           |
+     +--------------------------------------+------------------+------------------+-------------+-------------------+-------------------------------------------------------------------------------------------------+
+     | 156f1c4f-bfe2-492b-a079-a1bad32c0c3d | Sample VNF       | ONBOARDED        | NOT_IN_USE  | ENABLED           | {                                                                                               |
+     |                                      |                  |                  |             |                   |     "self": {                                                                                   |
+     |                                      |                  |                  |             |                   |         "href": "/vnfpkgm/v1/vnf_packages/156f1c4f-bfe2-492b-a079-a1bad32c0c3d"                 |
+     |                                      |                  |                  |             |                   |     },                                                                                          |
+     |                                      |                  |                  |             |                   |     "packageContent": {                                                                         |
+     |                                      |                  |                  |             |                   |         "href": "/vnfpkgm/v1/vnf_packages/156f1c4f-bfe2-492b-a079-a1bad32c0c3d/package_content" |
+     |                                      |                  |                  |             |                   |     }                                                                                           |
+     |                                      |                  |                  |             |                   | }                                                                                               |
+     +--------------------------------------+------------------+------------------+-------------+-------------------+-------------------------------------------------------------------------------------------------+
 
-     +--------------------------------------+------------------+------------------+-------------+-------------------+
-     | Id                                   | Vnf Product Name | Onboarding State | Usage State | Operational State |
-     +--------------------------------------+------------------+------------------+-------------+-------------------+
-     | e712a702-741f-4093-a971-b3ad69411ac1 | Sample VNF       | ONBOARDED        | NOT_IN_USE  | ENABLED           |
-     +--------------------------------------+------------------+------------------+-------------+-------------------+
 
    Update the Operational State to ``DISABLED``:
 
    .. code-block:: console
 
-     $ openstack vnf package update \
-         --operational-state 'DISABLED' \
-         e712a702-741f-4093-a971-b3ad69411ac1
-
+     $ openstack vnf package update --operational-state 'DISABLED' \
+       156f1c4f-bfe2-492b-a079-a1bad32c0c3d
      +-------------------+----------+
      | Field             | Value    |
      +-------------------+----------+
      | Operational State | DISABLED |
      +-------------------+----------+
 
+
    Check the Operational State to be changed:
 
    .. code-block:: console
 
      $ openstack vnf package list
+     +--------------------------------------+------------------+------------------+-------------+-------------------+-------------------------------------------------------------------------------------------------+
+     | Id                                   | Vnf Product Name | Onboarding State | Usage State | Operational State | Links                                                                                           |
+     +--------------------------------------+------------------+------------------+-------------+-------------------+-------------------------------------------------------------------------------------------------+
+     | 156f1c4f-bfe2-492b-a079-a1bad32c0c3d | Sample VNF       | ONBOARDED        | NOT_IN_USE  | DISABLED          | {                                                                                               |
+     |                                      |                  |                  |             |                   |     "self": {                                                                                   |
+     |                                      |                  |                  |             |                   |         "href": "/vnfpkgm/v1/vnf_packages/156f1c4f-bfe2-492b-a079-a1bad32c0c3d"                 |
+     |                                      |                  |                  |             |                   |     },                                                                                          |
+     |                                      |                  |                  |             |                   |     "packageContent": {                                                                         |
+     |                                      |                  |                  |             |                   |         "href": "/vnfpkgm/v1/vnf_packages/156f1c4f-bfe2-492b-a079-a1bad32c0c3d/package_content" |
+     |                                      |                  |                  |             |                   |     }                                                                                           |
+     |                                      |                  |                  |             |                   | }                                                                                               |
+     +--------------------------------------+------------------+------------------+-------------+-------------------+-------------------------------------------------------------------------------------------------+
 
-     +--------------------------------------+------------------+------------------+-------------+-------------------+
-     | Id                                   | Vnf Product Name | Onboarding State | Usage State | Operational State |
-     +--------------------------------------+------------------+------------------+-------------+-------------------+
-     | e712a702-741f-4093-a971-b3ad69411ac1 | Sample VNF       | ONBOARDED        | NOT_IN_USE  | DISABLED          |
-     +--------------------------------------+------------------+------------------+-------------+-------------------+
 
    Delete the VNF Package:
 
    .. code-block:: console
 
-     $ openstack vnf package delete e712a702-741f-4093-a971-b3ad69411ac1
-
+     $ openstack vnf package delete 156f1c4f-bfe2-492b-a079-a1bad32c0c3d
      All specified vnf-package(s) deleted successfully
+
 
 Trouble Shooting
 ----------------
@@ -670,7 +852,7 @@ Trouble Shooting
 
    .. code-block:: console
 
-     devstack tacker-conductor[8132]: 2020-05-25 09:17:12.976 TRACE oslo_messaging.rpc.server tacker.common.exceptions.VnfInstantiationFailed: Vnf instantiation failed for vnf ca2fe9cb-afba-40a5-aec6-b7ef643b0208, error: ERROR: HEAT-E99001 Service neutron is not available for resource type OS::Neutron::QoSPolicy, reason: Required extension qos in neutron service is not available.
+     Vnf instantiation failed for vnf 810d8c9b-e467-4b06-9265-ac9dce015fce, error: ERROR: HEAT-E99001 Service neutron is not available for resource type OS::Neutron::QoSPolicy, reason: Required extension qos in neutron service is not available.
 
 
    #. Edit ``/etc/neutron/neutron.conf``:
@@ -679,10 +861,12 @@ Trouble Shooting
 
         $ sudo vi /etc/neutron/neutron.conf
 
+
       .. code-block:: diff
 
         - service_plugins = ovn-router,networking_sfc.services.flowclassifier.plugin.FlowClassifierPlugin,networking_sfc.services.sfc.plugin.SfcPlugin
         + service_plugins = ovn-router,networking_sfc.services.flowclassifier.plugin.FlowClassifierPlugin,networking_sfc.services.sfc.plugin.SfcPlugin,neutron.services.qos.qos_plugin.QoSPlugin,qos
+
 
    #. Edit ``/etc/neutron/plugins/ml2/ml2_conf.ini``:
 
@@ -690,16 +874,19 @@ Trouble Shooting
 
         $ sudo vi /etc/neutron/plugins/ml2/ml2_conf.ini
 
+
       .. code-block:: diff
 
         - extension_drivers = port_security
         + extension_drivers = port_security,qos
+
 
    #. Restart neutron services:
 
       .. code-block:: console
 
         $ sudo systemctl restart devstack@q-*
+
 
 -  Error in networking-sfc
 
@@ -708,6 +895,7 @@ Trouble Shooting
       .. code-block:: console
 
         $ sudo vi /etc/neutron/neutron.conf
+
 
       .. code-block:: diff
 
@@ -719,16 +907,19 @@ Trouble Shooting
         - [flowclassifier]
         - drivers = ovs
 
+
    #. Edit ``/etc/neutron/plugins/ml2/ml2_conf.ini``:
 
       .. code-block:: console
 
         $ sudo vi /etc/neutron/plugins/ml2/ml2_conf.ini
 
+
       .. code-block:: diff
 
         - [agent]
         - extensions = sfc
+
 
    #. Restart neutron services:
 
@@ -736,14 +927,14 @@ Trouble Shooting
 
         $ sudo systemctl restart devstack@q-*
 
-.. [#] https://docs.openstack.org/tacker/latest/user/etsi_vnf_deployment_as_vm_with_tosca.html
-.. [#] https://docs.openstack.org/tacker/latest/user/etsi_vnf_deployment_as_vm_with_user_data.html
-.. [#] https://opendev.org/openstack/tacker/src/branch/master/samples/etsi_getting_started/tosca
-.. [#] https://opendev.org/openstack/tacker/src/branch/master/samples/etsi_getting_started/userdata
-.. [#] https://docs.openstack.org/tacker/latest/install/index.html
-.. [#] https://docs.openstack.org/liberty/install-guide-ubuntu/keystone-openrc.html
-.. [#] https://docs.openstack.org/tacker/latest/cli/index.html
-.. [#] https://forge.etsi.org/rep/nfv/SOL001
-.. [#] https://docs.openstack.org/tacker/latest/user/vnfd-sol001.html
-.. [#] https://docs.openstack.org/python-openstackclient/pike/cli/command-objects/network.html
-.. _vim_config.yaml: https://opendev.org/openstack/tacker/src/branch/master/samples/etsi_getting_started/tosca/vim/vim_config.yaml
+
+.. _samples/etsi_getting_started/tosca:
+  https://opendev.org/openstack/tacker/src/branch/master/samples/etsi_getting_started/tosca
+.. _samples/etsi_getting_started/userdata:
+  https://opendev.org/openstack/tacker/src/branch/master/samples/etsi_getting_started/userdata
+.. _Create OpenStack client environment scripts:
+  https://docs.openstack.org/keystone/latest/install/keystone-openrc-rdo.html
+.. _vim_config.yaml:
+  https://opendev.org/openstack/tacker/src/branch/master/samples/etsi_getting_started/tosca/vim/vim_config.yaml
+.. _SOL001: https://forge.etsi.org/rep/nfv/SOL001
+.. _network command: https://docs.openstack.org/python-openstackclient/latest/cli/command-objects/network.html

@@ -1,0 +1,68 @@
+heat_template_version: 2013-05-23
+description: 'For Test of Individual Vnfc Management: sample3'
+
+parameters:
+  nfv:
+    type: json
+
+resources:
+  VDU1:
+    type: VDU1.yaml
+    properties:
+      flavor: { get_param: [ nfv, VDU, VDU1, computeFlavourId ] }
+      image-VDU1: { get_param: [ nfv, VDU, VDU1, vcImageId ] }
+      zone: { get_param: [ nfv, VDU, VDU1, locationConstraints] }
+      name: { get_param: [ nfv, VDU, VDU1, name] }
+      net1: { get_param: [ nfv, CP, VDU1_CP1, network ] }
+      net2: { get_resource: internalVL1 }
+      net3: { get_resource: internalVL2 }
+
+  VDU2:
+    type: VDU2.yaml
+    properties:
+      flavor: { get_param: [ nfv, VDU, VDU2, computeFlavourId ] }
+      image-VDU2-VirtualStorage: { get_param: [ nfv, VDU, VDU2-VirtualStorage, vcImageId ] }
+      net1: { get_param: [ nfv, CP, VDU2_CP1, network ] }
+      subnet1: { get_param: [nfv, CP, VDU2_CP1, fixed_ips, 0, subnet ]}
+      net2: { get_resource: internalVL1 }
+      net3: { get_resource: internalVL2 }
+      affinity: { get_resource: nfvi_node_affinity }
+
+  VDU3:
+    type: VDU3.yaml
+    properties:
+      flavor: { get_param: [ nfv, VDU, VDU3, computeFlavourId ] }
+      image-VDU3: { get_param: [ nfv, VDU, VDU3, vcImageId ] }
+      zone: { get_param: [ nfv, VDU, VDU3, locationConstraints] }
+      name: { get_param: [ nfv, VDU, VDU3, name] }
+      net1: { get_param: [ nfv, CP, VDU3_CP1, network ] }
+      net2: { get_resource: internalVL1 }
+
+# delete the following lines when extmanagedVLs are specified in instantiatevnfrequest
+  internalVL1:
+    type: OS::Neutron::Net
+  internalVL2:
+    type: OS::Neutron::Net
+
+  internalVL1_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      ip_version: 4
+      network:
+        get_resource: internalVL1
+      cidr: 192.168.3.0/24
+  internalVL2_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      ip_version: 4
+      network:
+        get_resource: internalVL2
+      cidr: 192.168.4.0/24
+
+  nfvi_node_affinity:
+    type: OS::Nova::ServerGroup
+    properties:
+      name: nfvi_node_affinity
+      policies: [ 'affinity' ]
+
+outputs: {}
