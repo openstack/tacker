@@ -42,6 +42,11 @@ class VnfLcmKubernetesTest(base_v2.BaseVnfLcmKubernetesV2Test):
     def setUp(self):
         super(VnfLcmKubernetesTest, self).setUp()
 
+    def _get_vdu_label(self, inst_vnf_info, vdu_id):
+        vdu_reses = inst_vnf_info['metadata']['vdu_reses']
+        return vdu_reses[vdu_id]['metadata'].get(
+            'labels', {}).get('tacker_vnf_instance_id')
+
     def test_basic_lcms_max(self):
         """Test LCM operations with all attributes set
 
@@ -146,6 +151,14 @@ class VnfLcmKubernetesTest(base_v2.BaseVnfLcmKubernetesV2Test):
                 vdu_nums['VDU6'] += 1
         expected = {'VDU1': 1, 'VDU2': 2, 'VDU3': 1, 'VDU5': 1, 'VDU6': 1}
         self.assertEqual(expected, vdu_nums)
+
+        # check VDU label
+        inst_vnf_info = body['instantiatedVnfInfo']
+        self.assertEqual(inst_id, self._get_vdu_label(inst_vnf_info, 'VDU1'))
+        self.assertEqual(inst_id, self._get_vdu_label(inst_vnf_info, 'VDU2'))
+        self.assertEqual(inst_id, self._get_vdu_label(inst_vnf_info, 'VDU3'))
+        self.assertEqual(inst_id, self._get_vdu_label(inst_vnf_info, 'VDU5'))
+        self.assertEqual(inst_id, self._get_vdu_label(inst_vnf_info, 'VDU6'))
 
         # 4. Scale out a VNF instance
         scale_out_req = paramgen.max_sample_scale_out()

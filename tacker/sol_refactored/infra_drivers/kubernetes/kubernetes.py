@@ -28,8 +28,6 @@ LOG = logging.getLogger(__name__)
 CONF = config.CONF
 CHECK_INTERVAL = 10
 
-SCALABLE_KIND = {"Deployment", "ReplicaSet", "StatefulSet"}
-
 
 class Kubernetes(kubernetes_common.KubernetesCommon):
 
@@ -48,7 +46,7 @@ class Kubernetes(kubernetes_common.KubernetesCommon):
 
         k8s_reses, namespace = self._setup_k8s_reses(
             vnfd, target_k8s_files, k8s_api_client,
-            req.additionalParams.get('namespace'))
+            req.additionalParams.get('namespace'), inst.id)
 
         vdus_num = self._get_vdus_num_from_grant_req_res_defs(
             grant_req.addResources)
@@ -60,7 +58,7 @@ class Kubernetes(kubernetes_common.KubernetesCommon):
                           f' manifest does not match the VNFD.')
                 continue
 
-            if vdu_res.kind in SCALABLE_KIND:
+            if vdu_res.kind in kubernetes_utils.SCALABLE_KIND:
                 vdu_res.body['spec']['replicas'] = vdus_num[vdu_name]
 
         # deploy k8s resources
@@ -77,7 +75,7 @@ class Kubernetes(kubernetes_common.KubernetesCommon):
         self._update_vnfc_info(inst, k8s_api_client)
 
     def _setup_k8s_reses(self, vnfd, target_k8s_files, k8s_api_client,
-            namespace):
+            namespace, inst_id):
         # NOTE: this check should be done in STARTING phase.
         vnf_artifact_files = vnfd.get_vnf_artifact_files()
         diff_files = set(target_k8s_files) - set(vnf_artifact_files)
@@ -87,7 +85,7 @@ class Kubernetes(kubernetes_common.KubernetesCommon):
 
         # get k8s content from yaml file
         return kubernetes_utils.get_k8s_reses_from_json_files(
-            target_k8s_files, vnfd, k8s_api_client, namespace)
+            target_k8s_files, vnfd, k8s_api_client, namespace, inst_id)
 
     def instantiate_rollback(self, req, inst, grant_req, grant, vnfd):
         vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)
@@ -103,7 +101,7 @@ class Kubernetes(kubernetes_common.KubernetesCommon):
         try:
             k8s_reses, _ = self._setup_k8s_reses(
                 vnfd, target_k8s_files, k8s_api_client,
-                req.additionalParams.get('namespace'))
+                req.additionalParams.get('namespace'), inst.id)
         except sol_ex.SolException:
             # it means it failed in a basic check and it failes always.
             # nothing to do since instantiate failed in it too.
@@ -113,7 +111,6 @@ class Kubernetes(kubernetes_common.KubernetesCommon):
         # delete k8s resources
         body = client.V1DeleteOptions(propagation_policy='Foreground')
         self._delete_k8s_resource(k8s_reses, body)
-
         # wait k8s resource delete complete
         self._wait_k8s_reses_deleted(k8s_reses)
 
@@ -136,7 +133,7 @@ class Kubernetes(kubernetes_common.KubernetesCommon):
         # get k8s content from yaml file
         namespace = inst.instantiatedVnfInfo.metadata['namespace']
         k8s_reses, _ = kubernetes_utils.get_k8s_reses_from_json_files(
-            target_k8s_files, vnfd, k8s_api_client, namespace)
+            target_k8s_files, vnfd, k8s_api_client, namespace, inst.id)
         k8s_reses.reverse()
 
         # delete k8s resources
@@ -198,7 +195,7 @@ class Kubernetes(kubernetes_common.KubernetesCommon):
                 if vnfc.vduId in target_vdus}
 
             k8s_reses, _ = self._setup_k8s_reses(
-                vnfd, target_k8s_files, k8s_api_client, namespace)
+                vnfd, target_k8s_files, k8s_api_client, namespace, inst.id)
 
             vdu_reses = self._select_vdu_reses(
                 vnfd, inst.instantiatedVnfInfo.flavourId, k8s_reses)
@@ -248,7 +245,7 @@ class Kubernetes(kubernetes_common.KubernetesCommon):
         vdu_reses = []
         for vdu_name, vdu_num in vdus_num.items():
             vdu_res = self._get_vdu_res(inst, k8s_api_client, vdu_name)
-            if vdu_res.kind not in SCALABLE_KIND:
+            if vdu_res.kind not in kubernetes_utils.SCALABLE_KIND:
                 LOG.error(f'scale vdu {vdu_name}'
                           f' is not scalable resource')
                 continue
@@ -301,7 +298,7 @@ class Kubernetes(kubernetes_common.KubernetesCommon):
         # res.name is properties.name itself
         return {vdu_ids[res.name]: res
                 for res in k8s_reses
-                if (res.kind in kubernetes_common.TARGET_KIND
+                if (res.kind in kubernetes_utils.TARGET_KIND
                     and res.name in vdu_ids)}
 
     def _init_instantiated_vnf_info(self, inst, flavour_id, vdu_reses,

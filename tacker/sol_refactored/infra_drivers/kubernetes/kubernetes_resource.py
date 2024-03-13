@@ -29,6 +29,7 @@ LOG = logging.getLogger(__name__)
 
 CONF = config.CONF
 CHECK_INTERVAL = 10
+VNF_INSTANCE_ID_LABEL = 'tacker_vnf_instance_id'
 
 
 def convert(name):
@@ -47,6 +48,8 @@ class CommonResource:
         self.name = k8s_res.get('metadata', {}).get('name')
         self.metadata = k8s_res.get('metadata', {})
         self.body = k8s_res
+        self.inst_id = k8s_res.get('metadata', {}).get('labels', {}).get(
+            VNF_INSTANCE_ID_LABEL)
 
     def create(self):
         pass
@@ -59,7 +62,25 @@ class CommonResource:
 
     def is_exists(self):
         try:
-            return self.read() is not None
+            info = self.read()
+            if info is None:
+                # resource not exists
+                return False
+            # resource exists
+            # check if the operation uses helm.
+            # if helm is used, self.inst_id is None.
+            if self.inst_id is None:
+                # it means check is not necessary
+                return True
+
+            # check whether other made it by "metadata.labels"
+            if info.metadata.labels is None:
+                # labels not exists. it means made by other
+                return False
+            if info.metadata.labels.get(VNF_INSTANCE_ID_LABEL) != self.inst_id:
+                # made by other
+                return False
+            return True
         except sol_ex.K8sResourceNotFound:
             return False
 

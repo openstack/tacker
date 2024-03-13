@@ -305,7 +305,7 @@ class Helm(kubernetes_common.KubernetesCommon):
     def _create_reses_from_manifest(self, k8s_api_client, namespace,
             k8s_resources):
         for k8s_res in k8s_resources:
-            if k8s_res['kind'] in kubernetes_utils.SUPPORTED_NAMESPACE_KINDS:
+            if k8s_res['kind'] in kubernetes_utils.SUPPORTED_NAMESPACE_KIND:
                 k8s_res.setdefault('metadata', {})
                 k8s_res['metadata'].setdefault('namespace', namespace)
 
@@ -331,7 +331,7 @@ class Helm(kubernetes_common.KubernetesCommon):
         # NOTE: {some string} must not include '-'.
         return {vdu_ids[res.name[:res.name.rfind("-")]]: res
                 for res in k8s_reses
-                if (res.kind in kubernetes_common.TARGET_KIND
+                if (res.kind in kubernetes_utils.TARGET_KIND
                     and res.name[:res.name.rfind("-")] in vdu_ids)}
 
     def _init_instantiated_vnf_info(self, inst, flavour_id, vdu_reses,
