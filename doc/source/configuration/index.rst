@@ -41,6 +41,16 @@ Policy
 Tacker, like most OpenStack projects, uses a policy language to restrict
 permissions on REST API actions.
 
+* :doc:`Policy Concepts <policy-concepts>`: Starting in the Tacker 11.0.0
+  (OpenStack 2024.1 Caracal) release, Tacker API policy defines new default
+  roles. These new changes improve the security level and manageability of
+  Tacker API as they are richer in terms of handling ‘Read’ and ‘Write’ roles.
+
+.. toctree::
+   :hidden:
+
+   policy-concepts
+
 * :doc:`Policy Reference <policy>`: A complete reference of all
   policy points in tacker and what they impact.
 
