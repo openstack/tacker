@@ -1,0 +1,41 @@
+---
+features:
+  - |
+    The Tacker v1 API policies implemented the SRBAC project personas with
+    new default roles (``admin``, ``member``, and ``reader``) provided
+    by keystone. Also, v1 API policies are scoped to ``project``.
+upgrade:
+  - |
+    Tacker v1 API policies defaults have been changed to SRBAC new defaults
+    roles (``admin``, ``member``, and ``reader``) and scoped to ``project``.
+    Legacy ``admin`` is unchanged instead project reader role is introduced.
+    The old defaults are deprecated but they are still supported and enabled
+    by defaults. In future release, new defaults will be enabled by defaults
+    and old defaults will be removed.
+    Please refer `Policy Concepts`_ and `SRBAC Project Personas`_ for
+    detail about policy new defaults and migration plan.
+
+    * **New Defaults(Admin, Member and Reader)**
+      Policies are default to Admin, Member and Reader roles. Old roles
+      are also supported. You can switch to new defaults by setting the
+      config option ``[oslo_policy]enforce_new_defaults``  to True in
+      ``tacker.conf`` file.
+
+    * **Scope**
+      Each policy is protected with appropriate ``scope_type``. API policies
+      are scoped to ``project`` only which mean no change in current access
+      level but it will give better error message if system user try to
+      access Tacker APIs. The scope checks are disabled by default and you
+      can enable them by setting the config option
+      ``[oslo_policy]enforce_scope``  to True in ``tacker.conf`` file.
+
+      To know the new defaults, please refer the `Policy Reference`_ doc.
+      This feature is disabled by default can be enabled via config option
+deprecations:
+  - |
+    Tacker v1 APIs policies old defaults are deprecated and will be removed
+    in future release.
+
+    .. _SRBAC Project Personas: https://specs.openstack.org/openstack/tacker-specs/specs/2023.1/srbac-implement-project-personas.html
+    .. _Policy Reference: https://docs.openstack.org/tacker/latest/configuration/policy.html
+    .. _Policy Concepts: https://docs.openstack.org/tacker/latest/configuration/index.html#policy
