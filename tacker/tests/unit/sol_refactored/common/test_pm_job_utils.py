@@ -63,8 +63,12 @@ class TestPmJobUtils(base.BaseTestCase):
         )
 
         result = pm_job_utils.update_report(self.context, 'pm_job_1',
-                                            report, '2008-01-03 08:04:34')
+                                            report, '2008-01-03 08:04:34',
+                                            'endpoint')
+        href = result.reports[0].href
         self.assertEqual('pm_job_1', result.id)
+        self.assertEqual(
+            f'endpoint/vnfpm/v2/pm_jobs/pm_job_1/reports/{report.id}', href)
 
     @mock.patch.object(objects.base.TackerPersistentObject, 'get_all')
     def test_get_pm_job_all(self, mock_pm):

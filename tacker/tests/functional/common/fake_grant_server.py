@@ -320,7 +320,7 @@ def get_common_resp_info(request_body):
     return glance_image, flavour_vdu_dict, zone_name_list
 
 
-@GrantServer.app.route('v1/grant/v1/grants', methods=['POST'])
+@GrantServer.app.route('/v1/grant/v1/grants', methods=['POST'])
 def grant():
     body = request.json
     request_body = Grant.convert_body_to_dict(body)

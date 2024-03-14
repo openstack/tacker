@@ -349,14 +349,23 @@ class TestVnfpmV2(base.BaseTestCase):
             }
         }
         body = {
-            'objectType': 'Vnf',
-            'callbackUri': 'callbackuri',
+            'callbackUri': 'callbackUri',
             'authentication': _SubscriptionAuthentication
         }
 
         result = self.controller.update(request=self.request, id='id',
                                         body=body)
         self.assertEqual(200, result.status)
+        self.assertEqual("callbackUri", result.body["callbackUri"])
+        self.assertNotIn("authentication", result.body)
+
+        body = {
+            'authentication': _SubscriptionAuthentication
+        }
+
+        result = self.controller.update(request=self.request, id='id',
+                                        body=body)
+        self.assertEqual({}, result.body)
 
     @mock.patch.object(objects.base.TackerPersistentObject, 'get_by_filter')
     @mock.patch.object(objects.base.TackerPersistentObject, 'get_by_id')
@@ -609,7 +618,7 @@ class TestVnfpmV2(base.BaseTestCase):
             }
         }
         body = {
-            'callbackUri': 'callbackuri_update',
+            'callbackUri': 'callbackUri',
             'authentication': _SubscriptionAuthentication
         }
 
@@ -617,6 +626,17 @@ class TestVnfpmV2(base.BaseTestCase):
             request=self.request, thresholdId='id',
             body=body)
         self.assertEqual(200, result.status)
+        self.assertEqual('callbackUri', result.body['callbackUri'])
+        self.assertNotIn("authentication", result.body)
+
+        body = {
+            'authentication': _SubscriptionAuthentication
+        }
+
+        result = self.controller.update_threshold(
+            request=self.request, thresholdId='id',
+            body=body)
+        self.assertEqual({}, result.body)
 
     @mock.patch.object(objects.base.TackerPersistentObject, 'get_by_id')
     def test_pm_threshold_update_not_exist(self, mock_pm):

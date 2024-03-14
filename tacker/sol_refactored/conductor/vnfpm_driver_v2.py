@@ -42,7 +42,7 @@ class VnfPmDriverV2():
         job_id = report.jobId
         timestamp = report.entries[0].performanceValues[0].timeStamp
         pm_job = self._update_job_reports(
-            context, job_id, report, timestamp)
+            context, job_id, report, timestamp, self.endpoint)
 
         # Send a notify pm job request to the NFVO client.
         # POST /{pmjob.callbackUri}
@@ -79,10 +79,11 @@ class VnfPmDriverV2():
         report.create(context)
         return report
 
-    def _update_job_reports(self, context, job_id, report, timestamp):
+    def _update_job_reports(
+            self, context, job_id, report, timestamp, endpoint):
         # update reports in the pmJob
         update_job = pm_job_utils.update_report(
-            context, job_id, report, timestamp)
+            context, job_id, report, timestamp, endpoint)
         with context.session.begin(subtransactions=True):
             update_job.update(context)
         return update_job
