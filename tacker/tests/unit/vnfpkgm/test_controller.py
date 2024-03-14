@@ -103,7 +103,9 @@ class TestController(base.TestCase):
     def test_show(self, mock_vnf_by_id, mock_sw_image_by_id):
         req = fake_request.HTTPRequest.blank(
             '/vnfpkgm/v1/vnf_packages/%s' % constants.UUID)
-        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj()
+        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj(
+            vnf_package_updates={
+                'tenant_id': req.environ['tacker.context'].project_id})
         mock_sw_image_by_id.return_value = fakes.return_software_image()
         expected_result = fakes.VNFPACKAGE_RESPONSE
         res_dict = self.controller.show(req, constants.UUID)
@@ -659,11 +661,13 @@ class TestController(base.TestCase):
     @mock.patch.object(VNFPackageRPCAPI, "delete_vnf_package")
     def test_delete_with_204_status(self, mock_delete_rpc,
                                     mock_vnf_by_id, mock_vnf_pack_destroy):
-        vnfpkg_updates = {'operational_state': 'DISABLED'}
-        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj(
-            vnf_package_updates=vnfpkg_updates)
         req = fake_request.HTTPRequest.blank(
             '/vnf_packages/%s' % constants.UUID)
+        vnfpkg_updates = {
+            'operational_state': 'DISABLED',
+            'tenant_id': req.environ['tacker.context'].project_id}
+        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj(
+            vnf_package_updates=vnfpkg_updates)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'DELETE'
         resp = req.get_response(self.app)
@@ -686,24 +690,26 @@ class TestController(base.TestCase):
 
     @mock.patch.object(objects.VnfPackage, "get_by_id")
     def test_delete_with_operational_state_enabled(self, mock_vnf_by_id):
-        vnfpkg_updates = {
-            'operational_state': fields.PackageOperationalStateType.ENABLED}
-        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj(
-            vnf_package_updates=vnfpkg_updates)
         req = fake_request.HTTPRequest.blank(
             '/vnfpkgm/v1/vnf_packages/%s' % constants.UUID)
+        vnfpkg_updates = {
+            'operational_state': fields.PackageOperationalStateType.ENABLED,
+            'tenant_id': req.environ['tacker.context'].project_id}
+        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj(
+            vnf_package_updates=vnfpkg_updates)
 
         self.assertRaises(exc.HTTPConflict, self.controller.delete,
                           req, constants.UUID)
 
     @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
     def test_delete_with_usage_state_in_use(self, mock_vnf_by_id):
-        vnfpkg_updates = {
-            'usage_state': fields.PackageUsageStateType.IN_USE}
-        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj(
-            vnf_package_updates=vnfpkg_updates)
         req = fake_request.HTTPRequest.blank(
             '/vnfpkgm/v1/vnf_packages/%s' % constants.UUID)
+        vnfpkg_updates = {
+            'usage_state': fields.PackageUsageStateType.IN_USE,
+            'tenant_id': req.environ['tacker.context'].project_id}
+        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj(
+            vnf_package_updates=vnfpkg_updates)
 
         self.assertRaises(exc.HTTPConflict, self.controller.delete,
                           req, constants.UUID)
@@ -716,17 +722,19 @@ class TestController(base.TestCase):
                                         mock_vnf_by_id,
                                         mock_upload_vnf_package_content,
                                         mock_glance_store):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s/package_content'
+            % constants.UUID)
+
         updates = {'onboarding_state': 'CREATED',
-                   'operational_state': 'DISABLED'}
+                   'operational_state': 'DISABLED',
+                   'tenant_id': req.environ['tacker.context'].project_id}
         vnf_package_dict = fakes.fake_vnf_package(updates)
         vnf_package_obj = objects.VnfPackage(**vnf_package_dict)
         mock_vnf_by_id.return_value = vnf_package_obj
         mock_vnf_pack_save.return_value = vnf_package_obj
         mock_glance_store.return_value = 'location', 0, 'checksum',\
                                          'multihash', 'loc_meta'
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_packages/%s/package_content'
-            % constants.UUID)
         req.headers['Content-Type'] = 'application/zip'
         req.method = 'PUT'
         req.body = jsonutils.dump_as_bytes({'dummy': {'val': 'foo'}})
@@ -768,11 +776,14 @@ class TestController(base.TestCase):
     @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
     def test_upload_vnf_package_content_with_invalid_status(self,
                                                             mock_vnf_by_id):
-        vnf_obj = fakes.return_vnfpkg_obj()
-        vnf_obj.__setattr__('onboarding_state', 'ONBOARDED')
-        mock_vnf_by_id.return_value = vnf_obj
         req = fake_request.HTTPRequest.blank(
             '/vnf_packages/%s/package_content' % constants.UUID)
+
+        vnf_obj = fakes.return_vnfpkg_obj(
+            vnf_package_updates={
+                'tenant_id': req.environ['tacker.context'].project_id})
+        vnf_obj.__setattr__('onboarding_state', 'ONBOARDED')
+        mock_vnf_by_id.return_value = vnf_obj
         req.headers['Content-Type'] = 'application/zip'
         req.method = 'PUT'
         req.body = jsonutils.dump_as_bytes({'dummy': {'val': 'foo'}})
@@ -792,15 +803,17 @@ class TestController(base.TestCase):
                                          mock_upload_vnf_package_from_uri,
                                          mock_url_open):
         body = {"addressInformation": "http://localhost/test_data.zip"}
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s/package_content/upload_from_uri'
+            % constants.UUID)
+
         updates = {'onboarding_state': 'CREATED',
-                   'operational_state': 'DISABLED'}
+                   'operational_state': 'DISABLED',
+                   'tenant_id': req.environ['tacker.context'].project_id}
         vnf_package_dict = fakes.fake_vnf_package(updates)
         vnf_package_obj = objects.VnfPackage(**vnf_package_dict)
         mock_vnf_by_id.return_value = vnf_package_obj
         mock_vnf_pack_save.return_value = vnf_package_obj
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_packages/%s/package_content/upload_from_uri'
-            % constants.UUID)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'POST'
         req.body = jsonutils.dump_as_bytes(body)
@@ -837,12 +850,14 @@ class TestController(base.TestCase):
                                                              mock_vnf_by_id,
                                                              mock_url_open):
         body = {"addressInformation": "http://localhost/test_data.zip"}
-        vnf_obj = fakes.return_vnfpkg_obj()
-        vnf_obj.__setattr__('onboarding_state', 'ONBOARDED')
-        mock_vnf_by_id.return_value = vnf_obj
         req = fake_request.HTTPRequest.blank(
             '/vnf_packages/%s/package_content/upload_from_uri'
             % constants.UUID)
+        vnf_obj = fakes.return_vnfpkg_obj(
+            vnf_package_updates={
+                'tenant_id': req.environ['tacker.context'].project_id})
+        vnf_obj.__setattr__('onboarding_state', 'ONBOARDED')
+        mock_vnf_by_id.return_value = vnf_obj
         self.assertRaises(exc.HTTPConflict,
                           self.controller.upload_vnf_package_from_uri,
                           req, constants.UUID, body=body)
@@ -861,7 +876,12 @@ class TestController(base.TestCase):
     @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
     @mock.patch.object(vnf_package.VnfPackage, "save")
     def test_patch(self, mock_save, mock_vnf_by_id):
-        vnf_package_updates = {'operational_state': 'DISABLED'}
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s'
+            % constants.UUID)
+        vnf_package_updates = {
+            'operational_state': 'DISABLED',
+            'tenant_id': req.environ['tacker.context'].project_id}
         mock_vnf_by_id.return_value = \
             fakes.return_vnfpkg_obj(vnf_package_updates=vnf_package_updates)
 
@@ -869,9 +889,6 @@ class TestController(base.TestCase):
                 "userDefinedData": {"testKey1": "val01",
                                     "testKey2": "val02", "testkey3": "val03"}}
 
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_packages/%s'
-            % constants.UUID)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'PATCH'
         req.body = jsonutils.dump_as_bytes(req_body)
@@ -905,17 +922,19 @@ class TestController(base.TestCase):
     @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
     @mock.patch.object(vnf_package.VnfPackage, "save")
     def test_patch_update_existing_user_data(self, mock_save, mock_vnf_by_id):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s'
+            % constants.UUID)
+
         fake_obj = fakes.return_vnfpkg_obj(vnf_package_updates={
             "operational_state": "DISABLED", "onboarding_state": "CREATED",
             "user_data": {"testKey1": "val01", "testKey2": "val02",
-            "testKey3": "val03"}})
+            "testKey3": "val03"},
+            "tenant_id": req.environ['tacker.context'].project_id})
         mock_vnf_by_id.return_value = fake_obj
         req_body = {"userDefinedData": {"testKey1": "changed_val01",
                                         "testKey2": "changed_val02",
                                         "testKey3": "changed_val03"}}
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_packages/%s'
-            % constants.UUID)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'PATCH'
         req.body = jsonutils.dump_as_bytes(req_body)
@@ -927,11 +946,15 @@ class TestController(base.TestCase):
     @mock.patch.object(vnf_package.VnfPackage, "save")
     def test_patch_failed_with_same_user_data(self, mock_save,
                                               mock_vnf_by_id):
+        req = fake_request.HTTPRequest.blank('/vnf_packages/%s'
+                                             % constants.UUID)
+
         vnf_package_updates = {"operational_state": "DISABLED",
             "onboarding_state": "CREATED",
             "user_data": {"testKey1": "val01",
                           "testKey2": "val02",
-                          "testkey3": "val03"}}
+                          "testkey3": "val03"},
+            'tenant_id': req.environ['tacker.context'].project_id}
         req_body = {"userDefinedData": {"testKey1": "val01",
                                         "testKey2": "val02",
                                         "testkey3": "val03"}}
@@ -939,8 +962,6 @@ class TestController(base.TestCase):
             vnf_package_updates=vnf_package_updates)
         mock_vnf_by_id.return_value = fake_obj
 
-        req = fake_request.HTTPRequest.blank('/vnf_packages/%s'
-                                             % constants.UUID)
         self.assertRaises(exc.HTTPConflict,
                           self.controller.patch,
                           req, constants.UUID, body=req_body)
@@ -973,27 +994,30 @@ class TestController(base.TestCase):
 
     @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
     def test_patch_failed_with_same_operational_state(self, mock_vnf_by_id):
-        vnf_package_updates = {'operational_state': 'DISABLED'}
+        req = fake_request.HTTPRequest.blank('/vnf_packages/%s'
+                                             % constants.UUID)
+        vnf_package_updates = {
+            'operational_state': 'DISABLED',
+            'tenant_id': req.environ['tacker.context'].project_id}
         mock_vnf_by_id.return_value = \
             fakes.return_vnfpkg_obj(vnf_package_updates=vnf_package_updates)
         body = {"operationalState": "DISABLED",
                 "userDefinedData": {"testKey1": "val01",
                                     "testKey2": "val02", "testkey3": "val03"}}
-        req = fake_request.HTTPRequest.blank('/vnf_packages/%s'
-                                             % constants.UUID)
         self.assertRaises(exc.HTTPConflict,
                           self.controller.patch,
                           req, constants.UUID, body=body)
 
     @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
     def test_patch_not_in_onboarded_state(self, mock_vnf_by_id):
+        req = fake_request.HTTPRequest.blank('/vnf_packages/%s'
+                                             % constants.UUID)
         vnf_package_updates = {'onboarding_state': 'CREATED',
-            'operational_state': 'DISABLED'}
+            'operational_state': 'DISABLED',
+            'tenant_id': req.environ['tacker.context'].project_id}
         mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj(
             vnf_package_updates=vnf_package_updates)
         body = {"operationalState": "DISABLED"}
-        req = fake_request.HTTPRequest.blank('/vnf_packages/%s'
-                                             % constants.UUID)
         self.assertRaises(exc.HTTPBadRequest,
                           self.controller.patch,
                           req, constants.UUID, body=body)
@@ -1004,11 +1028,13 @@ class TestController(base.TestCase):
               'application/zip,text/plain')
     def test_get_vnf_package_vnfd_with_valid_accept_headers(
             self, accept_headers, mock_vnf_by_id, mock_get_vnf_package_vnfd):
-        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj()
-        mock_get_vnf_package_vnfd.return_value = fakes.return_vnfd_data()
         req = fake_request.HTTPRequest.blank(
             '/vnf_packages/%s/vnfd'
             % constants.UUID)
+        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj(
+            vnf_package_updates={
+                'tenant_id': req.environ['tacker.context'].project_id})
+        mock_get_vnf_package_vnfd.return_value = fakes.return_vnfd_data()
         req.headers['Accept'] = accept_headers
         req.method = 'GET'
         resp = req.get_response(self.app)
@@ -1017,10 +1043,13 @@ class TestController(base.TestCase):
     @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
     def test_get_vnf_package_vnfd_with_invalid_accept_header(
             self, mock_vnf_by_id):
-        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj()
         req = fake_request.HTTPRequest.blank(
             '/vnf_packages/%s/vnfd'
             % constants.UUID)
+
+        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj(
+            vnf_package_updates={
+                'tenant_id': req.environ['tacker.context'].project_id})
         req.headers['Accept'] = 'test-invalid-header'
         req.method = 'GET'
         self.assertRaises(exc.HTTPNotAcceptable,
@@ -1031,11 +1060,13 @@ class TestController(base.TestCase):
     @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
     def test_get_vnf_package_vnfd_failed_with_bad_request(
             self, mock_vnf_by_id, mock_get_vnf_package_vnfd):
-        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj()
-        mock_get_vnf_package_vnfd.return_value = fakes.return_vnfd_data()
         req = fake_request.HTTPRequest.blank(
             '/vnf_packages/%s/vnfd'
             % constants.UUID)
+        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj(
+            vnf_package_updates={
+                'tenant_id': req.environ['tacker.context'].project_id})
+        mock_get_vnf_package_vnfd.return_value = fakes.return_vnfd_data()
         req.headers['Accept'] = 'text/plain'
         req.method = 'GET'
         self.assertRaises(exc.HTTPBadRequest,
@@ -1047,12 +1078,15 @@ class TestController(base.TestCase):
     def test_get_vnf_package_vnfd_for_content_type_text_plain(self,
                                   mock_vnf_by_id,
                                   mock_get_vnf_package_vnfd):
-        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj()
-        fake_vnfd_data = fakes.return_vnfd_data(csar_without_tosca_meta=True)
-        mock_get_vnf_package_vnfd.return_value = fake_vnfd_data
         req = fake_request.HTTPRequest.blank(
             '/vnf_packages/%s/vnfd'
             % constants.UUID)
+
+        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj(
+            vnf_package_updates={
+                'tenant_id': req.environ['tacker.context'].project_id})
+        fake_vnfd_data = fakes.return_vnfd_data(csar_without_tosca_meta=True)
+        mock_get_vnf_package_vnfd.return_value = fake_vnfd_data
         req.headers['Accept'] = 'text/plain'
         req.method = 'GET'
         resp = req.get_response(self.app)
@@ -1064,15 +1098,16 @@ class TestController(base.TestCase):
     @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
     def test_get_vnf_package_vnfd_failed_with_invalid_status(
             self, mock_vnf_by_id):
-        vnf_package_updates = {
-            'onboarding_state': 'CREATED',
-            'operational_state': 'DISABLED'
-        }
-        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj(
-            vnf_package_updates=vnf_package_updates)
         req = fake_request.HTTPRequest.blank(
             '/vnf_packages/%s/vnfd'
             % constants.UUID)
+        vnf_package_updates = {
+            'onboarding_state': 'CREATED',
+            'operational_state': 'DISABLED',
+            'tenant_id': req.environ['tacker.context'].project_id
+        }
+        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj(
+            vnf_package_updates=vnf_package_updates)
         req.headers['Accept'] = 'application/zip'
         req.method = 'GET'
         resp = req.get_response(self.app)
@@ -1108,11 +1143,14 @@ class TestController(base.TestCase):
     @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
     def test_get_vnf_package_vnfd_failed_with_internal_server_error(
             self, mock_vnf_by_id, mock_get_vnf_package_vnfd):
-        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj()
-        mock_get_vnf_package_vnfd.side_effect = tacker_exc.FailedToGetVnfdData
         req = fake_request.HTTPRequest.blank(
             '/vnf_packages/%s/vnfd'
             % constants.UUID)
+
+        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj(
+            vnf_package_updates={
+                'tenant_id': req.environ['tacker.context'].project_id})
+        mock_get_vnf_package_vnfd.side_effect = tacker_exc.FailedToGetVnfdData
         req.headers['Accept'] = 'application/zip'
         req.method = 'GET'
         resp = req.get_response(self.app)
@@ -1173,7 +1211,9 @@ class TestController(base.TestCase):
             % constants.UUID)
         request.headers["Range"] = 'bytes=10-20,21-30'
         request.response = ""
-        mock_get_vnf_package.return_value = fakes.return_vnfpkg_obj()
+        mock_get_vnf_package.return_value = fakes.return_vnfpkg_obj(
+            vnf_package_updates={
+                'tenant_id': request.environ['tacker.context'].project_id})
         mock_get_csar_size.return_value = 1000
         mock_get_range.return_value = "10-20, 21-30"
         mock_download.return_value = "Response"
@@ -1195,7 +1235,9 @@ class TestController(base.TestCase):
             % constants.UUID)
         request.headers["Range"] = 'bytes=10-20,21-30'
         request.response = ""
-        pkgobj = fakes.return_vnfpkg_obj()
+        pkgobj = fakes.return_vnfpkg_obj(
+            vnf_package_updates={
+                'tenant_id': request.environ['tacker.context'].project_id})
         pkgobj.onboarding_state = fields.PackageOnboardingStateType.PROCESSING
         mock_get.return_value = pkgobj
         id = constants.UUID
@@ -1210,7 +1252,9 @@ class TestController(base.TestCase):
             % constants.UUID)
         request.headers["Range"] = 'bytes=10-20,21-30'
         request.response = ""
-        pkgobj = fakes.return_vnfpkg_obj()
+        pkgobj = fakes.return_vnfpkg_obj(
+            vnf_package_updates={
+                'tenant_id': request.environ['tacker.context'].project_id})
         mock_get.return_value = pkgobj
         id = constants.UUID
         self.assertRaises(exc.HTTPNotFound,
@@ -1230,7 +1274,9 @@ class TestController(base.TestCase):
             % constants.UUID)
         request.headers["Range"] = 'bytes=10-20,21-30'
         request.response = ""
-        pkgobj = fakes.return_vnfpkg_obj()
+        pkgobj = fakes.return_vnfpkg_obj(
+            vnf_package_updates={
+                'tenant_id': request.environ['tacker.context'].project_id})
         pkgobj.size = 1000
         mock_get_range.return_value = "10-20, 21-30"
         mock_download.return_value = 1000
@@ -1257,7 +1303,6 @@ class TestController(base.TestCase):
     @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
     def test_fetch_vnf_package_artifacts_with_invalid_path(
             self, mock_vnf_by_id, mock_get_csar_path):
-        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj()
         extract_path = utils.test_etc_sample(
             'sample_vnf_package_csar_in_meta_and_manifest')
         mock_get_csar_path.return_value = extract_path
@@ -1266,6 +1311,9 @@ class TestController(base.TestCase):
             '/vnf_packages/%s/artifacts/%s'
             % (constants.UUID, constants.INVALID_ARTIFACT_PATH))
         req.method = 'GET'
+        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj(
+            vnf_package_updates={
+                'tenant_id': req.environ['tacker.context'].project_id})
         self.assertRaises(exc.HTTPNotFound,
                           self.controller.fetch_vnf_package_artifacts,
                           req, constants.UUID,
@@ -1360,15 +1408,16 @@ class TestController(base.TestCase):
     @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
     def test_fetch_vnf_package_artifacts_with_invalid_status(
             self, mock_vnf_by_id):
-        vnf_package_updates = {
-            'onboarding_state': 'CREATED',
-            'operational_state': 'DISABLED'
-        }
-        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj(
-            vnf_package_updates=vnf_package_updates)
         req = fake_request.HTTPRequest.blank(
             '/vnf_packages/%s/artifacts/%s'
             % (constants.UUID, constants.ARTIFACT_PATH))
+        vnf_package_updates = {
+            'onboarding_state': 'CREATED',
+            'operational_state': 'DISABLED',
+            'tenant_id': req.environ['tacker.context'].project_id
+        }
+        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj(
+            vnf_package_updates=vnf_package_updates)
         req.method = 'GET'
         self.assertRaises(exc.HTTPConflict,
                           self.controller.fetch_vnf_package_artifacts,
@@ -1396,8 +1445,13 @@ class TestControllerEnhancedPolicy(TestController):
                                         mock_glance_store,
                                         mock_load_csar,
                                         mock_load_csar_data):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s/package_content'
+            % constants.UUID)
+
         updates = {'onboarding_state': 'CREATED',
-                   'operational_state': 'DISABLED'}
+                   'operational_state': 'DISABLED',
+                   'tenant_id': req.environ['tacker.context'].project_id}
         vnf_package_dict = fakes.fake_vnf_package(updates)
         vnf_package_obj = objects.VnfPackage(**vnf_package_dict)
         mock_vnf_by_id.return_value = vnf_package_obj
@@ -1408,9 +1462,6 @@ class TestControllerEnhancedPolicy(TestController):
                                       '1-9e6d-ab21b87dcfff.zip'
         mock_load_csar_data.return_value = (
             {'provider': 'company'}, mock.ANY, mock.ANY)
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_packages/%s/package_content'
-            % constants.UUID)
         req.headers['Content-Type'] = 'application/zip'
         req.method = 'PUT'
         req.body = jsonutils.dump_as_bytes({'dummy': {'val': 'foo'}})
@@ -1437,8 +1488,13 @@ class TestControllerEnhancedPolicy(TestController):
             mock_load_csar_data,
             mock_delete_csar,
             vnf_data, rules, roles, expected_status_code):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s/package_content'
+            % constants.UUID)
+
         updates = {'onboarding_state': 'CREATED',
-                   'operational_state': 'DISABLED'}
+                   'operational_state': 'DISABLED',
+                   'tenant_id': req.environ['tacker.context'].project_id}
         vnf_package_dict = fakes.fake_vnf_package(updates)
         vnf_package_obj = objects.VnfPackage(**vnf_package_dict)
         mock_vnf_by_id.return_value = vnf_package_obj
@@ -1452,9 +1508,6 @@ class TestControllerEnhancedPolicy(TestController):
         policy.set_rules(oslo_policy.Rules.from_dict(rules), overwrite=True)
         ctx = context.Context(
             'fake', 'fake', roles=roles)
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_packages/%s/package_content'
-            % constants.UUID)
         req.headers['Content-Type'] = 'application/zip'
         req.method = 'PUT'
         req.body = jsonutils.dump_as_bytes({'dummy': {'val': 'foo'}})
@@ -1490,13 +1543,15 @@ class TestControllerEnhancedPolicy(TestController):
     @ddt.data(['VENDOR_provider_A'], [])
     def test_show_enhanced_policy_created(
             self, roles, mock_vnf_by_id, mock_sw_image_by_id):
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s' % constants.UUID)
+
         updates = {'onboarding_state': 'CREATED',
-                   'operational_state': 'DISABLED'}
+                   'operational_state': 'DISABLED',
+                   'tenant_id': req.environ['tacker.context'].project_id}
         mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj(
             vnf_package_updates=updates)
         mock_sw_image_by_id.return_value = fakes.return_software_image()
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_packages/%s' % constants.UUID)
         req.method = 'GET'
         rules = {
             vnf_package_policies.VNFPKGM % 'show':
@@ -1518,11 +1573,13 @@ class TestControllerEnhancedPolicy(TestController):
     def test_delete_enhanced_policy(
             self, mock_delete_rpc, mock_vnf_by_id, mock_vnf_pack_destroy,
             vnfd_updates, rules, roles, expected_status_code):
-        vnfpkg_updates = {'operational_state': 'DISABLED'}
-        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj(
-            vnf_package_updates=vnfpkg_updates, vnfd_updates=vnfd_updates)
         req = fake_request.HTTPRequest.blank(
             '/vnf_packages/%s' % constants.UUID)
+        vnfpkg_updates = {
+            'operational_state': 'DISABLED',
+            'tenant_id': req.environ['tacker.context'].project_id}
+        mock_vnf_by_id.return_value = fakes.return_vnfpkg_obj(
+            vnf_package_updates=vnfpkg_updates, vnfd_updates=vnfd_updates)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'DELETE'
         policy.set_rules(oslo_policy.Rules.from_dict(rules), overwrite=True)
@@ -1538,7 +1595,12 @@ class TestControllerEnhancedPolicy(TestController):
     @mock.patch.object(vnf_package.VnfPackage, "save")
     def test_patch_enhanced_policy(self, mock_save, mock_vnf_by_id,
                    vnfd_updates, rules, roles, expected_status_code):
-        vnf_package_updates = {'operational_state': 'DISABLED'}
+        req = fake_request.HTTPRequest.blank(
+            '/vnf_packages/%s'
+            % constants.UUID)
+        vnf_package_updates = {
+            'operational_state': 'DISABLED',
+            'tenant_id': req.environ['tacker.context'].project_id}
         mock_vnf_by_id.return_value = \
             fakes.return_vnfpkg_obj(
                 vnf_package_updates=vnf_package_updates,
@@ -1549,9 +1611,6 @@ class TestControllerEnhancedPolicy(TestController):
                 "userDefinedData": {"testKey1": "val01",
                                     "testKey2": "val02", "testkey3": "val03"}}
 
-        req = fake_request.HTTPRequest.blank(
-            '/vnf_packages/%s'
-            % constants.UUID)
         req.headers['Content-Type'] = 'application/json'
         req.method = 'PATCH'
         req.body = jsonutils.dump_as_bytes(req_body)
