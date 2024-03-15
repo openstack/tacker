@@ -31,7 +31,8 @@ rules = [
                 'method': 'GET',
                 'path': '/vnflcm/v1/api_versions'
             }
-        ]
+        ],
+        scope_types=['project'],
     ),
     policy.DocumentedRuleDefault(
         name=VNFLCM % 'create',
@@ -42,7 +43,8 @@ rules = [
                 'method': 'POST',
                 'path': '/vnflcm/v1/vnf_instances'
             }
-        ]
+        ],
+        scope_types=['project'],
     ),
     policy.DocumentedRuleDefault(
         name=VNFLCM % 'instantiate',
@@ -53,7 +55,8 @@ rules = [
                 'method': 'POST',
                 'path': '/vnflcm/v1/vnf_instances/{vnfInstanceId}/instantiate'
             }
-        ]
+        ],
+        scope_types=['project'],
     ),
     policy.DocumentedRuleDefault(
         name=VNFLCM % 'show',
@@ -64,7 +67,8 @@ rules = [
                 'method': 'GET',
                 'path': '/vnflcm/v1/vnf_instances/{vnfInstanceId}'
             }
-        ]
+        ],
+        scope_types=['project'],
     ),
     policy.DocumentedRuleDefault(
         name=VNFLCM % 'terminate',
@@ -75,7 +79,8 @@ rules = [
                 'method': 'POST',
                 'path': '/vnflcm/v1/vnf_instances/{vnfInstanceId}/terminate'
             }
-        ]
+        ],
+        scope_types=['project'],
     ),
     policy.DocumentedRuleDefault(
         name=VNFLCM % 'heal',
@@ -86,7 +91,8 @@ rules = [
                 'method': 'POST',
                 'path': '/vnflcm/v1/vnf_instances/{vnfInstanceId}/heal'
             }
-        ]
+        ],
+        scope_types=['project'],
     ),
     policy.DocumentedRuleDefault(
         name=VNFLCM % 'scale',
@@ -97,7 +103,8 @@ rules = [
                 'method': 'POST',
                 'path': '/vnflcm/v1/vnf_instances/{vnfInstanceId}/scale'
             }
-        ]
+        ],
+        scope_types=['project'],
     ),
     policy.DocumentedRuleDefault(
         name=VNFLCM % 'show_lcm_op_occs',
@@ -108,7 +115,8 @@ rules = [
                 'method': 'GET',
                 'path': '/vnflcm/v1/vnf_lcm_op_occs/{vnfLcmOpOccId}'
             }
-        ]
+        ],
+        scope_types=['project'],
     ),
     policy.DocumentedRuleDefault(
         name=VNFLCM % 'list_lcm_op_occs',
@@ -119,7 +127,8 @@ rules = [
                 'method': 'GET',
                 'path': '/vnflcm/v1/vnf_lcm_op_occs'
             }
-        ]
+        ],
+        scope_types=['project'],
     ),
     policy.DocumentedRuleDefault(
         name=VNFLCM % 'index',
@@ -130,7 +139,8 @@ rules = [
                 'method': 'GET',
                 'path': '/vnflcm/v1/vnf_instances'
             }
-        ]
+        ],
+        scope_types=['project'],
     ),
     policy.DocumentedRuleDefault(
         name=VNFLCM % 'delete',
@@ -141,7 +151,8 @@ rules = [
                 'method': 'DELETE',
                 'path': '/vnflcm/v1/vnf_instances/{vnfInstanceId}'
             }
-        ]
+        ],
+        scope_types=['project'],
     ),
     policy.DocumentedRuleDefault(
         name=VNFLCM % 'update_vnf',
@@ -152,7 +163,8 @@ rules = [
                 'method': 'PATCH',
                 'path': '/vnflcm/v1/vnf_instances/{vnfInstanceId}'
             }
-        ]
+        ],
+        scope_types=['project'],
     ),
     policy.DocumentedRuleDefault(
         name=VNFLCM % 'rollback',
@@ -163,7 +175,8 @@ rules = [
                 'method': 'POST',
                 'path': '/vnflcm/v1/vnf_lcm_op_occs/{vnfLcmOpOccId}/rollback'
             }
-        ]
+        ],
+        scope_types=['project'],
     ),
     policy.DocumentedRuleDefault(
         name=VNFLCM % 'cancel',
@@ -174,7 +187,8 @@ rules = [
                 'method': 'POST',
                 'path': '/vnflcm/v1/vnf_lcm_op_occs/{vnfLcmOpOccId}/cancel'
             }
-        ]
+        ],
+        scope_types=['project'],
     ),
     policy.DocumentedRuleDefault(
         name=VNFLCM % 'fail',
@@ -185,7 +199,8 @@ rules = [
                 'method': 'POST',
                 'path': '/vnflcm/v1/vnf_lcm_op_occs/{vnfLcmOpOccId}/fail'
             }
-        ]
+        ],
+        scope_types=['project'],
     ),
     policy.DocumentedRuleDefault(
         name=VNFLCM % 'retry',
@@ -196,7 +211,8 @@ rules = [
                 'method': 'POST',
                 'path': '/vnflcm/v1/vnf_lcm_op_occs/{vnfLcmOpOccId}/retry'
             }
-        ]
+        ],
+        scope_types=['project'],
     ),
     policy.DocumentedRuleDefault(
         name=VNFLCM % 'change_ext_conn',
@@ -208,7 +224,8 @@ rules = [
                 'path':
                     '/vnflcm/v1/vnf_instances/{vnfInstanceId}/change_ext_conn'
             }
-        ]
+        ],
+        scope_types=['project'],
     ),
 ]
 

@@ -69,6 +69,24 @@ class BasePolicyTest(base.TestCase):
             project_id=self.other_project_id,
             roles=['reader'])
 
+        # system scoped users to check if system scope tokens are not
+        # allowed in new RBAC.
+        self.system_admin_context = context.Context(
+            user_id="admin", roles=['admin', 'member', 'reader'],
+            system_scope='all')
+
+        self.system_member_context = context.Context(
+            user_id="member", roles=['member', 'reader'],
+            system_scope='all')
+
+        self.system_reader_context = context.Context(
+            user_id="reader", roles=['reader'],
+            system_scope='all')
+
+        self.system_foo_context = context.Context(
+            user_id="foo", roles=['foo'],
+            system_scope='all')
+
         self.all_contexts = [
             self.legacy_admin_context, self.project_admin_context,
             self.project_member_context, self.project_reader_context,
