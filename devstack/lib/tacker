@@ -81,8 +81,6 @@ TACKER_NOVA_URL=${TACKER_NOVA_URL:-http://127.0.0.1:8774/v2}
 TACKER_NOVA_CA_CERTIFICATES_FILE=${TACKER_NOVA_CA_CERTIFICATES_FILE:-}
 TACKER_NOVA_API_INSECURE=${TACKER_NOVA_API_INSECURE:-False}
 
-CEILOMETER_CONF_DIR=/etc/ceilometer
-
 VNF_PACKAGE_CSAR_PATH=${VNF_PACKAGE_CSAR_PATH:=$TACKER_DATA_DIR/vnfpackage}
 FILESYSTEM_STORE_DATA_DIR=${FILESYSTEM_STORE_DATA_DIR:=$TACKER_DATA_DIR/csar_files}
 GLANCE_DEFAULT_BACKEND=${GLANCE_DEFAULT_BACKEND:=file}
@@ -268,12 +266,6 @@ function configure_tacker {
         iniset "/$Q_PLUGIN_CONF_FILE" ml2_type_flat flat_networks $PUBLIC_PHYSICAL_NETWORK,$MGMT_PHYS_NET
         iniset "/$Q_PLUGIN_CONF_FILE" ovs bridge_mappings $PUBLIC_PHYSICAL_NETWORK:$PUBLIC_BRIDGE,$MGMT_PHYS_NET:$BR_MGMT
 
-        # Experimental settings for monitor alarm auth settings,
-        # Will be changed according to new implementation.
-        iniset $TACKER_CONF alarm_auth username admin
-        iniset $TACKER_CONF alarm_auth password "$ADMIN_PASSWORD"
-        iniset $TACKER_CONF alarm_auth project_name admin
-
         echo "Creating bridge"
         sudo ovs-vsctl --may-exist add-br ${BR_MGMT}
     fi
@@ -365,9 +357,6 @@ function openstack_image_create {
 function tacker_check_and_download_images {
     local image_url
     image_url[0]="http://download.cirros-cloud.net/0.5.2/cirros-0.5.2-x86_64-disk.img"
-    # Customized image of OpenWRT 15.05.1 that can fix the continuously
-    # respawning OpenWRT-based VNFs.
-    image_url[1]="$TACKER_DIR/samples/images/openwrt-x86-kvm_guest-combined-ext4.img.gz"
 
     local image_fname image_name glance_name
     local gz_pattern="\.gz$"
@@ -379,9 +368,6 @@ function tacker_check_and_download_images {
     do
         image_fname=`basename "${image_url[$index]}"`
         glance_name=${image_fname%.*}
-        if [[ $glance_name =~ "openwrt" ]]; then
-            glance_name="OpenWRT"
-        fi
         image_name=`openstack image list | grep "$glance_name" | awk '{print $4}'`
         if [[ $image_name == "" ]]; then
             if [[ ! -f $FILES/$image_fname || "$(stat -c "%s" $FILES/$image_fname)" = "0" ]]; then
@@ -494,12 +480,4 @@ function tacker_setup_default_vim_resources {
           security group rule create \
           --ingress --protocol tcp --dst-port 22 test_secgrp
 
-}
-
-function configure_maintenance_event_types {
-    local event_definitions_file=$CEILOMETER_CONF_DIR/event_definitions.yaml
-    local maintenance_events_file=$TACKER_DIR/etc/ceilometer/maintenance_event_types.yaml
-
-    echo "Configure maintenance event types to $event_definitions_file"
-    cat $maintenance_events_file >> $event_definitions_file
 }

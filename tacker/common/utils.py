@@ -24,12 +24,10 @@ import inspect
 import logging as std_logging
 import math
 import os
-import random
 import re
 import signal
 import socket
 from stevedore import driver
-import string
 import sys
 
 from eventlet.green import subprocess
@@ -251,14 +249,6 @@ def deep_update(orig_dict, new_dict):
                 continue
 
         orig_dict[key] = value
-
-
-def generate_resource_name(resource, prefix='tmpl'):
-    return prefix + '-' \
-        + ''.join(random.SystemRandom().choice(
-                  string.ascii_lowercase + string.digits)
-          for _ in range(16)) \
-        + '-' + resource
 
 
 def get_auth_url_v3(auth_url):

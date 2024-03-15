@@ -370,7 +370,6 @@ The sample script (``kubernetes_mgmt.py``) uses the
     ...
     tacker.tacker.mgmt.drivers =
     noop = tacker.vnfm.mgmt_drivers.noop:VnfMgmtNoop
-    openwrt = tacker.vnfm.mgmt_drivers.openwrt.openwrt:VnfMgmtOpenWRT
     vnflcm_noop = tacker.vnfm.mgmt_drivers.vnflcm_noop:VnflcmMgmtNoop
     mgmt-drivers-kubernetes = tacker.vnfm.mgmt_drivers.kubernetes_mgmt:KubernetesMgmtDriver
     ...

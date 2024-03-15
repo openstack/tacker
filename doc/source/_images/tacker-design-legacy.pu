@@ -13,27 +13,9 @@ frame "tacker-server" {
         component "NFVOPlugin" as nfvo_plugin
         'cond <-down-> vnfm_plugin
     }
-    component "mgmt-driver" as mgmt {
-        'component Noop as noop
-        component OpenWRT as wrt
-    }
-    component "monitor-driver" as monitor {
-        component Ping as ping
-        component Zabbix as zabbix
-    }
-    component "infra-driver" as infra {
-        component "OpenStack Driver" as os_driver
-        component "Kubernetes Driver" as ks_driver
-    }
     component "vim-driver" as vim {
         component "OpenStack Driver" as os_vim
         component "Kubernetes Driver" as ks_vim
-    }
-    component "policy-action-driver" as policy {
-        component "AutoHeal" as autoheal
-        component "AutoScale" as autoscale
-        component "Respawn" as respawn
-        component "Log" as log
     }
 }
 
@@ -62,7 +44,6 @@ cloud "NFV infrastructures" as nfv_infra {
 }
 
 '# Relationships
-client <-down-> vnfm
 client <-down-> nfvo
 
 vnfm <-down-> vnfm_plugin
@@ -71,33 +52,12 @@ nfvo <-down-> nfvo_plugin
 vnfm_plugin <-down-> db_vnfm
 nfvo_plugin <-down-> db_nfvo
 
-vnfm_plugin <-down-> os_driver
-vnfm_plugin <-down-> ks_driver
-
-vnfm_plugin <-down-> policy
-vnfm_plugin <-down-> mgmt
-vnfm_plugin <-down-> monitor
-/'
-vnfm_plugin <-down-> autoheal
-vnfm_plugin <-down-> autoscale
-vnfm_plugin <-down-> respawn
-vnfm_plugin <-down-> log
-vnfm_plugin <-down-> wrt
-vnfm_plugin <-down-> ping
-vnfm_plugin <-down-> zabbix
-'/
-
 nfvo_plugin <-down-> os_vim
 nfvo_plugin <-down-> ks_vim
-
-os_driver <-down-> os
-ks_driver <-down-> ks
 
 os_vim <-down-> os
 ks_vim <-down-> ks
 
 cond <-[hidden]left-> server
-mgmt <-[hidden]down-> monitor
-monitor <-[hidden]down-> nfv_infra
 
 @enduml

@@ -232,12 +232,6 @@ def revert_to_error_rollback(function):
                               {"id": vnf_instance.id, "error": e})
 
                 try:
-                    self._update_vnf_rollback_status_err(context, vnf_info)
-                except Exception as e:
-                    LOG.error("Failed to revert scale info for event "
-                              "instance %(id)s. Error: %(error)s",
-                              {"id": vnf_instance.id, "error": e})
-                try:
                     self._vnf_instance_update(context, vnf_instance)
                 except Exception as e:
                     LOG.error("Failed to revert instantiation info for vnf "
@@ -1625,7 +1619,6 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
         scale_id_list = []
         scale_name_list = []
         grp_id = None
-        self._update_vnf_rollback_pre(context, vnf_info)
         if vnf_lcm_op_occs.operation == 'SCALE':
             if vim_connection_info.vim_type != 'kubernetes':
                 # NOTE(ueha): The logic of Scale for OpenStack VIM is widely
@@ -1755,9 +1748,6 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
 
         vnf_lcm_op_occs.error_point = EP.PRE_VIM_CONTROL
 
-    def _update_vnf_rollback_pre(self, context, vnf_info):
-        self._vnfm_plugin._update_vnf_rollback_pre(context, vnf_info)
-
     def _update_vnf_rollback(self, context, vnf_info,
                              vnf_instance, vnf_lcm_op_occs):
         if vnf_lcm_op_occs.operation == 'SCALE':
@@ -1770,9 +1760,6 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
         vnf_lcm_op_occs.state_entered_time = timeutils.utcnow()
         vnf_lcm_op_occs.save()
         vnf_instance.save()
-
-    def _update_vnf_rollback_status_err(self, context, vnf_info):
-        self._vnfm_plugin.update_vnf_rollback_status_err(context, vnf_info)
 
     def _rollback_vnf_post(
             self,

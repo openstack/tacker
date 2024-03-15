@@ -32,7 +32,6 @@ from toscaparser.tosca_template import ToscaTemplate
 
 from tacker.common import exceptions
 import tacker.conf
-from tacker.extensions import vnfm
 from tacker.tosca import utils as toscautils
 
 
@@ -202,23 +201,11 @@ def _populate_flavour_data(tosca):
                     flavour.update(
                         {'instantiation_levels': instantiation_levels})
 
-                mgmt_driver = None
                 for template_name, node_tpl in \
                         tp.tpl.get('node_templates').items():
                     # check the flavour property in vnf data
                     _update_flavour_data_from_vnf(
                         tp.custom_defs, node_tpl, flavour)
-                    if node_tpl['type'] in CONF.vnf_package.get_lower_list:
-                        if node_tpl['type'] == "tosca.nodes.nfv.VDU.Tacker":
-                            # get mgmt_driver
-                            mgmt_driver_flavour = \
-                                node_tpl['properties'].get('mgmt_driver')
-                            if mgmt_driver_flavour:
-                                if mgmt_driver and \
-                                        mgmt_driver_flavour != mgmt_driver:
-                                    raise vnfm.MultipleMGMTDriversSpecified()
-                                mgmt_driver = mgmt_driver_flavour
-                                flavour.update({'mgmt_driver': mgmt_driver})
 
                 for template_name, node_tpl in \
                         tp.tpl.get('node_templates').items():

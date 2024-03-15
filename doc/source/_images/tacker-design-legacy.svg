@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentStyleType="text/css" height="800px" preserveAspectRatio="none" style="width:1124px;height:800px;background:#FFFFFF;" version="1.1" viewBox="0 0 1124 800" width="1124px" zoomAndPan="magnify"><defs/><g><!--MD5=[b2f4bb23dcf1cc4ab5b737cddde40d6f]
+cluster tacker-server--><g id="cluster_tacker-server"><rect fill="none" height="477" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:1.0;" width="441" x="379" y="69"/><path d="M497,69 L497,78.2969 L487,88.2969 L379,88.2969 " fill="none" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="108" x="382" y="82.9951">tacker-server</text></g><!--MD5=[4ef80439e1ef409f8f3a0ec422262701]
+cluster server--><g id="cluster_server"><rect fill="none" height="113" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:1.0;" width="248" x="447" y="120"/><rect fill="none" height="10" style="stroke:#181818;stroke-width:1.0;" width="15" x="675" y="125"/><rect fill="none" height="2" style="stroke:#181818;stroke-width:1.0;" width="4" x="673" y="127"/><rect fill="none" height="2" style="stroke:#181818;stroke-width:1.0;" width="4" x="673" y="131"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="52" x="545" y="145.9951">server</text></g><!--MD5=[6ad7c0b688d9e902153dd4de2b6da276]
+cluster plugin--><g id="cluster_plugin"><rect fill="none" height="97" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:1.0;" width="309" x="403" y="289"/><rect fill="none" height="10" style="stroke:#181818;stroke-width:1.0;" width="15" x="692" y="294"/><rect fill="none" height="2" style="stroke:#181818;stroke-width:1.0;" width="4" x="690" y="296"/><rect fill="none" height="2" style="stroke:#181818;stroke-width:1.0;" width="4" x="690" y="300"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="48" x="533.5" y="314.9951">plugin</text></g><!--MD5=[104bfd9d1203c33bfb5ee7238b4da5fd]
+cluster vim--><g id="cluster_vim"><rect fill="none" height="97" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:1.0;" width="393" x="403" y="425"/><rect fill="none" height="10" style="stroke:#181818;stroke-width:1.0;" width="15" x="776" y="430"/><rect fill="none" height="2" style="stroke:#181818;stroke-width:1.0;" width="4" x="774" y="432"/><rect fill="none" height="2" style="stroke:#181818;stroke-width:1.0;" width="4" x="774" y="436"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="80" x="559.5" y="450.9951">vim-driver</text></g><!--MD5=[710611cf432e923510fdc86847488e2c]
+cluster cond--><g id="cluster_cond"><rect fill="none" height="180" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:1.0;" width="266" x="852" y="77"/><path d="M999,77 L999,86.2969 L989,96.2969 L852,96.2969 " fill="none" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="137" x="855" y="90.9951">tacker-conductor</text></g><!--MD5=[14fa2a3c2d4c209700102e0d0b961ff1]
+cluster conductor--><g id="cluster_conductor"><rect fill="none" height="97" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:1.0;" width="194" x="892" y="128"/><rect fill="none" height="10" style="stroke:#181818;stroke-width:1.0;" width="15" x="1066" y="133"/><rect fill="none" height="2" style="stroke:#181818;stroke-width:1.0;" width="4" x="1064" y="135"/><rect fill="none" height="2" style="stroke:#181818;stroke-width:1.0;" width="4" x="1064" y="139"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="81" x="948.5" y="153.9951">conductor</text></g><!--MD5=[e8f3788ad7b97e8de68b4194558bc2a1]
+cluster db--><g id="cluster_db"><path d="M6,420 C6,410 180.5,410 180.5,410 C180.5,410 355,410 355,420 L355,721 C355,731 180.5,731 180.5,731 C180.5,731 6,731 6,721 L6,420 " fill="none" style="stroke:#181818;stroke-width:1.0;"/><path d="M6,420 C6,430 180.5,430 180.5,430 C180.5,430 355,430 355,420 " fill="none" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="76" x="142.5" y="444.9951">tacker DB</text></g><!--MD5=[c9f065c649f77192c87e0e589cafacf7]
+cluster nfv_infra--><g id="cluster_nfv_infra"><path d="M449.8497,581.6483 C458.3833,566.3905 470.527,567.4589 480.8189,579.6655 C493.7385,559.2148 505.6304,562.3038 518.2137,579.9952 C525.9806,562.4117 537.8377,561.9602 548.6295,577.1914 C560.6242,562.0451 570.8197,565.439 580.9988,579.2229 C589.1825,564.2706 603.435,563.4388 613.7496,576.7541 C621.2678,561.789 634.814,559.5259 645.4364,573.3356 C656.8539,555.0866 674.6066,558.2963 681.2173,577.8815 C688.5662,559.1165 704.0919,558.2852 714.4271,575.0936 C725.9153,562.8767 735.0269,562.5987 742.6654,578.9049 C753.0893,563.598 766.3855,558.9469 778.4102,577.1998 C787.4561,564.8006 800.7826,562.6631 808.3323,578.7703 C816.7585,563.7351 832.2202,563.6528 840.7085,578.7034 C850.9397,560.3748 865.4826,562.2919 876.0647,578.3426 C891.9397,563.6082 903.7531,562.9617 913,585 C916.8289,583.7176 919.0062,584.8642 918.6141,589.2103 C938.8253,599.6443 943.685,618.0383 922.8771,632.5107 C941.1673,644.2811 946.7607,656.5269 927.6763,672.7544 C945.9631,688.2241 945.8957,708.3915 921.8549,718.4713 C941.8221,739.4152 930.6717,757.9502 906,763 C908.7913,761.933 910.008,763.849 909.7082,766.2784 C900.6464,779.8414 885.7041,782.3319 876.4431,766.5039 C867.5615,787.0495 853.2672,783.4913 840.7896,770.3048 C829.5556,784.1947 819.6743,782.7793 810.8899,767.7703 C802.3036,782.1642 790.6787,787.9473 778.5713,771.4546 C767.9389,788.7958 757.5981,788.427 745.8249,772.5801 C735.8801,788.3683 723.867,787.3448 714.4084,772.088 C703.9168,788.9044 692.9816,790.2356 679.5476,775.3207 C670.9111,793.0637 653.583,793.2378 644.7974,775.4666 C634.4044,789.5887 619.1847,785.9024 612.4645,771.3282 C603.7832,785.5106 591.6643,786.3514 583.6796,770.6572 C574.4426,784.6395 559.4943,785.9385 552.0853,768.8013 C541.4842,785.3601 526.7625,785.2721 516.8719,768.0604 C504.3963,782.7418 492.95,783.716 482.65,765.7779 C467.532,782.2524 447.3168,777.0153 441,756 C443.7673,756.6916 443.8654,758.2036 442.6479,760.3907 C421.3417,749.9562 424.906,729.4482 442.5672,718.9378 C417.0379,708.7215 420.7317,687.9734 438.4457,673.8079 C421.1766,660.4925 418.8862,644.6403 440.9988,633.8406 C414.1371,613.5545 419.4017,591.3327 448,578 C450.43,577.9427 451.3543,579.7107 449.8497,581.6483 " fill="none" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="155" x="599.5" y="595.9951">NFV infrastructures</text></g><!--MD5=[7f55565919cad08ec1768968c99e2901]
+cluster os--><g id="cluster_os"><polygon fill="none" points="720,631,730,621,889,621,889,729,879,739,720,739,720,631" style="stroke:#181818;stroke-width:1.0;"/><line style="stroke:#181818;stroke-width:1.0;" x1="879" x2="889" y1="631" y2="621"/><line style="stroke:#181818;stroke-width:1.0;" x1="720" x2="879" y1="631" y2="631"/><line style="stroke:#181818;stroke-width:1.0;" x1="879" x2="879" y1="631" y2="739"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="85" x="758" y="646.9951">OpenStack</text></g><!--MD5=[a81896ea8627d2fab2c19a6a59e223d0]
+cluster ks--><g id="cluster_ks"><polygon fill="none" points="465,631,475,621,680,621,680,729,670,739,465,739,465,631" style="stroke:#181818;stroke-width:1.0;"/><line style="stroke:#181818;stroke-width:1.0;" x1="670" x2="680" y1="631" y2="621"/><line style="stroke:#181818;stroke-width:1.0;" x1="465" x2="670" y1="631" y2="631"/><line style="stroke:#181818;stroke-width:1.0;" x1="670" x2="670" y1="631" y2="739"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="93" x="522" y="646.9951">Kubernetes</text></g><!--MD5=[764ce7cdcfebcfbe257b920672948601]
+entity vnfm--><g id="elem_vnfm"><rect fill="#F1F1F1" height="46.2969" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:0.5;" width="75" x="490.5" y="163"/><rect fill="#F1F1F1" height="10" style="stroke:#181818;stroke-width:0.5;" width="15" x="545.5" y="168"/><rect fill="#F1F1F1" height="2" style="stroke:#181818;stroke-width:0.5;" width="4" x="543.5" y="170"/><rect fill="#F1F1F1" height="2" style="stroke:#181818;stroke-width:0.5;" width="4" x="543.5" y="174"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="35" x="505.5" y="195.9951">Vnfm</text></g><!--MD5=[6049a01597386661b8e006843559374f]
+entity nfvo--><g id="elem_nfvo"><rect fill="#F1F1F1" height="46.2969" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:0.5;" width="70" x="601" y="163"/><rect fill="#F1F1F1" height="10" style="stroke:#181818;stroke-width:0.5;" width="15" x="651" y="168"/><rect fill="#F1F1F1" height="2" style="stroke:#181818;stroke-width:0.5;" width="4" x="649" y="170"/><rect fill="#F1F1F1" height="2" style="stroke:#181818;stroke-width:0.5;" width="4" x="649" y="174"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="30" x="616" y="195.9951">Nfvo</text></g><!--MD5=[6f60fe7827bf82100a1499cf2de5397f]
+entity vnfm_plugin--><g id="elem_vnfm_plugin"><rect fill="#F1F1F1" height="46.2969" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:0.5;" width="121" x="419.5" y="324"/><rect fill="#F1F1F1" height="10" style="stroke:#181818;stroke-width:0.5;" width="15" x="520.5" y="329"/><rect fill="#F1F1F1" height="2" style="stroke:#181818;stroke-width:0.5;" width="4" x="518.5" y="331"/><rect fill="#F1F1F1" height="2" style="stroke:#181818;stroke-width:0.5;" width="4" x="518.5" y="335"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="81" x="434.5" y="356.9951">VNFMPlugin</text></g><!--MD5=[e66b9c14b92a2bc0f1f9fba1d97ed048]
+entity nfvo_plugin--><g id="elem_nfvo_plugin"><rect fill="#F1F1F1" height="46.2969" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:0.5;" width="120" x="576" y="324"/><rect fill="#F1F1F1" height="10" style="stroke:#181818;stroke-width:0.5;" width="15" x="676" y="329"/><rect fill="#F1F1F1" height="2" style="stroke:#181818;stroke-width:0.5;" width="4" x="674" y="331"/><rect fill="#F1F1F1" height="2" style="stroke:#181818;stroke-width:0.5;" width="4" x="674" y="335"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="80" x="591" y="356.9951">NFVOPlugin</text></g><!--MD5=[482af39e40fe8ce176102cafc337fa0c]
+entity os_vim--><g id="elem_os_vim"><rect fill="#F1F1F1" height="46.2969" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:0.5;" width="160" x="620" y="460"/><rect fill="#F1F1F1" height="10" style="stroke:#181818;stroke-width:0.5;" width="15" x="760" y="465"/><rect fill="#F1F1F1" height="2" style="stroke:#181818;stroke-width:0.5;" width="4" x="758" y="467"/><rect fill="#F1F1F1" height="2" style="stroke:#181818;stroke-width:0.5;" width="4" x="758" y="471"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="120" x="635" y="492.9951">OpenStack Driver</text></g><!--MD5=[41bba39302383280e14c2e801ad2847c]
+entity ks_vim--><g id="elem_ks_vim"><rect fill="#F1F1F1" height="46.2969" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:0.5;" width="165" x="419.5" y="460"/><rect fill="#F1F1F1" height="10" style="stroke:#181818;stroke-width:0.5;" width="15" x="564.5" y="465"/><rect fill="#F1F1F1" height="2" style="stroke:#181818;stroke-width:0.5;" width="4" x="562.5" y="467"/><rect fill="#F1F1F1" height="2" style="stroke:#181818;stroke-width:0.5;" width="4" x="562.5" y="471"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="125" x="434.5" y="492.9951">Kubernetes Driver</text></g><!--MD5=[392dfeaf0bb9a7a29d8d59c18e315c72]
+entity Conductor Server--><g id="elem_Conductor Server"><rect fill="#F1F1F1" height="46.2969" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:0.5;" width="161" x="908.5" y="163"/><rect fill="#F1F1F1" height="10" style="stroke:#181818;stroke-width:0.5;" width="15" x="1049.5" y="168"/><rect fill="#F1F1F1" height="2" style="stroke:#181818;stroke-width:0.5;" width="4" x="1047.5" y="170"/><rect fill="#F1F1F1" height="2" style="stroke:#181818;stroke-width:0.5;" width="4" x="1047.5" y="174"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="121" x="923.5" y="195.9951">Conductor Server</text></g><!--MD5=[a1d1a3b312770a7130e1b99763ae4353]
+entity db_nfvo--><g id="elem_db_nfvo"><rect fill="#F1F1F1" height="46.2969" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:0.5;" width="140" x="199" y="460"/><rect fill="#F1F1F1" height="10" style="stroke:#181818;stroke-width:0.5;" width="15" x="319" y="465"/><rect fill="#F1F1F1" height="2" style="stroke:#181818;stroke-width:0.5;" width="4" x="317" y="467"/><rect fill="#F1F1F1" height="2" style="stroke:#181818;stroke-width:0.5;" width="4" x="317" y="471"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="100" x="214" y="492.9951">NFVOPluginDb</text></g><!--MD5=[21d8b7554ac6932f432930ca9efee83e]
+entity db_vnfm--><g id="elem_db_vnfm"><rect fill="#F1F1F1" height="46.2969" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:0.5;" width="141" x="22.5" y="460"/><rect fill="#F1F1F1" height="10" style="stroke:#181818;stroke-width:0.5;" width="15" x="143.5" y="465"/><rect fill="#F1F1F1" height="2" style="stroke:#181818;stroke-width:0.5;" width="4" x="141.5" y="467"/><rect fill="#F1F1F1" height="2" style="stroke:#181818;stroke-width:0.5;" width="4" x="141.5" y="471"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="101" x="37.5" y="492.9951">VNFMPluginDb</text></g><!--MD5=[4cb912dbab4f44d920109ddee8736186]
+entity maria--><g id="elem_maria"><rect fill="#F1F1F1" height="46.2969" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:0.5;" width="97" x="132.5" y="669"/><rect fill="#F1F1F1" height="10" style="stroke:#181818;stroke-width:0.5;" width="15" x="209.5" y="674"/><rect fill="#F1F1F1" height="2" style="stroke:#181818;stroke-width:0.5;" width="4" x="207.5" y="676"/><rect fill="#F1F1F1" height="2" style="stroke:#181818;stroke-width:0.5;" width="4" x="207.5" y="680"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="57" x="147.5" y="701.9951">MariaDB</text></g><!--MD5=[feb13187a4e12c0f7e43ab86a34517b0]
+entity vm--><g id="elem_vm"><polygon fill="#F1F1F1" points="763,679,773,669,865,669,865,705.2969,855,715.2969,763,715.2969,763,679" style="stroke:#181818;stroke-width:0.5;"/><line style="stroke:#181818;stroke-width:0.5;" x1="855" x2="865" y1="679" y2="669"/><line style="stroke:#181818;stroke-width:0.5;" x1="763" x2="855" y1="679" y2="679"/><line style="stroke:#181818;stroke-width:0.5;" x1="855" x2="855" y1="679" y2="715.2969"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="62" x="778" y="701.9951">VNF (VM)</text></g><!--MD5=[c1e3f05984ba1120c8c0eb08c3b56370]
+entity container--><g id="elem_container"><polygon fill="#F1F1F1" points="508,679,518,669,656,669,656,705.2969,646,715.2969,508,715.2969,508,679" style="stroke:#181818;stroke-width:0.5;"/><line style="stroke:#181818;stroke-width:0.5;" x1="646" x2="656" y1="679" y2="669"/><line style="stroke:#181818;stroke-width:0.5;" x1="508" x2="646" y1="679" y2="679"/><line style="stroke:#181818;stroke-width:0.5;" x1="646" x2="646" y1="679" y2="715.2969"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="108" x="523" y="701.9951">VNF (Container)</text></g><!--MD5=[4a65e84059005d12693a083370a06717]
+entity client--><g id="elem_client"><rect fill="#F1F1F1" height="46.2969" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:0.5;" width="125" x="573.5" y="7"/><rect fill="#F1F1F1" height="10" style="stroke:#181818;stroke-width:0.5;" width="15" x="678.5" y="12"/><rect fill="#F1F1F1" height="2" style="stroke:#181818;stroke-width:0.5;" width="4" x="676.5" y="14"/><rect fill="#F1F1F1" height="2" style="stroke:#181818;stroke-width:0.5;" width="4" x="676.5" y="18"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="85" x="588.5" y="39.9951">tacker-client</text></g><!--MD5=[ad63c54126eb1a3bd9fbc0b3441f167d]
+link db_nfvo to maria--><g id="link_db_nfvo_maria"><path d="M257.52,511 C240.65,550.69 209.33,624.36 192.47,664.03 " fill="none" id="db_nfvo-maria" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="190.48,668.69,197.6842,661.9744,192.4375,664.0891,190.3228,658.8424,190.48,668.69" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="259.58,506.15,252.3758,512.8656,257.6225,510.7509,259.7372,515.9976,259.58,506.15" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[c3d28dc8a45b02c29ec7e396d92852c2]
+link db_vnfm to maria--><g id="link_db_vnfm_maria"><path d="M104.48,511 C121.35,550.69 152.67,624.36 169.53,664.03 " fill="none" id="db_vnfm-maria" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="171.52,668.69,171.6772,658.8424,169.5625,664.0891,164.3158,661.9744,171.52,668.69" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="102.42,506.15,102.2628,515.9976,104.3775,510.7509,109.6242,512.8656,102.42,506.15" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[d6e018d4ae98ac31585c3ad1a5854e62]
+link client to nfvo--><g id="link_client_nfvo"><path d="M636,58.43 C636,86.54 636,129.97 636,157.94 " fill="none" id="client-nfvo" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="636,162.98,640,153.98,636,157.98,632,153.98,636,162.98" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="636,53.06,632,62.06,636,58.06,640,62.06,636,53.06" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[c23d32a409bec3c5005485b773056960]
+link vnfm to vnfm_plugin--><g id="link_vnfm_vnfm_plugin"><path d="M519.88,213.9 C511.05,243.14 497.03,289.6 488.18,318.92 " fill="none" id="vnfm-vnfm_plugin" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="486.69,323.82,493.1115,316.3525,488.1294,319.0317,485.4502,314.0495,486.69,323.82" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="521.33,209.11,514.9023,216.5723,519.8867,213.8972,522.5618,218.8815,521.33,209.11" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[e41df77064e8c7010d1b6075eb7337cc]
+link nfvo to nfvo_plugin--><g id="link_nfvo_nfvo_plugin"><path d="M636,214.28 C636,243.43 636,289.37 636,318.57 " fill="none" id="nfvo-nfvo_plugin" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="636,323.82,640,314.82,636,318.82,632,314.82,636,323.82" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="636,209.11,632,218.11,636,214.11,640,218.11,636,209.11" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[efc025505ca4784a151779ce67f57315]
+link vnfm_plugin to db_vnfm--><g id="link_vnfm_plugin_db_vnfm"><path d="M414.15,349.52 C351.3,353.3 255.43,365.29 181,402 C154.83,414.91 130.74,437.94 114.41,455.99 " fill="none" id="vnfm_plugin-db_vnfm" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="110.83,459.99,119.8076,455.9399,114.1598,456.2601,113.8397,450.6123,110.83,459.99" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="419.37,349.22,410.1559,345.7415,414.3782,349.5061,410.6136,353.7284,419.37,349.22" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[f9293f68eada8d4ce87d728727a5d982]
+link nfvo_plugin to db_nfvo--><g id="link_nfvo_plugin_db_nfvo"><path d="M601.77,373.01 C588.71,381.22 573.28,389.4 558,394 C491.94,413.87 469,381.95 403,402 C364.98,413.55 326.55,438.12 300.65,457 " fill="none" id="nfvo_plugin-db_nfvo" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="296.6,459.98,306.2173,457.8568,300.6238,457.0121,301.4686,451.4186,296.6,459.98" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="606.1,370.23,596.3641,371.7171,601.8899,372.9273,600.6797,378.4532,606.1,370.23" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[54b9d58d667c258e54230bc21037c7c9]
+link nfvo_plugin to os_vim--><g id="link_nfvo_plugin_os_vim"><path d="M648.72,374.64 C659.9,398.04 676.07,431.89 687.25,455.3 " fill="none" id="nfvo_plugin-os_vim" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="689.42,459.84,689.1487,449.9949,687.2642,455.3286,681.9305,453.4441,689.42,459.84" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="646.57,370.13,646.8413,379.9751,648.7258,374.6414,654.0595,376.5259,646.57,370.13" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[cba735c43583ad6600a2b2eb96c05b12]
+link nfvo_plugin to ks_vim--><g id="link_nfvo_plugin_ks_vim"><path d="M610.28,373.72 C586.59,397.41 551.61,432.39 527.87,456.13 " fill="none" id="nfvo_plugin-ks_vim" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="524.16,459.84,533.3524,456.3045,527.6955,456.3045,527.6955,450.6476,524.16,459.84" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="613.87,370.13,604.6776,373.6655,610.3345,373.6655,610.3345,379.3224,613.87,370.13" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[aad349f46b08fb46a88de6c49123a200]
+link os_vim to os--><g id="link_os_vim_os"><path d="M703.69,511.3 C707.43,538.955 713.3725,582.89 718.4463,620.3938 C718.7634,622.7377 719.0771,625.0566 719.3866,627.3448 C719.5414,628.4889 719.6952,629.6253 719.8478,630.7534 C719.886,631.0354 719.924,631.3169 719.9621,631.5979 " fill="none" id="os_vim-os" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="719.9621,631.5979,722.7193,622.1428,719.2917,626.643,714.7915,623.2154,719.9621,631.5979" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="703,506.15,700.2442,515.6054,703.6711,511.1048,708.1718,514.5317,703,506.15" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[9e034019b82c863caa8ef0aea6ec64ed]
+link ks_vim to ks--><g id="link_ks_vim_ks"><path d="M498.18,511.3 C494.305,538.955 488.15,582.89 482.895,620.3938 " fill="none" id="ks_vim-ks" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="482.895,620.3938,488.1052,612.0359,483.5888,615.4421,480.1826,610.9258,482.895,620.3938" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="498.9,506.15,493.6809,514.5023,498.2009,511.1009,501.6023,515.6209,498.9,506.15" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[27b2df526f2d6f1f7ac9ab4d46dc0cec]
+link server to cond--><!--MD5=[b81852c71e75ecc57a217deab855c5b4]
+@startuml
+
+'# Components
+component "tacker-client" as client
+
+frame "tacker-server" {
+    component server {
+        component "Vnfm" as vnfm
+        component "Nfvo" as nfvo
+    }
+    component plugin {
+        component "VNFMPlugin" as vnfm_plugin
+        component "NFVOPlugin" as nfvo_plugin
+        'cond <-down-> vnfm_plugin
+    }
+    component "vim-driver" as vim {
+        component "OpenStack Driver" as os_vim
+        component "Kubernetes Driver" as ks_vim
+    }
+}
+
+frame "tacker-conductor" as cond {
+    component conductor {
+        component "Conductor Server"
+    }
+}
+
+database "tacker DB" as db {
+    component "NFVOPluginDb" as db_nfvo
+    component "VNFMPluginDb" as db_vnfm
+    component "MariaDB" as maria
+    db_nfvo <-down-> maria
+    db_vnfm <-down-> maria
+}
+
+cloud "NFV infrastructures" as nfv_infra {
+    node "OpenStack" as os {
+        node "VNF (VM)" as vm
+    }
+    node "Kubernetes" as ks {
+        node "VNF (Container)" as container
+    }
+    'vm -[hidden]up- ks
+}
+
+'# Relationships
+client <-down-> nfvo
+
+vnfm <-down-> vnfm_plugin
+nfvo <-down-> nfvo_plugin
+
+vnfm_plugin <-down-> db_vnfm
+nfvo_plugin <-down-> db_nfvo
+
+nfvo_plugin <-down-> os_vim
+nfvo_plugin <-down-> ks_vim
+
+os_vim <-down-> os
+ks_vim <-down-> ks
+
+cond <-[hidden]left-> server
+
+@enduml
+
+@startuml
+
+component "tacker-client" as client
+
+frame "tacker-server" {
+    component server {
+        component "Vnfm" as vnfm
+        component "Nfvo" as nfvo
+    }
+    component plugin {
+        component "VNFMPlugin" as vnfm_plugin
+        component "NFVOPlugin" as nfvo_plugin
+    }
+    component "vim-driver" as vim {
+        component "OpenStack Driver" as os_vim
+        component "Kubernetes Driver" as ks_vim
+    }
+}
+
+frame "tacker-conductor" as cond {
+    component conductor {
+        component "Conductor Server"
+    }
+}
+
+database "tacker DB" as db {
+    component "NFVOPluginDb" as db_nfvo
+    component "VNFMPluginDb" as db_vnfm
+    component "MariaDB" as maria
+    db_nfvo <-down-> maria
+    db_vnfm <-down-> maria
+}
+
+cloud "NFV infrastructures" as nfv_infra {
+    node "OpenStack" as os {
+        node "VNF (VM)" as vm
+    }
+    node "Kubernetes" as ks {
+        node "VNF (Container)" as container
+    }
+}
+
+client <-down-> nfvo
+
+vnfm <-down-> vnfm_plugin
+nfvo <-down-> nfvo_plugin
+
+vnfm_plugin <-down-> db_vnfm
+nfvo_plugin <-down-> db_nfvo
+
+nfvo_plugin <-down-> os_vim
+nfvo_plugin <-down-> ks_vim
+
+os_vim <-down-> os
+ks_vim <-down-> ks
+
+cond <-[hidden]left-> server
+
+@enduml
+
+PlantUML version 1.2022.7(Mon Aug 22 17:01:30 UTC 2022)
+(GPL source distribution)
+Java Runtime: OpenJDK Runtime Environment
+JVM: OpenJDK 64-Bit Server VM
+Default Encoding: UTF-8
+Language: en
+Country: US
+--></g></svg>

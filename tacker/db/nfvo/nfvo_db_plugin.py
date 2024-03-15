@@ -20,14 +20,11 @@ from sqlalchemy.orm import exc as orm_exc
 from sqlalchemy import sql
 
 from tacker.common import exceptions
-from tacker.db.common_services import common_services_db_plugin
 from tacker.db import db_base
 from tacker.db.nfvo import nfvo_db
 from tacker.db.vnfm import vnfm_db
 from tacker.extensions import nfvo
 from tacker import manager
-from tacker.plugins.common import constants
-
 
 VIM_ATTRIBUTES = ('id', 'type', 'tenant_id', 'name', 'description',
                   'placement_attr', 'shared', 'is_default',
@@ -40,7 +37,6 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
 
     def __init__(self):
         super(NfvoPluginDb, self).__init__()
-        self._cos_db_plg = common_services_db_plugin.CommonServicesPluginDb()
 
     @property
     def _core_plugin(self):
@@ -117,15 +113,6 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
                 entry=e.columns)
         vim_dict = self._make_vim_dict(vim_db)
 
-        # TODO(hiromu): Remove Event table
-        # NOTE(hiromu): "REGISTERED" in res_state is a workaround to delete
-        # the status field from the Vim table.
-        self._cos_db_plg.create_event(
-            context, res_id=vim_dict['id'],
-            res_type=constants.RES_TYPE_VIM,
-            res_state='REGISTERED',
-            evt_type=constants.RES_EVT_CREATE,
-            tstamp=vim_dict['created_at'])
         return vim_dict
 
     def delete_vim(self, context, vim_id, soft_delete=True):
@@ -133,16 +120,6 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
             vim_db = self._get_resource(context, nfvo_db.Vim, vim_id)
             if soft_delete:
                 vim_db.update({'deleted_at': timeutils.utcnow()})
-
-                # TODO(hiromu): Remove Event table
-                # NOTE(hiromu): "REGISTERED" in res_state is a workaround to
-                # delete the status field from the Vim table.
-                self._cos_db_plg.create_event(
-                    context, res_id=vim_db['id'],
-                    res_type=constants.RES_TYPE_VIM,
-                    res_state='REGISTERED',
-                    evt_type=constants.RES_EVT_DELETE,
-                    tstamp=vim_db[constants.RES_EVT_DELETED_FLD])
             else:
                 context.session.query(nfvo_db.VimAuth).filter_by(
                     vim_id=vim_id).delete()
@@ -191,16 +168,6 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
                                 vim_cred.pop('password', None), 'vim_project':
                                 vim_project})
             vim_db.update({'updated_at': timeutils.utcnow()})
-
-            # TODO(hiromu): Remove Event table
-            # NOTE(hiromu): "REGISTERED" in res_state is a workaround to delete
-            # the status field from the Vim table.
-            self._cos_db_plg.create_event(
-                context, res_id=vim_db['id'],
-                res_type=constants.RES_TYPE_VIM,
-                res_state='REGISTERED',
-                evt_type=constants.RES_EVT_UPDATE,
-                tstamp=vim_db[constants.RES_EVT_UPDATED_FLD])
 
         return self.get_vim(context, vim_id)
 

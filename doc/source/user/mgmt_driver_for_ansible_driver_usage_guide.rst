@@ -344,7 +344,6 @@ of the tacker.
     ...
     tacker.tacker.mgmt.drivers =
     noop = tacker.vnfm.mgmt_drivers.noop:VnfMgmtNoop
-    openwrt = tacker.vnfm.mgmt_drivers.openwrt.openwrt:VnfMgmtOpenWRT
     vnflcm_noop = tacker.vnfm.mgmt_drivers.vnflcm_noop:VnflcmMgmtNoop
     ansible_driver = tacker.vnfm.mgmt_drivers.ansible.ansible:DeviceMgmtAnsible
 

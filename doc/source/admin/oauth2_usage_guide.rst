@@ -136,8 +136,8 @@ identity, see `Middleware Architecture`_.
 
     $ vi /etc/tacker/api-paste.ini
     [composite:tackerapi_v1_0]
-    #keystone = request_id catch_errors alarm_receiver authtoken keystonecontext extensions tackerapiapp_v1_0
-    keystone = request_id catch_errors alarm_receiver oauth2token keystonecontext extensions tackerapiapp_v1_0
+    #keystone = request_id catch_errors authtoken keystonecontext extensions tackerapiapp_v1_0
+    keystone = request_id catch_errors oauth2token keystonecontext extensions tackerapiapp_v1_0
 
     [composite:vnfpkgmapi_v1]
     #keystone = request_id catch_errors authtoken keystonecontext vnfpkgmapp_v1

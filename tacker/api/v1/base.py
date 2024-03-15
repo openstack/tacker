@@ -567,20 +567,6 @@ class Controller(object):
             if 'validate' not in attr_vals:
                 continue
             for rule in attr_vals['validate']:
-                # skip validating vnfd_id when vnfd_template is specified to
-                # create vnf
-                if (resource == 'vnf') and ('vnfd_template' in body['vnf'])\
-                        and (attr == "vnfd_id") and is_create:
-                    continue
-                # skip validating vnffgd_id when vnffgd_template is provided
-                if ((resource == 'vnffg')
-                        and ('vnffgd_template' in body['vnffg'])
-                        and (attr == 'vnffgd_id') and is_create):
-                    continue
-                # skip validating nsd_id when nsd_template is provided
-                if (resource == 'ns') and ('nsd_template' in body['ns'])\
-                        and (attr == 'nsd_id') and is_create:
-                    continue
                 res = attributes.validators[rule](res_dict[attr],
                                                   attr_vals['validate'][rule])
                 if res:

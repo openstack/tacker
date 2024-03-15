@@ -24,7 +24,6 @@ from tacker.common import exceptions
 from tacker.common import log
 from tacker.extensions import common_services as cs
 from tacker.extensions import vnfm
-from tacker.plugins.common import constants
 from tacker.tosca import utils as toscautils
 
 
@@ -64,11 +63,9 @@ class TOSCAToHOT(object):
         self.vnfd_yaml = None
         self.unsupported_props = {}
         self.heat_template_yaml = None
-        self.monitoring_dict = None
         self.nested_resources = dict()
         self.fields = None
         self.STACK_FLAVOR_EXTRA = cfg.CONF.openstack_vim.flavor_extra_specs
-        self.appmonitoring_dict = None
         self.grant_info = grant_info
         self.inst_req_info = inst_req_info
 
@@ -86,13 +83,6 @@ class TOSCAToHOT(object):
         self.fields['template'] = self.heat_template_yaml
         if not self.vnf['attributes'].get('heat_template'):
             self.vnf['attributes']['heat_template'] = self.fields['template']
-        if self.monitoring_dict:
-            self.vnf['attributes'][
-                'monitoring_policy'] = jsonutils.dump_as_bytes(
-                self.monitoring_dict)
-        if self.appmonitoring_dict:
-            self.vnf['attributes']['app_monitoring_policy'] = \
-                jsonutils.dump_as_bytes(self.appmonitoring_dict)
 
     @log.log
     def _get_vnfd(self):
@@ -152,96 +142,6 @@ class TOSCAToHOT(object):
                     self._update_params(value, paramvalues, True)
 
     @log.log
-    def _process_parameterized_input(self, dev_attrs, vnfd_dict):
-        param_vattrs_yaml = dev_attrs.pop('param_values', None)
-        if param_vattrs_yaml:
-            try:
-                param_vattrs_dict = yaml.safe_load(param_vattrs_yaml)
-                LOG.debug('param_vattrs_yaml', param_vattrs_dict)
-            except Exception as e:
-                LOG.error("Not Well Formed: %s", str(e))
-                raise vnfm.ParamYAMLNotWellFormed(
-                    error_msg_details=str(e))
-            else:
-                self._update_params(vnfd_dict, param_vattrs_dict)
-        else:
-            raise cs.ParamYAMLInputMissing()
-
-    @log.log
-    def _process_vdu_network_interfaces(self, vdu_id, vdu_dict, properties,
-                                        template_dict):
-
-        networks_list = []
-        properties['networks'] = networks_list
-        for network_param in vdu_dict['network_interfaces'].values():
-            port = None
-            if 'addresses' in network_param:
-                ip_list = network_param.pop('addresses', [])
-                if not isinstance(ip_list, list):
-                    raise vnfm.IPAddrInvalidInput()
-                mgmt_flag = network_param.pop('management', False)
-                port, template_dict =\
-                    self._handle_port_creation(vdu_id, network_param,
-                                               template_dict,
-                                               ip_list, mgmt_flag)
-            if network_param.pop('management', False):
-                port, template_dict = self._handle_port_creation(vdu_id,
-                                                                 network_param,
-                                                                 template_dict,
-                                                                 [], True)
-            if port is not None:
-                network_param = {
-                    'port': {'get_resource': port}
-                }
-            networks_list.append(dict(network_param))
-        return vdu_dict, template_dict
-
-    @log.log
-    def _make_port_dict(self):
-        port_dict = {'type': 'OS::Neutron::Port'}
-        if self.unsupported_props:
-            port_dict['properties'] = {
-                'value_specs': {
-                    'port_security_enabled': False
-                }
-            }
-        else:
-            port_dict['properties'] = {
-                'port_security_enabled': False
-            }
-        port_dict['properties'].setdefault('fixed_ips', [])
-        return port_dict
-
-    @log.log
-    def _make_mgmt_outputs_dict(self, vdu_id, port, template_dict):
-        mgmt_ip = 'mgmt_ip-%s' % vdu_id
-        outputs_dict = template_dict['outputs']
-        outputs_dict[mgmt_ip] = {
-            'description': 'management ip address',
-            'value': {
-                'get_attr': [port, 'fixed_ips', 0, 'ip_address']
-            }
-        }
-        template_dict['outputs'] = outputs_dict
-        return template_dict
-
-    @log.log
-    def _handle_port_creation(self, vdu_id, network_param,
-                              template_dict, ip_list=None,
-                              mgmt_flag=False):
-        ip_list = ip_list or []
-        port = '%s-%s-port' % (vdu_id, network_param['network'])
-        port_dict = self._make_port_dict()
-        if mgmt_flag:
-            template_dict = self._make_mgmt_outputs_dict(vdu_id, port,
-                                                         template_dict)
-        for ip in ip_list:
-            port_dict['properties']['fixed_ips'].append({"ip_address": ip})
-        port_dict['properties'].update(network_param)
-        template_dict['resources'][port] = port_dict
-        return port, template_dict
-
-    @log.log
     def _get_unsupported_resource_props(self, heat_client):
         unsupported_resource_props = {}
 
@@ -266,12 +166,6 @@ class TOSCAToHOT(object):
                 LOG.error("Params not Well Formed: %s", str(e))
                 raise vnfm.ParamYAMLNotWellFormed(error_msg_details=str(e))
 
-        appmonitoring_dict = \
-            toscautils.get_vdu_applicationmonitoring(vnfd_dict)
-
-        block_storage_details = toscautils.get_block_storage_details(
-            vnfd_dict)
-        toscautils.updateimports(vnfd_dict)
         if 'substitution_mappings' in str(vnfd_dict):
             toscautils.check_for_substitution_mappings(
                 vnfd_dict,
@@ -289,21 +183,6 @@ class TOSCAToHOT(object):
             raise vnfm.ToscaParserFailed(error_msg_details=str(e))
 
         unique_id = uuidutils.generate_uuid()
-        metadata = toscautils.get_vdu_metadata(tosca, unique_id=unique_id)
-        for policy in tosca.policies:
-            if policy.entity_tpl['type'] == constants.POLICY_RESERVATION:
-                metadata = toscautils.get_metadata_for_reservation(
-                    tosca, metadata)
-                break
-
-        alarm_resources = toscautils.pre_process_alarm_resources(
-            self.vnf, tosca, metadata, unique_id=unique_id)
-        monitoring_dict = toscautils.get_vdu_monitoring(tosca)
-        mgmt_ports = toscautils.get_mgmt_ports(tosca)
-        res_tpl = toscautils.get_resources_dict(tosca,
-                                                self.STACK_FLAVOR_EXTRA)
-        toscautils.post_process_template(tosca)
-        scaling_policy_names = toscautils.get_scaling_policy(tosca)
         try:
             translator = tosca_translator.TOSCATranslator(tosca, parsed_params)
 
@@ -329,27 +208,15 @@ class TOSCAToHOT(object):
 
         if self.nested_resources:
             nested_tpl = toscautils.update_nested_scaling_resources(
-                self.nested_resources,
-                mgmt_ports, metadata, res_tpl, self.unsupported_props,
+                self.nested_resources, self.unsupported_props,
                 grant_info=grant_info, inst_req_info=inst_req_info)
             self.fields['files'] = nested_tpl
             for nested_resource_name in nested_tpl.keys():
                 self.vnf['attributes'][nested_resource_name] =\
                     nested_tpl[nested_resource_name]
-            mgmt_ports.clear()
-
-        if scaling_policy_names:
-            scaling_group_dict = toscautils.get_scaling_group_dict(
-                heat_template_yaml, scaling_policy_names)
-            self.vnf['attributes']['scaling_group_names'] =\
-                jsonutils.dump_as_bytes(scaling_group_dict)
-
-        if self.vnf['attributes'].get('maintenance', None):
-            toscautils.add_maintenance_resources(tosca, res_tpl)
 
         heat_template_yaml = toscautils.post_process_heat_template(
-            heat_template_yaml, mgmt_ports, metadata, alarm_resources,
-            res_tpl, block_storage_details, self.unsupported_props,
+            heat_template_yaml, self.unsupported_props,
             unique_id=unique_id, inst_req_info=inst_req_info,
             grant_info=grant_info, tosca=tosca)
 
@@ -358,8 +225,7 @@ class TOSCAToHOT(object):
                 self.nested_resources[nested_resource_name] = \
                     toscautils.post_process_heat_template_for_scaling(
                     self.nested_resources[nested_resource_name],
-                    mgmt_ports, metadata, alarm_resources,
-                    res_tpl, block_storage_details, self.unsupported_props,
+                    self.unsupported_props,
                     unique_id=unique_id, inst_req_info=inst_req_info,
                     grant_info=grant_info, tosca=tosca)
         except Exception as e:
@@ -368,9 +234,6 @@ class TOSCAToHOT(object):
             raise
 
         self.heat_template_yaml = heat_template_yaml
-        self.monitoring_dict = monitoring_dict
-        self.metadata = metadata
-        self.appmonitoring_dict = appmonitoring_dict
 
     @log.log
     def represent_odict(self, dump, tag, mapping, flow_style=None):

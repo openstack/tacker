@@ -32,16 +32,10 @@ class ResourceHelperTestCase(base.BaseTestCase):
                     'allow_post': False,
                     'allow_put': False,
                 }
-            },
-            'vnffgs': {
-                'id': {
-                    'allow_post': False,
-                    'allow_put': False,
-                }
-            },
+            }
         }
 
-        expected_res = {'vnffgs': 'vnffg', 'vims': 'vim'}
+        expected_res = {'vims': 'vim'}
         result = build_plural_mappings(special_mappings, resource_map)
         self.assertEqual(expected_res, result)
 
@@ -53,7 +47,7 @@ class ResourceHelperTestCase(base.BaseTestCase):
                     'allow_post': False,
                 }
             },
-            'vnffgs': {
+            'vims': {
                 'id': {
                     'allow_post': False,
                     'allow_put': False,
@@ -61,21 +55,21 @@ class ResourceHelperTestCase(base.BaseTestCase):
             },
         }
 
-        expected_res = {'vnffgs': 'vnffg', 'policies': 'policy'}
+        expected_res = {'vims': 'vim', 'policies': 'policy'}
         result = build_plural_mappings(special_mappings, resource_map)
         self.assertEqual(expected_res, result)
 
     @mock.patch.object(manager.TackerManager, "get_service_plugins")
     def test_build_resource_info(self, mock_get_service_plugins):
         mock_get_service_plugins.return_value = {"DUMMY": ""}
-        plural_mappings = {'test_vnffgs': 'test_vnffg', 'policies': 'policy'}
+        plural_mappings = {'test_vims': 'test_vim', 'policies': 'policy'}
         resource_map = {
             'policies': {
                 'id': {
                     'allow_post': False,
                 }
             },
-            'test_vnffgs': {
+            'test_vims': {
                 'id': {
                     'allow_post': False,
                 },
@@ -100,5 +94,5 @@ class ResourceHelperTestCase(base.BaseTestCase):
                                      action_map=action_map,
                                      translate_name=True)
         for i in range(len(result)):
-            a = result[i].collection in ('policies', 'test-vnffgs')
+            a = result[i].collection in ('policies', 'test-vims')
             self.assertEqual(a, True)

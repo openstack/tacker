@@ -21,7 +21,6 @@ from tacker.common import exceptions
 from tacker.tests.unit import base
 from tacker.tests.unit import fake_request
 from tacker.tests.unit.vnfm.infra_drivers.kubernetes import fakes
-from tacker.vnfm.infra_drivers.kubernetes.k8s import tosca_kube_object
 from tacker.vnfm.infra_drivers.kubernetes.k8s import translate_outputs
 
 
@@ -850,51 +849,3 @@ class TestTransformer(base.TestCase):
         self.assertEqual(k8s_obj.api_version, 'apps/v1')
         # V1ControllerRevision
         self.assertEqual(k8s_obj.revision, 1)
-
-    def test_transform(self):
-        container_obj = tosca_kube_object.Container(
-            config='config:abc\nconfig2:bcd',
-            num_cpus=2,
-            mem_size=10,
-            name='container'
-        )
-        tosca_kube_objects = [tosca_kube_object.ToscaKubeObject(
-            namespace='namespace',
-            name='name',
-            containers=[container_obj],
-            mapping_ports=["123"],
-            labels={}
-        )]
-        kubernetes_objects = self.transfromer.transform(tosca_kube_objects)
-        self.assertEqual(kubernetes_objects['namespace'], 'namespace')
-        self.assertEqual(
-            kubernetes_objects['objects'][0].data, {
-                'config': 'abc', 'config2': 'bcd'})
-
-    @mock.patch.object(client.CoreV1Api, 'create_namespaced_config_map')
-    @mock.patch.object(client.AppsV1Api, 'create_namespaced_deployment')
-    @mock.patch.object(client.CoreV1Api, 'create_namespaced_service')
-    def test_deploy(
-            self,
-            mock_create_namespaced_config_map,
-            mock_create_namespaced_deployment,
-            mock_create_namespaced_service):
-        mock_create_namespaced_config_map.return_value = ""
-        mock_create_namespaced_deployment.return_value = ""
-        mock_create_namespaced_service.return_value = ""
-        container_obj = tosca_kube_object.Container(
-            config='config:abc\nconfig2:bcd',
-            num_cpus=2,
-            mem_size=10,
-            name='container'
-        )
-        tosca_kube_objects = [tosca_kube_object.ToscaKubeObject(
-            namespace='namespace',
-            name='name',
-            containers=[container_obj],
-            mapping_ports=["123"],
-            labels={}
-        )]
-        kubernetes_objects = self.transfromer.transform(tosca_kube_objects)
-        result = self.transfromer.deploy(kubernetes_objects)
-        self.assertEqual(result, 'namespace,name')

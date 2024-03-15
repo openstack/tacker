@@ -69,7 +69,7 @@ Related options:
                 help=_("Exclude node from node_template")),
 
     cfg.ListOpt('get_lower_list',
-                default=['tosca.nodes.nfv.VNF', 'tosca.nodes.nfv.VDU.Tacker'],
+                default=['tosca.nodes.nfv.VNF'],
                 help=_("List of types to get from lower-vnfd")),
 
     cfg.ListOpt('del_input_list',

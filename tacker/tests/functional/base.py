@@ -13,10 +13,8 @@
 #    under the License.
 
 import os
-import time
 import yaml
 
-from blazarclient import client as blazar_client
 from cinderclient import client as cinder_client
 from glanceclient.v2 import client as glance_client
 from keystoneauth1.identity import v3
@@ -31,12 +29,10 @@ from tempest.lib import base
 
 from tacker.common import clients
 from tacker.common import utils
-from tacker.plugins.common import constants as evt_constants
 from tacker.tests import constants
 from tacker.tests.utils import read_file
 from tacker import version
 
-from tackerclient.common import exceptions
 from tackerclient.v1_0 import client as tacker_client
 
 
@@ -178,19 +174,6 @@ class BaseTackerTest(base.BaseTestCase):
         return clients.OpenstackClients(auth_attr=data).heat
 
     @classmethod
-    def blazarclient(cls, vim_conf_file=None):
-        data = cls.get_credentials(vim_conf_file)
-        domain_name = data.pop('domain_name')
-        data['user_domain_name'] = domain_name
-        data['project_domain_name'] = domain_name
-        auth_ses = (clients.OpenstackClients(auth_attr=data)
-                    .keystone_session.session)
-        return blazar_client.Client(session=auth_ses,
-                                    service_type='reservation',
-                                    interface='public',
-                                    region_name='RegionOne')
-
-    @classmethod
     def glanceclient(cls, vim_conf_file=None):
         vim_params = cls.get_credentials(vim_conf_file)
         auth = v3.Password(auth_url=vim_params['auth_url'],
@@ -202,13 +185,6 @@ class BaseTackerTest(base.BaseTestCase):
         verify = utils.str_to_bool(vim_params.pop('cert_verify', 'False'))
         auth_ses = session.Session(auth=auth, verify=verify)
         return glance_client.Client(session=auth_ses)
-
-    @classmethod
-    def aodh_http_client(cls, vim_conf_file=None):
-        auth_session = cls.get_auth_session(vim_conf_file)
-        return SessionClient(session=auth_session,
-                             service_type='alarming',
-                             region_name='RegionOne')
 
     @classmethod
     def cinderclient(cls, vim_conf_file=None):
@@ -224,136 +200,6 @@ class BaseTackerTest(base.BaseTestCase):
         return cinder_client.Client(constants.CINDER_CLIENT_VERSION,
                                     session=auth_ses)
 
-    def get_vdu_resource(self, stack_id, res_name):
-        return self.h_client.resources.get(stack_id, res_name)
-
-    def wait_until_vnf_status(self, vnf_id, target_status, timeout,
-                              sleep_interval):
-        start_time = int(time.time())
-        status = None
-        while True:
-            try:
-                vnf_result = self.client.show_vnf(vnf_id)
-                status = vnf_result['vnf']['status']
-                if status == target_status:
-                    break
-            except exceptions.InternalServerError:
-                pass
-
-            if int(time.time()) - start_time > timeout:
-                break
-            time.sleep(sleep_interval)
-
-        self.assertEqual(status, target_status,
-                         "vnf %(vnf_id)s with status %(status)s is"
-                         " expected to be %(target)s" %
-                         {"vnf_id": vnf_id, "status": status,
-                          "target": target_status})
-
-    def wait_until_vnf_active(self, vnf_id, timeout, sleep_interval):
-        self.wait_until_vnf_status(vnf_id, 'ACTIVE', timeout,
-                                   sleep_interval)
-
-    def verify_vnf_update(self, vnf_id):
-        self.wait_until_vnf_status(vnf_id, 'ACTIVE',
-                                   constants.VNF_CIRROS_CREATE_TIMEOUT,
-                                   constants.ACTIVE_SLEEP_TIME)
-        self.wait_until_vnf_status(vnf_id, 'PENDING_HEAL',
-                                   constants.VNF_CIRROS_PENDING_HEAL_TIMEOUT,
-                                   constants.PENDING_SLEEP_TIME)
-        self.wait_until_vnf_status(vnf_id, 'ACTIVE',
-                                  constants.VNF_CIRROS_CREATE_TIMEOUT,
-                                  constants.ACTIVE_SLEEP_TIME)
-
-    def wait_until_vnf_delete(self, vnf_id, timeout, sleep_interval=1):
-        start_time = int(time.time())
-        while True:
-            status = None
-            try:
-                vnf_result = self.client.show_vnf(vnf_id)
-                status = vnf_result['vnf']['status']
-            except exceptions.NotFound:
-                return
-            except Exception as e:
-                LOG.error("Failed to get vnf status: %s", str(e))
-
-            if status is not None and status != 'PENDING_DELETE':
-                raise Exception("Failed with status: %s" % status)
-            if int(time.time()) - start_time > timeout:
-                raise Exception("Timeout for deleting vnf %s.",
-                                vnf_id)
-            time.sleep(sleep_interval)
-
-    def wait_until_vnf_dead(self, vnf_id, timeout, sleep_interval):
-        self.wait_until_vnf_status(vnf_id, 'DEAD', timeout,
-                                   sleep_interval)
-
-    def validate_vnf_instance(self, vnfd_instance, vnf_instance):
-        self.assertIsNotNone(vnf_instance)
-        self.assertIsNotNone(vnf_instance['vnf']['id'])
-        self.assertIsNotNone(vnf_instance['vnf']['instance_id'])
-        if vnfd_instance:
-            self.assertEqual(vnf_instance['vnf']['vnfd_id'], vnfd_instance[
-                'vnfd']['id'])
-
-    def verify_vnf_restart(self, vnfd_instance, vnf_instance):
-        vnf_id = vnf_instance['vnf']['id']
-        self.wait_until_vnf_active(
-            vnf_id,
-            constants.VNF_CIRROS_CREATE_TIMEOUT,
-            constants.ACTIVE_SLEEP_TIME)
-        self.validate_vnf_instance(vnfd_instance, vnf_instance)
-        self.assertIsNotNone(self.client.show_vnf(vnf_id)['vnf'][
-            'mgmt_ip_address'])
-
-        self.wait_until_vnf_dead(
-            vnf_id,
-            constants.VNF_CIRROS_DEAD_TIMEOUT,
-            constants.DEAD_SLEEP_TIME)
-        self.wait_until_vnf_active(
-            vnf_id,
-            constants.VNF_CIRROS_CREATE_TIMEOUT,
-            constants.ACTIVE_SLEEP_TIME)
-        self.validate_vnf_instance(vnfd_instance, vnf_instance)
-
-    def verify_vnf_monitor_events(self, vnf_id, vnf_state_list):
-        for state in vnf_state_list:
-            params = {'resource_id': vnf_id, 'resource_state': state,
-                      'event_type': evt_constants.RES_EVT_MONITOR}
-            vnf_evt_list = self.client.list_vnf_events(**params)
-            mesg = ("%s - state transition expected." % state)
-            self.assertIsNotNone(vnf_evt_list['vnf_events'], mesg)
-
-    def verify_vnf_crud_events(self, vnf_id, evt_type, res_state,
-                               tstamp=None, cnt=1):
-        params = {'resource_id': vnf_id,
-                  'resource_state': res_state,
-                  'resource_type': evt_constants.RES_TYPE_VNF,
-                  'event_type': evt_type}
-        if tstamp:
-            params['timestamp'] = tstamp
-
-        vnf_evt_list = self.client.list_vnf_events(**params)
-
-        self.assertIsNotNone(vnf_evt_list['vnf_events'],
-                             "List of VNF events are Empty")
-        self.assertEqual(cnt, len(vnf_evt_list['vnf_events']))
-
-    def verify_vnfd_events(self, vnfd_id, evt_type, res_state,
-                           tstamp=None, cnt=1):
-        params = {'resource_id': vnfd_id,
-                  'resource_state': res_state,
-                  'resource_type': evt_constants.RES_TYPE_VNFD,
-                  'event_type': evt_type}
-        if tstamp:
-            params['timestamp'] = tstamp
-
-        vnfd_evt_list = self.client.list_vnfd_events(**params)
-
-        self.assertIsNotNone(vnfd_evt_list['vnfd_events'],
-                             "List of VNFD events are Empty")
-        self.assertEqual(cnt, len(vnfd_evt_list['vnfd_events']))
-
     def get_vim(self, vim_list, vim_name):
         if len(vim_list.values()) == 0:
             assert False, "vim_list is Empty: Default VIM is missing"
@@ -363,24 +209,6 @@ class BaseTackerTest(base.BaseTestCase):
                 if vim['name'] == vim_name:
                     return vim
         return None
-
-    def verify_antispoofing_in_stack(self, stack_id, resource_name):
-        resource_types = self.h_client.resources
-        resource_details = resource_types.get(stack_id=stack_id,
-                                              resource_name=resource_name)
-        resource_dict = resource_details.to_dict()
-        self.assertTrue(resource_dict['attributes']['port_security_enabled'])
-
-    def trigger_vnf(self, vnf, policy_name, policy_action):
-        credential = 'g0jtsxu9'
-        body = {"trigger": {'policy_name': policy_name,
-                            'action_name': policy_action,
-                            'params': {
-                                'data': {'alarm_id': '35a80852-e24f-46ed-bd34-e2f831d00172', 'current': 'alarm'},  # noqa
-                                'credential': credential}
-                            }
-                }
-        self.client.post('/vnfs/%s/triggers' % vnf, body)
 
     def assertDictSupersetOf(self, expected_subset, actual_superset):
         """Checks that actual dict contains the expected dict.
@@ -401,58 +229,6 @@ class BaseTackerTest(base.BaseTestCase):
             self.assertEqual(v, actual_superset[k],
                              "Key %(key)s expected: %(exp)r, actual %(act)r" %
                              {'key': k, 'exp': v, 'act': actual_superset[k]})
-
-    def create_cinder_volume(cls, vol_size, vol_name):
-        try:
-            cinder_volume = cls.cinder_client.volumes.create(vol_size,
-                    name=vol_name)
-        except Exception as e:
-            LOG.error("Failed to create cinder volume: %s", str(e))
-            return None
-
-        return cinder_volume.id
-
-    def delete_cinder_volume(cls, vol_id):
-        try:
-            cls.cinder_client.volumes.delete(vol_id)
-        except Exception as e:
-            LOG.error("Failed to delete cinder volume: %s", str(e))
-
-    def vnfd_and_vnf_create(self, vnfd_file, vnf_name, volume_id=None,
-            volume_name=None):
-        input_yaml = read_file(vnfd_file)
-        tosca_dict = yaml.safe_load(input_yaml)
-        if volume_id is not None:
-            volume_detail = tosca_dict['topology_template']['inputs']
-            volume_detail[volume_name]['default'] = volume_id
-        tosca_arg = {'vnfd': {'name': vnf_name,
-                              'attributes': {'vnfd': tosca_dict}}}
-
-        # Create vnfd with tosca template
-        vnfd_instance = self.client.create_vnfd(body=tosca_arg)
-        self.assertIsNotNone(vnfd_instance)
-
-        # Create vnf with vnfd_id
-        vnfd_id = vnfd_instance['vnfd']['id']
-        self.addCleanup(self.client.delete_vnfd, vnfd_id)
-
-        vnf_arg = {'vnf': {'vnfd_id': vnfd_id, 'name': vnf_name}}
-        vnf_instance = self.client.create_vnf(body=vnf_arg)
-        self.validate_vnf_instance(vnfd_instance, vnf_instance)
-
-        return vnfd_instance, vnf_instance, tosca_dict
-
-    def vnfd_and_vnf_create_inline(self, vnfd_file, vnf_name):
-        vnfd_instance = {}
-        input_yaml = read_file(vnfd_file)
-        tosca_dict = yaml.safe_load(input_yaml)
-
-        # create vnf directly from template
-        vnf_arg = {'vnf': {'vnfd_template': tosca_dict, 'name': vnf_name}}
-        vnf_instance = self.client.create_vnf(body=vnf_arg)
-        self.validate_vnf_instance(vnfd_instance, vnf_instance)
-
-        return vnf_instance, tosca_dict
 
     def _list_op_occs(self, filter_string='', http_client=None):
         if http_client is None:

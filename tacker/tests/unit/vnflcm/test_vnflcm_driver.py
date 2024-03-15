@@ -31,15 +31,14 @@ from tacker.common import exceptions
 from tacker.common import utils
 from tacker.conductor.conductorrpc.vnf_lcm_rpc import VNFLcmRPCAPI
 from tacker import context
-from tacker.db.common_services import common_services_db_plugin
 from tacker.manager import TackerManager
 from tacker import objects
 from tacker.objects import fields
 from tacker.objects.fields import ErrorPoint as EP
 from tacker.objects import vim_connection
 from tacker.tests.unit.db import base as db_base
-from tacker.tests.unit.nfvo.test_nfvo_plugin import FakeVNFMPlugin
 from tacker.tests.unit.vnflcm import fakes
+from tacker.tests.unit.vnflcm.test_controller import FakeVNFMPlugin
 from tacker.tests.unit.vnfm.infra_drivers.kubernetes import fakes as k8s_fakes
 from tacker.tests import utils as test_utils
 from tacker.tests import uuidsentinel
@@ -47,7 +46,6 @@ from tacker.vnflcm import vnflcm_driver
 from tacker.vnflcm.vnflcm_driver import VnfLcmDriver
 from tacker.vnfm.infra_drivers.openstack import heat_client
 from tacker.vnfm.infra_drivers.openstack import openstack as opn
-from tacker.vnfm import plugin
 from tacker.vnfm import vim_client
 
 
@@ -2218,7 +2216,6 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     @mock.patch.object(objects.VnfLcmOpOcc, "save")
     @mock.patch.object(VNFLcmRPCAPI, "send_notification")
     @mock.patch.object(objects.VnfInstance, "save")
-    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback_pre")
     @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback")
     @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
     @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver.'
@@ -2226,7 +2223,6 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     def test_rollback_vnf_7(
             self, mock_vnf_interfaces, mock_vnfd_dict,
             mock_update,
-            mock_up,
             mock_insta_save,
             mock_notification,
             mock_lcm_save,
@@ -2266,12 +2262,10 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     @mock.patch.object(objects.VnfLcmOpOcc, "save")
     @mock.patch.object(VNFLcmRPCAPI, "send_notification")
     @mock.patch.object(objects.VnfInstance, "save")
-    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback_pre")
     @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback")
     def test_rollback_vnf_6(
             self,
             mock_update,
-            mock_up,
             mock_insta_save,
             mock_notification,
             mock_lcm_save,
@@ -2312,12 +2306,10 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     @mock.patch.object(objects.VnfLcmOpOcc, "save")
     @mock.patch.object(VNFLcmRPCAPI, "send_notification")
     @mock.patch.object(objects.VnfInstance, "save")
-    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback_pre")
     @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback")
     def test_rollback_vnf_5(
             self,
             mock_update,
-            mock_up,
             mock_insta_save,
             mock_notification,
             mock_lcm_save,
@@ -2358,12 +2350,10 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     @mock.patch.object(objects.VnfLcmOpOcc, "save")
     @mock.patch.object(VNFLcmRPCAPI, "send_notification")
     @mock.patch.object(objects.VnfInstance, "save")
-    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback_pre")
     @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback")
     def test_rollback_vnf_4(
             self,
             mock_update,
-            mock_up,
             mock_insta_save,
             mock_notification,
             mock_lcm_save,
@@ -2404,12 +2394,10 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     @mock.patch.object(objects.VnfLcmOpOcc, "save")
     @mock.patch.object(VNFLcmRPCAPI, "send_notification")
     @mock.patch.object(objects.VnfInstance, "save")
-    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback_pre")
     @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback")
     def test_rollback_vnf_3(
             self,
             mock_update,
-            mock_up,
             mock_insta_save,
             mock_notification,
             mock_lcm_save,
@@ -2447,7 +2435,6 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     @mock.patch.object(objects.VnfLcmOpOcc, "save")
     @mock.patch.object(VNFLcmRPCAPI, "send_notification")
     @mock.patch.object(objects.VnfInstance, "save")
-    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback_pre")
     @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback")
     @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
     @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver.'
@@ -2455,7 +2442,6 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     def test_rollback_vnf_scale(
             self, mock_vnf_interfaces, mock_vnfd_dict,
             mock_update,
-            mock_up,
             mock_insta_save,
             mock_notification,
             mock_lcm_save,
@@ -2496,12 +2482,10 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     @mock.patch.object(objects.VnfLcmOpOcc, "save")
     @mock.patch.object(VNFLcmRPCAPI, "send_notification")
     @mock.patch.object(objects.VnfInstance, "save")
-    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback_pre")
     @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback")
     def test_rollback_vnf_scale_6(
             self,
             mock_update,
-            mock_up,
             mock_insta_save,
             mock_notification,
             mock_lcm_save,
@@ -2541,12 +2525,10 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     @mock.patch.object(objects.VnfLcmOpOcc, "save")
     @mock.patch.object(VNFLcmRPCAPI, "send_notification")
     @mock.patch.object(objects.VnfInstance, "save")
-    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback_pre")
     @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback")
     def test_rollback_vnf_scale_5(
             self,
             mock_update,
-            mock_up,
             mock_insta_save,
             mock_notification,
             mock_lcm_save,
@@ -2586,12 +2568,10 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     @mock.patch.object(objects.VnfLcmOpOcc, "save")
     @mock.patch.object(VNFLcmRPCAPI, "send_notification")
     @mock.patch.object(objects.VnfInstance, "save")
-    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback_pre")
     @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback")
     def test_rollback_vnf_scale_4(
             self,
             mock_update,
-            mock_up,
             mock_insta_save,
             mock_notification,
             mock_lcm_save,
@@ -2631,12 +2611,10 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     @mock.patch.object(objects.VnfLcmOpOcc, "save")
     @mock.patch.object(VNFLcmRPCAPI, "send_notification")
     @mock.patch.object(objects.VnfInstance, "save")
-    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback_pre")
     @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback")
     def test_rollback_vnf_scale_3(
             self,
             mock_update,
-            mock_up,
             mock_insta_save,
             mock_notification,
             mock_lcm_save,
@@ -2706,21 +2684,16 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     @mock.patch.object(VnfLcmDriver,
                        '_init_mgmt_driver_hash')
     @mock.patch.object(objects.VnfLcmOpOcc, "save")
-    @mock.patch.object(common_services_db_plugin.CommonServicesPluginDb,
-                       "create_event")
     @mock.patch.object(heat_client.HeatClient, "__init__")
     @mock.patch.object(heat_client.HeatClient, "resource_get")
     @mock.patch.object(heat_client.HeatClient, "resource_get_list")
-    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback_pre")
     @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback")
     def test_rollback_vnf_scale_resource_error(
             self,
             mock_update,
-            mock_up,
             mock_resource_get_list,
             mock_resource_get,
             mock_init,
-            mock_event,
             mock_lcm_save,
             mock_init_hash,
             mock_get_service_plugins):
@@ -2759,21 +2732,16 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     @mock.patch.object(VnfLcmDriver,
                        '_init_mgmt_driver_hash')
     @mock.patch.object(objects.VnfLcmOpOcc, "save")
-    @mock.patch.object(common_services_db_plugin.CommonServicesPluginDb,
-                       "create_event")
     @mock.patch.object(heat_client.HeatClient, "__init__")
     @mock.patch.object(heat_client.HeatClient, "resource_get")
     @mock.patch.object(heat_client.HeatClient, "resource_get_list")
-    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback_pre")
     @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback")
     def test_rollback_vnf_scale_resource_list_error(
             self,
             mock_update,
-            mock_up,
             mock_resource_list,
             mock_resource_get,
             mock_init,
-            mock_event,
             mock_lcm_save,
             mock_init_hash,
             mock_get_service_plugins):
@@ -2816,12 +2784,8 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     @mock.patch.object(VnfLcmDriver,
                        '_init_mgmt_driver_hash')
     @mock.patch.object(objects.VnfLcmOpOcc, "save")
-    @mock.patch.object(common_services_db_plugin.CommonServicesPluginDb,
-                       "create_event")
     @mock.patch.object(heat_client.HeatClient, "__init__")
-    @mock.patch.object(plugin.VNFMMgmtMixin, "mgmt_call")
     @mock.patch.object(opn.OpenStack, "delete")
-    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback_pre")
     @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback")
     @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
     @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver.'
@@ -2829,11 +2793,8 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     def test_rollback_vnf_delete_error(
             self, mock_vnf_interfaces, mock_vnfd_dict,
             mock_update,
-            mock_up,
             mock_delete,
-            mock_mgmt,
             mock_init,
-            mock_event,
             mock_lcm_save,
             mock_init_hash,
             mock_get_service_plugins):
@@ -2870,13 +2831,9 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     @mock.patch.object(VnfLcmDriver,
                        '_init_mgmt_driver_hash')
     @mock.patch.object(objects.VnfLcmOpOcc, "save")
-    @mock.patch.object(common_services_db_plugin.CommonServicesPluginDb,
-                       "create_event")
     @mock.patch.object(heat_client.HeatClient, "__init__")
-    @mock.patch.object(plugin.VNFMMgmtMixin, "mgmt_call")
     @mock.patch.object(opn.OpenStack, "delete")
     @mock.patch.object(opn.OpenStack, "delete_wait")
-    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback_pre")
     @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback")
     @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
     @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver.'
@@ -2884,12 +2841,9 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     def test_rollback_vnf_delete_wait_error(
             self, mock_vnf_interfaces, mock_vnfd_dict,
             mock_update,
-            mock_up,
             mock_delete_wait,
             mock_delete,
-            mock_mgmt,
             mock_init,
-            mock_event,
             mock_lcm_save,
             mock_init_hash,
             mock_get_service_plugins):
@@ -2927,14 +2881,11 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     @mock.patch.object(VnfLcmDriver,
                        '_init_mgmt_driver_hash')
     @mock.patch.object(objects.VnfLcmOpOcc, "save")
-    @mock.patch.object(common_services_db_plugin.CommonServicesPluginDb,
-                       "create_event")
     @mock.patch.object(heat_client.HeatClient, "__init__")
     @mock.patch.object(heat_client.HeatClient, "resource_get")
     @mock.patch.object(heat_client.HeatClient, "resource_get_list")
     @mock.patch.object(opn.OpenStack, "get_rollback_ids")
     @mock.patch.object(opn.OpenStack, "scale_in_reverse")
-    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback_pre")
     @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback")
     @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
     @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver.'
@@ -2942,13 +2893,11 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     def test_rollback_vnf_scale_update_error(
             self, mock_vnf_interfaces, mock_vnfd_dict,
             mock_update,
-            mock_up,
             mock_scale,
             mock_resource_get,
             mock_resource_get_list,
             mock_resource,
             mock_init,
-            mock_event,
             mock_lcm_save,
             mock_init_hash,
             mock_get_service_plugins):
@@ -2995,15 +2944,12 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     @mock.patch.object(VnfLcmDriver,
                        '_init_mgmt_driver_hash')
     @mock.patch.object(objects.VnfLcmOpOcc, "save")
-    @mock.patch.object(common_services_db_plugin.CommonServicesPluginDb,
-                       "create_event")
     @mock.patch.object(heat_client.HeatClient, "__init__")
     @mock.patch.object(heat_client.HeatClient, "resource_get")
     @mock.patch.object(heat_client.HeatClient, "resource_get_list")
     @mock.patch.object(opn.OpenStack, "get_rollback_ids")
     @mock.patch.object(opn.OpenStack, "scale_in_reverse")
     @mock.patch.object(opn.OpenStack, "scale_update_wait")
-    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback_pre")
     @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback")
     @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
     @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver.'
@@ -3011,14 +2957,12 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     def test_rollback_vnf_scale_update_wait_error(
             self, mock_vnf_interfaces, mock_vnfd_dict,
             mock_update,
-            mock_up,
             mock_wait,
             mock_scale,
             mock_resource_get,
             mock_resource_get_list,
             mock_resource,
             mock_init,
-            mock_event,
             mock_lcm_save,
             mock_init_hash,
             mock_get_service_plugins):
@@ -3066,14 +3010,11 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     @mock.patch.object(VnfLcmDriver,
                        '_init_mgmt_driver_hash')
     @mock.patch.object(objects.VnfLcmOpOcc, "save")
-    @mock.patch.object(common_services_db_plugin.CommonServicesPluginDb,
-                       "create_event")
     @mock.patch.object(heat_client.HeatClient, "__init__")
     @mock.patch.object(opn.OpenStack, "get_rollback_ids")
     @mock.patch.object(opn.OpenStack, "scale_in_reverse")
     @mock.patch.object(opn.OpenStack, "scale_update_wait")
     @mock.patch.object(opn.OpenStack, "scale_resource_update")
-    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback_pre")
     @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback")
     @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
     @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver.'
@@ -3081,13 +3022,11 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     def test_rollback_vnf_scale_resource_get_error(
             self, mock_vnf_interfaces, mock_vnfd_dict,
             mock_update,
-            mock_up,
             mock_scale_resource,
             mock_wait,
             mock_scale,
             mock_resource_get,
             mock_init,
-            mock_event,
             mock_lcm_save,
             mock_init_hash,
             mock_get_service_plugins):
@@ -3148,12 +3087,10 @@ class TestVnflcmDriver(db_base.SqlTestCase):
     @mock.patch.object(objects.VnfLcmOpOcc, "save")
     @mock.patch.object(VNFLcmRPCAPI, "send_notification")
     @mock.patch.object(objects.VnfInstance, "save")
-    @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback_pre")
     @mock.patch.object(vnflcm_driver.VnfLcmDriver, "_update_vnf_rollback")
     def test_rollback_vnf_scale_cnf(
             self,
             mock_update,
-            mock_up,
             mock_insta_save,
             mock_notification,
             mock_lcm_save,

@@ -1,6 +1,0 @@
-nsd:
-  vl1_name: net_mgmt
-  vl2_name: net0
-  net_src_port_id: 5610a59a-68d3-431b-aa11-843744e81041
-  ip_dest_prefix: 10.10.0.5/24
-  net_dst_port_id: 0eed8399-6c51-4eee-b037-0999c93ac898

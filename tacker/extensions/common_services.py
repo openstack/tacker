@@ -41,54 +41,11 @@ class InputValuesMissing(exceptions.InvalidInput):
     message = _("Parameter input values missing for the key '%(key)s'")
 
 
-class ParamYAMLInputMissing(exceptions.InvalidInput):
-    message = _("Parameter YAML input missing")
-
-
 class InvalidFormat(exceptions.InvalidInput):
     message = _("Invalid format. '%(error)s'")
 
 
-RESOURCE_ATTRIBUTE_MAP = {
-
-    'events': {
-        'id': {
-            'allow_post': False,
-            'allow_put': False,
-            'is_visible': True,
-        },
-        'resource_id': {
-            'allow_post': False,
-            'allow_put': False,
-            'is_visible': True
-        },
-        'resource_type': {
-            'allow_post': False,
-            'allow_put': False,
-            'is_visible': True
-        },
-        'resource_state': {
-            'allow_post': False,
-            'allow_put': False,
-            'is_visible': True
-        },
-        'timestamp': {
-            'allow_post': False,
-            'allow_put': False,
-            'is_visible': True,
-        },
-        'event_details': {
-            'allow_post': False,
-            'allow_put': False,
-            'is_visible': True,
-        },
-        'event_type': {
-            'allow_post': False,
-            'allow_put': False,
-            'is_visible': True,
-        },
-    }
-}
+RESOURCE_ATTRIBUTE_MAP = {}
 
 
 class Common_services(extensions.ExtensionDescriptor):

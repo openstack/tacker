@@ -233,10 +233,6 @@ Installing Tacker Server
 
       [database]
       connection = mysql+pymysql://tacker:<TACKERDB_PASSWORD>@<MYSQL_IP>:3306/tacker?charset=utf8
-      ...
-
-      [tacker]
-      monitor_driver = ping,http_ping
 
 #. Copy the ``tacker.conf`` to ``/etc/tacker/`` directory.
 
