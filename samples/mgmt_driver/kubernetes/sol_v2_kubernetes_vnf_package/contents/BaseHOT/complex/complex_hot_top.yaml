@@ -1,0 +1,42 @@
+heat_template_version: 2013-05-23
+description: 'Complex Base HOT for Sample VNF'
+
+parameters:
+  nfv:
+    type: json
+
+resources:
+  masterNode:
+    type: complex_nested_master.yaml
+    properties:
+      flavor: { get_param: [ nfv, VDU, masterNode, computeFlavourId ] }
+      image: { get_param: [ nfv, VDU, masterNode, vcImageId ] }
+      net1: { get_param: [ nfv, CP, masterNode_CP1, network ] }
+      vip_port_ip: { get_attr: [vip_CP, fixed_ips, 0, ip_address] }
+
+  workerNode:
+    type: complex_nested_worker.yaml
+    properties:
+      flavor: { get_param: [ nfv, VDU, workerNode, computeFlavourId ] }
+      image: { get_param: [ nfv, VDU, workerNode, vcImageId ] }
+      net1: { get_param: [ nfv, CP, workerNode_CP1, network ] }
+      affinity: { get_resource: nfvi_node_affinity }
+
+  vip_CP:
+    type: OS::Neutron::Port
+    properties:
+      network: net0
+
+  vip_CP_floating_ip:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network: public
+      port_id: { get_resource: vip_CP }
+
+  nfvi_node_affinity:
+    type: OS::Nova::ServerGroup
+    properties:
+      name: nfvi_node_affinity
+      policies: [ 'anti-affinity' ]
+
+outputs: {}

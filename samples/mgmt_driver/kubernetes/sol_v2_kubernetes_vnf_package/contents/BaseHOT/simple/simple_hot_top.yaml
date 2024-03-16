@@ -1,0 +1,23 @@
+heat_template_version: 2013-05-23
+description: 'Simple Base HOT for Sample VNF'
+
+parameters:
+  nfv:
+    type: json
+
+resources:
+  masterNode:
+    type: simple_nested_master.yaml
+    properties:
+      flavor: { get_param: [ nfv, VDU, masterNode, computeFlavourId ] }
+      image: { get_param: [ nfv, VDU, masterNode, vcImageId ] }
+      net1: { get_param: [ nfv, CP, masterNode_CP1, network ] }
+
+  workerNode:
+    type: simple_nested_worker.yaml
+    properties:
+      flavor: { get_param: [ nfv, VDU, workerNode, computeFlavourId ] }
+      image: { get_param: [ nfv, VDU, workerNode, vcImageId ] }
+      net1: { get_param: [ nfv, CP, workerNode_CP1, network ] }
+
+outputs: {}
