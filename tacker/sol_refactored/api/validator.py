@@ -49,3 +49,19 @@ def schema(request_body_schema, min_version, max_version=None):
         return wrapper
 
     return add_validator
+
+
+def schema_nover(request_body_schema):
+
+    def add_validator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            if 'body' not in kwargs:
+                raise sol_ex.SolValidationError(detail="body is missing")
+            schema_validator = SolSchemaValidator(request_body_schema)
+            schema_validator.validate(kwargs['body'])
+
+            return func(*args, **kwargs)
+        return wrapper
+
+    return add_validator

@@ -13,7 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from tacker.sol_refactored.api import server_notification_wsgi as sn_wsgi
+from tacker.sol_refactored.api import wsgi as sol_wsgi
 from tacker.sol_refactored.common import config as cfg
 from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import monitoring_plugin_base as mon_base
@@ -21,7 +21,7 @@ from tacker.sol_refactored.common import monitoring_plugin_base as mon_base
 CONF = cfg.CONF
 
 
-class ServerNotificationController(sn_wsgi.ServerNotificationAPIController):
+class ServerNotificationController(sol_wsgi.SolAPIController):
     def notify(self, request, vnf_instance_id, server_id, body):
         if not CONF.server_notification.server_notification:
             raise sol_ex.ServerNotificationNotEnabled()
@@ -31,4 +31,4 @@ class ServerNotificationController(sn_wsgi.ServerNotificationAPIController):
         mon_base.MonitoringPlugin.get_instance(cls).alert(
             request=request, vnf_instance_id=vnf_instance_id,
             server_id=server_id, body=body)
-        return sn_wsgi.ServerNotificationResponse(204, None)
+        return sol_wsgi.SolResponse(204, None)

@@ -155,7 +155,7 @@ class BaseVnfLcmKubernetesV2Test(base_v2.BaseTackerTestV2):
         path = f"/vnfpm/v2/thresholds/{pm_threshold_id}"
         return self.tacker_client.do_request(
             path, "PATCH", body=req_body, version=VNFPM_V2_VERSION,
-            content_type="application/mergepatch+json")
+            content_type="application/merge-patch+json")
 
     def pm_threshold(self, req_body):
         path = "/pm_threshold"

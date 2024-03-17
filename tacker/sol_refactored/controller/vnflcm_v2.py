@@ -650,10 +650,14 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
     def allowed_content_types(self, action):
         if action == 'update':
             # Content-Type of Modify request shall be
-            # 'application/mergepatch+json' according to SOL spec.
+            # 'application/merge-patch+json' according to SOL spec.
             # But 'application/json' and 'text/plain' is OK for backward
             # compatibility.
-            return ['application/mergepatch+json', 'application/json',
+            return ['application/merge-patch+json', 'application/json',
                     'text/plain']
         else:
             return ['application/json', 'text/plain']
+
+    def set_default_to_response(self, result, action):
+        result.headers.setdefault('version', api_version.CURRENT_VERSION)
+        result.headers.setdefault('accept-ranges', 'none')
