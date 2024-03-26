@@ -59,7 +59,7 @@ class TestVnffmV1(base.BaseTestCase):
         self.assertEqual(['application/json', 'text/plain'], result)
 
         result = self.controller.allowed_content_types('update')
-        self.assertEqual(['application/mergepatch+json', 'application/json',
+        self.assertEqual(['application/merge-patch+json', 'application/json',
                           'text/plain'], result)
 
     @mock.patch.object(alarm_utils, 'get_alarms_all')

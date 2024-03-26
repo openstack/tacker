@@ -152,7 +152,7 @@ class TestServerNotification(base.TestCase):
         self.config_fixture.config(
             group='server_notification', server_notification=True)
         self.assertRaises(
-            sol_ex.ServerNotificationValidationError,
+            sol_ex.SolValidationError,
             self.controller.notify,
             request=self.request,
             vnf_instance_id='test_id',
@@ -169,7 +169,7 @@ class TestServerNotification(base.TestCase):
 
         mock_inst.return_value = objects.VnfInstanceV2.from_dict(_inst)
         self.assertRaises(
-            sol_ex.ServerNotificationValidationError,
+            sol_ex.SolValidationError,
             self.controller.notify, request=self.request,
             vnf_instance_id='test_id',
             server_id='test_server_id', body=_body)
@@ -185,7 +185,7 @@ class TestServerNotification(base.TestCase):
 
         mock_inst.return_value = objects.VnfInstanceV2.from_dict(_inst)
         self.assertRaises(
-            sol_ex.ServerNotificationValidationError,
+            sol_ex.SolValidationError,
             self.controller.notify, request=self.request,
             vnf_instance_id='test_id',
             server_id='test_server_id', body=_body)
@@ -196,7 +196,7 @@ class TestServerNotification(base.TestCase):
             group='server_notification', server_notification=True)
         mock_inst.return_value = None
         self.assertRaises(
-            sol_ex.ServerNotificationValidationError,
+            sol_ex.SolValidationError,
             self.controller.notify, request=self.request,
             vnf_instance_id='test_id',
             server_id='test_server_id', body=_body)

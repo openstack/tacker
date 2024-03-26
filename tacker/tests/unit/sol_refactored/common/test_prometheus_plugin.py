@@ -1425,13 +1425,13 @@ class TestPrometheusPluginFm(base.TestCase):
             prometheus_plugin.PrometheusPluginFm)
         self.assertIsInstance(pp._instance, mon_base.MonitoringPluginStub)
 
-    def test_pm_no_body(self):
+    def test_fm_no_body(self):
         self.config_fixture.config(
-            group='prometheus_plugin', performance_management=True)
+            group='prometheus_plugin', fault_management=True)
         pp = mon_base.MonitoringPlugin.get_instance(
-            prometheus_plugin.PrometheusPluginPm)
+            prometheus_plugin.PrometheusPluginFm)
         self.assertRaises(
-            sol_ex.PrometheusPluginValidationError,
+            sol_ex.SolValidationError,
             pp._alert, self.request)
 
 

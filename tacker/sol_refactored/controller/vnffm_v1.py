@@ -53,10 +53,10 @@ class VnfFmControllerV1(sol_wsgi.SolAPIController):
     def allowed_content_types(self, action):
         if action == 'update':
             # Content-Type of Modify request shall be
-            # 'application/mergepatch+json' according to SOL spec.
+            # 'application/merge-patch+json' according to SOL spec.
             # But 'application/json' and 'text/plain' is OK for backward
             # compatibility.
-            return ['application/mergepatch+json', 'application/json',
+            return ['application/merge-patch+json', 'application/json',
                     'text/plain']
         return ['application/json', 'text/plain']
 
@@ -176,3 +176,7 @@ class VnfFmControllerV1(sol_wsgi.SolAPIController):
 
         return sol_wsgi.SolResponse(204, None,
                                     version=api_version.CURRENT_FM_VERSION)
+
+    def set_default_to_response(self, result, action):
+        result.headers.setdefault('version', api_version.CURRENT_FM_VERSION)
+        result.headers.setdefault('accept-ranges', 'none')

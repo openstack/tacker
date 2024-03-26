@@ -448,10 +448,6 @@ class PrometheusPluginSkipped(Exception):
     pass
 
 
-class PrometheusPluginValidationError(SolValidationError):
-    pass
-
-
 class PrometheusSettingFailed(SolHttpError503):
     message = _("Setting PM job on External Monitoring Tool failed.")
 
@@ -459,7 +455,3 @@ class PrometheusSettingFailed(SolHttpError503):
 # server_notification
 class ServerNotificationNotEnabled(SolHttpError404):
     message = _("ServerNotification API is not enabled.")
-
-
-class ServerNotificationValidationError(SolValidationError):
-    message = _("%(detail)s")
