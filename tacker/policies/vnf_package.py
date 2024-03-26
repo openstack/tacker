@@ -24,7 +24,7 @@ VNFPKGM = 'os_nfv_orchestration_api:vnf_packages:%s'
 rules = [
     policy.DocumentedRuleDefault(
         name=VNFPKGM % 'create',
-        check_str=base.RULE_ADMIN_OR_OWNER,
+        check_str=base.RULE_PROJECT_MEMBER_OR_ADMIN,
         description="Creates a vnf package.",
         operations=[
             {
@@ -35,7 +35,7 @@ rules = [
         scope_types=['project']),
     policy.DocumentedRuleDefault(
         name=VNFPKGM % 'show',
-        check_str=base.RULE_ADMIN_OR_OWNER,
+        check_str=base.RULE_PROJECT_READER_OR_ADMIN,
         description="Show a vnf package.",
         operations=[
             {
@@ -46,7 +46,7 @@ rules = [
         scope_types=['project']),
     policy.DocumentedRuleDefault(
         name=VNFPKGM % 'index',
-        check_str=base.RULE_ADMIN_OR_OWNER,
+        check_str=base.RULE_PROJECT_READER_OR_ADMIN,
         description="List all vnf packages.",
         operations=[
             {
@@ -57,7 +57,7 @@ rules = [
         scope_types=['project']),
     policy.DocumentedRuleDefault(
         name=VNFPKGM % 'delete',
-        check_str=base.RULE_ADMIN_OR_OWNER,
+        check_str=base.RULE_PROJECT_MEMBER_OR_ADMIN,
         description="Delete a vnf package.",
         operations=[
             {
@@ -68,7 +68,7 @@ rules = [
         scope_types=['project']),
     policy.DocumentedRuleDefault(
         name=VNFPKGM % 'fetch_package_content',
-        check_str=base.RULE_ADMIN_OR_OWNER,
+        check_str=base.RULE_PROJECT_READER_OR_ADMIN,
         description="fetch the contents of an on-boarded VNF Package",
         operations=[
             {
@@ -80,7 +80,7 @@ rules = [
         scope_types=['project']),
     policy.DocumentedRuleDefault(
         name=VNFPKGM % 'upload_package_content',
-        check_str=base.RULE_ADMIN_OR_OWNER,
+        check_str=base.RULE_PROJECT_MEMBER_OR_ADMIN,
         description="upload a vnf package content.",
         operations=[
             {
@@ -92,7 +92,7 @@ rules = [
         scope_types=['project']),
     policy.DocumentedRuleDefault(
         name=VNFPKGM % 'upload_from_uri',
-        check_str=base.RULE_ADMIN_OR_OWNER,
+        check_str=base.RULE_PROJECT_MEMBER_OR_ADMIN,
         description="upload a vnf package content from uri.",
         operations=[
             {
@@ -104,7 +104,7 @@ rules = [
         scope_types=['project']),
     policy.DocumentedRuleDefault(
         name=VNFPKGM % 'patch',
-        check_str=base.RULE_ADMIN_OR_OWNER,
+        check_str=base.RULE_PROJECT_MEMBER_OR_ADMIN,
         description="update information of vnf package.",
         operations=[
             {
@@ -115,7 +115,7 @@ rules = [
         scope_types=['project']),
     policy.DocumentedRuleDefault(
         name=VNFPKGM % 'get_vnf_package_vnfd',
-        check_str=base.RULE_ADMIN_OR_OWNER,
+        check_str=base.RULE_PROJECT_READER_OR_ADMIN,
         description="reads the content of the VNFD within a VNF package.",
         operations=[
             {
@@ -126,7 +126,7 @@ rules = [
         scope_types=['project']),
     policy.DocumentedRuleDefault(
         name=VNFPKGM % 'fetch_artifact',
-        check_str=base.RULE_ADMIN_OR_OWNER,
+        check_str=base.RULE_PROJECT_READER_OR_ADMIN,
         description="reads the content of the artifact within a VNF package.",
         operations=[
             {
