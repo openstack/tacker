@@ -33,21 +33,21 @@ class VnfPmDriverV2():
         self.endpoint = CONF.v2_vnfm.endpoint
         self.nfvo_client = nfvo_client.NfvoClient()
 
-    def store_job_info(self, context, report):
-        # store report into db
+    def store_job_info(self, context, reports):
+        for report in reports:
+            # store report into db
+            report = self._store_report(context, report)
 
-        report = self._store_report(context, report)
+            # update job reports
+            job_id = report.jobId
+            timestamp = report.entries[0].performanceValues[0].timeStamp
+            pm_job = self._update_job_reports(
+                context, job_id, report, timestamp, self.endpoint)
 
-        # update job reports
-        job_id = report.jobId
-        timestamp = report.entries[0].performanceValues[0].timeStamp
-        pm_job = self._update_job_reports(
-            context, job_id, report, timestamp, self.endpoint)
-
-        # Send a notify pm job request to the NFVO client.
-        # POST /{pmjob.callbackUri}
-        self.nfvo_client.send_pm_job_notification(
-            report, pm_job, timestamp, self.endpoint)
+            # Send a notify pm job request to the NFVO client.
+            # POST /{pmjob.callbackUri}
+            self.nfvo_client.send_pm_job_notification(
+                report, pm_job, timestamp, self.endpoint)
 
     def store_threshold_info(self, context, threshold_states):
         for threshold_state in threshold_states:

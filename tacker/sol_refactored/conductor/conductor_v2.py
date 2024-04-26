@@ -434,9 +434,9 @@ class ConductorV2(object):
     def store_alarm_info(self, context, alarm):
         self.vnffm_driver.store_alarm_info(context, alarm)
 
-    def store_job_info(self, context, report):
+    def store_job_info(self, context, reports):
         # call pm_driver
-        self.vnfpm_driver.store_job_info(context, report)
+        self.vnfpm_driver.store_job_info(context, reports)
 
     def store_threshold_state_info(self, context, threshold_states):
         # call pm_driver

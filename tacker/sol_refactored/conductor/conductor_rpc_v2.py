@@ -92,8 +92,8 @@ class PrometheusPluginConductor(object):
     def store_alarm_info(self, context, alarm):
         self.cast(context, 'store_alarm_info', alarm=alarm)
 
-    def store_job_info(self, context, report):
-        self.cast(context, 'store_job_info', report=report)
+    def store_job_info(self, context, reports):
+        self.cast(context, 'store_job_info', reports=reports)
 
     def store_threshold_state_info(self, context, threshold_states):
         self.cast(context, 'store_threshold_state_info',

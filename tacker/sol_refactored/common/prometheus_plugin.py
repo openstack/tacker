@@ -507,7 +507,7 @@ class PrometheusPluginPm(PrometheusPluginPmBase, mon_base.MonitoringPlugin):
 
     @validator.schema_nover(prometheus_plugin_schemas.AlertMessage)
     def _alert(self, request, body):
-        result = []
+        result = {}
         context = request.context
         datetime_now = datetime.datetime.now(datetime.timezone.utc)
         for alert in body['alerts']:
@@ -529,7 +529,7 @@ class PrometheusPluginPm(PrometheusPluginPmBase, mon_base.MonitoringPlugin):
                     pm_job, object_instance_id, sub_object_instance_id)
                 value = self.convert_measurement_unit(metric, value)
 
-                result.append({
+                entry = {
                     'objectType': pm_job.objectType,
                     'objectInstanceId': object_instance_id,
                     'subObjectInstanceId': sub_object_instance_id,
@@ -538,17 +538,22 @@ class PrometheusPluginPm(PrometheusPluginPmBase, mon_base.MonitoringPlugin):
                         'timeStamp': datetime_now,
                         'value': value
                     }]
-                })
+                }
+                if pm_job_id in result:
+                    result[pm_job_id].append(entry)
+                else:
+                    result[pm_job_id] = [entry]
+
             except sol_ex.PrometheusPluginSkipped:
                 pass
         if len(result) > 0:
             if self.notification_callback:
-                # every job_id in body['alerts'] has same id
-                self.notification_callback(context, {
+                # Call ConductorV2
+                self.notification_callback(context, [{
                     'id': uuidutils.generate_uuid(),
                     'jobId': pm_job_id,
-                    'entries': result,
-                })
+                    'entries': entries
+                } for pm_job_id, entries in result.items()])
         return result
 
     def decompose_metrics_vnfc(self, pm_job):
