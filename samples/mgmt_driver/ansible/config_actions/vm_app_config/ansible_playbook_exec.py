@@ -14,7 +14,6 @@ import json
 import os
 
 from oslo_log import log as logging
-from six import iteritems
 from tacker.vnfm.mgmt_drivers.ansible import event_handler
 from tacker.vnfm.mgmt_drivers.ansible import exceptions
 
@@ -73,7 +72,7 @@ class AnsiblePlaybookExecutor(executor.Executor):
         params = ""
         obj_params = playbook_cmd.get("params", "")
         if obj_params:
-            for key, value in iteritems(obj_params):
+            for key, value in obj_params.items():
                 if isinstance(value, dict):
                     str_value = json.dumps(
                         value, separators=(',', ':')).replace('"', '\\"')

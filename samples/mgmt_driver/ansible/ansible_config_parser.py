@@ -13,7 +13,6 @@
 import ast
 import datetime
 import re
-import six
 import yaml
 
 from heatclient import client as hclient
@@ -146,7 +145,7 @@ class ConfigParser():
                 list_flag = True
             elif isinstance(command, dict):
                 dict_flag = True
-            elif not isinstance(command, six.string_types):
+            elif not isinstance(command, str):
                 raise Exception(
                     "Value '{}' of type '{}' is not yet supported "
                     " for parameter substitution."
@@ -365,7 +364,7 @@ class ConfigParser():
         # apply filters
         if isinstance(items, dict):
             raw_result = dict(filter(filter_func, items.items()))
-        elif isinstance(items, six.string_types):
+        elif isinstance(items, str):
             # check if instance is string dict, else return as string,
             # since item is a single value
             try:
@@ -459,7 +458,7 @@ class ConfigHandle():
                     res = res + "{}".format(item)
                 else:
                     res = res + ",{}".format(item)
-        elif isinstance(items, six.string_types):
+        elif isinstance(items, str):
             res = items
         else:
             raise Exception(
