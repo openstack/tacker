@@ -235,7 +235,7 @@ resources such as VDU and CP. The file includes:
 
       * virtual_link_external: A list of CP and VL for external network
 
-  * *node_template*:
+  * *node_templates*:
 
     * VNF resource
     * VDU resources
