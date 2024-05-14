@@ -162,7 +162,7 @@ Optional parameters:
 
 An example of a param file with only required parameters:
 
-.. code-block:: console
+.. code-block:: json
 
   {
     "flavourId":"simple",
