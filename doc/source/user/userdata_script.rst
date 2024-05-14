@@ -70,15 +70,15 @@ Following shows sample output.
 
 .. code-block:: python
 
- fields = {
-             'template': yaml.safe_dump(top_hot),
-             'parameters': {'nfv': nfv_dict},
-             'files': {}
-         }
-         for key, value in hot_dict.get('files', {}).items():
-             fields['files'][key] = yaml.safe_dump(value)
+    fields = {
+        'template': yaml.safe_dump(top_hot),
+        'parameters': {'nfv': nfv_dict},
+        'files': {}
+    }
+    for key, value in hot_dict.get('files', {}).items():
+        fields['files'][key] = yaml.safe_dump(value)
 
-         return fields
+    return fields
 
 
 scale()
@@ -98,9 +98,9 @@ Following shows sample output.
 
 .. code-block:: python
 
-        fields = {'parameters': {'nfv': {'VDU': new_vdus}}}
+    fields = {'parameters': {'nfv': {'VDU': new_vdus}}}
 
-        return fields
+    return fields
 
 
 scale_rollback()
@@ -120,9 +120,9 @@ Following shows sample output.
 
 .. code-block:: python
 
-        fields = {'parameters': {'nfv': {'VDU': new_vdus}}}
+    fields = {'parameters': {'nfv': {'VDU': new_vdus}}}
 
-        return fields
+    return fields
 
 
 change_ext_conn()
@@ -142,9 +142,9 @@ Following shows sample output.
 
 .. code-block:: python
 
-        fields = {'parameters': {'nfv': {'CP': new_cps}}}
+    fields = {'parameters': {'nfv': {'CP': new_cps}}}
 
-        return fields
+    return fields
 
 
 change_ext_conn_rollback()
@@ -164,9 +164,9 @@ Following shows sample output.
 
 .. code-block:: python
 
-        fields = {'parameters': {'nfv': {'CP': new_cps}}}
+    fields = {'parameters': {'nfv': {'CP': new_cps}}}
 
-        return fields
+    return fields
 
 
 heal()
@@ -186,9 +186,9 @@ Following shows sample output.
 
 .. code-block:: python
 
-        fields = {'parameters': {'nfv': {}}}
+    fields = {'parameters': {'nfv': {}}}
 
-        return fields
+    return fields
 
 Sample userdata script using AutoScalingGroup
 =============================================
