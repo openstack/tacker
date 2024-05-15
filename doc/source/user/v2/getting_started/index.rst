@@ -818,6 +818,6 @@ Delete VNF Package
 
 
 .. _tacker/doc/user/v2/getting_started/conf:
-  https://opendev.org/openstack/tacker/src/branch/master/doc/user/v2/getting_started/conf
+  https://opendev.org/openstack/tacker/src/branch/master/doc/source/user/v2/getting_started/conf
 .. _Create OpenStack client environment scripts: https://docs.openstack.org/keystone/latest/install/keystone-openrc-rdo.html
 .. _SOL001: https://forge.etsi.org/rep/nfv/SOL001
