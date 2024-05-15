@@ -18,9 +18,6 @@ from oslo_db.sqlalchemy import enginefacade
 
 
 context_manager = enginefacade.transaction_context()
-# FIXME(ueha): we need to remove reliance on autocommit semantics ASAP
-# since it's not compatible with SQLAlchemy 2.0
-context_manager.configure(__autocommit=True)
 
 _FACADE = None
 
@@ -41,8 +38,7 @@ def get_engine():
     return facade.get_engine()
 
 
-def get_session(autocommit=True, expire_on_commit=False):
+def get_session():
     """Helper method to grab session."""
     facade = _create_facade_lazily()
-    return facade.get_session(autocommit=autocommit,
-                              expire_on_commit=expire_on_commit)
+    return facade.get_session()

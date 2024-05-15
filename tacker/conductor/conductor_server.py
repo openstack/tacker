@@ -486,7 +486,7 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
 
     @revert_upload_vnf_package
     def load_csar_data(self, context, vnf_package):
-        with context.session.begin(subtransactions=True):
+        with context.session.begin():
             vnf_package = vnf_package_obj.VnfPackage.get_by_id_with_lock(
                 context, vnf_package.id)
             vnf_package.downloading += 1
@@ -496,7 +496,7 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
         zip_path = glance_store.load_csar(vnf_package.id, location)
         vnf_data, flavours, vnf_artifacts = csar_utils.load_csar_data(
             context.elevated(), vnf_package.id, zip_path)
-        with context.session.begin(subtransactions=True):
+        with context.session.begin():
             vnf_package = vnf_package_obj.VnfPackage.get_by_id_with_lock(
                 context, vnf_package.id)
             vnf_package.downloading -= 1
@@ -699,7 +699,7 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
             state_conditions = {state_conditions}
 
         '''Change vnf status'''
-        with context.session.begin(subtransactions=True):
+        with context.session.begin(nested=True):
             updated_values = {'status': new_status,
                               'updated_at': timeutils.utcnow()}
             vnf_model = (context.session
@@ -715,10 +715,11 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
                     message=('Cannot change status to %s while in %s'
                              % (updated_values['status'], vnf_model.status)))
             vnf_model.update(updated_values)
+            context.session.commit()
 
     def _update_vnf_attributes(self, context, vnf_instance, vnf_dict,
             current_statuses, new_status, vim_id=None):
-        with context.session.begin(subtransactions=True):
+        with context.session.begin(nested=True):
             try:
                 modified_attributes = {}
                 added_attributes = {}
@@ -763,9 +764,14 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
                             key=key, value=val)
                         context.session.add(vnf_attr_model)
 
+                context.session.commit()
+
             except Exception as exc:
                 with excutils.save_and_reraise_exception():
                     LOG.error("Error in updating tables {}".format(str(exc)))
+
+                    # TODO(yasufum): Confirm if the following updates and
+                    # deletes of the models should be done in `finally` clause.
                     # Roll back modified/added vnf attributes
                     for key, val in modified_attributes.items():
                         vnf_attr_model = (context.session.query(
@@ -782,6 +788,8 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
                             filter_by(key=key).first())
                         if vnf_attr_model:
                             vnf_attr_model.delete()
+
+                    context.session.commit()
 
     @log.log
     def _build_instantiated_vnf_info(self, context, vnf_instance,
@@ -889,10 +897,11 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
                     # add instance_id info
                     instance_id = vnf_instance.instantiated_vnf_info.\
                         instance_id
-                    with context.session.begin(subtransactions=True):
+                    with context.session.begin(nested=True):
                         updated_values = {'instance_id': instance_id}
                         context.session.query(vnfm_db.VNF).filter_by(
                             id=vnf_instance.id).update(updated_values)
+                        context.session.commit()
 
         except Exception as ex:
             # with excutils.save_and_reraise_exception():
@@ -2192,7 +2201,7 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
             context, vnf_dict, heal_vnf_request, inst_vnf_info)
 
         # update vnf_attribute in DB
-        with context.session.begin(subtransactions=True):
+        with context.session.begin(nested=True):
             vnf_attr_model = (context.session.query(
                 vnfm_db.VNFAttribute).
                 filter_by(vnf_id=vnf_id).
@@ -2200,6 +2209,8 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
 
             if vnf_attr_model:
                 vnf_attr_model.update({'value': str(stack_param)})
+
+            context.session.commit()
 
     @coordination.synchronized('{vnf_instance[id]}')
     def heal(self, context, vnf_instance, vnf_dict, heal_vnf_request,

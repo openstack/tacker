@@ -113,7 +113,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             template_source='onboarded',
             deleted_at=datetime.min)
         session.add(vnf_template)
-        session.flush()
+        session.commit()
         return vnf_template
 
     def _insert_dummy_vnf_template_inline(self):
@@ -126,7 +126,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             deleted_at=datetime.min,
             template_source='inline')
         session.add(vnf_template)
-        session.flush()
+        session.commit()
         return vnf_template
 
     def _insert_dummy_vnf(self, status="ACTIVE"):
@@ -143,7 +143,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             status=status,
             deleted_at=datetime.min)
         session.add(vnf_db)
-        session.flush()
+        session.commit()
         return vnf_db
 
     def _insert_dummy_pending_vnf(self, context, status='PENDING_DELETE'):
@@ -160,7 +160,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             status=status,
             deleted_at=datetime.min)
         session.add(vnf_db)
-        session.flush()
+        session.commit()
         return vnf_db
 
     def _insert_scaling_attributes_vnf(self):
@@ -172,7 +172,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             value='{"SP1": "G1"}'
         )
         session.add(vnf_attributes)
-        session.flush()
+        session.commit()
         return vnf_attributes
 
     def _insert_scaling_attributes_vnfd(self, invalid_policy_type=False):
@@ -184,7 +184,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             value=utils.vnfd_scale_tosca_template
         )
         session.add(vnfd_attributes)
-        session.flush()
+        session.commit()
         if invalid_policy_type:
             vnfd_template = yaml.safe_load(vnfd_attributes.value)
             vnfd_template['topology_template']['policies'][0]['SP1']['type'] \
@@ -211,7 +211,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
                        'project_domain_id': 'default'})
         session.add(vim_db)
         session.add(vim_auth_db)
-        session.flush()
+        session.commit()
 
     def test_get_placement_constraint(self):
         res_str = '[{"id_type": "RES_MGMT", "resource_id": ' + \
@@ -240,9 +240,9 @@ class TestVNFMPlugin(db_base.SqlTestCase):
                 tzinfo=iso8601.UTC),
             vnf_pkg_id=uuidutils.generate_uuid())
         self.context.session.add(vnf_inst)
-        self.context.session.flush()
+        self.context.session.commit()
         self.context.session.add(placemnt)
-        self.context.session.flush()
+        self.context.session.commit()
 
         res = self.vnfm_plugin.get_placement_constraint(
             self.context, '7ddc38c3-a116-48b0-bfc1-68d7f306f467')
@@ -285,9 +285,9 @@ class TestVNFMPlugin(db_base.SqlTestCase):
                 tzinfo=iso8601.UTC),
             vnf_pkg_id=uuidutils.generate_uuid())
         self.context.session.add(vnf_inst)
-        self.context.session.flush()
+        self.context.session.commit()
         self.context.session.add(placemnt)
-        self.context.session.flush()
+        self.context.session.commit()
 
         vnf_info = {}
         vnf_info['grant'] = objects.Grant()
@@ -335,9 +335,9 @@ class TestVNFMPlugin(db_base.SqlTestCase):
                 tzinfo=iso8601.UTC),
             vnf_pkg_id=uuidutils.generate_uuid())
         self.context.session.add(vnf_inst)
-        self.context.session.flush()
+        self.context.session.commit()
         self.context.session.add(placemnt)
-        self.context.session.flush()
+        self.context.session.commit()
 
         self.vnfm_plugin.delete_placement_constraint(
             self.context, '7ddc38c3-a116-48b0-bfc1-68d7f306f467')

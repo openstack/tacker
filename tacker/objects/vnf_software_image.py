@@ -43,7 +43,7 @@ def _metadata_add_to_db(context, id, metadata, max_retries=10):
                                     "image_uuid": id})
             if new_entries:
                 context.session.execute(
-                    models.VnfSoftwareImageMetadata.__table__.insert(None),
+                    models.VnfSoftwareImageMetadata.__table__.insert(),
                     new_entries)
 
             return metadata
@@ -69,7 +69,8 @@ def _vnf_sw_image_create(context, values, metadata=None):
 def _vnf_sw_image_get_by_id(context, id):
 
     query = api.model_query(context, models.VnfSoftwareImage,
-        read_deleted="no").filter_by(id=id).options(joinedload('_metadata'))
+        read_deleted="no").filter_by(id=id).options(
+            joinedload(models.VnfSoftwareImage._metadata))
 
     result = query.first()
 

@@ -136,7 +136,8 @@ class VnfDeploymentFlavour(base.TackerObject, base.TackerPersistentObject):
         if expected_attrs is None:
             expected_attrs = []
 
-        if 'software_images' in expected_attrs:
+        str_a = str(models.VnfDeploymentFlavour.software_images)
+        if str_a in [str(a) for a in expected_attrs]:
             flavour._load_sw_images(db_flavour.get('software_images'))
 
     @base.remotable
@@ -225,7 +226,8 @@ class VnfDeploymentFlavour(base.TackerObject, base.TackerPersistentObject):
     def _load_sw_images(self, db_sw_images=_NO_DATA_SENTINEL):
         if db_sw_images is _NO_DATA_SENTINEL:
             vnf_deployment_flavour = self.get_by_id(
-                self._context, self.id, expected_attrs=['software_images'])
+                self._context, self.id,
+                expected_attrs=[models.VnfDeploymentFlavour.software_images])
             if 'software_images' in vnf_deployment_flavour:
                 self.software_images = vnf_deployment_flavour.software_images
                 self.software_images.obj_reset_changes(recursive=True)

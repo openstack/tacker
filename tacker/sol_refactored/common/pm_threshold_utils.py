@@ -86,7 +86,7 @@ def update_threshold_state_data(context, threshold_id,
         pm_threshold.metadata = {
             'thresholdState': [threshold_state_data]}
 
-    with context.session.begin(subtransactions=True):
+    with context.session.begin():
         pm_threshold.update(context)
 
 

@@ -210,8 +210,6 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
         return dict((arg.key, arg.value) for arg in dev_attrs_db)
 
     def _make_vnf_dict(self, vnf_db, fields=None):
-        LOG.debug('vnf_db %s', vnf_db)
-        LOG.debug('vnf_db attributes %s', vnf_db.attributes)
         res = {
             'vnfd':
             self._make_vnfd_dict(vnf_db.vnfd),
@@ -281,17 +279,19 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
         return True
 
     def update_vnf_cancel_status(self, context, vnf_id, status):
-        with context.session.begin(subtransactions=True):
+        with context.session.begin(nested=True):
             self._update_vnf_status_db_no_check(
                 context, vnf_id, [*constants.PENDING_STATUSES], status)
+            context.session.commit()
 
     def update_vnf_fail_status(self,
                                context,
                                vnf_id,
                                status):
-        with context.session.begin(subtransactions=True):
+        with context.session.begin(nested=True):
             self._update_vnf_status_db(
                 context, vnf_id, [constants.ERROR], status)
+            context.session.commit()
 
     def _update_vnf_scaling_status(self,
                                    context,
@@ -299,11 +299,12 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                                    previous_statuses,
                                    status,
                                    mgmt_ip_address=None):
-        with context.session.begin(subtransactions=True):
+        with context.session.begin(nested=True):
             vnf_db = self._update_vnf_status_db(
                 context, policy['vnf']['id'], previous_statuses, status)
             if mgmt_ip_address:
                 vnf_db.update({'mgmt_ip_address': mgmt_ip_address})
+            context.session.commit()
         updated_vnf_dict = self._make_vnf_dict(vnf_db)
         return updated_vnf_dict
 
@@ -313,9 +314,10 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
         previous_statuses = ['PENDING_SCALE_OUT', 'PENDING_SCALE_IN', 'ACTIVE']
 
         try:
-            with context.session.begin(subtransactions=True):
+            with context.session.begin(nested=True):
                 self._update_vnf_status_db(
                     context, vnf_info['id'], previous_statuses, 'ERROR')
+                context.session.commit()
         except Exception as e:
             LOG.error("Failed to revert scale info for vnf "
                       "instance %(id)s. Error: %(error)s",
@@ -326,7 +328,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                             vnf_info,
                             previous_statuses,
                             status):
-        with context.session.begin(subtransactions=True):
+        with context.session.begin(nested=True):
             timestamp = timeutils.utcnow()
             (self._model_query(context, VNF).
              filter(VNF.id == vnf_info['id']).
@@ -344,6 +346,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                 if 'vim_auth' not in key:
                     self._vnf_attribute_update_or_create(
                         context, vnf_info['id'], key, value)
+            context.session.commit()
 
     def get_vnf(self, context, vnf_id, fields=None):
         vnf_db = self._get_resource(context, VNF, vnf_id)
@@ -355,6 +358,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
 
     def create_placement_constraint(self, context, placement_obj_list):
         context.session.add_all(placement_obj_list)
+        context.session.commit()
 
     def get_placement_constraint(self, context, vnf_instance_id):
         placement_constraint = (
@@ -401,12 +405,9 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                 'resource': placement_obj.resource,
                 'updated_at': timeutils.utcnow()}))
 
-    def _update_vnf_rollback(self,
-                            context,
-                            vnf_info,
-                            previous_statuses,
-                            status):
-        with context.session.begin(subtransactions=True):
+    def _update_vnf_rollback(self, context, vnf_info, previous_statuses,
+                             status):
+        with context.session.begin(nested=True):
             timestamp = timeutils.utcnow()
             (self._model_query(context, VNF).
              filter(VNF.id == vnf_info['id']).
@@ -426,3 +427,5 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                     if 'vim_auth' not in key:
                         self._vnf_attribute_update_or_create(
                             context, vnf_info['id'], key, value)
+
+            context.session.commit()

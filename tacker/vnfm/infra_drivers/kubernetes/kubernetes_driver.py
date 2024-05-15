@@ -34,6 +34,7 @@ from tacker.common.container import kubernetes_utils
 from tacker.common import exceptions
 from tacker.common import log
 from tacker.common import utils
+from tacker.db.db_sqlalchemy import models
 from tacker.extensions import vnfm
 from tacker import objects
 from tacker.objects import fields
@@ -1420,7 +1421,8 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                 context, vnf_instance.vnfd_id)
             package_uuid = package_vnfd.package_uuid
             vnf_package = vnf_package_obj.VnfPackage.get_by_id(
-                context, package_uuid, expected_attrs=['vnf_artifacts'])
+                context, package_uuid,
+                expected_attrs=[models.VnfPackage.vnf_artifacts])
             if vnf_package.vnf_artifacts:
                 vnf_artifacts = vnf_package.vnf_artifacts
                 length = len(vnf_artifacts)

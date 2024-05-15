@@ -22,6 +22,7 @@ class TackerBase(models.ModelBase):
     """Base class for Tacker Models."""
 
     __table_args__ = {'mysql_engine': 'InnoDB'}
+    __allow_unmapped__ = True
 
     def __iter__(self):
         self._i = iter(orm.object_mapper(self).columns)

@@ -59,8 +59,9 @@ def _add_user_defined_data(context, package_uuid, user_data,
                                         "package_uuid": package_uuid})
                 if new_entries:
                     context.session.execute(
-                        models.VnfPackageUserData.__table__.insert(None),
+                        models.VnfPackageUserData.__table__.insert(),
                         new_entries)
+                    context.session.commit()
 
                 return user_data
         except db_exc.DBDuplicateEntry:
@@ -85,7 +86,7 @@ def _update_user_defined_data(context, package_uuid, user_data):
     model = models.VnfPackageUserData
     user_data = user_data.copy()
     session = context.session
-    with session.begin(subtransactions=True):
+    with session.begin(nested=True):
         # Get existing user_data
         db_user_data = _vnf_package_user_data_get_query(context, package_uuid,
                                                         model).all()
@@ -113,6 +114,8 @@ def _update_user_defined_data(context, package_uuid, user_data):
         save.extend(skip)
         result = {row['key']: row['value'] for row in save}
 
+        context.session.commit()
+
     return result
 
 
@@ -122,7 +125,8 @@ def _vnf_packages_get_by_filters_query(context, read_deleted=None,
 
     query = api.model_query(context, models.VnfPackage,
                             read_deleted=read_deleted,
-                            project_only=True).options(joinedload('_metadata'))
+                            project_only=True).options(
+                                joinedload(models.VnfPackage._metadata))
 
     if filters:
         # Need to join VnfDeploymentFlavour, VnfSoftwareImage and
@@ -154,7 +158,8 @@ def _vnf_package_get_by_id(context, package_uuid, columns_to_join=None):
 
     query = api.model_query(context, models.VnfPackage,
                             read_deleted="no", project_only=True). \
-        filter_by(id=package_uuid).options(joinedload('_metadata'))
+        filter_by(id=package_uuid).options(
+            joinedload(models.VnfPackage._metadata))
 
     if columns_to_join:
         for column in columns_to_join:
@@ -187,7 +192,8 @@ def _vnf_package_create(context, values, user_data=None):
 @db_api.context_manager.reader
 def _vnf_package_list(context, columns_to_join=None):
     query = api.model_query(context, models.VnfPackage, read_deleted="no",
-                            project_only=True).options(joinedload('_metadata'))
+                project_only=True).options(
+                    joinedload(models.VnfPackage._metadata))
 
     if columns_to_join:
         for column in columns_to_join:
@@ -200,7 +206,8 @@ def _vnf_package_list(context, columns_to_join=None):
 def _vnf_package_list_by_filters(context, read_deleted=None, filters=None):
     query = api.model_query(context, models.VnfPackage,
                             read_deleted=read_deleted,
-                            project_only=True).options(joinedload('_metadata'))
+                            project_only=True).options(
+                                joinedload(models.VnfPackage._metadata))
 
     if filters:
         # Need to join VnfDeploymentFlavour, VnfSoftwareImage and
@@ -425,14 +432,20 @@ class VnfPackage(base.TackerObject, base.TackerPersistentObject,
         if expected_attrs is None:
             expected_attrs = []
 
-        if 'vnf_deployment_flavours' in expected_attrs:
+        # NOTE(yasufum): To check `expected_attrs`, use list comprehensions
+        # for converting each entry in `expected_attrs` to str to become
+        # comparable because attribute of model object, which type is
+        # `sqlalchemy.orm.InstrumentedAttribute`, isn't comparable each other.
+        str_a = str(models.VnfPackage.vnf_deployment_flavours)
+        if str_a in [str(a) for a in expected_attrs]:
             vnf_package._load_vnf_deployment_flavours(
                 db_vnf_package.get('vnf_deployment_flavours'))
-
-        if 'vnfd' in expected_attrs:
+        str_a = str(models.VnfPackage.vnfd)
+        if str_a in [str(a) for a in expected_attrs]:
             vnf_package._load_vnfd(db_vnf_package.get('vnfd'))
 
-        if 'vnf_artifacts' in expected_attrs:
+        str_a = str(models.VnfPackage.vnf_artifacts)
+        if str_a in [str(a) for a in expected_attrs]:
             vnf_package._load_vnf_artifacts(
                 db_vnf_package.get('vnf_artifacts'))
 
@@ -440,7 +453,7 @@ class VnfPackage(base.TackerObject, base.TackerPersistentObject,
         if db_flavours is _NO_DATA_SENTINEL:
             vnf_package = self.get_by_id(
                 self._context, self.id,
-                expected_attrs=['vnf_deployment_flavours'])
+                expected_attrs=[models.VnfPackage.vnf_deployment_flavours])
             if 'vnf_deployment_flavours' in vnf_package:
                 self.vnf_deployment_flavours = \
                     vnf_package.vnf_deployment_flavours
@@ -460,7 +473,7 @@ class VnfPackage(base.TackerObject, base.TackerPersistentObject,
             self.vnfd = None
         elif db_vnfd is _NO_DATA_SENTINEL:
             vnf_package = self.get_by_id(self._context, self.id,
-                                         expected_attrs=['vnfd'])
+                            expected_attrs=[models.VnfPackage.vnfd])
 
             if 'vnfd' in vnf_package and vnf_package.vnfd is not None:
                 self.vnfd = vnf_package.vnfd
@@ -477,7 +490,7 @@ class VnfPackage(base.TackerObject, base.TackerPersistentObject,
         if db_artifact is _NO_DATA_SENTINEL:
             vnf_package = self.get_by_id(
                 self._context, self.id,
-                expected_attrs=['vnf_artifacts'])
+                expected_attrs=[models.VnfPackage.vnf_artifacts])
             if 'vnf_artifacts' in vnf_package:
                 self.vnf_artifacts = vnf_package.vnf_artifacts
                 self.vnf_artifacts.obj_reset_changes(recursive=True)

@@ -63,10 +63,10 @@
           - compute1
 
 - job:
-    name: tacker-functional-devstack-multinode-sol
+    name: tacker-functional-devstack-multinode-sol-parent
     parent: devstack
     description: |
-      Multinodes job for SOL devstack-based functional tests
+      Abstraction multinodes job for SOL devstack-based functional tests
     nodeset: openstack-4-nodes-jammy
     pre-run: playbooks/devstack/pre.yaml
     run: playbooks/devstack/run.yaml
@@ -188,7 +188,6 @@
           # Tacker services
           tacker: true
           tacker-conductor: true
-        tox_envlist: dsvm-functional-sol
     group-vars:
       compute:
         # Since a VirtualInterfaceCreateException occurs during a test,
@@ -232,8 +231,36 @@
           q-ovn-metadata-agent: true
 
 - job:
-    name: tacker-functional-devstack-multinode-sol-v2
-    parent: tacker-functional-devstack-multinode-sol
+    name: tacker-functional-devstack-multinode-sol-legacy-nfvo
+    parent: tacker-functional-devstack-multinode-sol-parent
+    description: |
+      Multinodes job for SOL devstack-based functional tests for legacy_nfvo
+    host-vars:
+      controller-tacker:
+        tox_envlist: dsvm-functional-sol-legacy-nfvo
+
+- job:
+    name: tacker-functional-devstack-multinode-sol-vnflcm
+    parent: tacker-functional-devstack-multinode-sol-parent
+    description: |
+      Multinodes job for SOL devstack-based functional tests for vnflcm
+    host-vars:
+      controller-tacker:
+        tox_envlist: dsvm-functional-sol-vnflcm
+    voting: false
+
+- job:
+    name: tacker-functional-devstack-multinode-sol-vnfpkgm
+    parent: tacker-functional-devstack-multinode-sol-parent
+    description: |
+      Multinodes job for SOL devstack-based functional tests for vnfpkgm
+    host-vars:
+      controller-tacker:
+        tox_envlist: dsvm-functional-sol-vnfpkgm
+
+- job:
+    name: tacker-functional-devstack-multinode-sol-v2-basic
+    parent: tacker-functional-devstack-multinode-sol-parent
     description: |
       Multinodes job for SOL V2 devstack-based functional tests
     host-vars:
@@ -246,11 +273,64 @@
               prometheus_plugin:
                 auto_scaling: true
                 auto_healing: true
-        tox_envlist: dsvm-functional-sol-v2
+              v2_vnfm:
+                # Notes: The List API will return 'Link' Header in response
+                # body only if page_size is not 0. This job will check 'Link'
+                # Header, so these page_size parameters are set to 1.
+                vnf_instance_page_size: 1
+                lcm_op_occ_page_size: 1
+        tox_envlist: dsvm-functional-sol-v2-basic
+
+- job:
+    name: tacker-functional-devstack-multinode-sol-v2-vnflcm
+    parent: tacker-functional-devstack-multinode-sol-parent
+    description: |
+      Multinodes job for SOL V2 devstack-based functional tests
+    host-vars:
+      controller-tacker:
+        devstack_local_conf:
+          post-config:
+            $TACKER_CONF:
+              server_notification:
+                server_notification: true
+              prometheus_plugin:
+                auto_scaling: true
+                auto_healing: true
+        tox_envlist: dsvm-functional-sol-v2-vnflcm
+    voting: false
+
+- job:
+    name: tacker-functional-devstack-multinode-sol-v2-notification
+    parent: tacker-functional-devstack-multinode-sol-parent
+    description: |
+      Multinodes job for SOL V2 devstack-based functional tests
+    host-vars:
+      controller-tacker:
+        devstack_local_conf:
+          post-config:
+            $TACKER_CONF:
+              server_notification:
+                server_notification: true
+        tox_envlist: dsvm-functional-sol-v2-notification
+
+- job:
+    name: tacker-functional-devstack-multinode-sol-v2-prometheus
+    parent: tacker-functional-devstack-multinode-sol-parent
+    description: |
+      Multinodes job for SOL V2 devstack-based functional tests
+    host-vars:
+      controller-tacker:
+        devstack_local_conf:
+          post-config:
+            $TACKER_CONF:
+              prometheus_plugin:
+                auto_scaling: true
+                auto_healing: true
+        tox_envlist: dsvm-functional-sol-v2-prometheus
 
 - job:
     name: tacker-functional-devstack-multinode-sol-multi-tenant
-    parent: tacker-functional-devstack-multinode-sol
+    parent: tacker-functional-devstack-multinode-sol-parent
     description: |
       Multinodes job for SOL Multi tenant devstack-based functional tests
     host-vars:
@@ -261,7 +341,7 @@
 
 - job:
     name: tacker-functional-devstack-multinode-sol-separated-nfvo
-    parent: tacker-functional-devstack-multinode-sol
+    parent: tacker-functional-devstack-multinode-sol-parent
     description: |
       Multinodes job for SOL devstack-based functional tests
       with separated NFVO
@@ -281,7 +361,7 @@
 
 - job:
     name: tacker-functional-devstack-multinode-sol-separated-nfvo-v2
-    parent: tacker-functional-devstack-multinode-sol
+    parent: tacker-functional-devstack-multinode-sol-parent
     description: |
       Multinodes job for SOL devstack-based functional tests
       with separated V2 NFVO
@@ -301,7 +381,7 @@
 
 - job:
     name: tacker-functional-devstack-multinode-sol-v2-individual-vnfc-mgmt
-    parent: tacker-functional-devstack-multinode-sol
+    parent: tacker-functional-devstack-multinode-sol-parent
     description: |
       Multinode job for SOL V2 devstack-based individual vnfc mgmt functional
       tests
@@ -319,10 +399,11 @@
         tox_envlist: dsvm-functional-sol-v2-individual-vnfc-mgmt
 
 - job:
-    name: tacker-functional-devstack-multinode-sol-kubernetes
+    name: tacker-functional-devstack-multinode-sol-kubernetes-parent
     parent: devstack
     description: |
-      Multinodes job for SOL devstack-based kubernetes functional tests
+      Abstraction multinodes job for SOL devstack-based kubernetes functional
+      tests
     nodeset: openstack-k8s-4-nodes-jammy
     pre-run: playbooks/devstack/pre.yaml
     run: playbooks/devstack/run.yaml
@@ -333,7 +414,6 @@
     required-projects:
       - openstack/barbican
       - openstack/cinder
-      - openstack/devstack-gate
       - openstack/devstack-plugin-container
       - openstack/glance
       - openstack/heat
@@ -416,7 +496,6 @@
           tacker-conductor: true
         devstack_plugins:
           tacker: https://opendev.org/openstack/tacker
-        tox_envlist: dsvm-functional-sol-kubernetes
       controller-k8s:
         devstack_local_conf: {}
         devstack_plugins:
@@ -526,8 +605,18 @@
         '{{ devstack_log_dir }}/kubernetes': 'logs'
 
 - job:
+    name: tacker-functional-devstack-multinode-sol-kubernetes
+    parent: tacker-functional-devstack-multinode-sol-kubernetes-parent
+    description: |
+      Multinodes job for SOL Kubernetes Multi tenant devstack-based functional tests
+    host-vars:
+      controller-tacker:
+        tox_envlist: dsvm-functional-sol-kubernetes
+    voting: false
+
+- job:
     name: tacker-functional-devstack-multinode-sol-kubernetes-multi-tenant
-    parent: tacker-functional-devstack-multinode-sol-kubernetes
+    parent: tacker-functional-devstack-multinode-sol-kubernetes-parent
     description: |
       Multinodes job for SOL Kubernetes Multi tenant devstack-based functional tests
     host-vars:
@@ -538,7 +627,7 @@
 
 - job:
     name: tacker-functional-devstack-multinode-sol-kubernetes-v2
-    parent: tacker-functional-devstack-multinode-sol-kubernetes
+    parent: tacker-functional-devstack-multinode-sol-kubernetes-parent
     description: |
       Multinodes job for SOL Kubernetes V2 devstack-based functional tests
     host-vars:
@@ -560,7 +649,7 @@
 
 - job:
     name: tacker-functional-devstack-multinode-sol-https-v2
-    parent: tacker-functional-devstack-multinode-sol
+    parent: tacker-functional-devstack-multinode-sol-parent
     description: |
       Multinodes job for SOL devstack-based functional tests
       with https request
@@ -596,7 +685,7 @@
 
 - job:
     name: tacker-functional-devstack-multinode-sol-encrypt-cred-barbican
-    parent: tacker-functional-devstack-multinode-sol
+    parent: tacker-functional-devstack-multinode-sol-parent
     description: |
       Multinodes job for SOL devstack-based functional tests
       with encrypt credentials
@@ -623,7 +712,7 @@
 
 - job:
     name: tacker-functional-devstack-multinode-sol-encrypt-cred-local
-    parent: tacker-functional-devstack-multinode-sol
+    parent: tacker-functional-devstack-multinode-sol-parent
     description: |
       Multinodes job for SOL devstack-based functional tests
       with encrypt credentials
@@ -687,7 +776,7 @@
 
 - job:
     name: tacker-functional-devstack-enhanced-policy-sol
-    parent: tacker-functional-devstack-multinode-sol
+    parent: tacker-functional-devstack-multinode-sol-parent
     description: |
       Enhanced policy job for SOL devstack-based functional tests
     host-vars:
@@ -719,7 +808,7 @@
 
 - job:
     name: tacker-functional-devstack-multinode-sol-terraform-v2
-    parent: tacker-functional-devstack-multinode-sol
+    parent: tacker-functional-devstack-multinode-sol-parent
     description: |
       Multinodes job for SOL Terraform devstack-based functional tests
     attempts: 1
@@ -736,7 +825,7 @@
 
 - job:
     name: tacker-compliance-devstack-multinode-sol
-    parent: tacker-functional-devstack-multinode-sol
+    parent: tacker-functional-devstack-multinode-sol-parent
     description: |
       Multinodes job for SOL devstack-based compliance tests
     host-vars:
@@ -753,10 +842,15 @@
       - release-notes-jobs-python3
     check:
       jobs:
-        - tacker-functional-devstack-multinode-sol
+        - tacker-functional-devstack-multinode-sol-legacy-nfvo
+        - tacker-functional-devstack-multinode-sol-vnflcm
+        - tacker-functional-devstack-multinode-sol-vnfpkgm
         - tacker-functional-devstack-multinode-sol-separated-nfvo
         - tacker-functional-devstack-multinode-sol-kubernetes
-        - tacker-functional-devstack-multinode-sol-v2
+        - tacker-functional-devstack-multinode-sol-v2-basic
+        - tacker-functional-devstack-multinode-sol-v2-vnflcm
+        - tacker-functional-devstack-multinode-sol-v2-notification
+        - tacker-functional-devstack-multinode-sol-v2-prometheus
         - tacker-functional-devstack-multinode-sol-separated-nfvo-v2
         - tacker-functional-devstack-multinode-sol-v2-individual-vnfc-mgmt
         - tacker-functional-devstack-multinode-sol-kubernetes-v2

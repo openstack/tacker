@@ -15,9 +15,11 @@
 
 from unittest import mock
 
-from tacker.common import exceptions
 from tacker import context
 from tacker import objects
+
+from tacker.common import exceptions
+from tacker.db.db_sqlalchemy import models
 from tacker.tests.unit.db.base import SqlTestCase
 from tacker.tests.unit.objects import fakes
 from tacker.tests import uuidsentinel
@@ -138,7 +140,7 @@ class TestVnfDeploymentFlavour(SqlTestCase):
         vnf_soft_image_obj.create()
         vnf_deployment_flavour = objects.VnfDeploymentFlavour.get_by_id(
             self.context, self.vnf_deployment_flavour.id,
-            expected_attrs=['software_images'])
+            expected_attrs=[models.VnfDeploymentFlavour.software_images])
         self.assertEqual(1,
                          len(vnf_deployment_flavour.software_images.objects))
         self.compare_obj(vnf_soft_image_obj,

@@ -32,6 +32,7 @@ VNF_TERMINATE_TIMEOUT = 600
 VNF_HEAL_TIMEOUT = 600
 VNF_CHANGE_EXT_CONN_TIMEOUT = 600
 RETRY_WAIT_TIME = 5
+WAIT_HEAL = 20  # Time to wait until heal op is completed in sec.
 
 
 def get_ext_managed_virtual_link(id, vl_desc_id, resource_id):
@@ -676,7 +677,7 @@ class VnfLcmTest(base.BaseTackerTest):
         # vnfcResourceInfo after the stack status becomes UPDATE_COMPLETE.
         # There is no intermediate status set to VNF which can be used here
         # to confirm healing action is completed successfully.
-        time.sleep(20)
+        time.sleep(WAIT_HEAL)
 
         vnf_instance_current = self._show_vnf_instance(vnf_instance['id'])
         self._verify_vnfc_resource_info(vnf_instance, vnf_instance_current, 1)
@@ -739,7 +740,7 @@ class VnfLcmTest(base.BaseTackerTest):
         # vnfcResourceInfo after the stack status becomes UPDATE_COMPLETE.
         # There is no intermediate status set to VNF which can be used here
         # to confirm healing action is completed successfully.
-        time.sleep(20)
+        time.sleep(WAIT_HEAL)
 
         vnf_instance_current = self._show_vnf_instance(vnf_instance['id'])
         self._verify_vnfc_resource_info(vnf_instance, vnf_instance_current, 3)
@@ -829,7 +830,7 @@ class VnfLcmTest(base.BaseTackerTest):
         # vnfcResourceInfo after the stack status becomes UPDATE_COMPLETE.
         # There is no intermediate status set to VNF which can be used here
         # to confirm healing action is completed successfully.
-        time.sleep(20)
+        time.sleep(WAIT_HEAL)
 
         vnf_instance_current = self._show_vnf_instance(vnf_instance['id'])
         self._verify_vnfc_resource_info(vnf_instance, vnf_instance_current, 1)
@@ -884,7 +885,7 @@ class VnfLcmTest(base.BaseTackerTest):
         # vnfcResourceInfo after the stack status becomes UPDATE_COMPLETE.
         # There is no intermediate status set to VNF which can be used here
         # to confirm healing action is completed successfully.
-        time.sleep(20)
+        time.sleep(WAIT_HEAL)
 
         vnf_instance_current = self._show_vnf_instance(vnf_instance['id'])
         self._verify_vnfc_resource_info(vnf_instance, vnf_instance_current, 1)
@@ -941,7 +942,8 @@ class VnfLcmTest(base.BaseTackerTest):
         # vnfcResourceInfo after the stack status becomes UPDATE_COMPLETE.
         # There is no intermediate status set to VNF which can be used here
         # to confirm healing action is completed successfully.
-        time.sleep(20)
+        # NOTE(yasufum): add extra 20 sec to avoid timeout.
+        time.sleep(WAIT_HEAL + 25)
 
         vnf_instance_current = self._show_vnf_instance(vnf_instance['id'])
         self._verify_vnfc_resource_info(vnf_instance, vnf_instance_current, 3)
@@ -1026,7 +1028,7 @@ class VnfLcmTest(base.BaseTackerTest):
         # vnfcResourceInfo after the stack status becomes UPDATE_COMPLETE.
         # There is no intermediate status set to VNF which can be used here
         # to confirm healing action is completed successfully.
-        time.sleep(20)
+        time.sleep(WAIT_HEAL)
 
         vnf_instance_current = self._show_vnf_instance(vnf_instance['id'])
         self._verify_vnfc_resource_info(vnf_instance, vnf_instance_current, 1)

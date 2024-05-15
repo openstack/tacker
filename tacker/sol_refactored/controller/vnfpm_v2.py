@@ -241,7 +241,7 @@ class VnfPmControllerV2(sol_wsgi.SolAPIController):
             subsc_utils.test_notification(
                 pm_job, subsc_utils.NOTIFY_TYPE_PM)
 
-        with context.session.begin(subtransactions=True):
+        with context.session.begin():
             pm_job.update(context)
 
         pm_job_modifications = objects.PmJobModificationsV2()
@@ -415,7 +415,7 @@ class VnfPmControllerV2(sol_wsgi.SolAPIController):
             pm_threshold.authentication = subsc_utils.get_subsc_auth(
                 body.get("authentication"))
 
-        with context.session.begin(subtransactions=True):
+        with context.session.begin():
             pm_threshold.update(context)
 
         pm_threshold_modifications = objects.ThresholdModificationsV2()

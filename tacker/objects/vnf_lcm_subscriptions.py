@@ -108,7 +108,7 @@ def _vnf_lcm_subscriptions_get(context,
                                ):
 
     if notification_type == 'VnfLcmOperationOccurrenceNotification':
-        sql = (
+        stmt = (
             "select"
             " t1.id,t1.callback_uri,t1.authentication,"
             " t1.tenant_id, t2.filter "
@@ -132,7 +132,7 @@ def _vnf_lcm_subscriptions_get(context,
             " t1.id=t2.subscription_uuid "
             " and t1.deleted=0")
     else:
-        sql = (
+        stmt = (
             "select"
             " t1.id,t1.callback_uri,t1.authentication,"
             " t1.tenant_id, t2.filter "
@@ -153,7 +153,7 @@ def _vnf_lcm_subscriptions_get(context,
             " and t1.deleted=0")
 
     result_list = []
-    result = context.session.execute(sql)
+    result = context.session.execute(text(stmt))
     for line in result:
         result_list.append(line)
     return result_list
@@ -167,7 +167,7 @@ def _vnf_lcm_subscriptions_show(context, subscriptionId):
     the requester's tenant details match with the target
     subscription.
     """
-    sql = text(
+    stmt = (
         "select "
         "t1.id,t1.callback_uri,t1.tenant_id,t2.filter "
         "from vnf_lcm_subscriptions t1, "
@@ -178,8 +178,9 @@ def _vnf_lcm_subscriptions_show(context, subscriptionId):
         "and t1.tenant_id = :tenant_id")
     result_line = ""
     try:
-        result = context.session.execute(sql, {'subsc_id': subscriptionId,
-            'tenant_id': context.project_id})
+        result = context.session.execute(text(stmt),
+                    {'subsc_id': subscriptionId,
+                     'tenant_id': context.project_id})
         for line in result:
             result_line = line
     except exceptions.NotFound:
@@ -193,7 +194,7 @@ def _vnf_lcm_subscriptions_show(context, subscriptionId):
 @db_api.context_manager.reader
 def _vnf_lcm_subscriptions_all(context):
 
-    sql = text(
+    stmt = (
         "select "
         "t1.id,t1.callback_uri,t2.filter "
         "from vnf_lcm_subscriptions t1, "
@@ -202,7 +203,7 @@ def _vnf_lcm_subscriptions_all(context):
         "and deleted = 0 ")
     result_list = []
     try:
-        result = context.session.execute(sql)
+        result = context.session.execute(text(stmt))
         for line in result:
             result_list.append(line)
     except Exception as e:
@@ -214,15 +215,16 @@ def _vnf_lcm_subscriptions_all(context):
 @db_api.context_manager.reader
 def _get_by_subscriptionid(context, subscriptionsId):
 
-    sql = text("select id "
-             "from vnf_lcm_subscriptions "
-             "where id = :subsc_id "
-             "and deleted = 0 "
-             "and tenant_id = :tenant_id")
+    stmt = ("select id "
+            "from vnf_lcm_subscriptions "
+            "where id = :subsc_id "
+            "and deleted = 0 "
+            "and tenant_id = :tenant_id")
     result_line = ""
     try:
-        result = context.session.execute(sql, {'subsc_id': subscriptionsId,
-            'tenant_id': context.project_id})
+        result = context.session.execute(text(stmt),
+                    {'subsc_id': subscriptionsId,
+                     'tenant_id': context.project_id})
         for line in result:
             result_line = line
     except exceptions.NotFound:
@@ -242,7 +244,7 @@ def _vnf_lcm_subscriptions_id_get(context,
                                   vnf_instance_subscription_filter=None
                                   ):
 
-    sql = ("select "
+    stmt = ("select "
           "t1.id "
            "from "
            "vnf_lcm_subscriptions t1, "
@@ -254,7 +256,7 @@ def _vnf_lcm_subscriptions_id_get(context,
         column_list = _get_vnf_subscription_filter_values(
             vnf_instance_subscription_filter)
 
-        sql_lst = [sql]
+        stmt_lst = [stmt]
         for column in column_list:
             for key in column:
                 if key in VNF_INSTANCE_SUBSCRIPTION_FILTER:
@@ -262,18 +264,18 @@ def _vnf_lcm_subscriptions_id_get(context,
                     if key in VNF_INSTANCE_SUBSCRIPTION_FILTER_LISTS:
                         if value:
                             value = _make_list(value)
-                            sql_lst.append(
+                            stmt_lst.append(
                                 " JSON_CONTAINS({}, '{}') and ".format(
                                     convert_string_to_snakecase(key), value))
                         else:
-                            sql_lst.append(" {}_len=0 and ".format(
+                            stmt_lst.append(" {}_len=0 and ".format(
                                 convert_string_to_snakecase(key)))
                     else:
-                        sql_lst.append(" {}='{}' and ".format(
+                        stmt_lst.append(" {}='{}' and ".format(
                             convert_string_to_snakecase(key), value))
 
                     included_in_filter.append(key)
-        sql = ''.join(sql_lst)
+        stmt = ''.join(stmt_lst)
 
         not_included_in_filter = list(
             set(VNF_INSTANCE_SUBSCRIPTION_FILTER_LISTS) -
@@ -282,37 +284,37 @@ def _vnf_lcm_subscriptions_id_get(context,
         # items not being searched for is excluded by adding
         # <name>_len=0 to the sql query
         for key in not_included_in_filter:
-            sql = sql + " {}_len=0 and ".format(
+            stmt = stmt + " {}_len=0 and ".format(
                 convert_string_to_snakecase(key))
 
     if notification_type:
-        sql = (sql + " JSON_CONTAINS(notification_types, '" +
+        stmt = (stmt + " JSON_CONTAINS(notification_types, '" +
                _make_list(notification_type) + "') ")
     else:
-        sql = sql + " notification_types_len=0 "
-    sql = sql + "and "
+        stmt = stmt + " notification_types_len=0 "
+    stmt = stmt + "and "
 
     if operation_state:
-        sql = (sql + " JSON_CONTAINS(operation_states, '" +
+        stmt = (stmt + " JSON_CONTAINS(operation_states, '" +
                _make_list(operation_state) + "') ")
     else:
-        sql = sql + " operation_states_len=0 "
-    sql = sql + "and "
+        stmt = stmt + " operation_states_len=0 "
+    stmt = stmt + "and "
 
     if operation_type:
-        sql = sql + " JSON_CONTAINS(operation_types, '" + \
+        stmt = stmt + " JSON_CONTAINS(operation_types, '" + \
             _make_list(operation_type) + "') "
     else:
-        sql = sql + " operation_types_len=0 "
-    sql = (
-        sql +
+        stmt = stmt + " operation_types_len=0 "
+    stmt = (
+        stmt +
         ") t2 where t1.id=t2.subscription_uuid and t1.callback_uri= '" +
         callbackUri +
         "' and t1.deleted=0 ")
-    LOG.debug("sql[%s]" % sql)
+    LOG.debug("Composed SQL stmt for vnflcm subscriptions id: %s" % stmt)
 
     try:
-        result = context.session.execute(sql)
+        result = context.session.execute(text(stmt))
         for line in result:
             return line
     except exceptions.NotFound:
@@ -339,7 +341,7 @@ def _add_filter_data(context, subscription_id, filter):
                                 vnf_products_from_providers})
 
         context.session.execute(
-            models.VnfLcmFilters.__table__.insert(None),
+            models.VnfLcmFilters.__table__.insert(),
             new_entries)
 
 
@@ -430,7 +432,7 @@ def _vnf_lcm_subscriptions_create(context, values, filter):
                                 "tenant_id": values.tenant_id})
 
         context.session.execute(
-            models.VnfLcmSubscriptions.__table__.insert(None),
+            models.VnfLcmSubscriptions.__table__.insert(),
             new_entries)
 
         callbackUri = values.callback_uri

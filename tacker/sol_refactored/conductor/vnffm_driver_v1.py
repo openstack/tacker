@@ -36,10 +36,10 @@ class VnfFmDriverV1():
         # store alarm into DB
         try:
             alarm_utils.get_alarm(context, alarm.id)
-            with context.session.begin(subtransactions=True):
+            with context.session.begin():
                 alarm.update(context)
         except sol_ex.AlarmNotFound:
-            with context.session.begin(subtransactions=True):
+            with context.session.begin():
                 alarm.create(context)
 
         # get inst

@@ -39,6 +39,7 @@ from tacker.common import csar_utils
 from tacker.common import exceptions
 from tacker.common import utils
 from tacker.conductor.conductorrpc import vnf_pkgm_rpc
+from tacker.db.db_sqlalchemy import models
 from tacker.glance_store import store as glance_store
 from tacker import objects
 from tacker.objects import fields
@@ -113,7 +114,9 @@ class VnfPkgmController(wsgi.Controller):
         try:
             vnf_package = vnf_package_obj.VnfPackage.get_by_id(
                 request.context, id, expected_attrs=[
-                    "vnf_deployment_flavours", "vnfd", "vnf_artifacts"])
+                    models.VnfPackage.vnf_deployment_flavours,
+                    models.VnfPackage.vnfd,
+                    models.VnfPackage.vnf_artifacts])
             if CONF.oslo_policy.enhanced_tacker_policy:
                 context.can(vnf_package_policies.VNFPKGM % 'show',
                             target=self._get_policy_target(vnf_package))
@@ -667,7 +670,7 @@ class VnfPkgmController(wsgi.Controller):
         try:
             vnf_package = vnf_package_obj.VnfPackage.get_by_id(
                 request.context, id,
-                expected_attrs=["vnf_artifacts"])
+                expected_attrs=[models.VnfPackage.vnf_artifacts])
             if CONF.oslo_policy.enhanced_tacker_policy:
                 # get policy
                 context.can(vnf_package_policies.VNFPKGM % 'fetch_artifact',

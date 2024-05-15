@@ -161,7 +161,7 @@ class ConductorV2(object):
             lcmocc_utils.update_lcmocc_status(
                 lcmocc, fields.LcmOperationStateType.PROCESSING)
             lcmocc.grantId = grant.id
-            with context.session.begin(subtransactions=True):
+            with context.session.begin(nested=True):
                 # save grant_req and grant to be used when retry
                 # NOTE: grant_req is saved because it is necessary to interpret
                 # the contents of grant. Though grant can be gotten from NFVO,
@@ -194,7 +194,7 @@ class ConductorV2(object):
             lcmocc_utils.update_lcmocc_status(
                 lcmocc, fields.LcmOperationStateType.COMPLETED)
             # update inst and lcmocc at the same time
-            with context.session.begin(subtransactions=True):
+            with context.session.begin(nested=True):
                 inst.update(context)
                 lcmocc.update(context)
                 # grant_req and grant are not necessary any more.
@@ -259,7 +259,7 @@ class ConductorV2(object):
                 lcmocc, fields.LcmOperationStateType.COMPLETED)
             lcmocc.error = None  # clear error
             # update inst and lcmocc at the same time
-            with context.session.begin(subtransactions=True):
+            with context.session.begin(nested=True):
                 inst.update(context)
                 lcmocc.update(context)
                 # grant_req and grant are not necessary any more.
@@ -324,7 +324,7 @@ class ConductorV2(object):
             if (lcmocc.obj_attr_is_set('error') and
                     lcmocc.error.obj_attr_is_set('userScriptErrHandlingData')):
                 del lcmocc.error.userScriptErrHandlingData
-            with context.session.begin(subtransactions=True):
+            with context.session.begin(nested=True):
                 lcmocc.update(context)
                 # NOTE: Basically inst is not changed. But there is a case
                 # that VIM resources may be changed while rollback. Only
@@ -378,7 +378,7 @@ class ConductorV2(object):
             lcmocc_utils.update_lcmocc_status(
                 lcmocc, fields.LcmOperationStateType.COMPLETED)
             # update inst and lcmocc at the same time
-            with context.session.begin(subtransactions=True):
+            with context.session.begin(nested=True):
                 inst.update(context)
                 lcmocc.update(context)
         except Exception as ex:

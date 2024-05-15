@@ -12,6 +12,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from sqlalchemy import text
+
 from oslo_db import exception as db_exc
 from oslo_log import log as logging
 from oslo_utils import uuidutils
@@ -89,11 +91,11 @@ def _vnf_package_vnfd_delete(context, id):
 @db_api.context_manager.reader
 def _vnf_package_vnfd_get_by_id(context, vnfd_id):
 
-    query = api.model_query(context, models.VnfPackageVnfd,
-                            read_deleted="no", project_only=False). \
-        filter_by(vnfd_id=vnfd_id).\
-        join((models.VnfPackage, models.VnfPackage.id ==
-              models.VnfPackageVnfd.package_uuid))
+    query = (api.model_query(context, models.VnfPackageVnfd,
+                            read_deleted="no", project_only=False)
+        .filter_by(vnfd_id=vnfd_id)
+        .join(models.VnfPackage)
+        .where(models.VnfPackage.id == models.VnfPackageVnfd.package_uuid))
 
     if tacker.context.is_user_context(context):
         query = query.filter(models.VnfPackage.tenant_id == context.project_id)
@@ -141,7 +143,7 @@ def _vnf_package_vnfd_get_by_vnfdId(context, vnfdId):
 @db_api.context_manager.reader
 def _get_vnf_package_vnfd_by_vnfid(context, vnfpkgid):
 
-    sql = ("select"
+    stmt = ("select"
            " t1.vnfd_id,"
            " t1.vnf_provider,"
            " t1.vnf_product_name,"
@@ -156,7 +158,7 @@ def _get_vnf_package_vnfd_by_vnfid(context, vnfpkgid):
            " and"
            " t2.id= :vnfpkgid")
 
-    result = context.session.execute(sql, {'vnfpkgid': vnfpkgid})
+    result = context.session.execute(text(stmt), {'vnfpkgid': vnfpkgid})
     for line in result:
         return line
 

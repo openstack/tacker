@@ -36,10 +36,13 @@ down_revision = 'f958f58e5daa'
 
 
 def _migrate_data(table, column_name):
-    meta = sa.MetaData(bind=op.get_bind())
-    t = sa.Table(table, meta, autoload=True)
+    meta = sa.MetaData()
+    conn = op.get_bind()
+    engine = conn.engine
+    meta.create_all(bind=engine)
+    t = sa.Table(table, meta, autoload_with=engine)
 
-    for r in t.select().execute():
+    for r in conn.execute(t.select()):
         stmt = t.update().where(t.c.id == r.id).values(
             {column_name: jsonutils.dump_as_bytes(
                 pickle.loads(getattr(r, column_name)))})

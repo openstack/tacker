@@ -142,7 +142,7 @@ class TestVnfPackage(SqlTestCase):
         vnf_deployment_flavour_obj.create()
         vnfpkgm = objects.VnfPackage.get_by_id(
             self.context, self.vnf_package.id,
-            expected_attrs=['vnf_deployment_flavours'])
+            expected_attrs=[models.VnfPackage.vnf_deployment_flavours])
         self.assertEqual(1, len(vnfpkgm.vnf_deployment_flavours.objects))
         self.compare_obj(vnf_deployment_flavour_obj,
                          vnfpkgm.vnf_deployment_flavours[0],

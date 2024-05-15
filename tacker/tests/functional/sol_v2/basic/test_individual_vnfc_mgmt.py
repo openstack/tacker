@@ -16,6 +16,7 @@
 import os
 import subprocess
 
+from tacker.common import utils as tacker_utils
 import tacker.conf
 from tacker.tests.functional.sol_v2_common import paramgen
 from tacker.tests.functional.sol_v2_common import test_vnflcm_basic_common
@@ -52,10 +53,10 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         #       /sol_refactored
         cur_dir = os.path.dirname(__file__)
         userdata_dir = os.path.join(
-            cur_dir, "../../../sol_refactored/infra_drivers/openstack")
+            cur_dir, "{}/tacker/sol_refactored/infra_drivers/openstack".format(
+                tacker_utils.proj_root()))
         userdata_file = "userdata_standard.py"
-        userdata_path = os.path.abspath(
-            os.path.join(userdata_dir, userdata_file))
+        userdata_path = os.path.join(userdata_dir, userdata_file)
 
         # main vnf package for StandardUserData test
         pkg_path_1 = utils.test_sample("functional/sol_v2_common",

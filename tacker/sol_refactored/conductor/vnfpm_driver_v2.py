@@ -84,6 +84,6 @@ class VnfPmDriverV2():
         # update reports in the pmJob
         update_job = pm_job_utils.update_report(
             context, job_id, report, timestamp, endpoint)
-        with context.session.begin(subtransactions=True):
+        with context.session.begin():
             update_job.update(context)
         return update_job

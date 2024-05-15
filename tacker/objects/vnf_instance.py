@@ -69,7 +69,7 @@ def _vnf_instance_create(context, values):
     vnf_instance.save(context.session)
 
     return _vnf_instance_get_by_id(context, vnf_instance.id,
-                                   columns_to_join=["instantiated_vnf_info"])
+        columns_to_join=[models.VnfInstance.instantiated_vnf_info])
 
 
 @db_api.context_manager.writer
@@ -466,7 +466,7 @@ class VnfInstance(base.TackerObject, base.TackerPersistentObject,
 
                 updates[field] = self[field]
 
-        expected_attrs = ["instantiated_vnf_info"]
+        expected_attrs = [models.VnfInstance.instantiated_vnf_info]
         db_vnf_instance = _vnf_instance_update(self._context,
                                                self.id, updates,
                                                columns_to_join=expected_attrs)
@@ -538,7 +538,7 @@ class VnfInstance(base.TackerObject, base.TackerPersistentObject,
 
     @base.remotable_classmethod
     def get_by_id(cls, context, id, read_deleted="no"):
-        expected_attrs = ["instantiated_vnf_info"]
+        expected_attrs = [models.VnfInstance.instantiated_vnf_info]
         db_vnf_instance = _vnf_instance_get_by_id(
             context, id, columns_to_join=expected_attrs,
             read_deleted=read_deleted)
@@ -557,7 +557,7 @@ class VnfInstanceList(ovoo_base.ObjectListBase, base.TackerObject):
 
     @base.remotable_classmethod
     def get_all(cls, context, expected_attrs=None):
-        expected_attrs = ["instantiated_vnf_info"]
+        expected_attrs = [models.VnfInstance.instantiated_vnf_info]
         db_vnf_instances = _vnf_instance_list(context,
                                               columns_to_join=expected_attrs)
         return _make_vnf_instance_list(context, cls(), db_vnf_instances,
@@ -566,7 +566,7 @@ class VnfInstanceList(ovoo_base.ObjectListBase, base.TackerObject):
     @base.remotable_classmethod
     def get_by_marker_filter(cls, context, limit, marker_obj,
             filters=None, expected_attrs=None):
-        expected_attrs = ["instantiated_vnf_info"]
+        expected_attrs = [models.VnfInstance.instantiated_vnf_info]
         query = _vnf_instance_list_by_filter_query(context,
                 columns_to_join=expected_attrs,
                 filters=filters)
@@ -582,7 +582,7 @@ class VnfInstanceList(ovoo_base.ObjectListBase, base.TackerObject):
     @base.remotable_classmethod
     def get_by_filters(cls, context, filters=None,
                        expected_attrs=None):
-        expected_attrs = ["instantiated_vnf_info"]
+        expected_attrs = [models.VnfInstance.instantiated_vnf_info]
         db_vnf_instances = _vnf_instance_list_by_filter(
             context, columns_to_join=expected_attrs,
             filters=filters)
@@ -593,7 +593,7 @@ class VnfInstanceList(ovoo_base.ObjectListBase, base.TackerObject):
     @base.remotable_classmethod
     def vnf_instance_list(cls, vnfd_id, context):
         # get vnf_instance data
-        expected_attrs = ["instantiated_vnf_info"]
+        expected_attrs = [models.VnfInstance.instantiated_vnf_info]
         db_vnf_instances = _vnf_instance_get(context, vnfd_id,
                                              columns_to_join=expected_attrs)
 

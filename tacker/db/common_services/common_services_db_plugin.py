@@ -56,7 +56,7 @@ class CommonServicesPluginDb(common_services.CommonServicesPluginBase,
     def create_event(self, context, res_id, res_type, res_state, evt_type,
                      tstamp, details=""):
         try:
-            with context.session.begin(subtransactions=True):
+            with context.session.begin():
                 event_db = common_services_db.Event(
                     resource_id=res_id,
                     resource_type=res_type,
@@ -65,6 +65,7 @@ class CommonServicesPluginDb(common_services.CommonServicesPluginBase,
                     event_type=evt_type,
                     timestamp=tstamp)
                 context.session.add(event_db)
+                context.session.commit()
         except Exception as e:
             LOG.exception("create event error: %s", str(e))
             raise common_services.EventCreationFailureException(

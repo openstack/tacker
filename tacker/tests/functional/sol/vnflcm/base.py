@@ -25,6 +25,7 @@ from oslo_utils import uuidutils
 from tacker.objects import fields
 from tacker.tests.functional import base
 from tacker.tests.functional.common.fake_server import FakeServerManager
+from tacker.tests.functional.common import logging_utils
 from tacker.tests import utils
 from tacker.vnfm.infra_drivers.openstack import constants as infra_cnst
 
@@ -42,6 +43,8 @@ FAKE_SERVER_MANAGER = FakeServerManager()
 FAKE_SERVER_PORT = 9990
 MOCK_NOTIFY_CALLBACK_URL = '/notification/callback'
 UUID_RE = r'\w{8}-\w{4}-\w{4}-\w{4}-\w{12}'
+
+LOG = logging_utils.get_logger(__name__)
 
 
 def _get_external_virtual_links(net0_id):
@@ -699,11 +702,8 @@ class BaseVnfLcmTest(base.BaseTackerTest):
         while True:
             stack = h_client.stacks.get(stack_id)
             actual_status = stack.stack_status
-            print(
-                ("Wait:callback_url=<%s>, " +
-                "wait_status=<%s> ") %
-                (callback_url, actual_status),
-                flush=True)
+            LOG.debug("Waiting stack ready: callback_url=%r, wait_status=%r",
+                callback_url, actual_status)
 
             if actual_status == expected_status:
                 return None
@@ -933,12 +933,10 @@ class BaseVnfLcmTest(base.BaseTackerTest):
             vnf_lcm_op_occ_id = None
             notify_mock_responses = fake_server_manager.get_history(
                 callback_url)
-            print(
-                ("Wait:callback_url=<%s>, " +
-                "wait_status=<%s>, " +
-                "vnf_instance_id=<%s>") %
-                (callback_url, expected_operation_status, vnf_instance_id),
-                flush=True)
+            LOG.debug("Waiting lcm done: %s=%r, %s=%r, %s=%r",
+                'callback_url', callback_url,
+                'wait_status', expected_operation_status,
+                'vnf_instance_id', vnf_instance_id)
 
             for res in notify_mock_responses:
                 if vnf_instance_id != res.request_body.get('vnfInstanceId'):

@@ -21,6 +21,7 @@ from oslo_utils import uuidutils
 from tacker.common import exceptions
 from tacker import context
 from tacker.db import api as sqlalchemy_api
+from tacker.db.db_sqlalchemy import models
 from tacker.db.nfvo import nfvo_db
 from tacker import objects
 from tacker.tests.unit.db.base import SqlTestCase
@@ -175,7 +176,7 @@ class TestVnfInstance(SqlTestCase):
             self.context, vnf_instance.id, {
                 'vnf_instance_name': 'fake-name',
                 'vim_connection_info': []},
-            columns_to_join=['instantiated_vnf_info'])
+            columns_to_join=[models.VnfInstance.instantiated_vnf_info])
 
     def test_save_error(self):
         vnf_instance_data = fakes.get_vnf_instance_data(

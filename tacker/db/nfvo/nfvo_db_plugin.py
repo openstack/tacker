@@ -87,7 +87,7 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
         vim_cred = vim['auth_cred']
 
         try:
-            with context.session.begin(subtransactions=True):
+            with context.session.begin(nested=True):
                 vim_db = nfvo_db.Vim(
                     id=vim.get('id'),
                     type=vim.get('type'),
@@ -107,6 +107,7 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
                     auth_url=vim.get('auth_url'),
                     auth_cred=vim_cred)
                 context.session.add(vim_auth_db)
+                context.session.commit()
         except DBDuplicateEntry as e:
             raise exceptions.DuplicateEntity(
                 _type="vim",
@@ -116,7 +117,7 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
         return vim_dict
 
     def delete_vim(self, context, vim_id, soft_delete=True):
-        with context.session.begin(subtransactions=True):
+        with context.session.begin(nested=True):
             vim_db = self._get_resource(context, nfvo_db.Vim, vim_id)
             if soft_delete:
                 vim_db.update({'deleted_at': timeutils.utcnow()})
@@ -124,9 +125,10 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
                 context.session.query(nfvo_db.VimAuth).filter_by(
                     vim_id=vim_id).delete()
                 context.session.delete(vim_db)
+            context.session.commit()
 
     def is_vim_still_in_use(self, context, vim_id):
-        with context.session.begin(subtransactions=True):
+        with context.session.begin(nested=True):
             vnfs_db = self._model_query(context, vnfm_db.VNF).filter_by(
                 vim_id=vim_id).first()
             if vnfs_db is not None:
@@ -143,7 +145,7 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
 
     def update_vim(self, context, vim_id, vim):
         self._validate_default_vim(context, vim, vim_id=vim_id)
-        with context.session.begin(subtransactions=True):
+        with context.session.begin(nested=True):
             vim_cred = vim['auth_cred']
             vim_project = vim['vim_project']
             vim_db = self._get_resource(context, nfvo_db.Vim, vim_id)
@@ -168,6 +170,7 @@ class NfvoPluginDb(nfvo.NFVOPluginBase, db_base.CommonDbMixin):
                                 vim_cred.pop('password', None), 'vim_project':
                                 vim_project})
             vim_db.update({'updated_at': timeutils.utcnow()})
+            context.session.commit()
 
         return self.get_vim(context, vim_id)
 

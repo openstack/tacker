@@ -104,7 +104,7 @@ class VnfFmControllerV1(sol_wsgi.SolAPIController):
                 datetime.timezone.utc)
         else:
             alarm.alarmAcknowledgedTime = None
-        with context.session.begin(subtransactions=True):
+        with context.session.begin():
             alarm.update(context)
 
         return sol_wsgi.SolResponse(200, body,

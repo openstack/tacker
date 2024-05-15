@@ -32,11 +32,14 @@ from tacker.common import utils
 from tacker.objects import fields
 from tacker.tests.functional import base
 from tacker.tests.functional.base import BaseTackerTest
+from tacker.tests.functional.common import logging_utils
 from tacker.tests.functional.sol.vnflcm import base as vnflcm_base
 from tacker.tests.functional.sol.vnflcm import fake_vnflcm
 from tacker.tests.utils import _update_unique_id_in_yaml
 from tacker.tests.utils import read_file
 from tacker.tests.utils import test_etc_sample
+
+LOG = logging_utils.get_logger(__name__)
 
 
 class BaseEnhancedPolicyTest(object):
@@ -904,14 +907,11 @@ class VnflcmAPIsV1Base(vnflcm_base.BaseVnfLcmTest, BaseEnhancedPolicyTest):
             vnf_lcm_op_occ_id = None
             notify_mock_responses = fake_server_manager.get_history(
                 callback_url)
-            print(
-                ("Wait:callback_url=<%s>, "
-                "wait_operation=<%s>, "
-                "wait_status=<%s>, "
-                "vnf_instance_id=<%s>") %
-                (callback_url, operation, expected_operation_status,
-                 vnf_instance_id),
-                flush=True)
+            LOG.debug("Waiting lcm done: %s=%s, %s=%s, %s=%s, %s=%s" %
+                ('callback_url', callback_url,
+                 'wait_operation', operation,
+                 'wait_status', expected_operation_status,
+                 'vnf_instance_id', vnf_instance_id))
 
             for res in notify_mock_responses:
                 if (vnf_instance_id != res.request_body.get('vnfInstanceId')

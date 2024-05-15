@@ -58,7 +58,7 @@ def _vnf_lcm_op_occ_create(context, values):
         fields['operation_params'] = values.operation_params
 
     context.session.execute(
-        models.VnfLcmOpOccs.__table__.insert(None),
+        models.VnfLcmOpOccs.__table__.insert(),
         fields)
 
 

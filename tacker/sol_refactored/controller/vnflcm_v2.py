@@ -612,7 +612,7 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
 
         lcmocc_utils.update_lcmocc_status(
             lcmocc, v2fields.LcmOperationStateType.FAILED)
-        with context.session.begin(subtransactions=True):
+        with context.session.begin():
             lcmocc.update(context)
             if grant_req is not None:
                 grant_req.delete(context)

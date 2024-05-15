@@ -341,12 +341,12 @@ class TackerPersistentObject(TackerObject):
         inst.update(self.to_db_obj())
         # note: The same workaround is present in oslo.db ModelBase.save()
         #       implementation.
-        with context.session.begin(subtransactions=True):
+        with context.session.begin(nested=True):
             if merge:
                 context.session.merge(inst, load=True)
             else:
                 context.session.add(inst)
-            context.session.flush()
+            context.session.commit()
         # 'flush' must have succeeded because we are here.
         if self._db_obj is None:
             self._db_obj = inst
@@ -357,6 +357,7 @@ class TackerPersistentObject(TackerObject):
         if self._db_obj is None:
             return
         context.session.delete(self._db_obj)
+        context.session.commit()
 
     # WARNING: Check if it is really necessary if you consider overriding this.
     def create(self, context):

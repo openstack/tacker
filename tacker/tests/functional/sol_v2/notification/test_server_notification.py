@@ -18,6 +18,8 @@ import os
 import time
 
 from tacker.objects import fields
+from tacker.tests.functional.sol_v2.notification\
+    import test_server_notification
 from tacker.tests.functional.sol_v2_common import paramgen
 from tacker.tests.functional.sol_v2_common import test_vnflcm_basic_common
 from tacker.tests import utils
@@ -31,7 +33,6 @@ SERVER_NOTIFICATION_INTERVAL = 1
 
 
 def _make_alarm_id(header, body):
-    from tacker.tests.functional.sol_v2 import test_server_notification
     id = f"alarm_id_{test_server_notification.TEST_COUNT}"
     return {'alarm_id': id}
 

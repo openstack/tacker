@@ -236,6 +236,7 @@ class TestDbMigrationToV2(SqlTestCase):
                        'key_type': 'fernet_key'})
         session.add(vim_db)
         session.add(vim_auth_db)
+        session.commit()
         return vim_db
 
     def _create_vnf_attributes(self, vnf_inst_id=None):
@@ -945,7 +946,7 @@ class TestDbMigrationToV2(SqlTestCase):
 
         _vnf_instance = objects.vnf_instance._vnf_instance_get_by_id(
             self.context,
-            vnf_id, columns_to_join=["instantiated_vnf_info"],
+            vnf_id, columns_to_join=[models.VnfInstance.instantiated_vnf_info],
             read_deleted="yes")
         self.assertEqual(_vnf_instance.deleted, 0)
         _vnf_info = _vnf_instance.instantiated_vnf_info

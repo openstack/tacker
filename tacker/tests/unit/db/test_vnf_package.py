@@ -66,7 +66,9 @@ class TestVnfPackage(SqlTestCase):
     def test_vnf_package_get_by_id(self):
         result = vnf_package._vnf_package_get_by_id(
             self.context, self.vnf_package.id,
-            columns_to_join=['vnf_deployment_flavours', 'vnf_artifacts'])
+            columns_to_join=[
+                models.VnfPackage.vnf_deployment_flavours,
+                models.VnfPackage.vnf_artifacts])
         self.assertEqual(self.vnf_package.id, result.id)
         self.assertTrue(result.vnf_deployment_flavours)
         self.assertTrue(result.vnf_artifacts)
@@ -79,7 +81,8 @@ class TestVnfPackage(SqlTestCase):
     def test_vnf_package_list(self):
         result = vnf_package._vnf_package_list(
             self.context, columns_to_join=[
-                'vnf_deployment_flavours', 'vnf_artifacts'])
+                models.VnfPackage.vnf_deployment_flavours,
+                models.VnfPackage.vnf_artifacts])
         self.assertIsInstance(result, list)
         self.assertTrue(result)
 

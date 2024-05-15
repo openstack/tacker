@@ -12,6 +12,7 @@
 # under the License.
 
 import os
+
 from oslo_utils import uuidutils
 from tacker.objects import fields
 from tacker.tests.functional.sol.vnflcm import base as vnflcm_base

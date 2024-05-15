@@ -15,6 +15,7 @@
 
 import copy
 import datetime
+import inspect
 import requests
 import tacker.conf
 import webob
@@ -49,6 +50,7 @@ from tacker.api.vnflcm.v1 import sync_resource
 from tacker.common import exceptions
 from tacker.common import utils
 from tacker.conductor.conductorrpc import vnf_lcm_rpc
+from tacker.db.db_sqlalchemy import models
 from tacker.db.vnfm import vnfm_db
 from tacker.extensions import nfvo
 from tacker.extensions import vnfm
@@ -148,6 +150,8 @@ def check_vnf_status_and_error_point(action, status=None):
     def outer(f):
         @functools.wraps(f)
         def inner(self, context, vnf_instance, vnf, *args, **kw):
+            LOG.debug("Start %s with context: %s" % (
+                inspect.currentframe().f_code.co_name, context.to_dict()))
             vnf['current_error_point'] = fields.ErrorPoint.INITIAL
 
             if 'before_error_point' not in vnf:
@@ -385,7 +389,7 @@ class VnfLcmController(wsgi.Controller):
         placement_attr = default_vim.get('placement_attr', {})
 
         try:
-            with context.session.begin(subtransactions=True):
+            with context.session.begin(nested=True):
                 vnf_db = vnfm_db.VNF(id=vnf_id,
                              tenant_id=tenant_id,
                              name=name,
@@ -403,13 +407,15 @@ class VnfLcmController(wsgi.Controller):
                         id=uuidutils.generate_uuid(), vnf_id=vnf_id,
                         key=key, value=str(value))
                     context.session.add(arg)
+                context.session.commit()
+
         except DBDuplicateEntry as e:
             raise exceptions.DuplicateEntity(
                 _type="vnf",
                 entry=e.columns)
 
     def _destroy_vnf(self, context, vnf_instance):
-        with context.session.begin(subtransactions=True):
+        with context.session.begin(nested=True):
             if vnf_instance.id:
                 now = timeutils.utcnow()
                 updated_values = {'deleted_at': now, 'status':
@@ -418,6 +424,7 @@ class VnfLcmController(wsgi.Controller):
                     vnf_id=vnf_instance.id).delete()
                 context.session.query(vnfm_db.VNF).filter_by(
                     id=vnf_instance.id).update(updated_values)
+            context.session.commit()
 
     def _update_package_usage_state(self, context, vnf_package):
         """Update vnf package usage state to IN_USE/NOT_IN_USE
@@ -439,6 +446,9 @@ class VnfLcmController(wsgi.Controller):
     @validation.schema(vnf_lcm.create)
     def create(self, request, body):
         context = request.environ['tacker.context']
+        LOG.debug("Start %s with context: %s" % (
+            inspect.currentframe().f_code.co_name, context.to_dict()))
+
         if not CONF.oslo_policy.enhanced_tacker_policy:
             context.can(vnf_lcm_policies.VNFLCM % 'create')
         try:
@@ -512,7 +522,7 @@ class VnfLcmController(wsgi.Controller):
                                  default_vim, attributes)
                 # get vnf package
                 vnf_package = objects.VnfPackage.get_by_id(context,
-                vnfd.package_uuid, expected_attrs=['vnfd'])
+                vnfd.package_uuid, expected_attrs=[models.VnfPackage.vnfd])
                 # Update VNF Package to IN_USE
                 self._update_package_usage_state(context, vnf_package)
             except Exception:
@@ -608,6 +618,9 @@ class VnfLcmController(wsgi.Controller):
     @wsgi.expected_errors((http_client.FORBIDDEN, http_client.NOT_FOUND))
     def show(self, request, id):
         context = request.environ['tacker.context']
+        LOG.debug("Start %s with context: %s" % (
+            inspect.currentframe().f_code.co_name, context.to_dict()))
+
         vnf_instance = self._get_vnf_instance(context, id)
         if CONF.oslo_policy.enhanced_tacker_policy:
             context.can(vnf_lcm_policies.VNFLCM % 'show',
@@ -629,6 +642,9 @@ class VnfLcmController(wsgi.Controller):
                                            'all_records'})
     def index(self, request):
         context = request.environ['tacker.context']
+        LOG.debug("Start %s with context: %s" % (
+            inspect.currentframe().f_code.co_name, context.to_dict()))
+
         if not CONF.oslo_policy.enhanced_tacker_policy:
             context.can(vnf_lcm_policies.VNFLCM % 'index')
 
@@ -696,7 +712,8 @@ class VnfLcmController(wsgi.Controller):
         vnf_instance.destroy(context)
         self._destroy_vnf(context, vnf_instance)
         vnf_package = objects.VnfPackage.get_by_id(context,
-                vnf_package_vnfd.package_uuid, expected_attrs=['vnfd'])
+                vnf_package_vnfd.package_uuid,
+                expected_attrs=[models.VnfPackage.vnfd])
         self._update_package_usage_state(context, vnf_package)
 
     @wsgi.response(http_client.NO_CONTENT)
@@ -704,6 +721,8 @@ class VnfLcmController(wsgi.Controller):
                            http_client.CONFLICT))
     def delete(self, request, id):
         context = request.environ['tacker.context']
+        LOG.debug("Start %s with context: %s" % (
+            inspect.currentframe().f_code.co_name, context.to_dict()))
 
         vnf_instance = self._get_vnf_instance(context, id)
         if CONF.oslo_policy.enhanced_tacker_policy:
@@ -783,6 +802,8 @@ class VnfLcmController(wsgi.Controller):
     @validation.schema(vnf_lcm.instantiate)
     def instantiate(self, request, id, body):
         context = request.environ['tacker.context']
+        LOG.debug("Start %s with context: %s" % (
+            inspect.currentframe().f_code.co_name, context.to_dict()))
 
         vnf = self._get_vnf(context, id)
         vnf_instance = self._get_vnf_instance(context, id)
@@ -803,6 +824,8 @@ class VnfLcmController(wsgi.Controller):
     @check_vnf_status_and_error_point(action="terminate",
         status=[constants.ACTIVE])
     def _terminate(self, context, vnf_instance, vnf, request_body):
+        LOG.debug("Start %s with context: %s" % (
+            inspect.currentframe().f_code.co_name, context.to_dict()))
         req_body = utils.convert_camelcase_to_snakecase(request_body)
         terminate_vnf_req = \
             objects.TerminateVnfRequest.obj_from_primitive(
@@ -839,6 +862,9 @@ class VnfLcmController(wsgi.Controller):
     @validation.schema(vnf_lcm.terminate)
     def terminate(self, request, id, body):
         context = request.environ['tacker.context']
+        LOG.debug("Start %s with context: %s" % (
+            inspect.currentframe().f_code.co_name, context.to_dict()))
+
         vnf = self._get_vnf(context, id)
         vnf_instance = self._get_vnf_instance(context, id)
         if CONF.oslo_policy.enhanced_tacker_policy:
@@ -900,6 +926,8 @@ class VnfLcmController(wsgi.Controller):
     @validation.schema(vnf_lcm.heal)
     def heal(self, request, id, body):
         context = request.environ['tacker.context']
+        LOG.debug("Start %s with context: %s" % (
+            inspect.currentframe().f_code.co_name, context.to_dict()))
 
         vnf = self._get_vnf(context, id)
         vnf_instance = self._get_vnf_instance(context, id)
@@ -930,6 +958,8 @@ class VnfLcmController(wsgi.Controller):
     @wsgi.expected_errors((http_client.FORBIDDEN, http_client.NOT_FOUND))
     def show_lcm_op_occs(self, request, id):
         context = request.environ['tacker.context']
+        LOG.debug("Start %s with context: %s" % (
+            inspect.currentframe().f_code.co_name, context.to_dict()))
 
         try:
             vnf_lcm_op_occs = objects.VnfLcmOpOcc.get_by_id(context, id)
@@ -953,6 +983,9 @@ class VnfLcmController(wsgi.Controller):
     @wsgi.expected_errors((http_client.FORBIDDEN, http_client.NOT_FOUND))
     def update(self, request, id, body):
         context = request.environ['tacker.context']
+        LOG.debug("Start %s with context: %s" % (
+            inspect.currentframe().f_code.co_name, context.to_dict()))
+
         vnf_instance = self._get_vnf_instance(context, id)
         if CONF.oslo_policy.enhanced_tacker_policy:
             context.can(vnf_lcm_policies.VNFLCM % 'update_vnf',
@@ -1438,6 +1471,8 @@ class VnfLcmController(wsgi.Controller):
                            http_client.NOT_FOUND, http_client.CONFLICT))
     def scale(self, request, id, body):
         context = request.environ['tacker.context']
+        LOG.debug("Start %s with context: %s" % (
+            inspect.currentframe().f_code.co_name, context.to_dict()))
 
         try:
             vnf_info = self._vnfm_plugin.get_vnf(context, id)
@@ -1499,6 +1534,8 @@ class VnfLcmController(wsgi.Controller):
                            http_client.NOT_FOUND, http_client.CONFLICT))
     def rollback(self, request, id):
         context = request.environ['tacker.context']
+        LOG.debug("Start %s with context: %s" % (
+            inspect.currentframe().f_code.co_name, context.to_dict()))
 
         try:
             vnf_lcm_op_occs = objects.VnfLcmOpOcc.get_by_id(context, id)
@@ -1591,6 +1628,9 @@ class VnfLcmController(wsgi.Controller):
         """
 
         context = request.environ['tacker.context']
+        LOG.debug("Start %s with context: %s" % (
+            inspect.currentframe().f_code.co_name, context.to_dict()))
+
         req_body = utils.convert_camelcase_to_snakecase(body)
         _ = objects.CancelMode(context=context, **req_body)
 
@@ -1673,6 +1713,8 @@ class VnfLcmController(wsgi.Controller):
                            http_client.NOT_FOUND))
     def fail(self, request, id):
         context = request.environ['tacker.context']
+        LOG.debug("Start %s with context: %s" % (
+            inspect.currentframe().f_code.co_name, context.to_dict()))
 
         try:
             vnf_lcm_op_occs = objects.VnfLcmOpOcc.get_by_id(context, id)
@@ -1766,6 +1808,8 @@ class VnfLcmController(wsgi.Controller):
                            http_client.NOT_FOUND, http_client.CONFLICT))
     def retry(self, request, id):
         context = request.environ['tacker.context']
+        LOG.debug("Start %s with context: %s" % (
+            inspect.currentframe().f_code.co_name, context.to_dict()))
 
         try:
             vnf_lcm_op_occs = objects.VnfLcmOpOcc.get_by_id(context, id)
@@ -1935,6 +1979,8 @@ class VnfLcmController(wsgi.Controller):
     @validation.schema(vnf_lcm.change_ext_conn)
     def change_ext_conn(self, request, id, body):
         context = request.environ['tacker.context']
+        LOG.debug("Start %s with context: %s" % (
+            inspect.currentframe().f_code.co_name, context.to_dict()))
 
         vnf = self._get_vnf(context, id)
         vnf_instance = self._get_vnf_instance(context, id)

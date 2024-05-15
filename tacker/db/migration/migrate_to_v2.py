@@ -150,7 +150,8 @@ def mark_delete_v1(context, vnf_id):
     objects.vnf_instance._destroy_vnf_instance(context, vnf_id)
     vnf_inst = \
         objects.vnf_instance._vnf_instance_get_by_id(
-            context, vnf_id, columns_to_join=["instantiated_vnf_info"],
+            context, vnf_id,
+            columns_to_join=[models.VnfInstance.instantiated_vnf_info],
             read_deleted="yes")
 
     now = timeutils.utcnow()

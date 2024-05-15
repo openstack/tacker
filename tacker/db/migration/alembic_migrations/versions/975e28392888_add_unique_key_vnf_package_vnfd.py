@@ -33,11 +33,14 @@ from sqlalchemy.engine import reflection  # noqa: E402
 
 def _migrate_duplicate_vnf_package_vnfd_id(table):
 
-    meta = sa.MetaData(bind=op.get_bind())
-    t = sa.Table(table, meta, autoload=True)
+    meta = sa.MetaData()
+    conn = op.get_bind()
+    engine = conn.engine
+    meta.create_all(bind=engine)
+    t = sa.Table(table, meta, autoload_with=engine)
 
-    session = sa.orm.Session(bind=op.get_bind())
-    with session.begin(subtransactions=True):
+    session = sa.orm.Session(bind=engine)
+    with session.begin():
         dup_vnfd_ids = session.query(t.c.vnfd_id).group_by(
             t.c.vnfd_id).having(sa.func.count() > 1).all()
         if dup_vnfd_ids:

@@ -120,6 +120,7 @@ class VnfPackageVnfdSoftDeleteMixin(object):
         self.deleted = self.id
         self.deleted_at = timeutils.utcnow()
         self.save(session=session)
+        session.commit()
 
 
 class VnfPackageVnfd(model_base.BASE, VnfPackageVnfdSoftDeleteMixin,

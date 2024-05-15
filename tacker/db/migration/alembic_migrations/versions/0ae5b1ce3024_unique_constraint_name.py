@@ -33,11 +33,15 @@ import sqlalchemy as sa
 
 def _migrate_duplicate_names(table):
 
-    meta = sa.MetaData(bind=op.get_bind())
-    t = sa.Table(table, meta, autoload=True)
+    meta = sa.MetaData()
+    conn = op.get_bind()
+    engine = conn.engine
+    meta.create_all(bind=engine)
+    t = sa.Table(table, meta, autoload_with=engine)
 
-    session = sa.orm.Session(bind=op.get_bind())
-    with session.begin(subtransactions=True):
+    session = sa.orm.Session(bind=engine)
+    #with session.begin(subtransactions=True):
+    with session.begin():
         dup_names = session.query(t.c.name).group_by(
             t.c.name).having(sa.func.count() > 1).all()
         if dup_names:
