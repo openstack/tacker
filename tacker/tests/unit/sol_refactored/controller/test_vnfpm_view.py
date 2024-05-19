@@ -36,19 +36,20 @@ class TestPmJobViewBuilder(base.BaseTestCase):
         self.request = mock.Mock()
         self.request.context = self.context
         self.endpoint = CONF.v2_vnfm.endpoint
+        self.page_size = CONF.v2_vnfm.vnfpm_pmjob_page_size
 
     @mock.patch.object(BaseViewBuilder, 'parse_filter')
     def test_parse_filter(self, mock_parse_filter):
         mock_parse_filter.return_value = 1
-        result = PmJobViewBuilder(self.endpoint).parse_filter('filter_param')
+        result = PmJobViewBuilder(self.endpoint, self.page_size).parse_filter(
+            'filter_param')
         self.assertEqual(1, result)
 
     @mock.patch.object(BaseViewBuilder, 'parse_pager')
     def test_parse_pager(self, mock_parse_pager):
         mock_parse_pager.return_value = 1
-        page_size = CONF.v2_vnfm.vnfpm_pmjob_page_size
-        result = PmJobViewBuilder(self.endpoint).parse_pager(
-            self.request, page_size)
+        result = PmJobViewBuilder(self.endpoint, self.page_size).parse_pager(
+            self.request)
         self.assertEqual(1, result)
 
     def test_detail(self):
@@ -63,13 +64,13 @@ class TestPmJobViewBuilder(base.BaseTestCase):
                 ),
             )
         )
-        result = PmJobViewBuilder(self.endpoint).detail(pm_job)
+        result = PmJobViewBuilder(self.endpoint, self.page_size).detail(pm_job)
         self.assertEqual('pm_job_1', result.get('id'))
 
     @mock.patch.object(BaseViewBuilder, 'detail_list')
     def test_report_detail(self, mock_detail_list):
         mock_detail_list.return_value = 1
-        result = PmJobViewBuilder(self.endpoint).detail_list(
+        result = PmJobViewBuilder(self.endpoint, self.page_size).detail_list(
             'pm_jobs', 'filters', 'selector', 'pager')
         self.assertEqual(1, result)
 
@@ -83,20 +84,20 @@ class TestPmThresholdViewBuilder(base.BaseTestCase):
         self.request = mock.Mock()
         self.request.context = self.context
         self.endpoint = CONF.v2_vnfm.endpoint
+        self.page_size = CONF.v2_vnfm.vnfpm_pmthreshold_page_size
 
     @mock.patch.object(BaseViewBuilder, 'parse_filter')
     def test_parse_filter(self, mock_parse_filter):
         mock_parse_filter.return_value = 1
         result = PmThresholdViewBuilder(
-            self.endpoint).parse_filter('filter_param')
+            self.endpoint, self.page_size).parse_filter('filter_param')
         self.assertEqual(1, result)
 
     @mock.patch.object(BaseViewBuilder, 'parse_pager')
     def test_parse_pager(self, mock_parse_pager):
         mock_parse_pager.return_value = 1
-        page_size = CONF.v2_vnfm.vnfpm_pmthreshold_page_size
-        result = PmThresholdViewBuilder(self.endpoint).parse_pager(
-            self.request, page_size)
+        result = PmThresholdViewBuilder(
+            self.endpoint, self.page_size).parse_pager(self.request)
         self.assertEqual(1, result)
 
     def test_detail(self):
@@ -111,5 +112,6 @@ class TestPmThresholdViewBuilder(base.BaseTestCase):
                 ),
             )
         )
-        result = PmThresholdViewBuilder(self.endpoint).detail(pm_threshold)
+        result = PmThresholdViewBuilder(
+            self.endpoint, self.page_size).detail(pm_threshold)
         self.assertEqual('pm_threshold_1', result.get('id'))

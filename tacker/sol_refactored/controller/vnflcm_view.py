@@ -26,6 +26,8 @@ from tacker.sol_refactored.common import lcm_op_occ_utils as lcmocc_utils
 from tacker.sol_refactored.common import subscription_utils as subsc_utils
 from tacker.sol_refactored.common import vnf_instance_utils as inst_utils
 from tacker.sol_refactored import objects
+from tacker.sol_refactored.objects.v2 import vnf_instance
+from tacker.sol_refactored.objects.v2 import vnf_lcm_op_occ
 
 
 LOG = logging.getLogger(__name__)
@@ -96,7 +98,6 @@ class FilterExpr(object):
             raise sol_ex.InvalidAttributeFilter(
                 sol_detail="AttrName %s is invalid" % '/'.join([
                     str(x) for x in self.attr]))
-        LOG.debug("Key %s type %s", self.attr, type(val))
         # If not str, assume type conversion is already done.
         # Note: It is assumed that the type doesn't change between calls,
         # which can be problematic with KeyValuePairs.
@@ -209,6 +210,88 @@ class AttributeSelector(object):
         return odict
 
 
+class EnhanceAttributeSelector(object):
+    def __init__(self, all_attrs, mandatory_attrs, default_exclude_attrs,
+                 all_fields=None, fields=None, exclude_fields=None,
+                 exclude_default=None):
+        self.all_attrs = all_attrs
+        self.return_attrs = set()
+        self.exclude_fields = set()
+        self.fields = set()
+        self.extra_attrs = set()
+        if all_fields is not None:
+            if fields is not None or exclude_fields is not None or \
+               exclude_default is not None:
+                raise sol_ex.InvalidAttributeSelector()
+            self.return_attrs = all_attrs.copy()
+        elif fields is not None:
+            if exclude_fields is not None:
+                raise sol_ex.InvalidAttributeSelector()
+            if exclude_default is not None:
+                self.return_attrs = all_attrs - default_exclude_attrs
+            else:
+                self.return_attrs = mandatory_attrs.copy()
+            for field in fields.split(','):
+                if '/' in field:
+                    self.fields.add(field)
+                self.return_attrs.add(field.split('/')[0])
+        elif exclude_fields is not None:
+            if exclude_default is not None:
+                raise sol_ex.InvalidAttributeSelector()
+            self.return_attrs = all_attrs.copy()
+            for field in exclude_fields.split(','):
+                if '/' in field:
+                    self.exclude_fields.add(field)
+                else:
+                    self.return_attrs.remove(field)
+        else:
+            self.return_attrs = all_attrs - default_exclude_attrs
+
+    def add_extra_attrs(self, attrs):
+        self.extra_attrs |= attrs - self.return_attrs
+
+    def filter(self, odict):
+        for attr in self.extra_attrs:
+            if attr in odict:
+                del odict[attr]
+
+        for attr in self.exclude_fields:
+            klist = attr.split('/')
+            if len(klist) == 1:
+                # not occur. just consistency check
+                continue
+            sub_dict = odict
+            for key in klist[:-1]:
+                sub_dict = sub_dict.get(key, {})
+            if sub_dict.get(klist[-1]) is not None:
+                del sub_dict[klist[-1]]
+
+        saved = {}
+        for attr in self.fields:
+            klist = attr.split('/')
+            if len(klist) == 1:
+                # not occur. just consistency check
+                continue
+            if klist[0] not in saved:
+                saved[klist[0]] = odict[klist[0]]
+                del odict[klist[0]]
+
+            # construct
+            sub_dict = odict
+            saved_sub_dict = saved
+            # first check path is valid
+            for key in klist[:-1]:
+                saved_sub_dict = saved_sub_dict.get(key, {})
+            val = saved_sub_dict.get(klist[-1])
+            if val is None:
+                continue
+            for key in klist[:-1]:
+                sub_dict = sub_dict.setdefault(key, {})
+            sub_dict[klist[-1]] = val
+
+        return odict
+
+
 class BaseViewBuilder(object):
     value_regexp = r"([^',)]+|('[^']*')+)"
     value_re = re.compile(value_regexp)
@@ -218,8 +301,9 @@ class BaseViewBuilder(object):
     opOne = ['eq', 'neq', 'gt', 'gte', 'lt', 'lte']
     opMulti = ['in', 'nin', 'cont', 'ncont']
 
-    def __init__(self):
-        pass
+    def __init__(self, endpoint, page_size):
+        self.endpoint = endpoint
+        self.page_size = page_size
 
     def parse_attr(self, attr):
         def tilde_unescape(string):
@@ -264,6 +348,9 @@ class BaseViewBuilder(object):
     def parse_filter(self, filter):
         """Implement SOL013 5.2 Attribute-based filtering"""
 
+        if filter is None:
+            return []
+
         loc = 0
         res = []
         while True:
@@ -302,25 +389,26 @@ class BaseViewBuilder(object):
         return AttributeSelector(self._EXCLUDE_DEFAULT, **params)
 
     def match_filters(self, val, filters):
-        if filters is None:
-            return True
-
         for f in filters:
             if not f.match(val):
                 return False
         return True
 
-    def parse_pager(self, request, page_size):
+    def parse_pager(self, request):
         """Implement SOL013 5.4 Handling of large query results"""
         marker = request.GET.get('nextpage_opaque_marker')
         req_url = request.url
 
-        return Pager(marker, req_url, page_size)
+        return Pager(marker, req_url, self.page_size)
 
-    def detail_list(self, values, filters, selector, pager):
-        resp_body = [self.detail(v, selector) for v in values
-                     if self.match_filters(v, filters)]
+    def parse_query_params(self, request):
+        filters = self.parse_filter(request.GET.get('filter'))
+        selector = self.parse_selector(request.GET)
+        pager = self.parse_pager(request)
 
+        return filters, selector, pager
+
+    def _handle_pager(self, pager, resp_body):
         if pager.page_size == 0:
             pager.next_marker = None
             return resp_body
@@ -332,72 +420,146 @@ class BaseViewBuilder(object):
             pager.next_marker = None
         return resp_body
 
+    def detail_list(self, values, filters, selector, pager):
+        resp_body = [self.detail(v, selector) for v in values
+                     if self.match_filters(v, filters)]
+        return self._handle_pager(pager, resp_body)
 
-class InstanceViewBuilder(BaseViewBuilder):
-    _EXCLUDE_DEFAULT = ['vnfConfigurableProperties',
+
+class EnhanceViewBuilder(BaseViewBuilder):
+    def parse_selector(self, req):
+        """Implement SOL013 5.3 Attribute selectors"""
+        params = {}
+        for k in ['all_fields', 'fields', 'exclude_fields', 'exclude_default']:
+            v = req.get(k)
+            if v is not None:
+                params[k] = v
+        return EnhanceAttributeSelector(self._ALL, self._MANDATORY,
+                                        self._EXCLUDE_DEFAULT, **params)
+
+    def get_dict_all(self, context, filters, selector, pager):
+        # calc db fields
+        extra_attrs = set()
+        db_filters = []
+        rm_filters = []
+        for item in filters:
+            if item.attr[0] not in selector.all_attrs:
+                # never match
+                return []
+            extra_attrs.add(item.attr[0])
+            # NOTE: cont and ncont are not supported at the moment.
+            if len(item.attr) == 1 and item.op not in ['cont', 'ncont']:
+                if item.op in self.opOne:
+                    db_filters.append(
+                        (item.op, item.attr[0], item.values[0]))
+                else:  # opMulti
+                    db_filters.append(
+                        (item.op, item.attr[0], item.values))
+                rm_filters.append(item)
+        for item in rm_filters:
+            filters.remove(item)
+        selector.add_extra_attrs(extra_attrs)
+        attrs = selector.return_attrs | selector.extra_attrs
+        limit = None
+        if (pager.page_size > 0 and len(filters) == 0 and
+                len(selector.extra_attrs) == 0):
+            # short cut. set limit if no filtering need later.
+            # NOTE: +1 to find there are more data
+            limit = pager.page_size + 1
+        if pager.marker:
+            db_filters.append(('gt', 'id', pager.marker))
+
+        return self.obj_cls.get_dict_all(context, attrs, db_filters, limit)
+
+    def detail_dict_list(self, values, filters, selector, pager):
+        if filters:
+            resp_body = [self.detail_dict(v, selector) for v in values
+                         if self.match_filters(v, filters)]
+        else:
+            # short cut a bit
+            resp_body = [self.detail_dict(v, selector) for v in values]
+        return self._handle_pager(pager, resp_body)
+
+
+class InstanceViewBuilder(EnhanceViewBuilder):
+    _ALL = {'id',
+            'vnfInstanceName',
+            'vnfInstanceDescription',
+            'vnfdId',
+            'vnfProvider',
+            'vnfProductName',
+            'vnfSoftwareVersion',
+            'vnfdVersion',
+            'instantiationState',
+            'vnfConfigurableProperties',
+            'vimConnectionInfo',
+            'instantiatedVnfInfo',
+            'metadata',
+            'extensions'}
+    _EXCLUDE_DEFAULT = {'vnfConfigurableProperties',
                         'vimConnectionInfo',
                         'instantiatedVnfInfo',
                         'metadata',
-                        'extensions']
+                        'extensions'}
+    _MANDATORY = _ALL - _EXCLUDE_DEFAULT
+    obj_cls = vnf_instance.VnfInstanceV2
 
-    def __init__(self, endpoint):
-        self.endpoint = endpoint
-
-    def parse_filter(self, filter):
-        return super().parse_filter(filter)
-
-    def parse_pager(self, request):
-        page_size = CONF.v2_vnfm.vnf_instance_page_size
-        return super().parse_pager(request, page_size)
+    def parse_selector(self, request):
+        selector = super().parse_selector(request)
+        if config.CONF.oslo_policy.enhanced_tacker_policy:
+            selector.add_extra_attrs({'vimConnectionInfo',
+                                      'instantiatedVnfInfo'})
+        return selector
 
     def detail(self, inst, selector=None):
-        # NOTE: _links is not saved in DB. create when it is necessary.
-        if not inst.obj_attr_is_set('_links'):
-            inst._links = inst_utils.make_inst_links(inst, self.endpoint)
+        return self.detail_dict(inst.to_dict(), selector)
 
-        resp = inst.to_dict()
+    def detail_dict(self, inst, selector):
+        # NOTE: _links is not saved in DB.
+        inst['_links'] = inst_utils.make_inst_links(inst, self.endpoint)
+
+        if selector is not None:
+            inst = selector.filter(inst)
 
         # remove credential data from vim_connection_info
         # see SOL003 4.4.1.6
         cred_data = ['password', 'bearer_token', 'client_secret']
-        for vim_info in resp.get('vimConnectionInfo', {}).values():
+        for vim_info in inst.get('vimConnectionInfo', {}).values():
             if 'accessInfo' in vim_info:
                 for cred_key in cred_data:
                     if cred_key in vim_info['accessInfo']:
                         vim_info['accessInfo'].pop(cred_key)
 
-        if selector is not None:
-            resp = selector.filter(inst, resp)
-        return resp
-
-    def detail_list(self, insts, filters, selector, pager):
-        return super().detail_list(insts, filters, selector, pager)
+        return inst
 
 
-class LcmOpOccViewBuilder(BaseViewBuilder):
-    _EXCLUDE_DEFAULT = ['operationParams',
+class LcmOpOccViewBuilder(EnhanceViewBuilder):
+    _ALL = {'id',
+            'operationState',
+            'stateEnteredTime',
+            'startTime',
+            'vnfInstanceId',
+            'grantId',
+            'operation',
+            'isAutomaticInvocation',
+            'operationParams',
+            'isCancelPending',
+            'cancelMode',
+            'error',
+            'resourceChanges',
+            'changedInfo',
+            'changedExtConnectivity',
+            'modificationsTriggeredByVnfPkgChange',
+            'vnfSnapshotInfoId'}
+    _EXCLUDE_DEFAULT = {'operationParams',
                         'error',
                         'resourceChanges',
                         'changedInfo',
-                        'changedExtConnectivity']
+                        'changedExtConnectivity'}
+    _MANDATORY = _ALL - _EXCLUDE_DEFAULT
+    obj_cls = vnf_lcm_op_occ.VnfLcmOpOccV2
 
-    def __init__(self, endpoint):
-        self.endpoint = endpoint
-
-    def parse_filter(self, filter):
-        return super().parse_filter(filter)
-
-    def parse_pager(self, request):
-        page_size = CONF.v2_vnfm.lcm_op_occ_page_size
-        return super().parse_pager(request, page_size)
-
-    def detail(self, lcmocc, selector=None):
-        # NOTE: _links is not saved in DB. create when it is necessary.
-        if not lcmocc.obj_attr_is_set('_links'):
-            lcmocc._links = lcmocc_utils.make_lcmocc_links(lcmocc,
-                                                           self.endpoint)
-        resp = lcmocc.to_dict()
-
+    def _pop_cred(self, resp):
         op_param = resp.get('operationParams', {})
         cred_data = ['password', 'bearer_token', 'client_secret']
         for vim_info in op_param.get('vimConnectionInfo', {}).values():
@@ -425,30 +587,31 @@ class LcmOpOccViewBuilder(BaseViewBuilder):
                          .pop('clientPassword'))
 
         changed_info = resp.get('changedInfo', {})
-        if changed_info:
-            for vim_info in changed_info.get('vimConnectionInfo', {}).values():
-                for cred_key in cred_data:
-                    if cred_key in vim_info['accessInfo']:
-                        vim_info['accessInfo'].pop(cred_key)
+        for vim_info in changed_info.get('vimConnectionInfo', {}).values():
+            for cred_key in cred_data:
+                if cred_key in vim_info['accessInfo']:
+                    vim_info['accessInfo'].pop(cred_key)
 
+    def detail(self, lcmocc, selector=None):
+        return self.detail_dict(lcmocc.to_dict(), selector)
+
+    def detail_dict(self, lcmocc, selector):
+        # NOTE: _links is not saved in DB.
+        lcmocc['_links'] = lcmocc_utils.make_lcmocc_links(lcmocc,
+                                                          self.endpoint)
         if selector is not None:
-            resp = selector.filter(lcmocc, resp)
-        return resp
+            lcmocc = selector.filter(lcmocc)
 
-    def detail_list(self, lcmoccs, filters, selector, pager):
-        return super().detail_list(lcmoccs, filters, selector, pager)
+        # remove credential data
+        self._pop_cred(lcmocc)
+
+        return lcmocc
 
 
 class SubscriptionViewBuilder(BaseViewBuilder):
-    def __init__(self, endpoint):
-        self.endpoint = endpoint
-
-    def parse_filter(self, filter):
-        return super().parse_filter(filter)
-
-    def parse_pager(self, request):
-        page_size = CONF.v2_vnfm.subscription_page_size
-        return super().parse_pager(request, page_size)
+    def parse_selector(self, req):
+        # no selector in the API
+        return None
 
     def detail(self, subsc, selector=None):
         # NOTE: _links is not saved in DB. create when it is necessary.
@@ -462,8 +625,6 @@ class SubscriptionViewBuilder(BaseViewBuilder):
         # NOTE: authentication is not included in LccnSubscription
         resp.pop('authentication', None)
 
-        if selector is not None:
-            resp = selector.filter(subsc, resp)
         return resp
 
     def detail_list(self, subscs, filters, pager):

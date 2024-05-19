@@ -44,8 +44,10 @@ class VnfFmControllerV1(sol_wsgi.SolAPIController):
     def __init__(self):
         self.nfvo_client = nfvo_client.NfvoClient()
         self.endpoint = CONF.v2_vnfm.endpoint
-        self._fm_view = vnffm_view.AlarmViewBuilder(self.endpoint)
-        self._subsc_view = vnffm_view.FmSubscriptionViewBuilder(self.endpoint)
+        self._fm_view = vnffm_view.AlarmViewBuilder(self.endpoint,
+            CONF.v2_vnfm.vnffm_alarm_page_size)
+        self._subsc_view = vnffm_view.FmSubscriptionViewBuilder(self.endpoint,
+            CONF.v2_vnfm.subscription_page_size)
 
     def supported_api_versions(self, action):
         return api_version.v1_fm_versions
@@ -61,15 +63,7 @@ class VnfFmControllerV1(sol_wsgi.SolAPIController):
         return ['application/json', 'text/plain']
 
     def index(self, request):
-        filter_param = request.GET.get('filter')
-        if filter_param is not None:
-            filters = self._fm_view.parse_filter(filter_param)
-        else:
-            filters = None
-
-        page_size = CONF.v2_vnfm.vnffm_alarm_page_size
-        pager = self._fm_view.parse_pager(request, page_size)
-
+        filters, _, pager = self._fm_view.parse_query_params(request)
         alarms = fm_alarm_utils.get_alarms_all(request.context,
                                                marker=pager.marker)
 
@@ -142,15 +136,7 @@ class VnfFmControllerV1(sol_wsgi.SolAPIController):
             location=self_href)
 
     def subscription_list(self, request):
-        filter_param = request.GET.get('filter')
-        if filter_param is not None:
-            filters = self._subsc_view.parse_filter(filter_param)
-        else:
-            filters = None
-
-        page_size = CONF.v2_vnfm.subscription_page_size
-        pager = self._subsc_view.parse_pager(request, page_size)
-
+        filters, _, pager = self._subsc_view.parse_query_params(request)
         subscs = fm_subsc_utils.get_subsc_all(request.context,
                                            marker=pager.marker)
 

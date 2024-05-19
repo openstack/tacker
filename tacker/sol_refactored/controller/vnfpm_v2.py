@@ -94,9 +94,11 @@ class VnfPmControllerV2(sol_wsgi.SolAPIController):
     def __init__(self):
         self.nfvo_client = nfvo_client.NfvoClient()
         self.endpoint = CONF.v2_vnfm.endpoint
-        self._pm_job_view = vnfpm_view.PmJobViewBuilder(self.endpoint)
+        self._pm_job_view = vnfpm_view.PmJobViewBuilder(self.endpoint,
+            CONF.v2_vnfm.vnfpm_pmjob_page_size)
         self._pm_threshold_view = (
-            vnfpm_view.PmThresholdViewBuilder(self.endpoint))
+            vnfpm_view.PmThresholdViewBuilder(self.endpoint,
+                CONF.v2_vnfm.vnfpm_pmthreshold_page_size))
         cls = plugin.get_class(
             CONF.prometheus_plugin.performance_management_package,
             CONF.prometheus_plugin.performance_management_class)
@@ -200,16 +202,8 @@ class VnfPmControllerV2(sol_wsgi.SolAPIController):
                                     location=location)
 
     def index(self, request):
-        filter_param = request.GET.get('filter')
-        if filter_param is not None:
-            filters = self._pm_job_view.parse_filter(filter_param)
-        else:
-            filters = None
-
-        # validate_filter
-        selector = self._pm_job_view.parse_selector(request.GET)
-        page_size = CONF.v2_vnfm.vnfpm_pmjob_page_size
-        pager = self._pm_job_view.parse_pager(request, page_size)
+        filters, selector, pager = self._pm_job_view.parse_query_params(
+            request)
         pm_job = pm_job_utils.get_pm_job_all(request.context,
                                              marker=pager.marker)
         resp_body = self._pm_job_view.detail_list(pm_job, filters,
@@ -372,12 +366,8 @@ class VnfPmControllerV2(sol_wsgi.SolAPIController):
                                     location=location)
 
     def index_threshold(self, request):
-        filter_param = request.GET.get('filter')
-        filters = (self._pm_threshold_view.parse_filter(filter_param)
-                   if filter_param else None)
-
-        page_size = CONF.v2_vnfm.vnfpm_pmthreshold_page_size
-        pager = self._pm_threshold_view.parse_pager(request, page_size)
+        filters, _, pager = self._pm_threshold_view.parse_query_params(
+            request)
         pm_job = pm_threshold_utils.get_pm_threshold_all(request.context,
                                                          marker=pager.marker)
         resp_body = self._pm_threshold_view.detail_list(pm_job, filters,

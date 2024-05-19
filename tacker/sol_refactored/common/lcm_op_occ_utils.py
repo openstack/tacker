@@ -50,16 +50,14 @@ def lcmocc_task_href(lcmocc_id, task, endpoint):
 
 
 def make_lcmocc_links(lcmocc, endpoint):
-    links = objects.VnfLcmOpOccV2_Links()
-    links.self = objects.Link(href=lcmocc_href(lcmocc.id, endpoint))
-    links.vnfInstance = objects.Link(
-        href=inst_utils.inst_href(lcmocc.vnfInstanceId, endpoint))
-    links.retry = objects.Link(
-        href=lcmocc_task_href(lcmocc.id, 'retry', endpoint))
-    links.rollback = objects.Link(
-        href=lcmocc_task_href(lcmocc.id, 'rollback', endpoint))
-    links.fail = objects.Link(
-        href=lcmocc_task_href(lcmocc.id, 'fail', endpoint))
+    links = {'self': {'href': lcmocc_href(lcmocc['id'], endpoint)}}
+    links['vnfInstance'] = {
+        'href': inst_utils.inst_href(lcmocc['vnfInstanceId'], endpoint)}
+    links['retry'] = {
+        'href': lcmocc_task_href(lcmocc['id'], 'retry', endpoint)}
+    links['rollback'] = {
+        'href': lcmocc_task_href(lcmocc['id'], 'rollback', endpoint)}
+    links['fail'] = {'href': lcmocc_task_href(lcmocc['id'], 'fail', endpoint)}
     # TODO(oda-g): add when implemented
     # links.grant
     # links.cancel

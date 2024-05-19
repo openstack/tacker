@@ -400,6 +400,58 @@ class TackerPersistentObject(TackerObject):
         return [cls.from_db_obj(item) for item in result]
 
     @classmethod
+    @db_api.context_manager.reader
+    def get_dict_all(cls, context, attrs, filters, limit):
+        model_cls = getattr(models, cls.__name__)
+        args = []
+        for attr in attrs:
+            args.append(getattr(model_cls, get_model_field(attr)))
+        query = context.session.query(*args)
+        if filters:
+            args = []
+            for op, attr, val in filters:
+                column = getattr(model_cls, get_model_field(attr))
+                if op == 'eq':
+                    args.append(column.__eq__(val))
+                elif op == 'neq':
+                    args.append(column.__ne__(val))
+                elif op == 'lt':
+                    args.append(column.__lt__(val))
+                elif op == 'gt':
+                    args.append(column.__gt__(val))
+                elif op == 'gte':
+                    args.append(column.__ge__(val))
+                elif op == 'lte':
+                    args.append(column.__le__(val))
+                elif op == 'in':
+                    args.append(column.in_(val))
+                elif op == 'nin':
+                    args.append(column.not_in(val))
+            query = query.filter(*args)
+        if limit is not None:
+            query = query.limit(limit)
+        result = query.all()
+        ret = [item._asdict() for item in result]
+        json_attrs = [attr for attr in attrs
+            if str(getattr(model_cls, get_model_field(attr)).type) == 'JSON']
+        for item in ret:
+            for attr in attrs:
+                attr_ = get_model_field(attr)
+                val = item[attr_]
+                if val is None:
+                    del item[attr_]
+                    continue
+                if attr != attr_:
+                    item[attr] = val
+                    del item[attr_]
+                # convert to dict if its type is JSON.
+                if attr in json_attrs and isinstance(val, str):
+                    # NOTE: It is str normally but there is a case it is
+                    # already dict.
+                    item[attr] = jsonutils.loads(val)
+        return ret
+
+    @classmethod
     def from_db_obj(cls, db_obj):
         inst = cls()
         for name, field in cls.fields.items():

@@ -41,17 +41,15 @@ def inst_href(inst_id, endpoint):
 
 
 def make_inst_links(inst, endpoint):
-    links = objects.VnfInstanceV2_Links()
-    self_href = inst_href(inst.id, endpoint)
-    links.self = objects.Link(href=self_href)
-    if inst.instantiationState == 'NOT_INSTANTIATED':
-        links.instantiate = objects.Link(href=self_href + "/instantiate")
+    self_href = inst_href(inst['id'], endpoint)
+    links = {'self': {'href': self_href}}
+    if inst['instantiationState'] == 'NOT_INSTANTIATED':
+        links['instantiate'] = {'href': self_href + "/instantiate"}
     else:  # 'INSTANTIATED'
-        links.terminate = objects.Link(href=self_href + "/terminate")
-        links.scale = objects.Link(href=self_href + "/scale")
-        links.heal = objects.Link(href=self_href + "/heal")
-        links.changeExtConn = objects.Link(href=self_href + "/change_ext_conn")
-        links.changeVnfPkg = objects.Link(href=self_href + "/change_vnfpkg")
+        links['terminate'] = {'href': self_href + "/terminate"}
+        links['scale'] = {'href': self_href + "/scale"}
+        links['heal'] = {'href': self_href + "/heal"}
+        links['changeExtConn'] = {'href': self_href + "/change_ext_conn"}
         # NOTE: add when the operation supported
 
     return links

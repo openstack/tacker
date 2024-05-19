@@ -48,9 +48,12 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
         self.nfvo_client = nfvo_client.NfvoClient()
         self.endpoint = CONF.v2_vnfm.endpoint
         self.conductor_rpc = conductor_rpc_v2.VnfLcmRpcApiV2()
-        self._inst_view = vnflcm_view.InstanceViewBuilder(self.endpoint)
-        self._lcmocc_view = vnflcm_view.LcmOpOccViewBuilder(self.endpoint)
-        self._subsc_view = vnflcm_view.SubscriptionViewBuilder(self.endpoint)
+        self._inst_view = vnflcm_view.InstanceViewBuilder(self.endpoint,
+            CONF.v2_vnfm.vnf_instance_page_size)
+        self._lcmocc_view = vnflcm_view.LcmOpOccViewBuilder(self.endpoint,
+            CONF.v2_vnfm.lcm_op_occ_page_size)
+        self._subsc_view = vnflcm_view.SubscriptionViewBuilder(self.endpoint,
+            CONF.v2_vnfm.subscription_page_size)
 
     def api_versions(self, request):
         return sol_wsgi.SolResponse(200, api_version.supported_versions_v2)
@@ -114,27 +117,19 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
         return sol_wsgi.SolResponse(201, resp_body, location=location)
 
     def index(self, request):
-        filter_param = request.GET.get('filter')
-        if filter_param is not None:
-            filters = self._inst_view.parse_filter(filter_param)
-        else:
-            filters = None
-        # validate_filter
+        filters, selector, pager = self._inst_view.parse_query_params(request)
 
-        selector = self._inst_view.parse_selector(request.GET)
-
-        pager = self._inst_view.parse_pager(request)
-
-        insts = inst_utils.get_inst_all(request.context,
-                                        marker=pager.marker)
+        # NOTE: insts is dict
+        insts = self._inst_view.get_dict_all(request.context, filters,
+                                             selector, pager)
         if config.CONF.oslo_policy.enhanced_tacker_policy:
             insts = [inst for inst in insts if request.context.can(
                 POLICY_NAME.format('index'),
-                target=self._get_policy_target(inst),
+                target=self._get_policy_target_dict(inst),
                 fatal=False)]
 
-        resp_body = self._inst_view.detail_list(insts, filters,
-                                                selector, pager)
+        resp_body = self._inst_view.detail_dict_list(insts, filters,
+                                                     selector, pager)
 
         return sol_wsgi.SolResponse(200, resp_body, link=pager.get_link())
 
@@ -217,27 +212,26 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
         return sol_wsgi.SolResponse(202, None, location=location)
 
     def _get_policy_target(self, vnf_instance):
-        vendor = vnf_instance.vnfProvider
+        return self._get_policy_target_dict(vnf_instance.to_dict())
 
-        if vnf_instance.instantiationState == 'NOT_INSTANTIATED':
+    def _get_policy_target_dict(self, inst_dict):
+        vendor = inst_dict['vnfProvider']
+
+        if inst_dict['instantiationState'] == 'NOT_INSTANTIATED':
             area = '*'
             tenant = '*'
         else:
             vim_type = None
             area = None
-            if vnf_instance.obj_attr_is_set('vimConnectionInfo'):
-                for _, vim_conn_info in vnf_instance.vimConnectionInfo.items():
-                    area = vim_conn_info.get('extra', {}).get('area')
-                    vim_type = vim_conn_info.vimType
-                    if area and vim_type:
-                        break
+            for vim_conn_info in inst_dict.get(
+                    'vimConnectionInfo', {}).values():
+                area = vim_conn_info.get('extra', {}).get('area')
+                vim_type = vim_conn_info['vimType']
+                if area and vim_type:
+                    break
 
-            tenant = None
-            if (vnf_instance.obj_attr_is_set('instantiatedVnfInfo') and
-                    vnf_instance.instantiatedVnfInfo.obj_attr_is_set(
-                        'metadata')):
-                tenant = (vnf_instance.instantiatedVnfInfo
-                          .metadata.get('tenant'))
+            tenant = inst_dict.get('instantiatedVnfInfo', {}).get(
+                'metadata', {}).get('tenant')
 
         target = {
             'vendor': vendor,
@@ -481,13 +475,7 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
         return sol_wsgi.SolResponse(201, resp_body, location=self_href)
 
     def subscription_list(self, request):
-        filter_param = request.GET.get('filter')
-        if filter_param is not None:
-            filters = self._subsc_view.parse_filter(filter_param)
-        else:
-            filters = None
-
-        pager = self._subsc_view.parse_pager(request)
+        filters, _, pager = self._subsc_view.parse_query_params(request)
 
         subscs = subsc_utils.get_subsc_all(request.context,
                                            marker=pager.marker)
@@ -512,21 +500,14 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
         return sol_wsgi.SolResponse(204, None)
 
     def lcm_op_occ_list(self, request):
-        filter_param = request.GET.get('filter')
-        if filter_param is not None:
-            filters = self._lcmocc_view.parse_filter(filter_param)
-        else:
-            filters = None
+        filters, selector, pager = self._lcmocc_view.parse_query_params(
+            request)
 
-        selector = self._lcmocc_view.parse_selector(request.GET)
+        lcmoccs = self._lcmocc_view.get_dict_all(request.context, filters,
+                                                 selector, pager)
 
-        pager = self._lcmocc_view.parse_pager(request)
-
-        lcmoccs = lcmocc_utils.get_lcmocc_all(request.context,
-                                              marker=pager.marker)
-
-        resp_body = self._lcmocc_view.detail_list(lcmoccs, filters,
-                                                  selector, pager)
+        resp_body = self._lcmocc_view.detail_dict_list(lcmoccs, filters,
+                                                       selector, pager)
 
         return sol_wsgi.SolResponse(200, resp_body, link=pager.get_link())
 

@@ -27,10 +27,9 @@ CONF = config.CONF
 
 
 class AlarmViewBuilder(base_view.BaseViewBuilder):
-    _EXCLUDE_DEFAULT = []
-
-    def __init__(self, endpoint):
-        self.endpoint = endpoint
+    def parse_selector(self, req):
+        # no selector in the API
+        return None
 
     def detail(self, alarm, selector=None):
         # NOTE: _links is not saved in DB. create when it is necessary.
@@ -39,14 +38,13 @@ class AlarmViewBuilder(base_view.BaseViewBuilder):
 
         resp = alarm.to_dict()
 
-        if selector is not None:
-            resp = selector.filter(alarm, resp)
         return resp
 
 
 class FmSubscriptionViewBuilder(base_view.BaseViewBuilder):
-    def __init__(self, endpoint):
-        self.endpoint = endpoint
+    def parse_selector(self, req):
+        # no selector in the API
+        return None
 
     def detail(self, subsc, selector=None):
         # NOTE: _links is not saved in DB. create when it is necessary.
@@ -60,6 +58,4 @@ class FmSubscriptionViewBuilder(base_view.BaseViewBuilder):
         # NOTE: authentication is not included in FmSubscriptionV1
         resp.pop('authentication', None)
 
-        if selector is not None:
-            resp = selector.filter(subsc, resp)
         return resp

@@ -46,7 +46,7 @@ class TestVnfpmV2(base.BaseTestCase):
         self.request.context = self.context
         self.controller = vnfpm_v2.VnfPmControllerV2()
         self.endpoint = CONF.v2_vnfm.endpoint
-        self._pm_job_view = vnfpm_view.PmJobViewBuilder(self.endpoint)
+        self._pm_job_view = vnfpm_view.PmJobViewBuilder(self.endpoint, 100)
 
     def test_check_performance_metric_or_group(self):
         vnfpm_v2._check_performance_metric_or_group(
