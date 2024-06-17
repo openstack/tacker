@@ -2,7 +2,16 @@
 VNF Lifecycle Management
 ========================
 
-This document describes how to manage VNF Lifecycle with CLI in Tacker.
+This document describes how to manage VNF Lifecycle with CLI in Tacker v1 API.
+
+.. note::
+
+  The content of this document has been confirmed to work
+  using the following VNF packages.
+
+  * `sample_vnf_package_csar for 2024.1 Caracal`_
+  * `functional5 for 2024.1 Caracal`_
+
 
 Prerequisites
 -------------
@@ -18,25 +27,16 @@ CLI Reference for VNF Lifecycle Management
 ------------------------------------------
 
 .. note::
+
     Commands call version 1 VNF LCM APIs by default.
-    You can call the specific version of VNF LCM APIs
-    by using the option **\-\-os-tacker-api-version**.
-    Commands with **\-\-os-tacker-api-version 2** call version 2 VNF LCM APIs.
+    You can also call the version 1 VNF LCM APIs specifically
+    by using the option **\-\-os-tacker-api-version 1**.
 
-.. note::
-    In Bobcat release, version 2 VNF LCM APIs of Change External VNF
-    Connectivity only support VNF, not CNF.
-
-.. note::
-   Change Current VNF Package only support version 2 VNF LCM APIs.
-   In Bobcat release, it only support ``RollingUpdate`` upgrade type,
-   ``BlueGreen`` will be supported in future releases.
 
 1. Create VNF Identifier
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-The `VNFD_ID` should be replaced with the VNFD ID in VNF Package. In the
-following sample, `b1bb0ce7-ebca-4fa7-95ed-4840d70a1177` is used.
+The `VNFD_ID` should be replaced with the VNFD ID in VNF Package.
 
 .. code-block:: console
 
@@ -47,21 +47,29 @@ Result:
 
 .. code-block:: console
 
-  +--------------------------+----------------------------------------------------------------------------------------------+
-  | Field                    | Value                                                                                        |
-  +--------------------------+----------------------------------------------------------------------------------------------+
-  | ID                       | 725f625e-f6b7-4bcd-b1b7-7184039fde45                                                         |
-  | Instantiation State      | NOT_INSTANTIATED                                                                             |
-  | Links                    | instantiate=href=/vnflcm/v1/vnf_instances/725f625e-f6b7-4bcd-b1b7-7184039fde45/instantiate,  |
-  |                          | self=href=/vnflcm/v1/vnf_instances/725f625e-f6b7-4bcd-b1b7-7184039fde45                      |
-  | VNF Instance Description | None                                                                                         |
-  | VNF Instance Name        | None                                                                                         |
-  | VNF Product Name         | Sample VNF                                                                                   |
-  | VNF Provider             | Company                                                                                      |
-  | VNF Software Version     | 1.0                                                                                          |
-  | VNFD ID                  | b1bb0ce7-ebca-4fa7-95ed-4840d70a1177                                                         |
-  | VNFD Version             | 1.0                                                                                          |
-  +--------------------------+----------------------------------------------------------------------------------------------+
+  +-----------------------------+------------------------------------------------------------------------------------------------------------------+
+  | Field                       | Value                                                                                                            |
+  +-----------------------------+------------------------------------------------------------------------------------------------------------------+
+  | ID                          | 74c71ef9-b223-4a5f-9987-de476eab122f                                                                             |
+  | Instantiation State         | NOT_INSTANTIATED                                                                                                 |
+  | Links                       | {                                                                                                                |
+  |                             |     "self": {                                                                                                    |
+  |                             |         "href": "http://localhost:9890/vnflcm/v1/vnf_instances/74c71ef9-b223-4a5f-9987-de476eab122f"             |
+  |                             |     },                                                                                                           |
+  |                             |     "instantiate": {                                                                                             |
+  |                             |         "href": "http://localhost:9890/vnflcm/v1/vnf_instances/74c71ef9-b223-4a5f-9987-de476eab122f/instantiate" |
+  |                             |     }                                                                                                            |
+  |                             | }                                                                                                                |
+  | VNF Configurable Properties |                                                                                                                  |
+  | VNF Instance Description    |                                                                                                                  |
+  | VNF Instance Name           | vnf-74c71ef9-b223-4a5f-9987-de476eab122f                                                                         |
+  | VNF Product Name            | Sample VNF                                                                                                       |
+  | VNF Provider                | Company                                                                                                          |
+  | VNF Software Version        | 1.0                                                                                                              |
+  | VNFD ID                     | b1bb0ce7-ebca-4fa7-95ed-4840d70a1177                                                                             |
+  | VNFD Version                | 1.0                                                                                                              |
+  | vnfPkgId                    |                                                                                                                  |
+  +-----------------------------+------------------------------------------------------------------------------------------------------------------+
 
 
 Help:
@@ -69,44 +77,71 @@ Help:
 .. code-block:: console
 
   $ openstack vnflcm create --help
-  usage: openstack vnflcm create [-h] [-f {json,shell,table,value,yaml}]
-                                 [-c COLUMN] [--noindent] [--prefix PREFIX]
-                                 [--max-width <integer>] [--fit-width]
-                                 [--print-empty] [--name <vnf-instance-name>]
-                                 [--description <vnf-instance-description>]
-                                 [--I <param-file>]
+  usage: openstack vnflcm create [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN] [--noindent] [--prefix PREFIX]
+                                 [--max-width <integer>] [--fit-width] [--print-empty] [--name <vnf-instance-name>]
+                                 [--description <vnf-instance-description>] [--I <param-file>]
                                  <vnfd-id>
 
   Create a new VNF Instance
 
   positional arguments:
-    <vnfd-id>             Identifier that identifies the VNFD which defines the
-                          VNF instance to be created.
+    <vnfd-id>     Identifier that identifies the VNFD which defines the VNF instance to be created.
 
-  optional arguments:
+  options:
     -h, --help            show this help message and exit
     --name <vnf-instance-name>
                           Name of the VNF instance to be created.
     --description <vnf-instance-description>
                           Description of the VNF instance to be created.
-    --I <param-file>      Instantiate VNF subsequently after it's creation.
-                          Specify instantiate request parameters in a json file.
+    --I <param-file>
+                          Instantiate VNF subsequently after it's creation. Specify instantiate request parameters in a json file.
+
+  output formatters:
+    output formatter options
+
+    -f {json,shell,table,value,yaml}, --format {json,shell,table,value,yaml}
+                          the output format, defaults to table
+    -c COLUMN, --column COLUMN
+                          specify the column(s) to include, can be repeated to show multiple columns
+
+  json formatter:
+    --noindent            whether to disable indenting the JSON
+
+  shell formatter:
+    a format a UNIX shell can parse (variable="value")
+
+    --prefix PREFIX
+                          add a prefix to all variable names
+
+  table formatter:
+    --max-width <integer>
+                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH environment variable, but the
+                          parameter takes precedence.
+    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the environment variable
+                          CLIFF_FIT_WIDTH=1 to always enable
+    --print-empty         Print empty table if there is no data to show.
+
+  This command is provided by the python-tackerclient plugin.
 
 
 2. Instantiate VNF
 ^^^^^^^^^^^^^^^^^^
 
+The `VNF_INSTANCE_ID` and `SAMPLE_PARAM_FILE.json` should be replaced
+with the ID of VNF instance and the path of parameter json file
+that will be used to instantiate VNF, respectively.
+
 .. code-block:: console
 
   $ openstack vnflcm instantiate VNF_INSTANCE_ID \
-       ./sample_param_file.json
+    SAMPLE_PARAM_FILE.json
 
 
 Result:
 
 .. code-block:: console
 
-  Instantiate request for VNF Instance 725f625e-f6b7-4bcd-b1b7-7184039fde45 has been accepted.
+  Instantiate request for VNF Instance 74c71ef9-b223-4a5f-9987-de476eab122f has been accepted.
 
 
 Help:
@@ -119,11 +154,15 @@ Help:
   Instantiate a VNF Instance
 
   positional arguments:
-    <vnf-instance>  VNF instance ID to instantiate
-    <param-file>    Specify instantiate request parameters in a json file.
+    <vnf-instance>
+                          VNF instance ID to instantiate
+    <param-file>  Specify instantiate request parameters in a json file.
 
-  optional arguments:
-    -h, --help      show this help message and exit
+  options:
+    -h, --help            show this help message and exit
+
+  This command is provided by the python-tackerclient plugin.
+
 
 3. List VNF
 ^^^^^^^^^^^
@@ -137,11 +176,11 @@ Result:
 
 .. code-block:: console
 
-  +--------------------------------------+-------------------+---------------------+--------------+----------------------+------------------+--------------------------------------+
-  | ID                                   | VNF Instance Name | Instantiation State | VNF Provider | VNF Software Version | VNF Product Name | VNFD ID                              |
-  +--------------------------------------+-------------------+---------------------+--------------+----------------------+------------------+--------------------------------------+
-  | 725f625e-f6b7-4bcd-b1b7-7184039fde45 | None              | INSTANTIATED        | Company      | 1.0                  | Sample VNF       | b1bb0ce7-ebca-4fa7-95ed-4840d70a1177 |
-  +--------------------------------------+-------------------+---------------------+--------------+----------------------+------------------+--------------------------------------+
+  +--------------------------------------+-----------------------+---------------------+--------------+----------------------+------------------+--------------------------------------+
+  | ID                                   | VNF Instance Name     | Instantiation State | VNF Provider | VNF Software Version | VNF Product Name | VNFD ID                              |
+  +--------------------------------------+-----------------------+---------------------+--------------+----------------------+------------------+--------------------------------------+
+  | 74c71ef9-b223-4a5f-9987-de476eab122f | Updated instance name | INSTANTIATED        | Company      | 1.0                  | Sample VNF       | b1bb0ce7-ebca-4fa7-95ed-4840d70a1177 |
+  +--------------------------------------+-----------------------+---------------------+--------------+----------------------+------------------+--------------------------------------+
 
 
 Help:
@@ -150,19 +189,49 @@ Help:
 
   $ openstack vnflcm list --help
   usage: openstack vnflcm list [-h] [-f {csv,json,table,value,yaml}] [-c COLUMN]
-                               [--quote {all,minimal,none,nonnumeric}]
-                               [--noindent] [--max-width <integer>]
-                               [--fit-width] [--print-empty]
-                               [--sort-column SORT_COLUMN]
+                               [--quote {all,minimal,none,nonnumeric}] [--noindent] [--max-width <integer>] [--fit-width]
+                               [--print-empty] [--sort-column SORT_COLUMN] [--sort-ascending | --sort-descending]
 
   List VNF Instance
 
-  optional arguments:
+  options:
     -h, --help            show this help message and exit
+
+  output formatters:
+    output formatter options
+
+    -f {csv,json,table,value,yaml}, --format {csv,json,table,value,yaml}
+                          the output format, defaults to table
+    -c COLUMN, --column COLUMN
+                          specify the column(s) to include, can be repeated to show multiple columns
+    --sort-column SORT_COLUMN
+                          specify the column(s) to sort the data (columns specified first have a priority, non-existing columns are
+                          ignored), can be repeated
+    --sort-ascending      sort the column(s) in ascending order
+    --sort-descending     sort the column(s) in descending order
+
+  CSV Formatter:
+    --quote {all,minimal,none,nonnumeric}
+                          when to include quotes, defaults to nonnumeric
+
+  json formatter:
+    --noindent            whether to disable indenting the JSON
+
+  table formatter:
+    --max-width <integer>
+                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH environment variable, but the
+                          parameter takes precedence.
+    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the environment variable
+                          CLIFF_FIT_WIDTH=1 to always enable
+    --print-empty         Print empty table if there is no data to show.
+
+  This command is provided by the python-tackerclient plugin.
 
 
 4. Show VNF
 ^^^^^^^^^^^
+
+The `VNF_INSTANCE_ID` should be replaced with the ID of VNF instance.
 
 .. code-block:: console
 
@@ -173,30 +242,109 @@ Result:
 
 .. code-block:: console
 
-  +--------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------+
-  | Field                    | Value                                                                                                                                                       |
-  +--------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------+
-  | ID                       | 725f625e-f6b7-4bcd-b1b7-7184039fde45                                                                                                                        |
-  | Instantiated Vnf Info    | , extCpInfo='[]', flavourId='simple', vnfState='STARTED', vnfVirtualLinkResourceInfo='[{'id': '0163cea3-af88-4ef8-ae43-ef3e5e7e827d',                       |
-  |                          | 'vnfVirtualLinkDescId': 'internalVL1', 'networkResource': {'resourceId': '073c74b9-670d-4764-a933-6fe4f2f991c1', 'vimLevelResourceType':                    |
-  |                          | 'OS::Neutron::Net'}, 'vnfLinkPorts': [{'id': '3b667826-336c-4919-889e-e6c63d959ee6', 'resourceHandle': {'resourceId':                                       |
-  |                          | '5d3255b5-e9fb-449f-9c5f-5242049ce2fa', 'vimLevelResourceType': 'OS::Neutron::Port'}, 'cpInstanceId': '3091f046-de63-44c8-ad23-f86128409b27'}]}]',          |
-  |                          | vnfcResourceInfo='[{'id': '2a66f545-c90d-49e7-8f17-fb4e57b19c92', 'vduId': 'VDU1', 'computeResource': {'resourceId':                                        |
-  |                          | '6afc547d-0e19-46fc-b171-a3d9a0a80513', 'vimLevelResourceType': 'OS::Nova::Server'}, 'storageResourceIds': [], 'vnfcCpInfo': [{'id':                        |
-  |                          | '3091f046-de63-44c8-ad23-f86128409b27', 'cpdId': 'CP1', 'vnfExtCpId': None, 'vnfLinkPortId': '3b667826-336c-4919-889e-e6c63d959ee6'}]}]'                    |
-  | Instantiation State      | INSTANTIATED                                                                                                                                                |
-  | Links                    | heal=href=/vnflcm/v1/vnf_instances/725f625e-f6b7-4bcd-b1b7-7184039fde45/heal, self=href=/vnflcm/v1/vnf_instances/725f625e-f6b7-4bcd-b1b7-7184039fde45,      |
-  |                          | terminate=href=/vnflcm/v1/vnf_instances/725f625e-f6b7-4bcd-b1b7-7184039fde45/terminate,                                                                     |
-  |                          | changeExtConn=href=/vnflcm/v1/vnf_instances/725f625e-f6b7-4bcd-b1b7-7184039fde45/change_ext_conn                                                            |
-  | VIM Connection Info      | []                                                                                                                                                          |
-  | VNF Instance Description | None                                                                                                                                                        |
-  | VNF Instance Name        | None                                                                                                                                                        |
-  | VNF Product Name         | Sample VNF                                                                                                                                                  |
-  | VNF Provider             | Company                                                                                                                                                     |
-  | VNF Software Version     | 1.0                                                                                                                                                         |
-  | VNFD ID                  | b1bb0ce7-ebca-4fa7-95ed-4840d70a1177                                                                                                                        |
-  | VNFD Version             | 1.0                                                                                                                                                         |
-  +--------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------+
+  +-----------------------------+----------------------------------------------------------------------------------------------------------------------+
+  | Field                       | Value                                                                                                                |
+  +-----------------------------+----------------------------------------------------------------------------------------------------------------------+
+  | ID                          | 74c71ef9-b223-4a5f-9987-de476eab122f                                                                                 |
+  | Instantiated Vnf Info       | {                                                                                                                    |
+  |                             |     "flavourId": "simple",                                                                                           |
+  |                             |     "vnfState": "STARTED",                                                                                           |
+  |                             |     "extCpInfo": [],                                                                                                 |
+  |                             |     "vnfcResourceInfo": [                                                                                            |
+  |                             |         {                                                                                                            |
+  |                             |             "id": "149d21ec-02a8-456f-af0e-0a91652cc31a",                                                            |
+  |                             |             "vduId": "VDU1",                                                                                         |
+  |                             |             "computeResource": {                                                                                     |
+  |                             |                 "vimConnectionId": "fa9fa87e-8be2-425d-85e1-08778d82d95f",                                           |
+  |                             |                 "resourceId": "6508f3fc-065d-4387-893d-95366e6854a5",                                                |
+  |                             |                 "vimLevelResourceType": "OS::Nova::Server"                                                           |
+  |                             |             },                                                                                                       |
+  |                             |             "storageResourceIds": [],                                                                                |
+  |                             |             "vnfcCpInfo": [                                                                                          |
+  |                             |                 {                                                                                                    |
+  |                             |                     "id": "d33ced0e-7337-44e8-b4b5-2c1cdad41a28",                                                    |
+  |                             |                     "cpdId": "CP1",                                                                                  |
+  |                             |                     "vnfExtCpId": null,                                                                              |
+  |                             |                     "vnfLinkPortId": "06c2a88b-7cde-409e-9235-4174c49624c1"                                          |
+  |                             |                 }                                                                                                    |
+  |                             |             ]                                                                                                        |
+  |                             |         }                                                                                                            |
+  |                             |     ],                                                                                                               |
+  |                             |     "vnfVirtualLinkResourceInfo": [                                                                                  |
+  |                             |         {                                                                                                            |
+  |                             |             "id": "2a364ed3-cfe4-40a6-ac78-79b773bddf5c",                                                            |
+  |                             |             "vnfVirtualLinkDescId": "internalVL1",                                                                   |
+  |                             |             "networkResource": {                                                                                     |
+  |                             |                 "vimConnectionId": "fa9fa87e-8be2-425d-85e1-08778d82d95f",                                           |
+  |                             |                 "resourceId": "4695aa24-a3ab-41f9-bfc3-59cd75f21e4f",                                                |
+  |                             |                 "vimLevelResourceType": "OS::Neutron::Net"                                                           |
+  |                             |             },                                                                                                       |
+  |                             |             "vnfLinkPorts": [                                                                                        |
+  |                             |                 {                                                                                                    |
+  |                             |                     "id": "06c2a88b-7cde-409e-9235-4174c49624c1",                                                    |
+  |                             |                     "resourceHandle": {                                                                              |
+  |                             |                         "vimConnectionId": "fa9fa87e-8be2-425d-85e1-08778d82d95f",                                   |
+  |                             |                         "resourceId": "7d118835-da4c-4e8f-8def-dba2377ab446",                                        |
+  |                             |                         "vimLevelResourceType": "OS::Neutron::Port"                                                  |
+  |                             |                     },                                                                                               |
+  |                             |                     "cpInstanceId": "d33ced0e-7337-44e8-b4b5-2c1cdad41a28"                                           |
+  |                             |                 }                                                                                                    |
+  |                             |             ]                                                                                                        |
+  |                             |         }                                                                                                            |
+  |                             |     ],                                                                                                               |
+  |                             |     "vnfcInfo": [                                                                                                    |
+  |                             |         {                                                                                                            |
+  |                             |             "id": "c1a2c1f8-60ba-4db6-aa64-416263c45801",                                                            |
+  |                             |             "vduId": "VDU1",                                                                                         |
+  |                             |             "vnfcState": "STARTED"                                                                                   |
+  |                             |         }                                                                                                            |
+  |                             |     ],                                                                                                               |
+  |                             |     "additionalParams": {}                                                                                           |
+  |                             | }                                                                                                                    |
+  | Instantiation State         | INSTANTIATED                                                                                                         |
+  | Links                       | {                                                                                                                    |
+  |                             |     "self": {                                                                                                        |
+  |                             |         "href": "http://localhost:9890/vnflcm/v1/vnf_instances/74c71ef9-b223-4a5f-9987-de476eab122f"                 |
+  |                             |     },                                                                                                               |
+  |                             |     "terminate": {                                                                                                   |
+  |                             |         "href": "http://localhost:9890/vnflcm/v1/vnf_instances/74c71ef9-b223-4a5f-9987-de476eab122f/terminate"       |
+  |                             |     },                                                                                                               |
+  |                             |     "heal": {                                                                                                        |
+  |                             |         "href": "http://localhost:9890/vnflcm/v1/vnf_instances/74c71ef9-b223-4a5f-9987-de476eab122f/heal"            |
+  |                             |     },                                                                                                               |
+  |                             |     "changeExtConn": {                                                                                               |
+  |                             |         "href": "http://localhost:9890/vnflcm/v1/vnf_instances/74c71ef9-b223-4a5f-9987-de476eab122f/change_ext_conn" |
+  |                             |     }                                                                                                                |
+  |                             | }                                                                                                                    |
+  | VIM Connection Info         | [                                                                                                                    |
+  |                             |     {                                                                                                                |
+  |                             |         "id": "e24f9796-a8e9-4cb0-85ce-5920dcddafa1",                                                                |
+  |                             |         "vimId": "fa9fa87e-8be2-425d-85e1-08778d82d95f",                                                             |
+  |                             |         "vimType": "ETSINFV.OPENSTACK_KEYSTONE.v_2",                                                                 |
+  |                             |         "interfaceInfo": {},                                                                                         |
+  |                             |         "accessInfo": {},                                                                                            |
+  |                             |         "extra": {}                                                                                                  |
+  |                             |     },                                                                                                               |
+  |                             |     {                                                                                                                |
+  |                             |         "id": "467746fa-248b-464c-ad81-3f01c4eacdf5",                                                                |
+  |                             |         "vimId": "fa9fa87e-8be2-425d-85e1-08778d82d95f",                                                             |
+  |                             |         "vimType": "openstack",                                                                                      |
+  |                             |         "interfaceInfo": {},                                                                                         |
+  |                             |         "accessInfo": {},                                                                                            |
+  |                             |         "extra": {}                                                                                                  |
+  |                             |     }                                                                                                                |
+  |                             | ]                                                                                                                    |
+  | VNF Configurable Properties |                                                                                                                      |
+  | VNF Instance Description    |                                                                                                                      |
+  | VNF Instance Name           | vnf-74c71ef9-b223-4a5f-9987-de476eab122f                                                                             |
+  | VNF Product Name            | Sample VNF                                                                                                           |
+  | VNF Provider                | Company                                                                                                              |
+  | VNF Software Version        | 1.0                                                                                                                  |
+  | VNFD ID                     | b1bb0ce7-ebca-4fa7-95ed-4840d70a1177                                                                                 |
+  | VNFD Version                | 1.0                                                                                                                  |
+  | metadata                    | tenant=admin                                                                                                         |
+  | vnfPkgId                    |                                                                                                                      |
+  +-----------------------------+----------------------------------------------------------------------------------------------------------------------+
 
 
 Help:
@@ -204,23 +352,51 @@ Help:
 .. code-block:: console
 
   $ openstack vnflcm show --help
-  usage: openstack vnflcm show [-h] [-f {json,shell,table,value,yaml}]
-                               [-c COLUMN] [--noindent] [--prefix PREFIX]
-                               [--max-width <integer>] [--fit-width]
-                               [--print-empty]
+  usage: openstack vnflcm show [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN] [--noindent] [--prefix PREFIX]
+                               [--max-width <integer>] [--fit-width] [--print-empty]
                                <vnf-instance>
 
   Display VNF instance details
 
   positional arguments:
-    <vnf-instance>        VNF instance ID to display
+    <vnf-instance>
+                          VNF instance ID to display
 
-  optional arguments:
+  options:
     -h, --help            show this help message and exit
+
+  output formatters:
+    output formatter options
+
+    -f {json,shell,table,value,yaml}, --format {json,shell,table,value,yaml}
+                          the output format, defaults to table
+    -c COLUMN, --column COLUMN
+                          specify the column(s) to include, can be repeated to show multiple columns
+
+  json formatter:
+    --noindent            whether to disable indenting the JSON
+
+  shell formatter:
+    a format a UNIX shell can parse (variable="value")
+
+    --prefix PREFIX
+                          add a prefix to all variable names
+
+  table formatter:
+    --max-width <integer>
+                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH environment variable, but the
+                          parameter takes precedence.
+    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the environment variable
+                          CLIFF_FIT_WIDTH=1 to always enable
+    --print-empty         Print empty table if there is no data to show.
+
+  This command is provided by the python-tackerclient plugin.
 
 
 5. Terminate VNF
 ^^^^^^^^^^^^^^^^
+
+The `VNF_INSTANCE_ID` should be replaced with the ID of VNF instance.
 
 .. code-block:: console
 
@@ -231,7 +407,7 @@ Result:
 
 .. code-block:: console
 
-  Terminate request for VNF Instance '725f625e-f6b7-4bcd-b1b7-7184039fde45' has been accepted.
+  Terminate request for VNF Instance '74c71ef9-b223-4a5f-9987-de476eab122f' has been accepted.
 
 
 Help:
@@ -240,31 +416,31 @@ Help:
 
   $ openstack vnflcm terminate --help
   usage: openstack vnflcm terminate [-h] [--termination-type <termination-type>]
-                                    [--graceful-termination-timeout <graceful-termination-timeout>]
-                                    [--D]
+                                    [--graceful-termination-timeout <graceful-termination-timeout>] [--D]
                                     <vnf-instance>
 
   Terminate a VNF instance
 
   positional arguments:
-    <vnf-instance>        VNF instance ID to terminate
+    <vnf-instance>
+                          VNF instance ID to terminate
 
-  optional arguments:
+  options:
     -h, --help            show this help message and exit
     --termination-type <termination-type>
-                          Termination type can be 'GRACEFUL' or 'FORCEFUL'.
-                          Default is 'GRACEFUL'
+                          Termination type can be 'GRACEFUL' or 'FORCEFUL'. Default is 'GRACEFUL'
     --graceful-termination-timeout <graceful-termination-timeout>
-                          This attribute is only applicable in case of graceful
-                          termination. It defines the time to wait for the VNF
-                          to be taken out of service before shutting down the
-                          VNF and releasing the resources. The unit is seconds.
-    --D                   Delete VNF Instance subsequently after it's
-                          termination
+                          This attribute is only applicable in case of graceful termination. It defines the time to wait for the VNF to be
+                          taken out of service before shutting down the VNF and releasing the resources. The unit is seconds.
+    --D                   Delete VNF Instance subsequently after it's termination
+
+  This command is provided by the python-tackerclient plugin.
 
 
 6. Delete VNF Identifier
 ^^^^^^^^^^^^^^^^^^^^^^^^
+
+The `VNF_INSTANCE_ID` should be replaced with the ID of VNF instance.
 
 .. code-block:: console
 
@@ -275,7 +451,7 @@ Result:
 
 .. code-block:: console
 
-  Vnf instance '725f625e-f6b7-4bcd-b1b7-7184039fde45' is deleted successfully
+  Vnf instance '74c71ef9-b223-4a5f-9987-de476eab122f' is deleted successfully
 
 
 Help:
@@ -288,30 +464,38 @@ Help:
   Delete VNF Instance(s)
 
   positional arguments:
-    <vnf-instance>  VNF instance ID(s) to delete
+    <vnf-instance>
+                          VNF instance ID(s) to delete
 
-  optional arguments:
-    -h, --help      show this help message and exit
+  options:
+    -h, --help            show this help message and exit
+
+  This command is provided by the python-tackerclient plugin.
 
 
 7. Heal VNF
 ^^^^^^^^^^^
 
+The `VNF_INSTANCE_ID` should be replaced with the ID of VNF instance.
+
 .. code-block:: console
 
   $ openstack vnflcm heal VNF_INSTANCE_ID
 
+
 .. note::
-    <vnf-instance> should either be given before --vnfc-instance
-    parameter or it should be separated with '--' separator in
-    order to come after --vnfc-instance parameter.
+
+    <vnf-instance> should either be given before \-\-vnfc-instance
+    parameter or it should be separated with '\-\-' separator in
+    order to come after \-\-vnfc-instance parameter.
 
 
 Result:
 
 .. code-block:: console
 
-  Heal request for VNF Instance 725f625e-f6b7-4bcd-b1b7-7184039fde45 has been accepted.
+  Heal request for VNF Instance 74c71ef9-b223-4a5f-9987-de476eab122f has been accepted.
+
 
 Help:
 
@@ -320,34 +504,44 @@ Help:
   $ openstack vnflcm heal --help
   usage: openstack vnflcm heal [-h] [--cause CAUSE]
                                [--vnfc-instance <vnfc-instance-id> [<vnfc-instance-id> ...]]
+                               [--additional-param-file <additional-param-file>]
                                -- <vnf-instance>
 
   Heal VNF Instance
 
   positional arguments:
-    <vnf-instance>        VNF instance ID to heal
+    <vnf-instance>
+                          VNF instance ID to heal
 
-  optional arguments:
+  options:
     -h, --help            show this help message and exit
-    --cause CAUSE         Specify the reason why a healing procedure is
-                          required.
+    --cause CAUSE
+                          Specify the reason why a healing procedure is required.
     --vnfc-instance <vnfc-instance-id> [<vnfc-instance-id> ...]
                           List of VNFC instances requiring a healing action.
+    --additional-param-file <additional-param-file>
+                          Additional parameters passed by the NFVO as input to the healing process.
+
+  This command is provided by the python-tackerclient plugin.
 
 
 8. Update VNF
 ^^^^^^^^^^^^^
 
+The `VNF_INSTANCE_ID` and `SAMPLE_PARAM_FILE.json` should be replaced
+with the ID of VNF instance and the name of parameter json file
+that will be used to update VNF, respectively.
+
 .. code-block:: console
 
-  $ openstack vnflcm update VNF_INSTANCE_ID --I sample_param_file.json
+  $ openstack vnflcm update VNF_INSTANCE_ID --I SAMPLE_PARAM_FILE.json
 
 
 Result:
 
 .. code-block:: console
 
-  Update vnf:725f625e-f6b7-4bcd-b1b7-7184039fde45
+  Update vnf:74c71ef9-b223-4a5f-9987-de476eab122f
 
 
 Help:
@@ -363,7 +557,7 @@ Help:
     <vnf-instance>
                           VNF instance ID to update.
 
-  optional arguments:
+  options:
     -h, --help            show this help message and exit
     --I <param-file>
                           Specify update request parameters in a json file.
@@ -374,20 +568,21 @@ Help:
 9. Scale VNF
 ^^^^^^^^^^^^
 
-The `worker_instance` is the ID for the target scaling group.
-See `About aspect id`_ for details.
+The `VNF_INSTANCE_ID` and `WORKER_INSTANCE` should be replaced
+with the ID of VNF instance and the ID of the target scaling group, respectively.
+See 'How to Identify ASPECT_ID' in :doc:`/user/etsi_vnf_scaling` for details.
 
 .. code-block:: console
 
-  $ openstack vnflcm scale --type SCALE_OUT --aspect-id worker_instance \
-       VNF_INSTANCE_ID
+  $ openstack vnflcm scale --type SCALE_OUT --aspect-id WORKER_INSTANCE \
+    VNF_INSTANCE_ID
 
 
 Result:
 
 .. code-block:: console
 
-  Scale request for VNF Instance 725f625e-f6b7-4bcd-b1b7-7184039fde45 has been accepted.
+  Scale request for VNF Instance 634825bf-6a70-47d2-b4e1-1ed9ba4c6938 has been accepted.
 
 
 Help:
@@ -395,17 +590,15 @@ Help:
 .. code-block:: console
 
   $ openstack vnflcm scale --help
-  usage: openstack vnflcm scale [-h] [--number-of-steps <number-of-steps>]
-                                [--additional-param-file <additional-param-file>]
-                                --type <type> --aspect-id <aspect-id>
-                                <vnf-instance>
+  usage: openstack vnflcm scale [-h] [--number-of-steps <number-of-steps>] [--additional-param-file <additional-param-file>] --type <type> --aspect-id <aspect-id> <vnf-instance>
 
   Scale a VNF Instance
 
   positional arguments:
-    <vnf-instance>        VNF instance ID to scale
+    <vnf-instance>
+                          VNF instance ID to scale
 
-  optional arguments:
+  options:
     -h, --help            show this help message and exit
     --number-of-steps <number-of-steps>
                           Number of scaling steps to be executed as part of this Scale VNF operation.
@@ -413,25 +606,38 @@ Help:
                           Additional parameters passed by the NFVO as input to the scaling process.
 
   require arguments:
-    --type <type>         SCALE_OUT or SCALE_IN for type of scale operation.
+    --type <type>
+                          SCALE_OUT or SCALE_IN for type of scale operation.
     --aspect-id <aspect-id>
                           Identifier of the scaling aspect.
+
+  This command is provided by the python-tackerclient plugin.
 
 
 10. Change External VNF Connectivity
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+.. note::
+
+  In 2024.2 Dalmatian release, Change External VNF Connectivity
+  only support VNF, not CNF.
+
+
+The `VNF_INSTANCE_ID` and `SAMPLE_PARAM_FILE.json` should be replaced
+with the ID of VNF instance and the path of parameter json file
+that will be used to change external VNF connectivity, respectively.
+
 .. code-block:: console
 
   $ openstack vnflcm change-ext-conn VNF_INSTANCE_ID \
-       ./sample_param_file.json
+    SAMPLE_PARAM_FILE.json
 
 
 Result:
 
 .. code-block:: console
 
-  Change External VNF Connectivity for VNF Instance 725f625e-f6b7-4bcd-b1b7-7184039fde45 has been accepted.
+  Change External VNF Connectivity for VNF Instance 634825bf-6a70-47d2-b4e1-1ed9ba4c6938 has been accepted.
 
 
 Help:
@@ -444,50 +650,21 @@ Help:
   Change External VNF Connectivity
 
   positional arguments:
-    <vnf-instance>  VNF instance ID to Change External VNF Connectivity
-    <param-file>    Specify change-ext-conn request parameters in a json file.
+    <vnf-instance>
+                          VNF instance ID to Change External VNF Connectivity
+    <param-file>  Specify change-ext-conn request parameters in a json file.
 
-  optional arguments:
-    -h, --help      show this help message and exit
+  options:
+    -h, --help            show this help message and exit
 
-
-11. Change Current VNF Package
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. code-block:: console
-
-  $ openstack vnflcm change-vnfpkg VNF_INSTANCE_ID \
-       ./sample_param_file.json --os-tacker-api-version 2
+  This command is provided by the python-tackerclient plugin.
 
 
-Result:
-
-.. code-block:: console
-
-  Change Current VNF Package for VNF Instance 725f625e-f6b7-4bcd-b1b7-7184039fde45 has been accepted.
-
-
-Help:
-
-.. code-block:: console
-
-  $ openstack vnflcm change-vnfpkg --os-tacker-api-version 2 --help
-  usage: openstack vnflcm change-vnfpkg [-h] <vnf-instance> <param-file>
-
-  Change Current VNF Package
-
-  positional arguments:
-    <vnf-instance>  VNF instance ID to Change Current VNF Package
-    <param-file>    Specify change-vnfpkg request parameters in a json file.
-
-  optional arguments:
-    -h, --help            show this help message and exit.
-
-
-12. Rollback VNF Lifecycle Management Operation
+11. Rollback VNF Lifecycle Management Operation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The `VNF_LCM_OP_OCC_ID` is the ID for the target lifecycle temporary failed.
+The `VNF_LCM_OP_OCC_ID` should be replaced with the ID of the target
+lifecycle management operation temporary failed.
 
 .. code-block:: console
 
@@ -498,27 +675,94 @@ Result:
 
 .. code-block:: console
 
-  Rollback request for LCM operation 304538dd-d754-4661-9f17-5496dab9693d has been accepted
+  Rollback request for LCM operation 9e53e4f9-2a37-4557-9259-2c0e078bd977 has been accepted
 
 
 Help:
 
 .. code-block:: console
 
-  $ openstack vnflcm op rollback -h
+  $ openstack vnflcm op rollback --help
   usage: openstack vnflcm op rollback [-h] <vnf-lcm-op-occ-id>
 
   positional arguments:
-    <vnf-lcm-op-occ-id>  VNF lifecycle management operation occurrence ID.
+    <vnf-lcm-op-occ-id>
+                          VNF lifecycle management operation occurrence ID.
 
-  optional arguments:
-    -h, --help           show this help message and exit
+  options:
+    -h, --help            show this help message and exit
+
+  This command is provided by the python-tackerclient plugin.
 
 
-13. Retry
-^^^^^^^^^
+12. Cancel VNF Lifecycle Management Operation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The `VNF_LCM_OP_OCC_ID` is the ID for the target lifecycle temporary failed.
+The `VNF_LCM_OP_OCC_ID` should be replaced with the ID of the target
+lifecycle management operation currently processing.
+
+.. code-block:: console
+
+  openstack vnflcm op cancel VNF_LCM_OP_OCC_ID
+
+
+Result:
+
+.. code-block:: console
+
+  Cancel request for LCM operation 998d949f-73a6-42f6-b8cd-f8f1009b0ece has been accepted
+
+
+Help:
+
+.. code-block:: console
+
+  usage: openstack vnflcm op cancel [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN] [--noindent] [--prefix PREFIX] [--max-width <integer>] [--fit-width] [--print-empty]
+                                    [--cancel-mode <cancel-mode>]
+                                    <vnf-lcm-op-occ-id>
+
+  Cancel VNF Instance
+
+  positional arguments:
+    <vnf-lcm-op-occ-id>
+                          VNF lifecycle management operation occurrence ID.
+
+  options:
+    -h, --help            show this help message and exit
+    --cancel-mode <cancel-mode>
+                          Cancel mode can be 'GRACEFUL' or 'FORCEFUL'. Default is 'GRACEFUL'
+
+  output formatters:
+    output formatter options
+
+    -f {json,shell,table,value,yaml}, --format {json,shell,table,value,yaml}
+                          the output format, defaults to table
+    -c COLUMN, --column COLUMN
+                          specify the column(s) to include, can be repeated to show multiple columns
+
+  json formatter:
+    --noindent            whether to disable indenting the JSON
+
+  shell formatter:
+    a format a UNIX shell can parse (variable="value")
+
+    --prefix PREFIX
+                          add a prefix to all variable names
+
+  table formatter:
+    --max-width <integer>
+                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH environment variable, but the parameter takes precedence.
+    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the environment variable CLIFF_FIT_WIDTH=1 to always enable
+    --print-empty         Print empty table if there is no data to show.
+
+  This command is provided by the python-tackerclient plugin.
+
+
+13. Retry VNF Lifecycle Management Operation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The `VNF_LCM_OP_OCC_ID` should be replaced with the ID of the target
+lifecycle management operation temporary failed.
 
 .. code-block:: console
 
@@ -529,7 +773,7 @@ Result:
 
 .. code-block:: console
 
-  Retry request for LCM operation 304538dd-d754-4661-9f17-5496dab9693d has been accepted.
+  Retry request for LCM operation f2c0e013-fa36-4239-b6e9-f320632944c2 has been accepted
 
 
 Help:
@@ -539,19 +783,23 @@ Help:
   $ openstack vnflcm op retry --help
   usage: openstack vnflcm op retry [-h] <vnf-lcm-op-occ-id>
 
-  Retry
+  Retry VNF Instance
 
   positional arguments:
-    <vnf-lcm-op-occ-id>  VNF lifecycle management operation occurrence ID.
+    <vnf-lcm-op-occ-id>
+                          VNF lifecycle management operation occurrence ID.
 
-  optional arguments:
-    -h, --help           show this help message and exit
+  options:
+    -h, --help            show this help message and exit
+
+  This command is provided by the python-tackerclient plugin.
 
 
-14. Fail
-^^^^^^^^
+14. Fail VNF Lifecycle Management Operation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The `VNF_LCM_OP_OCC_ID` is the ID for the target lifecycle temporary failed.
+The `VNF_LCM_OP_OCC_ID` should be replaced with the ID of the target
+lifecycle management operation temporary failed.
 
 .. code-block:: console
 
@@ -562,118 +810,105 @@ Result:
 
 .. code-block:: console
 
-  +-------------------------+-------------------------------------------------------------------------------+
-  | Field                   | Value                                                                         |
-  +-------------------------+-------------------------------------------------------------------------------+
-  | Error                   | {                                                                             |
-  |                         |     "title": "",                                                              |
-  |                         |     "status": 500,                                                            |
-  |                         |     "detail": "ProblemDetails(created_at=<?>,deleted=False,deleted_at=<?>,    |
-  |                         | detail='Vnf instantiation wait failed for vnf 725f625e-f6b7-4bcd-b1b7-7184039 |
-  |                         | fde45, error: VNF Create Stack DELETE started',status=500,title='',updated_at |
-  |                         | =<?>)"                                                                        |
-  |                         | }                                                                             |
-  | ID                      | 303a5d45-9186-4c6f-bed2-54d5bcd49cee                                          |
-  | Is Automatic Invocation | False                                                                         |
-  | Is Cancel Pending       | False                                                                         |
-  | Links                   | {                                                                             |
-  |                         |     "self": {                                                                 |
-  |                         |         "href": "http://localhost:9890//vnflcm/v1/vnf_lcm_op_occs/303a5d45-91 |
-  |                         | 86-4c6f-bed2-54d5bcd49cee"                                                    |
-  |                         |     },                                                                        |
-  |                         |     "vnfInstance": {                                                          |
-  |                         |         "href": "http://localhost:9890//vnflcm/v1/vnf_instances/725f625e-f6b7 |
-  |                         | -4bcd-b1b7-7184039fde45                                                       |
-  |                         | "                                                                             |
-  |                         |     },                                                                        |
-  |                         |     "retry": {                                                                |
-  |                         |         "href": "http://localhost:9890//vnflcm/v1/vnf_lcm_op_occs/303a5d45-91 |
-  |                         | 86-4c6f-bed2-54d5bcd49cee/retry"                                              |
-  |                         |     },                                                                        |
-  |                         |     "rollback": {                                                             |
-  |                         |         "href": "http://localhost:9890//vnflcm/v1/vnf_lcm_op_occs/303a5d45-91 |
-  |                         | 86-4c6f-bed2-54d5bcd49cee/rollback"                                           |
-  |                         |     },                                                                        |
-  |                         |     "grant": {                                                                |
-  |                         |         "href": "http://localhost:9890//vnflcm/v1/vnf_lcm_op_occs/303a5d45-91 |
-  |                         | 86-4c6f-bed2-54d5bcd49cee/grant"                                              |
-  |                         |     },                                                                        |
-  |                         |     "fail": {                                                                 |
-  |                         |         "href": "http://localhost:9890//vnflcm/v1/vnf_lcm_op_occs/303a5d45-91 |
-  |                         |86-4c6f-bed2-54d5bcd49cee/fail"                                                |
-  |                         |     }                                                                         |
-  |                         | }                                                                             |
-  | Operation               | INSTANTIATE                                                                   |
-  | Operation State         | FAILED                                                                        |
-  | Start Time              | 2021-04-11 23:55:00+00:00                                                     |
-  | State Entered Time      | 2021-04-12 00:00:00.700855+00:00                                              |
-  | VNF Instance ID         | 725f625e-f6b7-4bcd-b1b7-7184039fde45                                          |
-  | grantId                 | None                                                                          |
-  | operationParams         | "{\"flavourId\": \"simple\", \"instantiationLevelId\":                        |
-  |                         | \"instantiation_level_1\", \"extVirtualLinks\": [{\"id\":                     |
-  |                         | \"0b12944d-c04c-4ff9-aa4f-b2092e9048d2\", \"resourceId\":                     |
-  |                         | \"5e0e451c-4c9a-4406-9ded-4007fd488e6c\", \"extCps\": [{\"cpdId\":            |
-  |                         | \"VDU1_CP1\", \"cpConfig\": [{\"linkPortId\":                                 |
-  |                         | \"0f862451-3943-4b04-8621-49b491da97f2\"}]},                                  |
-  |                         | {\"cpdId\": \"VDU2_CP1\", \"cpConfig\": [{\"linkPortId\":                     |
-  |                         | \"6c77dd1d-e37d-4371-9ad3-1b4db2ac8543\"}]}], \"extLinkPorts\": [{\"id\":     |
-  |                         | \"0f862451-3943-4b04-8621-49b491da97f2\",                                     |
-  |                         | \"resourceHandle\": {\"vimConnectionId\":                                     |
-  |                         | \"2217719b-9dd6-4e38-be00-ec92511199cc\", \"resourceId\":                     |
-  |                         | \"27b6edbe-9e2d-4d74-a538-f7c1e9b6af5f\"}},                                   |
-  |                         | {\"id\": \"6c77dd1d-e37d-4371-9ad3-1b4db2ac8543\",                            |
-  |                         | \"resourceHandle\": {\"vimConnectionId\":                                     |
-  |                         | \"2217719b-9dd6-4e38-be00-ec92511199cc\", \"resourceId\":                     |
-  |                         | \"05d11117-ce0b-4886-a867-4ebf035e976c\"}}]},                                 |
-  |                         | {\"id\": \"a3e37a7d-fe6c-42f3-ba37-09ff8b73ddf3\", \"resourceId\":            |
-  |                         | \"a3fdc55b-b6e4-403e-a1a1-d25c345594f8\",                                     |
-  |                         | \"extCps\": [{\"cpdId\": \"VDU1_CP2\", \"cpConfig\": [{\"cpProtocolData\":    |
-  |                         | [{\"layerProtocol\": \"IP_OVER_ETHERNET\",                                    |
-  |                         | \"ipOverEthernet\": {\"ipAddresses\": [{\"type\":                             |
-  |                         | \"IPV4\", \"fixedAddresses\": [\"22.22.1.10\"], \"subnetId\":                 |
-  |                         | \"4d95f793-145e-404b-a7a7-4fea4f5ef131\"}]}}]}]},                             |
-  |                         | {\"cpdId\": \"VDU2_CP2\", \"cpConfig\": [{\"cpProtocolData\":                 |
-  |                         | [{\"layerProtocol\": \"IP_OVER_ETHERNET\", \"ipOverEthernet\":                |
-  |                         | {\"ipAddresses\": [{\"type\": \"IPV4\",                                       |
-  |                         | \"fixedAddresses\": [\"22.22.1.20\"],                                         |
-  |                         | \"subnetId\": \"4d95f793-145e-404b-a7a7-4fea4f5ef1                            |
-  |                         | 31\"}]}}]}]}]}], \"extManagedVirtualLinks\": [{\"id\":                        |
-  |                         | \"620e4251-90c5-49e2-9eaa-4dc25af4ac56\",                                     |
-  |                         | \"vnfVirtualLinkDescId\": \"internalVL1\", \"resourceId\":                    |
-  |                         | \"a0a5272c-e46a-4f0f-b00e-986af9e659b4\"},                                    |
-  |                         | {\"id\": \"9ee38c81-414b-46ab-ada7-659e85fa05ee\",                            |
-  |                         | \"vnfVirtualLinkDescId\": \"internalVL2\", \"resourceId\":                    |
-  |                         | \"598a30f9-7183-4cb1-a100-ca40fe031517\"}], \"vimConnectionInfo\": [{\"id\":  |
-  |                         | \"2217719b-9dd6-4e38-be00-ec92511199cc\",                                     |
-  |                         | \"vimType\": \"ETSINFV.OPENSTACK_KEYSTONE.v_2\", \"vimConnectionId\":         |
-  |                         | \"2217719b-9dd6-4e38-be00-ec92511199cc\", \"interfaceInfo\": {\"endpoint\":   |
-  |                         | \"http://127.0.0.1/identity\"}, \"accessInfo\": {\"username\": \"nfv_user\",  |
-  |                         | \"region\":, \"RegionOne\", \"password\": \"devstack\",                       |
-  |                         | \"tenant\": \"6bdc3a89b3ee4cef9ff1676a22ae7f3b\"}}],                          |
-  |                         | \"additionalParams\": {\"lcm-operation-user-data\":                           |
-  |                         | \"./UserData/lcm_user_data.py\", \"lcm-operation-user-data-class\":           |
-  |                         | \"SampleUserData\"}}"                                                         |
-  | resourceChanges         | {}                                                                            |
-  +-------------------------+-------------------------------------------------------------------------------+
+  +-------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+  | Field                   | Value                                                                                                                                                                        |
+  +-------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+  | Error                   | {                                                                                                                                                                            |
+  |                         |     "title": "",                                                                                                                                                             |
+  |                         |     "status": 500,                                                                                                                                                           |
+  |                         |     "detail": "ProblemDetails(created_at=<?>,deleted=0,deleted_at=<?>,detail='The sample-script specified in the VNFD is inconsistent with the MgmtDriver in the             |
+  |                         | configuration file.',status=500,title='',updated_at=<?>)"                                                                                                                    |
+  |                         | }                                                                                                                                                                            |
+  | ID                      | f2c0e013-fa36-4239-b6e9-f320632944c2                                                                                                                                         |
+  | Is Automatic Invocation | False                                                                                                                                                                        |
+  | Is Cancel Pending       | False                                                                                                                                                                        |
+  | Links                   | {                                                                                                                                                                            |
+  |                         |     "self": {                                                                                                                                                                |
+  |                         |         "href": "http://localhost:9890/vnflcm/v1/vnf_lcm_op_occs/f2c0e013-fa36-4239-b6e9-f320632944c2"                                                                       |
+  |                         |     },                                                                                                                                                                       |
+  |                         |     "vnfInstance": {                                                                                                                                                         |
+  |                         |         "href": "http://localhost:9890/vnflcm/v1/vnf_instances/5f65bf54-cb06-4e9a-ac4f-b2ff0862c5f0"                                                                         |
+  |                         |     },                                                                                                                                                                       |
+  |                         |     "retry": {                                                                                                                                                               |
+  |                         |         "href": "http://localhost:9890/vnflcm/v1/vnf_lcm_op_occs/f2c0e013-fa36-4239-b6e9-f320632944c2/retry"                                                                 |
+  |                         |     },                                                                                                                                                                       |
+  |                         |     "rollback": {                                                                                                                                                            |
+  |                         |         "href": "http://localhost:9890/vnflcm/v1/vnf_lcm_op_occs/f2c0e013-fa36-4239-b6e9-f320632944c2/rollback"                                                              |
+  |                         |     },                                                                                                                                                                       |
+  |                         |     "grant": {                                                                                                                                                               |
+  |                         |         "href": "http://localhost:9890/vnflcm/v1/vnf_lcm_op_occs/f2c0e013-fa36-4239-b6e9-f320632944c2/grant"                                                                 |
+  |                         |     },                                                                                                                                                                       |
+  |                         |     "fail": {                                                                                                                                                                |
+  |                         |         "href": "http://localhost:9890/vnflcm/v1/vnf_lcm_op_occs/f2c0e013-fa36-4239-b6e9-f320632944c2/fail"                                                                  |
+  |                         |     }                                                                                                                                                                        |
+  |                         | }                                                                                                                                                                            |
+  | Operation               | INSTANTIATE                                                                                                                                                                  |
+  | Operation State         | FAILED                                                                                                                                                                       |
+  | Start Time              | 2024-05-15 07:07:04+00:00                                                                                                                                                    |
+  | State Entered Time      | 2024-05-15 07:09:20.964769+00:00                                                                                                                                             |
+  | VNF Instance ID         | 5f65bf54-cb06-4e9a-ac4f-b2ff0862c5f0                                                                                                                                         |
+  | grantId                 | None                                                                                                                                                                         |
+  | operationParams         | "{\"flavourId\": \"simple\", \"instantiationLevelId\": \"instantiation_level_1\", \"extVirtualLinks\": [{\"id\": \"073b1b7d-fed9-48c2-8515-f07f36e0fac6\",                   |
+  |                         | \"vimConnectionId\": \"6bb975f4-387f-44d3-8cea-596b065c47c8\", \"resourceProviderId\": \"Company\", \"resourceId\": \"3ee73151-4382-4bee-9344-1ee829b32969\", \"extCps\":    |
+  |                         | [{\"cpdId\": \"VDU1_CP1\", \"cpConfig\": [{\"VDU1_CP1\": {\"parentCpConfigId\": \"b06c86c9-dfa8-4e3c-848c-928667d7155b\", \"cpProtocolData\": [{\"layerProtocol\":           |
+  |                         | \"IP_OVER_ETHERNET\", \"ipOverEthernet\": {\"ipAddresses\": [{\"type\": \"IPV4\", \"numDynamicAddresses\": 1, \"subnetId\":                                                  |
+  |                         | \"41b13a15-558c-4022-91c4-2702e3af3266\"}]}}]}}]}]}, {\"id\": \"876050f5-86a8-42de-957d-65750c72c94c\", \"vimConnectionId\": \"6bb975f4-387f-44d3-8cea-596b065c47c8\",       |
+  |                         | \"resourceProviderId\": \"Company\", \"resourceId\": \"c0bcd736-d5b1-43f5-89f6-e9cfe0015fd9\", \"extCps\": [{\"cpdId\": \"VDU1_CP2\", \"cpConfig\": [{\"VDU1_CP2\":          |
+  |                         | {\"parentCpConfigId\": \"08e2a40f-26f1-45e6-adec-682006c8c02a\", \"cpProtocolData\": [{\"layerProtocol\": \"IP_OVER_ETHERNET\", \"ipOverEthernet\": {\"ipAddresses\":        |
+  |                         | [{\"type\": \"IPV4\", \"numDynamicAddresses\": 1, \"subnetId\": \"a7a1552b-c78b-403c-b1eb-7f98446a24d2\"}]}}]}}]}, {\"cpdId\": \"VDU2_CP2\", \"cpConfig\": [{\"VDU2_CP2\":   |
+  |                         | {\"parentCpConfigId\": \"bd74eb08-2165-4921-9bbd-967ede4c9f1f\", \"cpProtocolData\": [{\"layerProtocol\": \"IP_OVER_ETHERNET\", \"ipOverEthernet\": {\"macAddress\":         |
+  |                         | \"fa:16:3e:fa:22:75\", \"ipAddresses\": [{\"type\": \"IPV4\", \"fixedAddresses\": [\"100.100.100.11\"], \"subnetId\": \"a7a1552b-c78b-403c-b1eb-7f98446a24d2\"}, {\"type\":  |
+  |                         | \"IPV6\", \"numDynamicAddresses\": 1, \"subnetId\": \"70129667-f3e9-4b3f-9e4f-bff5c3887d7f\"}]}}]}}]}]}], \"extManagedVirtualLinks\": [{\"id\":                              |
+  |                         | \"97d23d57-a375-4727-ab43-8df097251cd2\", \"vnfVirtualLinkDescId\": \"internalVL1\", \"vimConnectionId\": \"6bb975f4-387f-44d3-8cea-596b065c47c8\", \"resourceProviderId\":  |
+  |                         | \"Company\", \"resourceId\": \"53a2b530-d2dd-407f-b103-4828a53118d5\", \"extManagedMultisiteVirtualLinkId\": \"15d0159d-01dd-4b73-a78b-a1f20e615f76\"}, {\"id\":             |
+  |                         | \"4947006f-4941-4c55-94b0-ee1081c00fab\", \"vnfVirtualLinkDescId\": \"internalVL2\", \"vimConnectionId\": \"6bb975f4-387f-44d3-8cea-596b065c47c8\", \"resourceProviderId\":  |
+  |                         | \"Company\", \"resourceId\": \"6ab1c324-947c-4e1c-8590-7d9e301d68bc\", \"extManagedMultisiteVirtualLinkId\": \"ec853a00-395a-488e-aa88-7c1a545cd8a5\"}],                     |
+  |                         | \"localizationLanguage\": \"ja\", \"additionalParams\": {\"lcm-operation-user-data\": \"./UserData/userdata_standard.py\", \"lcm-operation-user-data-class\":                |
+  |                         | \"StandardUserData\"}, \"extensions\": {\"dummy-key\": \"dummy-val\"}, \"vnfConfigurableProperties\": {\"dummy-key\": \"dummy-val\"}}"                                       |
+  | resourceChanges         | {}                                                                                                                                                                           |
+  +-------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
 
 Help:
 
 .. code-block:: console
 
   $ openstack vnflcm op fail --help
-  usage: openstack vnflcm op fail [-h] [-f {json,shell,table,value,yaml}]
-                                  [-c COLUMN] [--noindent] [--prefix PREFIX]
-                                  [--max-width <integer>] [--fit-width]
-                                  [--print-empty]
-                                  <vnf-lcm-op-occ-id>
+  usage: openstack vnflcm op fail [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN] [--noindent] [--prefix PREFIX] [--max-width <integer>] [--fit-width] [--print-empty] <vnf-lcm-op-occ-id>
 
-  Fail
+  Fail VNF Instance
 
   positional arguments:
-    <vnf-lcm-op-occ-id>  VNF lifecycle management operation occurrence ID.
+    <vnf-lcm-op-occ-id>
+                          VNF lifecycle management operation occurrence ID.
 
-  optional arguments:
-    -h, --help           show this help message and exit
+  options:
+    -h, --help            show this help message and exit
+
+  output formatters:
+    output formatter options
+
+    -f {json,shell,table,value,yaml}, --format {json,shell,table,value,yaml}
+                          the output format, defaults to table
+    -c COLUMN, --column COLUMN
+                          specify the column(s) to include, can be repeated to show multiple columns
+
+  json formatter:
+    --noindent            whether to disable indenting the JSON
+
+  shell formatter:
+    a format a UNIX shell can parse (variable="value")
+
+    --prefix PREFIX
+                          add a prefix to all variable names
+
+  table formatter:
+    --max-width <integer>
+                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH environment variable, but the parameter takes precedence.
+    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the environment variable CLIFF_FIT_WIDTH=1 to always enable
+    --print-empty         Print empty table if there is no data to show.
+
+  This command is provided by the python-tackerclient plugin.
 
 
 15. List LCM Operation Occurrences
@@ -683,48 +918,70 @@ Help:
 
   $ openstack vnflcm op list
 
+
 Result:
 
 .. code-block:: console
 
-  +--------------------------------------+-------------------+--------------------------------------+-------------+
-  | id                                   | operationState    |            vnfInstanceId             |  operation  |
-  +--------------------------------------+-------------------+--------------------------------------+-------------+
-  | 304538dd-d754-4661-9f17-5496dab9693d | STARTING          | 725f625e-f6b7-4bcd-b1b7-7184039fde45 | INSTANTIATE |
-  +--------------------------------------+-------------------+--------------------------------------+-------------+
+  +--------------------------------------+-----------------+--------------------------------------+-------------+
+  | ID                                   | Operation State | VNF Instance ID                      | Operation   |
+  +--------------------------------------+-----------------+--------------------------------------+-------------+
+  | 78ad4bed-02f3-480a-a0ee-9bd07589b092 | COMPLETED       | 74c71ef9-b223-4a5f-9987-de476eab122f | INSTANTIATE |
+  +--------------------------------------+-----------------+--------------------------------------+-------------+
+
 
 Help:
 
 .. code-block:: console
 
   $ openstack vnflcm op list --help
-  usage: openstack vnflcm op list [-h] [-f {csv,json,table,value,yaml}]
-                                  [-c COLUMN]
-                                  [--quote {all,minimal,none,nonnumeric}]
-                                  [--noindent] [--max-width <integer>]
-                                  [--fit-width] [--print-empty]
-                                  [--sort-column SORT_COLUMN]
-                                  [--filter <filter>]
-                                  [--all_fields | --fields <fields> | --exclude-fields <exclude-fields>]
-                                  [--exclude_default]
+  usage: openstack vnflcm op list [-h] [-f {csv,json,table,value,yaml}] [-c COLUMN] [--quote {all,minimal,none,nonnumeric}] [--noindent] [--max-width <integer>] [--fit-width] [--print-empty]
+                                  [--sort-column SORT_COLUMN] [--sort-ascending | --sort-descending] [--filter <filter>] [--fields <fields> | --exclude-fields <exclude-fields>]
 
   List LCM Operation Occurrences
 
-  optional arguments:
+  options:
     -h, --help            show this help message and exit
-    --filter <filter>     Attribute-based-filtering parameters
-    --all_fields          Include all complex attributes in the response
-    --fields <fields>     Complex attributes to be included into the response
+    --filter <filter>
+                          Attribute-based-filtering parameters
+    --fields <fields>
+                          Complex attributes to be included into the response
     --exclude-fields <exclude-fields>
                           Complex attributes to be excluded from the response
-    --exclude_default     Indicates to exclude all complex attributes from the
-                          response. This argument can be used alone or with
-                          --fields and --filter. For all other combinations
-                          tacker server will throw bad request error
+
+  output formatters:
+    output formatter options
+
+    -f {csv,json,table,value,yaml}, --format {csv,json,table,value,yaml}
+                          the output format, defaults to table
+    -c COLUMN, --column COLUMN
+                          specify the column(s) to include, can be repeated to show multiple columns
+    --sort-column SORT_COLUMN
+                          specify the column(s) to sort the data (columns specified first have a priority, non-existing columns are ignored), can be repeated
+    --sort-ascending      sort the column(s) in ascending order
+    --sort-descending     sort the column(s) in descending order
+
+  CSV Formatter:
+    --quote {all,minimal,none,nonnumeric}
+                          when to include quotes, defaults to nonnumeric
+
+  json formatter:
+    --noindent            whether to disable indenting the JSON
+
+  table formatter:
+    --max-width <integer>
+                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH environment variable, but the parameter takes precedence.
+    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the environment variable CLIFF_FIT_WIDTH=1 to always enable
+    --print-empty         Print empty table if there is no data to show.
+
+  This command is provided by the python-tackerclient plugin.
 
 
 16. Show LCM Operation Occurrence
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The `VNF_LCM_OP_OCC_ID` should be replaced with the ID of the target
+lifecycle management operation.
 
 .. code-block:: console
 
@@ -735,64 +992,119 @@ Result:
 
 .. code-block:: console
 
-  +------------------------+--------------------------------------------------------------------------------+
-  | Field                  | Value                                                                          |
-  +------------------------+--------------------------------------------------------------------------------+
-  | cancelMode             |                                                                                |
-  | changedExtConnectivity | ""                                                                             |
-  | changedInfo            | {                                                                              |
-  |                        |     "vnfdVersion": "1.0",                                                      |
-  |                        |     "vnfProvider": "Company",                                                  |
-  |                        |     "vnfSoftwareVersion": "1.0",                                               |
-  |                        |     "vnfdId": b1bb0ce7-ebca-4fa7-95ed-4840d70a1177,                            |
-  |                        |     "vnfcInfoModificationsDeleteIds": null,                                    |
-  |                        |     "vnfInstanceName": "helloworld3_modify",                                   |
-  |                        |     "vnfProductName": "Sample VNF",                                            |
-  |                        |     "vnfInstanceDescription": "Sample VNF Modify"                              |
-  |                        | }                                                                              |
-  | error                  | ""                                                                             |
-  | grantId                |                                                                                |
-  | id                     | 304538dd-d754-4661-9f17-5496dab9693d                                           |
-  | isAutomaticInvocation  | False                                                                          |
-  | isCancelPending        | False                                                                          |
-  | _links                 | self=href=/vnflcm/v1/vnf_lcm_op_occs/304538dd-d754-4661-9f17-5496dab9693d,     |
-  |                        | vnfInstance=href=/vnflcm/v1/vnf_instances/725f625e-f6b7-4bcd-b1b7-7184039fde45 |
-  | operation              | MODIFY_INFO                                                                    |
-  | operationParams        | "{\"vnfInstanceName\": \"helloworld3_modify\"}"                                |
-  | operationState         | COMPLETED                                                                      |
-  | resourceChanges        | ""                                                                             |
-  | startTime              | 2021-04-15 23:59:00+00:00                                                      |
-  | stateEnteredTime       | 2021-04-16 00:00:00+00:00                                                      |
-  | vnfInstanceId          | 725f625e-f6b7-4bcd-b1b7-7184039fde45                                           |
-  +------------------------+--------------------------------------------------------------------------------+
+  +-------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+  | Field                         | Value                                                                                                                                                                  |
+  +-------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+  | Cancel Mode                   |                                                                                                                                                                        |
+  | Changed External Connectivity |                                                                                                                                                                        |
+  | Changed Info                  |                                                                                                                                                                        |
+  | Error                         | {                                                                                                                                                                      |
+  |                               |     "title": "",                                                                                                                                                       |
+  |                               |     "status": 500,                                                                                                                                                     |
+  |                               |     "detail": "The sample-script specified in the VNFD is inconsistent with the MgmtDriver in the configuration file."                                                 |
+  |                               | }                                                                                                                                                                      |
+  | Grant ID                      | None                                                                                                                                                                   |
+  | ID                            | f2c0e013-fa36-4239-b6e9-f320632944c2                                                                                                                                   |
+  | Is Automatic Invocation       | False                                                                                                                                                                  |
+  | Is Cancel Pending             | False                                                                                                                                                                  |
+  | Links                         | {                                                                                                                                                                      |
+  |                               |     "self": {                                                                                                                                                          |
+  |                               |         "href": "http://localhost:9890/vnflcm/v1/vnf_lcm_op_occs/f2c0e013-fa36-4239-b6e9-f320632944c2"                                                                 |
+  |                               |     },                                                                                                                                                                 |
+  |                               |     "vnfInstance": {                                                                                                                                                   |
+  |                               |         "href": "http://localhost:9890/vnflcm/v1/vnf_instances/5f65bf54-cb06-4e9a-ac4f-b2ff0862c5f0"                                                                   |
+  |                               |     },                                                                                                                                                                 |
+  |                               |     "retry": {                                                                                                                                                         |
+  |                               |         "href": "http://localhost:9890/vnflcm/v1/vnf_lcm_op_occs/f2c0e013-fa36-4239-b6e9-f320632944c2/retry"                                                           |
+  |                               |     },                                                                                                                                                                 |
+  |                               |     "rollback": {                                                                                                                                                      |
+  |                               |         "href": "http://localhost:9890/vnflcm/v1/vnf_lcm_op_occs/f2c0e013-fa36-4239-b6e9-f320632944c2/rollback"                                                        |
+  |                               |     },                                                                                                                                                                 |
+  |                               |     "grant": {                                                                                                                                                         |
+  |                               |         "href": "http://localhost:9890/vnflcm/v1/vnf_lcm_op_occs/f2c0e013-fa36-4239-b6e9-f320632944c2/grant"                                                           |
+  |                               |     },                                                                                                                                                                 |
+  |                               |     "fail": {                                                                                                                                                          |
+  |                               |         "href": "http://localhost:9890/vnflcm/v1/vnf_lcm_op_occs/f2c0e013-fa36-4239-b6e9-f320632944c2/fail"                                                            |
+  |                               |     }                                                                                                                                                                  |
+  |                               | }                                                                                                                                                                      |
+  | Operation                     | INSTANTIATE                                                                                                                                                            |
+  | Operation Parameters          | "{\"flavourId\": \"simple\", \"instantiationLevelId\": \"instantiation_level_1\", \"extVirtualLinks\": [{\"id\": \"073b1b7d-fed9-48c2-8515-f07f36e0fac6\",             |
+  |                               | \"vimConnectionId\": \"6bb975f4-387f-44d3-8cea-596b065c47c8\", \"resourceProviderId\": \"Company\", \"resourceId\": \"3ee73151-4382-4bee-9344-1ee829b32969\",          |
+  |                               | \"extCps\": [{\"cpdId\": \"VDU1_CP1\", \"cpConfig\": [{\"VDU1_CP1\": {\"parentCpConfigId\": \"b06c86c9-dfa8-4e3c-848c-928667d7155b\", \"cpProtocolData\":              |
+  |                               | [{\"layerProtocol\": \"IP_OVER_ETHERNET\", \"ipOverEthernet\": {\"ipAddresses\": [{\"type\": \"IPV4\", \"numDynamicAddresses\": 1, \"subnetId\":                       |
+  |                               | \"41b13a15-558c-4022-91c4-2702e3af3266\"}]}}]}}]}]}, {\"id\": \"876050f5-86a8-42de-957d-65750c72c94c\", \"vimConnectionId\": \"6bb975f4-387f-44d3-8cea-596b065c47c8\", |
+  |                               | \"resourceProviderId\": \"Company\", \"resourceId\": \"c0bcd736-d5b1-43f5-89f6-e9cfe0015fd9\", \"extCps\": [{\"cpdId\": \"VDU1_CP2\", \"cpConfig\": [{\"VDU1_CP2\":    |
+  |                               | {\"parentCpConfigId\": \"08e2a40f-26f1-45e6-adec-682006c8c02a\", \"cpProtocolData\": [{\"layerProtocol\": \"IP_OVER_ETHERNET\", \"ipOverEthernet\": {\"ipAddresses\":  |
+  |                               | [{\"type\": \"IPV4\", \"numDynamicAddresses\": 1, \"subnetId\": \"a7a1552b-c78b-403c-b1eb-7f98446a24d2\"}]}}]}}]}, {\"cpdId\": \"VDU2_CP2\", \"cpConfig\":             |
+  |                               | [{\"VDU2_CP2\": {\"parentCpConfigId\": \"bd74eb08-2165-4921-9bbd-967ede4c9f1f\", \"cpProtocolData\": [{\"layerProtocol\": \"IP_OVER_ETHERNET\", \"ipOverEthernet\":    |
+  |                               | {\"macAddress\": \"fa:16:3e:fa:22:75\", \"ipAddresses\": [{\"type\": \"IPV4\", \"fixedAddresses\": [\"100.100.100.11\"], \"subnetId\":                                 |
+  |                               | \"a7a1552b-c78b-403c-b1eb-7f98446a24d2\"}, {\"type\": \"IPV6\", \"numDynamicAddresses\": 1, \"subnetId\": \"70129667-f3e9-4b3f-9e4f-bff5c3887d7f\"}]}}]}}]}]}],        |
+  |                               | \"extManagedVirtualLinks\": [{\"id\": \"97d23d57-a375-4727-ab43-8df097251cd2\", \"vnfVirtualLinkDescId\": \"internalVL1\", \"vimConnectionId\":                        |
+  |                               | \"6bb975f4-387f-44d3-8cea-596b065c47c8\", \"resourceProviderId\": \"Company\", \"resourceId\": \"53a2b530-d2dd-407f-b103-4828a53118d5\",                               |
+  |                               | \"extManagedMultisiteVirtualLinkId\": \"15d0159d-01dd-4b73-a78b-a1f20e615f76\"}, {\"id\": \"4947006f-4941-4c55-94b0-ee1081c00fab\", \"vnfVirtualLinkDescId\":          |
+  |                               | \"internalVL2\", \"vimConnectionId\": \"6bb975f4-387f-44d3-8cea-596b065c47c8\", \"resourceProviderId\": \"Company\", \"resourceId\":                                   |
+  |                               | \"6ab1c324-947c-4e1c-8590-7d9e301d68bc\", \"extManagedMultisiteVirtualLinkId\": \"ec853a00-395a-488e-aa88-7c1a545cd8a5\"}], \"localizationLanguage\": \"ja\",          |
+  |                               | \"additionalParams\": {\"lcm-operation-user-data\": \"./UserData/userdata_standard.py\", \"lcm-operation-user-data-class\": \"StandardUserData\"}, \"extensions\":     |
+  |                               | {\"dummy-key\": \"dummy-val\"}, \"vnfConfigurableProperties\": {\"dummy-key\": \"dummy-val\"}}"                                                                        |
+  | Operation State               | FAILED_TEMP                                                                                                                                                            |
+  | Resource Changes              |                                                                                                                                                                        |
+  | Start Time                    | 2024-05-15 07:07:04+00:00                                                                                                                                              |
+  | State Entered Time            | 2024-05-15 07:07:04+00:00                                                                                                                                              |
+  | VNF Instance ID               | 5f65bf54-cb06-4e9a-ac4f-b2ff0862c5f0                                                                                                                                   |
+  +-------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
 
 Help:
 
 .. code-block:: console
 
   $ openstack vnflcm op show --help
-  usage: openstack vnflcm op show [-h] [-f {json,shell,table,value,yaml}]
-                                  [-c COLUMN] [--noindent] [--prefix PREFIX]
-                                  [--max-width <integer>] [--fit-width]
-                                  [--print-empty]
-                                  <vnf-lcm-op-occ-id>
-
+  usage: openstack vnflcm op show [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN] [--noindent] [--prefix PREFIX] [--max-width <integer>] [--fit-width] [--print-empty] <vnf-lcm-op-occ-id>
 
   Display Operation Occurrence details
 
   positional arguments:
-    <vnf-lcm-op-occ-id>  VNF lifecycle management operation occurrence ID.
+    <vnf-lcm-op-occ-id>
+                          VNF lifecycle management operation occurrence ID.
 
-  optional arguments:
-    -h, --help           show this help message and exit
+  options:
+    -h, --help            show this help message and exit
+
+  output formatters:
+    output formatter options
+
+    -f {json,shell,table,value,yaml}, --format {json,shell,table,value,yaml}
+                          the output format, defaults to table
+    -c COLUMN, --column COLUMN
+                          specify the column(s) to include, can be repeated to show multiple columns
+
+  json formatter:
+    --noindent            whether to disable indenting the JSON
+
+  shell formatter:
+    a format a UNIX shell can parse (variable="value")
+
+    --prefix PREFIX
+                          add a prefix to all variable names
+
+  table formatter:
+    --max-width <integer>
+                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH environment variable, but the parameter takes precedence.
+    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the environment variable CLIFF_FIT_WIDTH=1 to always enable
+    --print-empty         Print empty table if there is no data to show.
+
+  This command is provided by the python-tackerclient plugin.
 
 
 17. Create Lccn Subscription
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+The `SAMPLE_PARAM_FILE.json` should be replaced with the path of
+parameter json file that will be used to create Lccn subscription.
+
 .. code-block:: console
 
-  $ openstack vnflcm subsc create ./sample_param_file.json
+  $ openstack vnflcm subsc create SAMPLE_PARAM_FILE.json
 
 
 Result:
@@ -805,41 +1117,23 @@ Result:
   | Callback URI | http://localhost:9990/notification/callback/test                                                     |
   | Filter       | {                                                                                                    |
   |              |     "vnfInstanceSubscriptionFilter": {                                                               |
-  |              |         "vnfdIds": [                                                                                 |
-  |              |             "dummy-vnfdId-1",                                                                        |
-  |              |             "dummy-vnfdId-2"                                                                         |
-  |              |         ],                                                                                           |
   |              |         "vnfProductsFromProviders": [                                                                |
   |              |             {                                                                                        |
-  |              |                 "vnfProvider": "dummy-vnfProvider-1",                                                |
+  |              |                 "vnfProvider": "Company",                                                            |
   |              |                 "vnfProducts": [                                                                     |
   |              |                     {                                                                                |
-  |              |                         "vnfProductName": "dummy-vnfProductName-1",                                  |
+  |              |                         "vnfProductName": "Sample VNF",                                              |
   |              |                         "versions": [                                                                |
   |              |                             {                                                                        |
   |              |                                 "vnfSoftwareVersion": "1.0",                                         |
   |              |                                 "vnfdVersions": [                                                    |
-  |              |                                     "1.0",                                                           |
-  |              |                                     "2.0"                                                            |
-  |              |                                 ]                                                                    |
-  |              |                             },                                                                       |
-  |              |                             {                                                                        |
-  |              |                                 "vnfSoftwareVersion": "1.1",                                         |
-  |              |                                 "vnfdVersions": [                                                    |
-  |              |                                     "1.1",                                                           |
-  |              |                                     "2.1"                                                            |
+  |              |                                     "1.0"                                                            |
   |              |                                 ]                                                                    |
   |              |                             }                                                                        |
   |              |                         ]                                                                            |
   |              |                     }                                                                                |
   |              |                 ]                                                                                    |
   |              |             }                                                                                        |
-  |              |         ],                                                                                           |
-  |              |         "vnfInstanceIds": [                                                                          |
-  |              |             "dummy-vnfInstanceId-1"                                                                  |
-  |              |         ],                                                                                           |
-  |              |         "vnfInstanceNames": [                                                                        |
-  |              |             "dummy-vnfInstanceName-1"                                                                |
   |              |         ]                                                                                            |
   |              |     },                                                                                               |
   |              |     "notificationTypes": [                                                                           |
@@ -856,19 +1150,13 @@ Result:
   |              |         "CHANGE_EXT_CONN"                                                                            |
   |              |     ],                                                                                               |
   |              |     "operationStates": [                                                                             |
-  |              |         "COMPLETED",                                                                                 |
-  |              |         "FAILED",                                                                                    |
-  |              |         "FAILED_TEMP",                                                                               |
-  |              |         "PROCESSING",                                                                                |
-  |              |         "ROLLING_BACK",                                                                              |
-  |              |         "ROLLED_BACK",                                                                               |
   |              |         "STARTING"                                                                                   |
   |              |     ]                                                                                                |
   |              | }                                                                                                    |
-  | ID           | e796811c-5e4d-47ab-93ce-fd52efcc5aa5                                                                 |
+  | ID           | 9926b5a9-9ae7-4068-a77d-20c108d7b91d                                                                 |
   | Links        | {                                                                                                    |
   |              |     "self": {                                                                                        |
-  |              |         "href": "http://localhost:9890/vnflcm/v1/subscriptions/e796811c-5e4d-47ab-93ce-fd52efcc5aa5" |
+  |              |         "href": "http://localhost:9890/vnflcm/v1/subscriptions/9926b5a9-9ae7-4068-a77d-20c108d7b91d" |
   |              |     }                                                                                                |
   |              | }                                                                                                    |
   +--------------+------------------------------------------------------------------------------------------------------+
@@ -879,18 +1167,40 @@ Help:
 .. code-block:: console
 
   $ openstack vnflcm subsc create --help
-  usage: openstack vnflcm subsc create [-h] [-f {json,shell,table,value,yaml}]
-                                       [-c COLUMN] [--noindent] [--prefix PREFIX]
-                                       [--max-width <integer>] [--fit-width]
-                                       [--print-empty] <param-file>
+  usage: openstack vnflcm subsc create [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN] [--noindent] [--prefix PREFIX] [--max-width <integer>] [--fit-width] [--print-empty] <param-file>
 
   Create a new Lccn Subscription
 
   positional arguments:
     <param-file>  Specify create request parameters in a json file.
 
-  optional arguments:
+  options:
     -h, --help            show this help message and exit
+
+  output formatters:
+    output formatter options
+
+    -f {json,shell,table,value,yaml}, --format {json,shell,table,value,yaml}
+                          the output format, defaults to table
+    -c COLUMN, --column COLUMN
+                          specify the column(s) to include, can be repeated to show multiple columns
+
+  json formatter:
+    --noindent            whether to disable indenting the JSON
+
+  shell formatter:
+    a format a UNIX shell can parse (variable="value")
+
+    --prefix PREFIX
+                          add a prefix to all variable names
+
+  table formatter:
+    --max-width <integer>
+                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH environment variable, but the parameter takes precedence.
+    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the environment variable CLIFF_FIT_WIDTH=1 to always enable
+    --print-empty         Print empty table if there is no data to show.
+
+  This command is provided by the python-tackerclient plugin.
 
 
 18. List Lccn Subscription
@@ -908,7 +1218,7 @@ Result:
   +--------------------------------------+--------------------------------------------------+
   | ID                                   | Callback URI                                     |
   +--------------------------------------+--------------------------------------------------+
-  | e796811c-5e4d-47ab-93ce-fd52efcc5aa5 | http://localhost:9990/notification/callback/test |
+  | 9926b5a9-9ae7-4068-a77d-20c108d7b91d | http://localhost:9990/notification/callback/test |
   +--------------------------------------+--------------------------------------------------+
 
 
@@ -917,22 +1227,48 @@ Help:
 .. code-block:: console
 
   $ openstack vnflcm subsc list --help
-  usage: openstack vnflcm subsc list [-h] [-f {csv,json,table,value,yaml}]
-                                     [-c COLUMN] [--quote {all,minimal,none,nonnumeric}]
-                                     [--noindent] [--max-width <integer>] [--fit-width]
-                                     [--print-empty] [--sort-column SORT_COLUMN]
-                                     [--sort-ascending | --sort-descending] [--filter <filter>]
+  usage: openstack vnflcm subsc list [-h] [-f {csv,json,table,value,yaml}] [-c COLUMN] [--quote {all,minimal,none,nonnumeric}] [--noindent] [--max-width <integer>] [--fit-width] [--print-empty]
+                                     [--sort-column SORT_COLUMN] [--sort-ascending | --sort-descending] [--filter <filter>]
 
   List Lccn Subscriptions
 
-  optional arguments:
+  options:
     -h, --help            show this help message and exit
     --filter <filter>
                           Attribute-based-filtering parameters
 
+  output formatters:
+    output formatter options
+
+    -f {csv,json,table,value,yaml}, --format {csv,json,table,value,yaml}
+                          the output format, defaults to table
+    -c COLUMN, --column COLUMN
+                          specify the column(s) to include, can be repeated to show multiple columns
+    --sort-column SORT_COLUMN
+                          specify the column(s) to sort the data (columns specified first have a priority, non-existing columns are ignored), can be repeated
+    --sort-ascending      sort the column(s) in ascending order
+    --sort-descending     sort the column(s) in descending order
+
+  CSV Formatter:
+    --quote {all,minimal,none,nonnumeric}
+                          when to include quotes, defaults to nonnumeric
+
+  json formatter:
+    --noindent            whether to disable indenting the JSON
+
+  table formatter:
+    --max-width <integer>
+                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH environment variable, but the parameter takes precedence.
+    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the environment variable CLIFF_FIT_WIDTH=1 to always enable
+    --print-empty         Print empty table if there is no data to show.
+
+  This command is provided by the python-tackerclient plugin.
+
 
 19. Show Lccn Subscription
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The `LCCN_SUBSCRIPTION_ID` should be replaced with the ID of Lccn subscription.
 
 .. code-block:: console
 
@@ -957,12 +1293,6 @@ Result:
   |              |         "CHANGE_EXT_CONN"                                                                            |
   |              |     ],                                                                                               |
   |              |     "operationStates": [                                                                             |
-  |              |         "COMPLETED",                                                                                 |
-  |              |         "FAILED",                                                                                    |
-  |              |         "FAILED_TEMP",                                                                               |
-  |              |         "PROCESSING",                                                                                |
-  |              |         "ROLLING_BACK",                                                                              |
-  |              |         "ROLLED_BACK",                                                                               |
   |              |         "STARTING"                                                                                   |
   |              |     ],                                                                                               |
   |              |     "notificationTypes": [                                                                           |
@@ -971,48 +1301,30 @@ Result:
   |              |         "VnfIdentifierDeletionNotification"                                                          |
   |              |     ],                                                                                               |
   |              |     "vnfInstanceSubscriptionFilter": {                                                               |
-  |              |         "vnfdIds": [                                                                                 |
-  |              |             "dummy-vnfdId-1",                                                                        |
-  |              |             "dummy-vnfdId-2"                                                                         |
-  |              |         ],                                                                                           |
-  |              |         "vnfInstanceIds": [                                                                          |
-  |              |             "dummy-vnfInstanceId-1"                                                                  |
-  |              |         ],                                                                                           |
-  |              |         "vnfInstanceNames": [                                                                        |
-  |              |             "dummy-vnfInstanceName-1"                                                                |
-  |              |         ],                                                                                           |
   |              |         "vnfProductsFromProviders": [                                                                |
   |              |             {                                                                                        |
+  |              |                 "vnfProvider": "Company",                                                            |
   |              |                 "vnfProducts": [                                                                     |
   |              |                     {                                                                                |
+  |              |                         "vnfProductName": "Sample VNF",                                              |
   |              |                         "versions": [                                                                |
   |              |                             {                                                                        |
+  |              |                                 "vnfSoftwareVersion": "1.0",                                         |
   |              |                                 "vnfdVersions": [                                                    |
-  |              |                                     "1.0",                                                           |
-  |              |                                     "2.0"                                                            |
-  |              |                                 ],                                                                   |
-  |              |                                 "vnfSoftwareVersion": "1.0"                                          |
-  |              |                             },                                                                       |
-  |              |                             {                                                                        |
-  |              |                                 "vnfdVersions": [                                                    |
-  |              |                                     "1.1",                                                           |
-  |              |                                     "2.1"                                                            |
-  |              |                                 ],                                                                   |
-  |              |                                 "vnfSoftwareVersion": "1.1"                                          |
+  |              |                                     "1.0"                                                            |
+  |              |                                 ]                                                                    |
   |              |                             }                                                                        |
-  |              |                         ],                                                                           |
-  |              |                         "vnfProductName": "dummy-vnfProductName-1"                                   |
+  |              |                         ]                                                                            |
   |              |                     }                                                                                |
-  |              |                 ],                                                                                   |
-  |              |                 "vnfProvider": "dummy-vnfProvider-1"                                                 |
+  |              |                 ]                                                                                    |
   |              |             }                                                                                        |
   |              |         ]                                                                                            |
   |              |     }                                                                                                |
   |              | }                                                                                                    |
-  | ID           | e796811c-5e4d-47ab-93ce-fd52efcc5aa5                                                                 |
+  | ID           | 9926b5a9-9ae7-4068-a77d-20c108d7b91d                                                                 |
   | Links        | {                                                                                                    |
   |              |     "self": {                                                                                        |
-  |              |         "href": "http://localhost:9890/vnflcm/v1/subscriptions/e796811c-5e4d-47ab-93ce-fd52efcc5aa5" |
+  |              |         "href": "http://localhost:9890/vnflcm/v1/subscriptions/9926b5a9-9ae7-4068-a77d-20c108d7b91d" |
   |              |     }                                                                                                |
   |              | }                                                                                                    |
   +--------------+------------------------------------------------------------------------------------------------------+
@@ -1023,10 +1335,7 @@ Help:
 .. code-block:: console
 
   $ openstack vnflcm subsc show --help
-  usage: openstack vnflcm subsc show [-h] [-f {json,shell,table,value,yaml}]
-                                     [-c COLUMN] [--noindent] [--prefix PREFIX]
-                                     [--max-width <integer>] [--fit-width]
-                                     [--print-empty] <subscription-id>
+  usage: openstack vnflcm subsc show [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN] [--noindent] [--prefix PREFIX] [--max-width <integer>] [--fit-width] [--print-empty] <subscription-id>
 
   Display Lccn Subscription details
 
@@ -1034,12 +1343,39 @@ Help:
     <subscription-id>
                           Lccn Subscription ID to display
 
-  optional arguments:
+  options:
     -h, --help            show this help message and exit
+
+  output formatters:
+    output formatter options
+
+    -f {json,shell,table,value,yaml}, --format {json,shell,table,value,yaml}
+                          the output format, defaults to table
+    -c COLUMN, --column COLUMN
+                          specify the column(s) to include, can be repeated to show multiple columns
+
+  json formatter:
+    --noindent            whether to disable indenting the JSON
+
+  shell formatter:
+    a format a UNIX shell can parse (variable="value")
+
+    --prefix PREFIX
+                          add a prefix to all variable names
+
+  table formatter:
+    --max-width <integer>
+                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH environment variable, but the parameter takes precedence.
+    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the environment variable CLIFF_FIT_WIDTH=1 to always enable
+    --print-empty         Print empty table if there is no data to show.
+
+  This command is provided by the python-tackerclient plugin.
 
 
 20. Delete Lccn Subscription
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The `LCCN_SUBSCRIPTION_ID` should be replaced with the ID of Lccn subscription.
 
 .. code-block:: console
 
@@ -1050,7 +1386,7 @@ Result:
 
 .. code-block:: console
 
-  Lccn Subscription 'e796811c-5e4d-47ab-93ce-fd52efcc5aa5' is deleted successfully
+  Lccn Subscription '9926b5a9-9ae7-4068-a77d-20c108d7b91d' is deleted successfully
 
 
 Help:
@@ -1066,8 +1402,10 @@ Help:
     <subscription-id>
                           Lccn Subscription ID(s) to delete
 
-  optional arguments:
+  options:
     -h, --help            show this help message and exit
+
+  This command is provided by the python-tackerclient plugin.
 
 
 21. Show VNF LCM API versions
@@ -1092,8 +1430,8 @@ Result:
 
 
 .. note::
-    The command with **\-\-major-version** narrows down the
-    obtained major versions to show.
+
+    Running the command with **\-\-major-version 1** option shows v1 Tacker's version only.
 
 
 .. code-block:: console
@@ -1106,31 +1444,48 @@ Result:
   | apiVersions | [{'version': '1.3.0', 'isDeprecated': False}] |
   +-------------+-----------------------------------------------+
 
-.. code-block:: console
-
-  $ openstack vnflcm versions --major-version 2
-  +-------------+-----------------------------------------------+
-  | Field       | Value                                         |
-  +-------------+-----------------------------------------------+
-  | uriPrefix   | /vnflcm/v2                                    |
-  | apiVersions | [{'version': '2.0.0', 'isDeprecated': False}] |
-  +-------------+-----------------------------------------------+
-
 
 Help:
 
 .. code-block:: console
 
   $ openstack vnflcm versions --help
-  usage: openstack vnflcm versions [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN]
-                                   [--noindent] [--prefix PREFIX] [--max-width <integer>]
-                                   [--fit-width] [--print-empty] [--major-version <major-version>]
+  usage: openstack vnflcm versions [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN] [--noindent] [--prefix PREFIX] [--max-width <integer>] [--fit-width] [--print-empty] [--major-version <major-version>]
 
   Show VnfLcm Api versions
 
-  optional arguments:
-    -h, --help          show this help message and exit
+  options:
+    -h, --help            show this help message and exit
     --major-version <major-version>
-                        Show only specify major version.
+                          Show only specify major version.
 
-.. _About aspect id : https://docs.openstack.org/tacker/latest/user/etsi_vnf_scaling.html#how-to-identify-aspect-id
+  output formatters:
+    output formatter options
+
+    -f {json,shell,table,value,yaml}, --format {json,shell,table,value,yaml}
+                          the output format, defaults to table
+    -c COLUMN, --column COLUMN
+                          specify the column(s) to include, can be repeated to show multiple columns
+
+  json formatter:
+    --noindent            whether to disable indenting the JSON
+
+  shell formatter:
+    a format a UNIX shell can parse (variable="value")
+
+    --prefix PREFIX
+                          add a prefix to all variable names
+
+  table formatter:
+    --max-width <integer>
+                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH environment variable, but the parameter takes precedence.
+    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the environment variable CLIFF_FIT_WIDTH=1 to always enable
+    --print-empty         Print empty table if there is no data to show.
+
+  This command is provided by the python-tackerclient plugin.
+
+
+.. _sample_vnf_package_csar for 2024.1 Caracal:
+  https://opendev.org/openstack/tacker/src/branch/stable/2024.1/samples/etsi_getting_started/tosca/sample_vnf_package_csar
+.. _functional5 for 2024.1 Caracal:
+  https://opendev.org/openstack/tacker/src/branch/stable/2024.1/samples/tests/etc/samples/etsi/nfv/functional5
