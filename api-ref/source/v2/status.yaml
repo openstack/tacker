@@ -15,6 +15,8 @@
 204:
   default: |
     The server has fulfilled the request by deleting the resource.
+  notification: |
+    The notification has been delivered successfully.
 206:
   default: |
     Partial Content, The server has fulfilled the partial GET request for the

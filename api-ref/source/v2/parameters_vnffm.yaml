@@ -20,6 +20,13 @@ ack_state:
   in: body
   required: true
   type: string
+alarm:
+  description: |
+    Information about an alarm including AlarmId, affected VNF identifier,
+    and FaultDetails.
+  in: body
+  required: true
+  type: object
 alarm_acknowledged_time:
   description: |
     Time stamp indicating when the alarm was acknowledged. It shall be present
@@ -34,10 +41,37 @@ alarm_changed_time:
   in: body
   required: false
   type: string
+alarm_cleared_notification_alarm_cleared_time:
+  description: |
+    The time stamp indicating when the alarm was cleared.
+  in: body
+  required: true
+  type: string
+alarm_cleared_notification_alarm_id:
+  description: |
+    Alarm identifier.
+  in: body
+  required: true
+  type: string
+alarm_cleared_notification_type:
+  description: |
+    Discriminator for the different notification types.
+    Set to "AlarmClearedNotification" for this notification type.
+  in: body
+  required: true
+  type: string
 alarm_cleared_time:
   description: |
     Time stamp indicating when the alarm was cleared. It shall be present if
     the alarm has been cleared.
+  in: body
+  required: false
+  type: string
+alarm_faulty_resource_vim_connection_id:
+  description: |
+    Identifier of the VIM connection to manage the resource. This attribute
+    shall only be supported and present if VNFrelated resource management in
+    direct mode is applicable.
   in: body
   required: false
   type: string
@@ -50,6 +84,19 @@ alarm_id:
 alarm_links:
   description: |
     Links for this resource.
+  in: body
+  required: true
+  type: object
+alarm_notification_type:
+  description: |
+    Discriminator for the different notification types.
+    Set to "AlarmNotification" for this notification type.
+  in: body
+  required: true
+  type: string
+alarm_perceived_severity:
+  description: |
+    Perceived severity of the managed object failure.
   in: body
   required: true
   type: object
@@ -213,7 +260,7 @@ faulty_resource_vim_connection_id:
   type: string
 faulty_resource_vim_level_resource_type:
   description: |
-    Identifier of the resource in the scope of the VIM or the resource provider.
+    Type of the resource in the scope of the VIM or the resource provider.
   in: body
   required: false
   type: string
@@ -275,6 +322,24 @@ is_root_cause:
 managed_object_id:
   description: |
     Identifier of the affected VNF instance.
+  in: body
+  required: true
+  type: string
+notification_id:
+  description: |
+    Identifier of this notification.
+  in: body
+  required: true
+  type: string
+notification_links:
+  description: |
+    Links to resources related to this notification.
+  in: body
+  required: true
+  type: object
+notification_time_stamp:
+  description: |
+    Date-time of the generation of the notification.
   in: body
   required: true
   type: string
@@ -391,6 +456,24 @@ products_vnf_product_name:
   in: body
   required: true
   type: string
+related_alarm_links:
+  description: |
+    Link to the resource that represents the related alarm.
+  in: body
+  required: true
+  type: object
+related_subscription_id:
+  description: |
+    Identifier of the subscription that this notification relates to.
+  in: body
+  required: true
+  type: string
+related_subscription_links:
+  description: |
+    Link to the related subscription.
+  in: body
+  required: true
+  type: object
 subscription_filter_vnf_instance_ids:
   description: |
     If present, match VNF instances with an instance identifier listed in this

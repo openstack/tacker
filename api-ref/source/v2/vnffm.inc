@@ -489,3 +489,145 @@ Request Parameters
 .. rest_parameters:: parameters_vnffm.yaml
 
   - subscriptionId: subscription_id_path
+
+====================================================================
+Virtualized Network Function Fault Management Notification Interface
+====================================================================
+
+This interface is notification about VNF fault management.
+
+This interface is a notification sent to the endpoint configured as the
+callbackUri when an event occurs that matches the filter criteria that is part
+of the subscription, or when a VNF fault management subscription is created.
+The detail of this interface is described in SOL002 v3.3.1 clause 7.
+
+AlarmNotification
+=================
+
+.. rest_method::  POST < callbackUri (provided by API consumer) >
+
+The POST method delivers a notification about information of a VNF alarm from
+Tacker to the API consumer.
+
+When an error or warning occurs on a VNF configured for monitoring with a VNF
+fault management subscription, Tacker sends this notification to the endpoint
+configured in the callbackUri of the "Create a subscription (v1)" API.
+
+Response Codes
+--------------
+
+Tacker expects a "204 No Content" response from the endpoint of the API consumer.
+If any other response code is returned, it will be treated as an error.
+
+.. rest_status_code:: success status.yaml
+
+  - 204: notification
+
+Request Parameters
+------------------
+
+.. rest_parameters:: parameters_vnffm.yaml
+
+  - id: notification_id
+  - notificationType: alarm_notification_type
+  - subscriptionId: related_subscription_id
+  - timeStamp: notification_time_stamp
+  - alarm: alarm
+  - id: alarm_id
+  - managedObjectId: managed_object_id
+  - vnfcInstanceIds: vnfc_instance_ids
+  - rootCauseFaultyResource: faulty_resource_info
+  - faultyResource: faulty_resource
+  - vimConnectionId: alarm_faulty_resource_vim_connection_id
+  - resourceProviderId: faulty_resource_provider_id
+  - resourceId: faulty_resource_id
+  - vimLevelResourceType: faulty_resource_vim_level_resource_type
+  - faultyResourceType: faulty_resource_type
+  - alarmRaisedTime: alarm_raised_time
+  - alarmChangedTime: alarm_changed_time
+  - alarmClearedTime: alarm_cleared_time
+  - alarmAcknowledgedTime: alarm_acknowledged_time
+  - ackState: ack_state
+  - perceivedSeverity: alarm_perceived_severity
+  - eventTime: event_time
+  - eventType: event_type
+  - faultType: fault_type
+  - probableCause: probable_cause
+  - isRootCause: is_root_cause
+  - correlatedAlarmIds: correlated_alarm_ids
+  - faultDetails: fault_details
+  - _links: alarm_links
+  - self: alarm_self
+  - objectInstance: object_instance
+  - _links: notification_links
+  - subscription: related_subscription_links
+
+Request Example
+---------------
+
+.. literalinclude:: samples/vnffm/vnffm-alarm-notification-request.json
+   :language: javascript
+
+AlarmClearedNotification
+========================
+
+.. rest_method::  POST < callbackUri (provided by API consumer) >
+
+The POST method delivers a notification about information of the clearance of
+a VNF alarm from Tacker to the API consumer.
+
+When an Error or Warning of a VNF that is set to be monitored with a VNF fault
+management subscription is resolved, Tacker sends this notification to the
+endpoint configured in the callbackUri of the "Create a subscription (v1)" API.
+
+Response Codes
+--------------
+
+Tacker expects a "204 No Content" response from the endpoint of the API consumer.
+If any other response code is returned, it will be treated as an error.
+
+.. rest_status_code:: success status.yaml
+
+  - 204: notification
+
+Request Parameters
+------------------
+
+.. rest_parameters:: parameters_vnffm.yaml
+
+  - id: notification_id
+  - notificationType: alarm_cleared_notification_type
+  - subscriptionId: related_subscription_id
+  - timeStamp: notification_time_stamp
+  - alarmId: alarm_cleared_notification_alarm_id
+  - alarmClearedTime: alarm_cleared_notification_alarm_cleared_time
+  - _links: notification_links
+  - subscription: related_subscription_links
+  - alarm: related_alarm_links
+
+Request Example
+---------------
+
+.. literalinclude:: samples/vnffm/vnffm-alarm-cleared-notification-request.json
+   :language: javascript
+
+Test the notification endpoint (VNF FM)
+=======================================
+
+.. rest_method::  GET < callbackUri (provided by API consumer) >
+
+The GET method test the notification endpoint.
+
+When a VNF fault management subscription is created using the "Create a
+subscription (v1)" API, Tacker sends this notification to the endpoint
+configured with callbackUri to confirm communication.
+
+Response Codes
+--------------
+
+Tacker expects a "204 No Content" response from the endpoint of the API consumer.
+If any other response code is returned, it will be treated as an error.
+
+.. rest_status_code:: success status.yaml
+
+  - 204: notification

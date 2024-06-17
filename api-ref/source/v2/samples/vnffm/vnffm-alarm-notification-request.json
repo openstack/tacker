@@ -1,0 +1,36 @@
+{
+    "id": "0ab777dc-b3a0-42d6-85c1-e5f80711b988",
+    "notificationType": "AlarmNotification",
+    "subscriptionId": "0155c914-8573-463c-a97a-aef5a3ca9c72",
+    "timeStamp": "2023-12-08T13:16:30Z",
+    "alarm": {
+        "id": "de8e74e8-1845-40dd-892c-cb7a67c26f9f",
+        "managedObjectId": "c21fd71b-2866-45f6-89d0-70c458a5c32e",
+        "vnfcInstanceIds": ["VDU1-curry-probe-test001-798d577c96-5624p"],
+        "alarmRaisedTime": "2023-12-08T13:16:30+00:00",
+        "ackState": "UNACKNOWLEDGED",
+        "perceivedSeverity": "CRITICAL",
+        "eventTime": "2023-12-08T13:16:00Z",
+        "eventType": "PROCESSING_ERROR_ALARM",
+        "faultType": "fault_type",
+        "probableCause": "Process Terminated",
+        "isRootCause": false,
+        "faultDetails": [
+            "fingerprint: 5ee739bb8840a190",
+            "detail: fault_details"
+        ],
+        "_links": {
+            "self": {
+                "href": "http://127.0.0.1:9890/vnffm/v1/alarms/de8e74e8-1845-40dd-892c-cb7a67c26f9f"
+            },
+            "objectInstance":{
+                "href": "http://127.0.0.1:9890/vnflcm/v2/vnf_instances/c21fd71b-2866-45f6-89d0-70c458a5c32e"
+            }
+        }
+    },
+    "_links": {
+        "subscription": {
+            "href": "http://127.0.0.1:9890/vnffm/v1/subscriptions/0155c914-8573-463c-a97a-aef5a3ca9c72"
+        }
+    }
+}
