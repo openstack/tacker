@@ -28,7 +28,7 @@ Assuming that the following VNF instance exists,
 this instance will be changed.
 
 Details of CLI commands are described in
-:doc:`/cli/cli-etsi-vnflcm`.
+:doc:`/cli/v2/vnflcm`.
 
 For changing external VNF connectivity, you need to prepare a JSON-formatted
 definition file before running command for changing the connectivity.

@@ -54,7 +54,7 @@ As mentioned in Prerequisites, the VNF must be instantiated
 before performing scaling.
 
 Details of CLI commands are described in
-:doc:`/cli/cli-etsi-vnflcm`.
+:doc:`/cli/v2/vnflcm`.
 
 There are two main methods for VNF scaling.
 

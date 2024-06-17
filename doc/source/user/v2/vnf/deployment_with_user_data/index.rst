@@ -406,7 +406,7 @@ VNF Deployment Procedure as VM
 In order to deploy VNF as a VM, it is necessary to execute
 the following procedure.
 Details of CLI commands are described in
-:doc:`/cli/cli-etsi-vnfpkgm` and :doc:`/cli/cli-etsi-vnflcm`.
+:doc:`/cli/cli-etsi-vnfpkgm` and :doc:`/cli/v2/vnflcm`.
 
 
 1. Create VNF Package Info

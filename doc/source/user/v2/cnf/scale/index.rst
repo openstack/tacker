@@ -59,7 +59,7 @@ as Kubernetes Deployment, StatefulSet, and ReplicaSet.
   during the scale out operation.
 
 
-Details of CLI commands are described in :doc:`/cli/cli-etsi-vnflcm`.
+Details of CLI commands are described in :doc:`/cli/v2/vnflcm`.
 
 There are two main methods for CNF scaling.
 

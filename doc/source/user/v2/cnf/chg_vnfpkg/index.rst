@@ -64,7 +64,7 @@ You need to upload the VNF package you want to change to before
 executing change current VNF package.
 
 Details of CLI commands are described in
-:doc:`/cli/cli-etsi-vnflcm`.
+:doc:`/cli/v2/vnflcm`.
 
 For changing current VNF package, you need to prepare a JSON-formatted
 definition file before running command for changing the VNF package.

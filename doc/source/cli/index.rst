@@ -23,7 +23,7 @@ Operations for ETSI NFV-SOL implementation
 .. toctree::
 
   cli-etsi-vnfpkgm
-  cli-etsi-vnflcm
+  vnflcm-index
   cli-etsi-vnffm
   cli-etsi-vnfpm
 
