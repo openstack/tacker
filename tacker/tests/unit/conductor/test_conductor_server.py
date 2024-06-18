@@ -578,6 +578,45 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
                 mock.ANY, mock.ANY, mock.ANY, constants.ACTIVE,
             vim_id=vim_id)
 
+    @mock.patch('tacker.vnflcm.utils._get_vim')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._update_vnf_attributes')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._change_vnf_status')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '._build_instantiated_vnf_info')
+    @mock.patch.object(objects.VnfLcmOpOcc, 'save')
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch('tacker.vnflcm.utils._convert_desired_capacity')
+    @mock.patch.object(objects.VnfLcmOpOcc, 'get_by_id')
+    def test_instantiate_vnf_instance_without_vim_connection_info(
+            self, mock_vnf_by_id, mock_des, mock_vnfd_dict, mock_get_lock,
+            mock_save, mock_build_info, mock_change_vnf_status,
+            mock_update_vnf_attributes, mock_get_vim):
+        lcm_op_occs_data = fakes.get_lcm_op_occs_data()
+        mock_vnf_by_id.return_value = (
+            objects.VnfLcmOpOcc(context=self.context, **lcm_op_occs_data))
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        vnf_instance = objects.VnfInstance(context=self.context,
+            **vnf_instance_data)
+        vnf_instance.create()
+        instantiate_vnf_req = vnflcm_fakes.get_instantiate_vnf_request_obj()
+        instantiate_vnf_req.vim_connection_info = []
+        vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
+        vnf_dict = db_utils.get_dummy_vnf_etsi(instance_id=self.instance_uuid,
+            flavour=instantiate_vnf_req.flavour_id)
+        vnf_dict['before_error_point'] = fields.ErrorPoint.INITIAL
+        default_vim_id = uuidsentinel.vim_id
+        mock_get_vim.return_value = {'vim_id': default_vim_id}
+        self.conductor.instantiate(self.context, vnf_instance, vnf_dict,
+            instantiate_vnf_req, vnf_lcm_op_occs_id)
+        mock_update_vnf_attributes.assert_called_with(self.context,
+            mock.ANY, mock.ANY, mock.ANY, constants.ACTIVE,
+            vim_id=default_vim_id)
+
     @mock.patch('tacker.conductor.conductor_server.Conductor'
                 '._change_vnf_status')
     @mock.patch('tacker.conductor.conductor_server.Conductor'
@@ -1130,27 +1169,29 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
                                    instantiate_vnf_req, vnf_lcm_op_occs_id)
         self.vnflcm_driver._vnf_instance_update.assert_called_once()
 
+    @mock.patch('tacker.vnflcm.utils._get_vim')
     @mock.patch('tacker.conductor.conductor_server.Conductor'
                 '._change_vnf_status')
     @mock.patch('tacker.conductor.conductor_server.Conductor'
                 '._send_lcm_op_occ_notification')
     @mock.patch.object(coordination.Coordinator, 'get_lock')
     def test_terminate_vnf_instance(self, mock_get_lock,
-                                    mock_send_notification,
-                                    mock_change_vnf_status):
+            mock_send_notification, mock_change_vnf_status, mock_get_vim):
         inst_vnf_info = fd_utils.get_vnf_instantiated_info()
-        vnf_instance = fd_utils. \
-            get_vnf_instance_object(instantiated_vnf_info=inst_vnf_info)
+        vnf_instance = (fd_utils.
+            get_vnf_instance_object(instantiated_vnf_info=inst_vnf_info))
 
         terminate_vnf_req = objects.TerminateVnfRequest(
             termination_type=fields.VnfInstanceTerminationType.GRACEFUL,
-            additional_params={"key": "value"})
+            additional_params={'key': 'value'})
         vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
         vnf_dict = {
             **db_utils.get_dummy_vnf(instance_id=self.instance_uuid),
             'before_error_point': fields.ErrorPoint.INITIAL,
             'status': ''
         }
+        mock_get_vim.return_value = {'vim_id': uuidsentinel.vim_id,
+            'vim_type': 'openstack'}
         self.conductor.terminate(self.context, vnf_lcm_op_occs_id,
                                  vnf_instance, terminate_vnf_req, vnf_dict)
 
@@ -1160,6 +1201,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         self.assertEqual(mock_send_notification.call_count, 2)
         self.assertEqual(mock_change_vnf_status.call_count, 2)
 
+    @mock.patch('tacker.vnflcm.utils._get_vim')
     @mock.patch('tacker.conductor.conductor_server.Conductor'
                 '._change_vnf_status')
     @mock.patch('tacker.conductor.conductor_server.Conductor'
@@ -1167,17 +1209,19 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
     @mock.patch.object(coordination.Coordinator, 'get_lock')
     def test_terminate_vnf_instance_error_point_notify_processing(
             self, mock_get_lock, mock_send_notification,
-            mock_change_vnf_status):
+            mock_change_vnf_status, mock_get_vim):
         inst_vnf_info = fd_utils.get_vnf_instantiated_info()
-        vnf_instance = fd_utils. \
-            get_vnf_instance_object(instantiated_vnf_info=inst_vnf_info)
+        vnf_instance = (fd_utils.
+            get_vnf_instance_object(instantiated_vnf_info=inst_vnf_info))
 
         terminate_vnf_req = objects.TerminateVnfRequest(
             termination_type=fields.VnfInstanceTerminationType.GRACEFUL,
-            additional_params={"key": "value"})
+            additional_params={'key': 'value'})
         vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
         vnf_dict = db_utils.get_dummy_vnf(instance_id=self.instance_uuid)
         vnf_dict['before_error_point'] = fields.ErrorPoint.NOTIFY_PROCESSING
+        mock_get_vim.return_value = {'vim_id': uuidsentinel.vim_id,
+            'vim_type': 'openstack'}
         self.conductor.terminate(self.context, vnf_lcm_op_occs_id,
                                  vnf_instance, terminate_vnf_req, vnf_dict)
 
@@ -1187,6 +1231,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         self.assertEqual(mock_send_notification.call_count, 2)
         self.assertEqual(mock_change_vnf_status.call_count, 2)
 
+    @mock.patch('tacker.vnflcm.utils._get_vim')
     @mock.patch('tacker.conductor.conductor_server.Conductor'
                 '._change_vnf_status')
     @mock.patch('tacker.conductor.conductor_server.Conductor'
@@ -1194,17 +1239,19 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
     @mock.patch.object(coordination.Coordinator, 'get_lock')
     def test_terminate_vnf_instance_error_point_internal_processing(
             self, mock_get_lock, mock_send_notification,
-            mock_change_vnf_status):
+            mock_change_vnf_status, mock_get_vim):
         inst_vnf_info = fd_utils.get_vnf_instantiated_info()
-        vnf_instance = fd_utils. \
-            get_vnf_instance_object(instantiated_vnf_info=inst_vnf_info)
+        vnf_instance = (fd_utils.
+            get_vnf_instance_object(instantiated_vnf_info=inst_vnf_info))
 
         terminate_vnf_req = objects.TerminateVnfRequest(
             termination_type=fields.VnfInstanceTerminationType.GRACEFUL,
-            additional_params={"key": "value"})
+            additional_params={'key': 'value'})
         vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
         vnf_dict = db_utils.get_dummy_vnf(instance_id=self.instance_uuid)
         vnf_dict['before_error_point'] = fields.ErrorPoint.INTERNAL_PROCESSING
+        mock_get_vim.return_value = {'vim_id': uuidsentinel.vim_id,
+            'vim_type': 'openstack'}
         self.conductor.terminate(self.context, vnf_lcm_op_occs_id,
                                  vnf_instance, terminate_vnf_req, vnf_dict)
 
@@ -1214,6 +1261,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         self.assertEqual(mock_send_notification.call_count, 2)
         self.assertEqual(mock_change_vnf_status.call_count, 1)
 
+    @mock.patch('tacker.vnflcm.utils._get_vim')
     @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver'
                 '.terminate_vnf')
     @mock.patch('tacker.conductor.conductor_server.Conductor'
@@ -1221,19 +1269,21 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
     @mock.patch('tacker.conductor.conductor_server.Conductor'
                 '._send_lcm_op_occ_notification')
     @mock.patch.object(coordination.Coordinator, 'get_lock')
-    def test_terminate_vnf_instance_error_point_notify_completed(
-            self, mock_get_lock, mock_send_notification,
-            mock_change_vnf_status, mock_vnflcm_driver_terminate_vnf):
+    def test_terminate_vnf_instance_error_point_notify_completed(self,
+            mock_get_lock, mock_send_notification, mock_change_vnf_status,
+            mock_vnflcm_driver_terminate_vnf, mock_get_vim):
         inst_vnf_info = fd_utils.get_vnf_instantiated_info()
-        vnf_instance = fd_utils. \
-            get_vnf_instance_object(instantiated_vnf_info=inst_vnf_info)
+        vnf_instance = (fd_utils.
+            get_vnf_instance_object(instantiated_vnf_info=inst_vnf_info))
 
         terminate_vnf_req = objects.TerminateVnfRequest(
             termination_type=fields.VnfInstanceTerminationType.GRACEFUL,
-            additional_params={"key": "value"})
+            additional_params={'key': 'value'})
         vnf_lcm_op_occs_id = uuidsentinel.vnf_lcm_op_occs_id
         vnf_dict = db_utils.get_dummy_vnf(instance_id=self.instance_uuid)
         vnf_dict['before_error_point'] = fields.ErrorPoint.NOTIFY_COMPLETED
+        mock_get_vim.return_value = {'vim_id': uuidsentinel.vim_id,
+            'vim_type': 'openstack'}
         self.conductor.terminate(self.context, vnf_lcm_op_occs_id,
                                  vnf_instance, terminate_vnf_req, vnf_dict)
 
