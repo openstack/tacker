@@ -28,6 +28,7 @@ def _get_template(name):
 
 etsi_vnfd = _get_template('etsi_nfv/tosca_vnfd.yaml')
 etsi_vnfd_group = _get_template('etsi_nfv/tosca_vnfd_group_member.yaml')
+etsi_vnfd_affinity = _get_template('etsi_nfv/tosca_vnfd_affinity.yaml')
 hot_scale_grant = _get_template('hot_scale_grant.yaml')
 hot_scale_nest_grant = _get_template('hot_scale_nest_grant.yaml')
 hot_scale_initial = _get_template('hot_scale_initial.yaml')
@@ -85,6 +86,8 @@ def get_dummy_vnf_etsi(status='PENDING_CREATE', scaling_group=False,
     if not vnfd_name:
         # Set vnfd including without "tosca.groups.nfv.PlacementGroup"
         dummy_vnf['vnfd']['attributes'] = {vnfd_key: etsi_vnfd}
+    elif vnfd_name == 'etsi_vnfd_affinity':
+        dummy_vnf['vnfd']['attributes'] = {vnfd_key: etsi_vnfd_affinity}
     else:
         # Set vnfd including with "tosca.groups.nfv.PlacementGroup"
         dummy_vnf['vnfd']['attributes'] = {vnfd_key: etsi_vnfd_group}

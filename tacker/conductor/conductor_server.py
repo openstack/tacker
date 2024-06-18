@@ -1182,7 +1182,8 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
                     key = policy_dict['type']
                     placement_constraint.affinity_or_anti_affinity = (
                         affinity_type[key])
-                    placement_constraint.scope = 'ZONE'
+                    placement_constraint.scope = (
+                        policy_dict['properties']['scope'].upper())
                     placement_constraint.resource = []
                     placement_constraint.fallback_best_effort = True
                     for target in policy_dict.get('targets', []):
@@ -1198,7 +1199,6 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
                                         p_rsc = \
                                             placement_constraint.resource
                                         p_rsc.append(resource)
-                                        break
                         else:
                             for vnfc_rsc in vnf_inf.vnfc_resource_info:
                                 if target == vnfc_rsc.vdu_id:
@@ -1208,7 +1208,6 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
                                     resource.resource_id = vnfc_rsc.id
                                     p_rsc = placement_constraint.resource
                                     p_rsc.append(resource)
-                                    break
                     p_c_list.append(placement_constraint)
                     placement_obj = models.PlacementConstraint()
                     placement_obj.id = uuidutils.generate_uuid()
