@@ -392,14 +392,19 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
             vnf_instance.instantiated_vnf_info.scale_status = \
                 vnf_dict['scale_status']
         elif vnf_instance.instantiated_vnf_info:
-            default_scale_status = vnflcm_utils.\
-                get_default_scale_status(
-                    context=context,
-                    vnf_instance=vnf_instance,
+            if final_vnf_dict.get('scale_status'):
+                # 'scale_status' is stored during instantiate_vnf() in
+                # infra_driver, or it is stored in _respawn_vnf() for
+                # SOL003 heal.
+                vnf_instance.instantiated_vnf_info.scale_status = (
+                    final_vnf_dict['scale_status'])
+            else:
+                default_scale_status = vnflcm_utils.get_default_scale_status(
+                    context=context, vnf_instance=vnf_instance,
                     vnfd_dict=vnfd_dict)
-            if default_scale_status is not None:
-                vnf_instance.instantiated_vnf_info.scale_status = \
-                    default_scale_status
+                if default_scale_status is not None:
+                    vnf_instance.instantiated_vnf_info.scale_status = (
+                        default_scale_status)
 
         if vnf_dict['before_error_point'] <= EP.PRE_VIM_CONTROL:
             try:
@@ -862,6 +867,13 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                               "error": str(exc)})
                     raise exceptions.VnfHealFailed(id=vnf_instance.id,
                         error=encodeutils.exception_to_unicode(exc))
+
+        if vnf_instance.instantiated_vnf_info.scale_status:
+            # Since the instantiated_vnf_info is initialized in subsequent
+            # processing, scale_status is stored to vnf_dict to preserve the
+            # scale status before SOL003 heal.
+            vnf_dict['scale_status'] = (vnf_instance.instantiated_vnf_info
+                                        .scale_status)
 
         # InstantiateVnfRequest is not stored in the db as it's mapped
         # to InstantiatedVnfInfo version object. Convert InstantiatedVnfInfo

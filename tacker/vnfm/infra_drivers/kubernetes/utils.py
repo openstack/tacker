@@ -47,6 +47,7 @@ supported_k8s_resource_kinds = {
     "RoleBinding",
     "Role"
 }
+scalable_kinds = {"Deployment", "ReplicaSet", "StatefulSet"}
 
 
 def check_and_save_namespace(

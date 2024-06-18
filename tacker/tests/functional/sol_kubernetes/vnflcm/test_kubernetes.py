@@ -369,6 +369,9 @@ class VnfLcmKubernetesTest(vnflcm_base.BaseVnfLcmKubernetesTest):
         vnf2_vnfc_rscs = self._get_vnfc_resource_info(vnf_instance2)
         self._test_heal(vnf_instance2, [vnf2_vnfc_rscs[0]['id']])
 
+        # scale out VNF1 before SOL-003 heal
+        vnf_instance1 = self._show_vnf_instance(vnf_instance1['id'])
+        self._test_scale(vnf_instance1['id'], 'SCALE_OUT', "vdu1_aspect", 0)
         # heal VNF1 SOL-003 (entire heal)
         vnf_instance1 = self._show_vnf_instance(vnf_instance1['id'])
         self._test_heal(vnf_instance1, [])

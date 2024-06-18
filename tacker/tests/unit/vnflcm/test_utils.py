@@ -18,6 +18,7 @@ import os
 import ddt
 from oslo_config import cfg
 
+from tacker.common import exceptions
 from tacker.objects import fields
 from tacker.objects.instantiate_vnf_req import InstantiateVnfRequest
 from tacker.objects.vim_connection import VimConnectionInfo
@@ -93,3 +94,49 @@ class VnfLcmUtilsTestCase(base.TestCase):
         result = vnflcm_utils._get_vim_connection_info_from_vnf_req(
             vnf_instance, instantiate_vnf_req)
         self.assertEqual(result[0].extra, vim_conn.extra)
+
+    def test_get_current_num_of_instances(self):
+        aspect_id = "vdu1_aspect"
+        extract_policy_infos = fakes.fake_extract_policy_infos()
+        result = vnflcm_utils.get_current_num_of_instances(
+            extract_policy_infos, aspect_id, 0)
+        self.assertEqual(result, 1)
+        result = vnflcm_utils.get_current_num_of_instances(
+            extract_policy_infos, aspect_id, 2)
+        self.assertEqual(result, 3)
+
+    def test_get_current_num_of_instances_no_step_deltas(self):
+        aspect_id = "vdu1_aspect"
+        extract_policy_infos = fakes.fake_extract_policy_infos()
+        extract_policy_infos.get("aspect_id_dict").pop(aspect_id)
+        error = self.assertRaises(exceptions.InvalidPoliciesDefinition,
+            vnflcm_utils.get_current_num_of_instances, extract_policy_infos,
+            aspect_id, 0)
+        expected_error = ('Cannot retrieve the step_deltas id in '
+                          'ScalingAspects parameter from policies '
+                          'definition in VNFD.')
+        self.assertEqual(expected_error, str(error))
+
+    def test_get_current_num_of_instances_no_delta_num(self):
+        aspect_id = "vdu1_aspect"
+        extract_policy_infos = fakes.fake_extract_policy_infos()
+        extract_policy_infos.get("aspect_delta_dict").pop(aspect_id)
+        error = self.assertRaises(exceptions.InvalidPoliciesDefinition,
+            vnflcm_utils.get_current_num_of_instances, extract_policy_infos,
+            aspect_id, 0)
+        expected_error = ('Cannot retrieve the delta num in '
+                          'VduScalingAspectDeltas parameter from policies '
+                          'definition in VNFD.')
+        self.assertEqual(expected_error, str(error))
+
+    def test_get_current_num_of_instances_no_initial_delta(self):
+        aspect_id = "vdu1_aspect"
+        extract_policy_infos = fakes.fake_extract_policy_infos()
+        extract_policy_infos.get("vdu_delta_dict").pop("VDU1")
+        error = self.assertRaises(exceptions.InvalidPoliciesDefinition,
+            vnflcm_utils.get_current_num_of_instances, extract_policy_infos,
+            aspect_id, 0)
+        expected_error = ('Cannot retrieve the initial_delta num in '
+                          'VduInitialDelta parameter from policies '
+                          'definition in VNFD.')
+        self.assertEqual(expected_error, str(error))
