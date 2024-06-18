@@ -798,6 +798,9 @@ Execute the following CLI command to instantiate the VNF instance.
     |                          |     "terminate": {                                                                               |
     |                          |         "href": "/vnflcm/v1/vnf_instances/4cdc110f-b21e-4b79-b3f5-252ee5937a36/terminate"        |
     |                          |     },                                                                                           |
+    |                          |     "scale": {                                                                                   |
+    |                          |         "href": "/vnflcm/v1/vnf_instances/4cdc110f-b21e-4b79-b3f5-252ee5937a36/scale"            |
+    |                          |     },                                                                                           |
     |                          |     "heal": {                                                                                    |
     |                          |         "href": "/vnflcm/v1/vnf_instances/4cdc110f-b21e-4b79-b3f5-252ee5937a36/heal"             |
     |                          |     },                                                                                           |
@@ -1548,6 +1551,9 @@ Check instantiation state:
     |                          |     },                                                                                          |
     |                          |     "terminate": {                                                                              |
     |                          |         "href": "/vnflcm/v1/vnf_instances/342a083d-caec-4b44-8881-733fa7cd1754/terminate"       |
+    |                          |     },                                                                                          |
+    |                          |     "scale": {                                                                                  |
+    |                          |         "href": "/vnflcm/v1/vnf_instances/342a083d-caec-4b44-8881-733fa7cd1754/scale"           |
     |                          |     },                                                                                          |
     |                          |     "heal": {                                                                                   |
     |                          |         "href": "/vnflcm/v1/vnf_instances/342a083d-caec-4b44-8881-733fa7cd1754/heal"            |

@@ -1038,275 +1038,281 @@ Execute the following CLI command to instantiate the VNF instance.
     $ openstack vnflcm instantiate 3f32428d-e8ce-4d6a-9be9-4c7f3a02ac72 ./simple_kubernetes_param_file.json
     Instantiate request for VNF Instance 3f32428d-e8ce-4d6a-9be9-4c7f3a02ac72 has been accepted.
     $ openstack vnflcm show 3f32428d-e8ce-4d6a-9be9-4c7f3a02ac72
-    +--------------------------+-------------------------------------------------------------------------------------------+
-    | Field                    | Value                                                                                     |
-    +--------------------------+-------------------------------------------------------------------------------------------+
-    | ID                       | 3f32428d-e8ce-4d6a-9be9-4c7f3a02ac72                                                      |
-    | Instantiated Vnf Info    | {                                                                                         |
-    |                          |     "flavourId": "simple",                                                                |
-    |                          |     "vnfState": "STARTED",                                                                |
-    |                          |     "scaleStatus": [                                                                      |
-    |                          |         {                                                                                 |
-    |                          |             "aspectId": "master_instance",                                                |
-    |                          |             "scaleLevel": 0                                                               |
-    |                          |         },                                                                                |
-    |                          |         {                                                                                 |
-    |                          |             "aspectId": "worker_instance",                                                |
-    |                          |             "scaleLevel": 0                                                               |
-    |                          |         }                                                                                 |
-    |                          |     ],                                                                                    |
-    |                          |     "extCpInfo": [                                                                        |
-    |                          |         {                                                                                 |
-    |                          |             "id": "d6ed7fd0-c26e-4e1e-81ab-71dc8c6d8293",                                 |
-    |                          |             "cpdId": "masterNode_CP1",                                                    |
-    |                          |             "extLinkPortId": null,                                                        |
-    |                          |             "associatedVnfcCpId": "1f830544-57ef-4f93-bdb5-b59e465f58d8",                 |
-    |                          |             "cpProtocolInfo": [                                                           |
-    |                          |                 {                                                                         |
-    |                          |                     "layerProtocol": "IP_OVER_ETHERNET"                                   |
-    |                          |                 }                                                                         |
-    |                          |             ]                                                                             |
-    |                          |         },                                                                                |
-    |                          |         {                                                                                 |
-    |                          |             "id": "ba0f7de5-32b3-48dd-944d-341990ede0cb",                                 |
-    |                          |             "cpdId": "workerNode_CP2",                                                    |
-    |                          |             "extLinkPortId": null,                                                        |
-    |                          |             "associatedVnfcCpId": "9244012d-ad53-4685-912b-f6413ae38493",                 |
-    |                          |             "cpProtocolInfo": [                                                           |
-    |                          |                 {                                                                         |
-    |                          |                     "layerProtocol": "IP_OVER_ETHERNET"                                   |
-    |                          |                 }                                                                         |
-    |                          |             ]                                                                             |
-    |                          |         }                                                                                 |
-    |                          |     ],                                                                                    |
-    |                          |     "extVirtualLinkInfo": [                                                               |
-    |                          |         {                                                                                 |
-    |                          |             "id": "b396126a-6a95-4a24-94ae-67b58f5bd9c2",                                 |
-    |                          |             "resourceHandle": {                                                           |
-    |                          |                 "vimConnectionId": null,                                                  |
-    |                          |                 "resourceId": "71a3fbd1-f31e-4c2c-b0e2-26267d64a9ee",                     |
-    |                          |                 "vimLevelResourceType": null                                              |
-    |                          |             }                                                                             |
-    |                          |         },                                                                                |
-    |                          |         {                                                                                 |
-    |                          |             "id": "10dfbb44-a8ff-435b-98f8-70539e71af8c",                                 |
-    |                          |             "resourceHandle": {                                                           |
-    |                          |                 "vimConnectionId": null,                                                  |
-    |                          |                 "resourceId": "71a3fbd1-f31e-4c2c-b0e2-26267d64a9ee",                     |
-    |                          |                 "vimLevelResourceType": null                                              |
-    |                          |             }                                                                             |
-    |                          |         }                                                                                 |
-    |                          |     ],                                                                                    |
-    |                          |     "vnfcResourceInfo": [                                                                 |
-    |                          |         {                                                                                 |
-    |                          |             "id": "1f830544-57ef-4f93-bdb5-b59e465f58d8",                                 |
-    |                          |             "vduId": "masterNode",                                                        |
-    |                          |             "computeResource": {                                                          |
-    |                          |                 "vimConnectionId": "05ef7ca5-7e32-4a6b-a03d-52f811f04496",                |
-    |                          |                 "resourceId": "a0eccaee-ff7b-4c70-8c11-ba79c8d4deb6",                     |
-    |                          |                 "vimLevelResourceType": "OS::Nova::Server"                                |
-    |                          |             },                                                                            |
-    |                          |             "storageResourceIds": [],                                                     |
-    |                          |             "vnfcCpInfo": [                                                               |
-    |                          |                 {                                                                         |
-    |                          |                     "id": "9fe655ab-1d35-4d22-a6f3-9a07fa797884",                         |
-    |                          |                     "cpdId": "masterNode_CP1",                                            |
-    |                          |                     "vnfExtCpId": null,                                                   |
-    |                          |                     "vnfLinkPortId": "e66a44a4-965f-49dd-b168-ff4cc2485c34",              |
-    |                          |                     "cpProtocolInfo": [                                                   |
-    |                          |                         {                                                                 |
-    |                          |                             "layerProtocol": "IP_OVER_ETHERNET"                           |
-    |                          |                         }                                                                 |
-    |                          |                     ]                                                                     |
-    |                          |                 }                                                                         |
-    |                          |             ]                                                                             |
-    |                          |         },                                                                                |
-    |                          |         {                                                                                 |
-    |                          |             "id": "9244012d-ad53-4685-912b-f6413ae38493",                                 |
-    |                          |             "vduId": "workerNode",                                                        |
-    |                          |             "computeResource": {                                                          |
-    |                          |                 "vimConnectionId": "05ef7ca5-7e32-4a6b-a03d-52f811f04496",                |
-    |                          |                 "resourceId": "5b3ff765-7a9f-447a-a06d-444e963b74c9",                     |
-    |                          |                 "vimLevelResourceType": "OS::Nova::Server"                                |
-    |                          |             },                                                                            |
-    |                          |             "storageResourceIds": [],                                                     |
-    |                          |             "vnfcCpInfo": [                                                               |
-    |                          |                 {                                                                         |
-    |                          |                     "id": "59176610-fc1c-4abe-9648-87a9b8b79640",                         |
-    |                          |                     "cpdId": "workerNode_CP2",                                            |
-    |                          |                     "vnfExtCpId": null,                                                   |
-    |                          |                     "vnfLinkPortId": "977b8775-350d-4ef0-95e5-552c4c4099f3",              |
-    |                          |                     "cpProtocolInfo": [                                                   |
-    |                          |                         {                                                                 |
-    |                          |                             "layerProtocol": "IP_OVER_ETHERNET"                           |
-    |                          |                         }                                                                 |
-    |                          |                     ]                                                                     |
-    |                          |                 }                                                                         |
-    |                          |             ]                                                                             |
-    |                          |         },                                                                                |
-    |                          |         {                                                                                 |
-    |                          |             "id": "974a4b98-5d07-44d4-9e13-a8ed21805111",                                 |
-    |                          |             "vduId": "workerNode",                                                        |
-    |                          |             "computeResource": {                                                          |
-    |                          |                 "vimConnectionId": "05ef7ca5-7e32-4a6b-a03d-52f811f04496",                |
-    |                          |                 "resourceId": "63402e5a-67c9-4f5c-b03f-b21f4a88507f",                     |
-    |                          |                 "vimLevelResourceType": "OS::Nova::Server"                                |
-    |                          |             },                                                                            |
-    |                          |             "storageResourceIds": [],                                                     |
-    |                          |             "vnfcCpInfo": [                                                               |
-    |                          |                 {                                                                         |
-    |                          |                     "id": "523b1328-9704-4ac1-986f-99c9b46ee1c4",                         |
-    |                          |                     "cpdId": "workerNode_CP2",                                            |
-    |                          |                     "vnfExtCpId": null,                                                   |
-    |                          |                     "vnfLinkPortId": "eba708c4-14de-4d96-bc82-ed0abd95780b",              |
-    |                          |                     "cpProtocolInfo": [                                                   |
-    |                          |                         {                                                                 |
-    |                          |                             "layerProtocol": "IP_OVER_ETHERNET"                           |
-    |                          |                         }                                                                 |
-    |                          |                     ]                                                                     |
-    |                          |                 }                                                                         |
-    |                          |             ]                                                                             |
-    |                          |         }                                                                                 |
-    |                          |     ],                                                                                    |
-    |                          |     "vnfVirtualLinkResourceInfo": [                                                       |
-    |                          |         {                                                                                 |
-    |                          |             "id": "96d15ae5-a1d8-4867-aaee-a4372de8bc0e",                                 |
-    |                          |             "vnfVirtualLinkDescId": "b396126a-6a95-4a24-94ae-67b58f5bd9c2",               |
-    |                          |             "networkResource": {                                                          |
-    |                          |                 "vimConnectionId": null,                                                  |
-    |                          |                 "resourceId": "71a3fbd1-f31e-4c2c-b0e2-26267d64a9ee",                     |
-    |                          |                 "vimLevelResourceType": "OS::Neutron::Net"                                |
-    |                          |             },                                                                            |
-    |                          |             "vnfLinkPorts": [                                                             |
-    |                          |                 {                                                                         |
-    |                          |                     "id": "e66a44a4-965f-49dd-b168-ff4cc2485c34",                         |
-    |                          |                     "resourceHandle": {                                                   |
-    |                          |                         "vimConnectionId": "05ef7ca5-7e32-4a6b-a03d-52f811f04496",        |
-    |                          |                         "resourceId": "b5ed388b-de4e-4de8-a24a-f1b70c5cce94",             |
-    |                          |                         "vimLevelResourceType": "OS::Neutron::Port"                       |
-    |                          |                     },                                                                    |
-    |                          |                     "cpInstanceId": "9fe655ab-1d35-4d22-a6f3-9a07fa797884"                |
-    |                          |                 }                                                                         |
-    |                          |             ]                                                                             |
-    |                          |         },                                                                                |
-    |                          |         {                                                                                 |
-    |                          |             "id": "c67b6f41-fd7a-45b2-b69a-8de9623dc16b",                                 |
-    |                          |             "vnfVirtualLinkDescId": "10dfbb44-a8ff-435b-98f8-70539e71af8c",               |
-    |                          |             "networkResource": {                                                          |
-    |                          |                 "vimConnectionId": null,                                                  |
-    |                          |                 "resourceId": "71a3fbd1-f31e-4c2c-b0e2-26267d64a9ee",                     |
-    |                          |                 "vimLevelResourceType": "OS::Neutron::Net"                                |
-    |                          |             },                                                                            |
-    |                          |             "vnfLinkPorts": [                                                             |
-    |                          |                 {                                                                         |
-    |                          |                     "id": "977b8775-350d-4ef0-95e5-552c4c4099f3",                         |
-    |                          |                     "resourceHandle": {                                                   |
-    |                          |                         "vimConnectionId": "05ef7ca5-7e32-4a6b-a03d-52f811f04496",        |
-    |                          |                         "resourceId": "0002bba0-608b-4e2c-bd4d-23f1717f017c",             |
-    |                          |                         "vimLevelResourceType": "OS::Neutron::Port"                       |
-    |                          |                     },                                                                    |
-    |                          |                     "cpInstanceId": "59176610-fc1c-4abe-9648-87a9b8b79640"                |
-    |                          |                 },                                                                        |
-    |                          |                 {                                                                         |
-    |                          |                     "id": "eba708c4-14de-4d96-bc82-ed0abd95780b",                         |
-    |                          |                     "resourceHandle": {                                                   |
-    |                          |                         "vimConnectionId": "05ef7ca5-7e32-4a6b-a03d-52f811f04496",        |
-    |                          |                         "resourceId": "facc9eae-6f2d-4cfb-89c2-27841eea771c",             |
-    |                          |                         "vimLevelResourceType": "OS::Neutron::Port"                       |
-    |                          |                     },                                                                    |
-    |                          |                     "cpInstanceId": "523b1328-9704-4ac1-986f-99c9b46ee1c4"                |
-    |                          |                 }                                                                         |
-    |                          |             ]                                                                             |
-    |                          |         }                                                                                 |
-    |                          |     ],                                                                                    |
-    |                          |     "vnfcInfo": [                                                                         |
-    |                          |         {                                                                                 |
-    |                          |             "id": "1405984c-b174-4f33-8cfa-851d54ab95ce",                                 |
-    |                          |             "vduId": "masterNode",                                                        |
-    |                          |             "vnfcState": "STARTED"                                                        |
-    |                          |         },                                                                                |
-    |                          |         {                                                                                 |
-    |                          |             "id": "08b3f00e-a133-4262-8edb-03e2484ce870",                                 |
-    |                          |             "vduId": "workerNode",                                                        |
-    |                          |             "vnfcState": "STARTED"                                                        |
-    |                          |         },                                                                                |
-    |                          |         {                                                                                 |
-    |                          |             "id": "027502d6-d072-4819-a502-cb7cc688ec16",                                 |
-    |                          |             "vduId": "workerNode",                                                        |
-    |                          |             "vnfcState": "STARTED"                                                        |
-    |                          |         }                                                                                 |
-    |                          |     ],                                                                                    |
-    |                          |     "additionalParams": {                                                                 |
-    |                          |         "lcm-operation-user-data": "./UserData/k8s_cluster_user_data.py",                 |
-    |                          |         "lcm-operation-user-data-class": "KubernetesClusterUserData",                     |
-    |                          |         "k8sClusterInstallationParam": {                                                  |
-    |                          |             "vimName": "kubernetes_vim",                                                 |
-    |                          |             "proxy": {                                                                    |
-    |                          |                 "noProxy": "192.168.246.0/24,10.0.0.1",                                   |
-    |                          |                 "httpProxy": "http://user1:password1@host1:port1",                        |
-    |                          |                 "httpsProxy": "https://user2:password2@host2:port2",                      |
-    |                          |                 "k8sNodeCidr": "10.10.0.0/24"                                             |
-    |                          |             },                                                                            |
-    |                          |             "masterNode": {                                                               |
-    |                          |                 "password": "ubuntu",                                                     |
-    |                          |                 "podCidr": "192.168.3.0/16",                                              |
-    |                          |                 "username": "ubuntu",                                                     |
-    |                          |                 "aspectId": "master_instance",                                            |
-    |                          |                 "nicCpName": "masterNode_CP1",                                            |
-    |                          |                 "sshCpName": "masterNode_CP1",                                            |
-    |                          |                 "clusterCidr": "10.199.187.0/24",                                         |
-    |                          |                 "clusterCpName": "masterNode_CP1"                                         |
-    |                          |             },                                                                            |
-    |                          |             "scriptPath": "Scripts/install_k8s_cluster.sh",                               |
-    |                          |             "workerNode": {                                                               |
-    |                          |                 "password": "ubuntu",                                                     |
-    |                          |                 "username": "ubuntu",                                                     |
-    |                          |                 "aspectId": "worker_instance",                                            |
-    |                          |                 "nicCpName": "workerNode_CP2",                                            |
-    |                          |                 "sshCpName": "workerNode_CP2"                                             |
-    |                          |             }                                                                             |
-    |                          |         }                                                                                 |
-    |                          |     }                                                                                     |
-    |                          | }                                                                                         |
-    | Instantiation State      | INSTANTIATED                                                                              |
-    | Links                    | {                                                                                         |
-    |                          |     "self": {                                                                             |
-    |                          |         "href": "/vnflcm/v1/vnf_instances/3f32428d-e8ce-4d6a-9be9-4c7f3a02ac72"           |
-    |                          |     },                                                                                    |
-    |                          |     "terminate": {                                                                        |
-    |                          |         "href": "/vnflcm/v1/vnf_instances/3f32428d-e8ce-4d6a-9be9-4c7f3a02ac72/terminate" |
-    |                          |     },                                                                                    |
-    |                          |     "heal": {                                                                             |
-    |                          |         "href": "/vnflcm/v1/vnf_instances/3f32428d-e8ce-4d6a-9be9-4c7f3a02ac72/heal"      |
-    |                          |     }                                                                                     |
-    |                          | }                                                                                         |
-    | VIM Connection Info      | [                                                                                         |
-    |                          |     {                                                                                     |
-    |                          |         "id": "9ab53adf-ca70-47b2-8877-1858cfb53618",                                     |
-    |                          |         "vimId": "05ef7ca5-7e32-4a6b-a03d-52f811f04496",                                  |
-    |                          |         "vimType": "openstack",                                                           |
-    |                          |         "interfaceInfo": {},                                                              |
-    |                          |         "accessInfo": {}                                                                  |
-    |                          |     },                                                                                    |
-    |                          |     {                                                                                     |
-    |                          |         "id": "ef2c6b0c-c930-4d6c-9fe4-7c143e80ad94",                                     |
-    |                          |         "vimId": "2aeef9af-6a5b-4122-8510-21dbc71bc7cb",                                  |
-    |                          |         "vimType": "kubernetes",                                                          |
-    |                          |         "interfaceInfo": null,                                                            |
-    |                          |         "accessInfo": {                                                                   |
-    |                          |             "authUrl": "https://10.10.0.35:6443"                                          |
-    |                          |         }                                                                                 |
-    |                          |     }                                                                                     |
-    |                          | ]                                                                                         |
-    | VNF Instance Description | None                                                                                      |
-    | VNF Instance Name        | vnf-3f32428d-e8ce-4d6a-9be9-4c7f3a02ac72                                                  |
-    | VNF Product Name         | Sample VNF                                                                                |
-    | VNF Provider             | Company                                                                                   |
-    | VNF Software Version     | 1.0                                                                                       |
-    | VNFD ID                  | b1db0ce7-ebca-1fb7-95ed-4840d70a1163                                                      |
-    | VNFD Version             | 1.0                                                                                       |
-    | vnfPkgId                 |                                                                                           |
-    +--------------------------+-------------------------------------------------------------------------------------------+
+    +--------------------------+-------------------------------------------------------------------------------------------------+
+    | Field                    | Value                                                                                           |
+    +--------------------------+-------------------------------------------------------------------------------------------------+
+    | ID                       | 3f32428d-e8ce-4d6a-9be9-4c7f3a02ac72                                                            |
+    | Instantiated Vnf Info    | {                                                                                               |
+    |                          |     "flavourId": "simple",                                                                      |
+    |                          |     "vnfState": "STARTED",                                                                      |
+    |                          |     "scaleStatus": [                                                                            |
+    |                          |         {                                                                                       |
+    |                          |             "aspectId": "master_instance",                                                      |
+    |                          |             "scaleLevel": 0                                                                     |
+    |                          |         },                                                                                      |
+    |                          |         {                                                                                       |
+    |                          |             "aspectId": "worker_instance",                                                      |
+    |                          |             "scaleLevel": 0                                                                     |
+    |                          |         }                                                                                       |
+    |                          |     ],                                                                                          |
+    |                          |     "extCpInfo": [                                                                              |
+    |                          |         {                                                                                       |
+    |                          |             "id": "d6ed7fd0-c26e-4e1e-81ab-71dc8c6d8293",                                       |
+    |                          |             "cpdId": "masterNode_CP1",                                                          |
+    |                          |             "extLinkPortId": null,                                                              |
+    |                          |             "associatedVnfcCpId": "1f830544-57ef-4f93-bdb5-b59e465f58d8",                       |
+    |                          |             "cpProtocolInfo": [                                                                 |
+    |                          |                 {                                                                               |
+    |                          |                     "layerProtocol": "IP_OVER_ETHERNET"                                         |
+    |                          |                 }                                                                               |
+    |                          |             ]                                                                                   |
+    |                          |         },                                                                                      |
+    |                          |         {                                                                                       |
+    |                          |             "id": "ba0f7de5-32b3-48dd-944d-341990ede0cb",                                       |
+    |                          |             "cpdId": "workerNode_CP2",                                                          |
+    |                          |             "extLinkPortId": null,                                                              |
+    |                          |             "associatedVnfcCpId": "9244012d-ad53-4685-912b-f6413ae38493",                       |
+    |                          |             "cpProtocolInfo": [                                                                 |
+    |                          |                 {                                                                               |
+    |                          |                     "layerProtocol": "IP_OVER_ETHERNET"                                         |
+    |                          |                 }                                                                               |
+    |                          |             ]                                                                                   |
+    |                          |         }                                                                                       |
+    |                          |     ],                                                                                          |
+    |                          |     "extVirtualLinkInfo": [                                                                     |
+    |                          |         {                                                                                       |
+    |                          |             "id": "b396126a-6a95-4a24-94ae-67b58f5bd9c2",                                       |
+    |                          |             "resourceHandle": {                                                                 |
+    |                          |                 "vimConnectionId": null,                                                        |
+    |                          |                 "resourceId": "71a3fbd1-f31e-4c2c-b0e2-26267d64a9ee",                           |
+    |                          |                 "vimLevelResourceType": null                                                    |
+    |                          |             }                                                                                   |
+    |                          |         },                                                                                      |
+    |                          |         {                                                                                       |
+    |                          |             "id": "10dfbb44-a8ff-435b-98f8-70539e71af8c",                                       |
+    |                          |             "resourceHandle": {                                                                 |
+    |                          |                 "vimConnectionId": null,                                                        |
+    |                          |                 "resourceId": "71a3fbd1-f31e-4c2c-b0e2-26267d64a9ee",                           |
+    |                          |                 "vimLevelResourceType": null                                                    |
+    |                          |             }                                                                                   |
+    |                          |         }                                                                                       |
+    |                          |     ],                                                                                          |
+    |                          |     "vnfcResourceInfo": [                                                                       |
+    |                          |         {                                                                                       |
+    |                          |             "id": "1f830544-57ef-4f93-bdb5-b59e465f58d8",                                       |
+    |                          |             "vduId": "masterNode",                                                              |
+    |                          |             "computeResource": {                                                                |
+    |                          |                 "vimConnectionId": "05ef7ca5-7e32-4a6b-a03d-52f811f04496",                      |
+    |                          |                 "resourceId": "a0eccaee-ff7b-4c70-8c11-ba79c8d4deb6",                           |
+    |                          |                 "vimLevelResourceType": "OS::Nova::Server"                                      |
+    |                          |             },                                                                                  |
+    |                          |             "storageResourceIds": [],                                                           |
+    |                          |             "vnfcCpInfo": [                                                                     |
+    |                          |                 {                                                                               |
+    |                          |                     "id": "9fe655ab-1d35-4d22-a6f3-9a07fa797884",                               |
+    |                          |                     "cpdId": "masterNode_CP1",                                                  |
+    |                          |                     "vnfExtCpId": null,                                                         |
+    |                          |                     "vnfLinkPortId": "e66a44a4-965f-49dd-b168-ff4cc2485c34",                    |
+    |                          |                     "cpProtocolInfo": [                                                         |
+    |                          |                         {                                                                       |
+    |                          |                             "layerProtocol": "IP_OVER_ETHERNET"                                 |
+    |                          |                         }                                                                       |
+    |                          |                     ]                                                                           |
+    |                          |                 }                                                                               |
+    |                          |             ]                                                                                   |
+    |                          |         },                                                                                      |
+    |                          |         {                                                                                       |
+    |                          |             "id": "9244012d-ad53-4685-912b-f6413ae38493",                                       |
+    |                          |             "vduId": "workerNode",                                                              |
+    |                          |             "computeResource": {                                                                |
+    |                          |                 "vimConnectionId": "05ef7ca5-7e32-4a6b-a03d-52f811f04496",                      |
+    |                          |                 "resourceId": "5b3ff765-7a9f-447a-a06d-444e963b74c9",                           |
+    |                          |                 "vimLevelResourceType": "OS::Nova::Server"                                      |
+    |                          |             },                                                                                  |
+    |                          |             "storageResourceIds": [],                                                           |
+    |                          |             "vnfcCpInfo": [                                                                     |
+    |                          |                 {                                                                               |
+    |                          |                     "id": "59176610-fc1c-4abe-9648-87a9b8b79640",                               |
+    |                          |                     "cpdId": "workerNode_CP2",                                                  |
+    |                          |                     "vnfExtCpId": null,                                                         |
+    |                          |                     "vnfLinkPortId": "977b8775-350d-4ef0-95e5-552c4c4099f3",                    |
+    |                          |                     "cpProtocolInfo": [                                                         |
+    |                          |                         {                                                                       |
+    |                          |                             "layerProtocol": "IP_OVER_ETHERNET"                                 |
+    |                          |                         }                                                                       |
+    |                          |                     ]                                                                           |
+    |                          |                 }                                                                               |
+    |                          |             ]                                                                                   |
+    |                          |         },                                                                                      |
+    |                          |         {                                                                                       |
+    |                          |             "id": "974a4b98-5d07-44d4-9e13-a8ed21805111",                                       |
+    |                          |             "vduId": "workerNode",                                                              |
+    |                          |             "computeResource": {                                                                |
+    |                          |                 "vimConnectionId": "05ef7ca5-7e32-4a6b-a03d-52f811f04496",                      |
+    |                          |                 "resourceId": "63402e5a-67c9-4f5c-b03f-b21f4a88507f",                           |
+    |                          |                 "vimLevelResourceType": "OS::Nova::Server"                                      |
+    |                          |             },                                                                                  |
+    |                          |             "storageResourceIds": [],                                                           |
+    |                          |             "vnfcCpInfo": [                                                                     |
+    |                          |                 {                                                                               |
+    |                          |                     "id": "523b1328-9704-4ac1-986f-99c9b46ee1c4",                               |
+    |                          |                     "cpdId": "workerNode_CP2",                                                  |
+    |                          |                     "vnfExtCpId": null,                                                         |
+    |                          |                     "vnfLinkPortId": "eba708c4-14de-4d96-bc82-ed0abd95780b",                    |
+    |                          |                     "cpProtocolInfo": [                                                         |
+    |                          |                         {                                                                       |
+    |                          |                             "layerProtocol": "IP_OVER_ETHERNET"                                 |
+    |                          |                         }                                                                       |
+    |                          |                     ]                                                                           |
+    |                          |                 }                                                                               |
+    |                          |             ]                                                                                   |
+    |                          |         }                                                                                       |
+    |                          |     ],                                                                                          |
+    |                          |     "vnfVirtualLinkResourceInfo": [                                                             |
+    |                          |         {                                                                                       |
+    |                          |             "id": "96d15ae5-a1d8-4867-aaee-a4372de8bc0e",                                       |
+    |                          |             "vnfVirtualLinkDescId": "b396126a-6a95-4a24-94ae-67b58f5bd9c2",                     |
+    |                          |             "networkResource": {                                                                |
+    |                          |                 "vimConnectionId": null,                                                        |
+    |                          |                 "resourceId": "71a3fbd1-f31e-4c2c-b0e2-26267d64a9ee",                           |
+    |                          |                 "vimLevelResourceType": "OS::Neutron::Net"                                      |
+    |                          |             },                                                                                  |
+    |                          |             "vnfLinkPorts": [                                                                   |
+    |                          |                 {                                                                               |
+    |                          |                     "id": "e66a44a4-965f-49dd-b168-ff4cc2485c34",                               |
+    |                          |                     "resourceHandle": {                                                         |
+    |                          |                         "vimConnectionId": "05ef7ca5-7e32-4a6b-a03d-52f811f04496",              |
+    |                          |                         "resourceId": "b5ed388b-de4e-4de8-a24a-f1b70c5cce94",                   |
+    |                          |                         "vimLevelResourceType": "OS::Neutron::Port"                             |
+    |                          |                     },                                                                          |
+    |                          |                     "cpInstanceId": "9fe655ab-1d35-4d22-a6f3-9a07fa797884"                      |
+    |                          |                 }                                                                               |
+    |                          |             ]                                                                                   |
+    |                          |         },                                                                                      |
+    |                          |         {                                                                                       |
+    |                          |             "id": "c67b6f41-fd7a-45b2-b69a-8de9623dc16b",                                       |
+    |                          |             "vnfVirtualLinkDescId": "10dfbb44-a8ff-435b-98f8-70539e71af8c",                     |
+    |                          |             "networkResource": {                                                                |
+    |                          |                 "vimConnectionId": null,                                                        |
+    |                          |                 "resourceId": "71a3fbd1-f31e-4c2c-b0e2-26267d64a9ee",                           |
+    |                          |                 "vimLevelResourceType": "OS::Neutron::Net"                                      |
+    |                          |             },                                                                                  |
+    |                          |             "vnfLinkPorts": [                                                                   |
+    |                          |                 {                                                                               |
+    |                          |                     "id": "977b8775-350d-4ef0-95e5-552c4c4099f3",                               |
+    |                          |                     "resourceHandle": {                                                         |
+    |                          |                         "vimConnectionId": "05ef7ca5-7e32-4a6b-a03d-52f811f04496",              |
+    |                          |                         "resourceId": "0002bba0-608b-4e2c-bd4d-23f1717f017c",                   |
+    |                          |                         "vimLevelResourceType": "OS::Neutron::Port"                             |
+    |                          |                     },                                                                          |
+    |                          |                     "cpInstanceId": "59176610-fc1c-4abe-9648-87a9b8b79640"                      |
+    |                          |                 },                                                                              |
+    |                          |                 {                                                                               |
+    |                          |                     "id": "eba708c4-14de-4d96-bc82-ed0abd95780b",                               |
+    |                          |                     "resourceHandle": {                                                         |
+    |                          |                         "vimConnectionId": "05ef7ca5-7e32-4a6b-a03d-52f811f04496",              |
+    |                          |                         "resourceId": "facc9eae-6f2d-4cfb-89c2-27841eea771c",                   |
+    |                          |                         "vimLevelResourceType": "OS::Neutron::Port"                             |
+    |                          |                     },                                                                          |
+    |                          |                     "cpInstanceId": "523b1328-9704-4ac1-986f-99c9b46ee1c4"                      |
+    |                          |                 }                                                                               |
+    |                          |             ]                                                                                   |
+    |                          |         }                                                                                       |
+    |                          |     ],                                                                                          |
+    |                          |     "vnfcInfo": [                                                                               |
+    |                          |         {                                                                                       |
+    |                          |             "id": "1405984c-b174-4f33-8cfa-851d54ab95ce",                                       |
+    |                          |             "vduId": "masterNode",                                                              |
+    |                          |             "vnfcState": "STARTED"                                                              |
+    |                          |         },                                                                                      |
+    |                          |         {                                                                                       |
+    |                          |             "id": "08b3f00e-a133-4262-8edb-03e2484ce870",                                       |
+    |                          |             "vduId": "workerNode",                                                              |
+    |                          |             "vnfcState": "STARTED"                                                              |
+    |                          |         },                                                                                      |
+    |                          |         {                                                                                       |
+    |                          |             "id": "027502d6-d072-4819-a502-cb7cc688ec16",                                       |
+    |                          |             "vduId": "workerNode",                                                              |
+    |                          |             "vnfcState": "STARTED"                                                              |
+    |                          |         }                                                                                       |
+    |                          |     ],                                                                                          |
+    |                          |     "additionalParams": {                                                                       |
+    |                          |         "lcm-operation-user-data": "./UserData/k8s_cluster_user_data.py",                       |
+    |                          |         "lcm-operation-user-data-class": "KubernetesClusterUserData",                           |
+    |                          |         "k8sClusterInstallationParam": {                                                        |
+    |                          |             "vimName": "kubernetes_vim",                                                        |
+    |                          |             "proxy": {                                                                          |
+    |                          |                 "noProxy": "192.168.246.0/24,10.0.0.1",                                         |
+    |                          |                 "httpProxy": "http://user1:password1@host1:port1",                              |
+    |                          |                 "httpsProxy": "https://user2:password2@host2:port2",                            |
+    |                          |                 "k8sNodeCidr": "10.10.0.0/24"                                                   |
+    |                          |             },                                                                                  |
+    |                          |             "masterNode": {                                                                     |
+    |                          |                 "password": "ubuntu",                                                           |
+    |                          |                 "podCidr": "192.168.3.0/16",                                                    |
+    |                          |                 "username": "ubuntu",                                                           |
+    |                          |                 "aspectId": "master_instance",                                                  |
+    |                          |                 "nicCpName": "masterNode_CP1",                                                  |
+    |                          |                 "sshCpName": "masterNode_CP1",                                                  |
+    |                          |                 "clusterCidr": "10.199.187.0/24",                                               |
+    |                          |                 "clusterCpName": "masterNode_CP1"                                               |
+    |                          |             },                                                                                  |
+    |                          |             "scriptPath": "Scripts/install_k8s_cluster.sh",                                     |
+    |                          |             "workerNode": {                                                                     |
+    |                          |                 "password": "ubuntu",                                                           |
+    |                          |                 "username": "ubuntu",                                                           |
+    |                          |                 "aspectId": "worker_instance",                                                  |
+    |                          |                 "nicCpName": "workerNode_CP2",                                                  |
+    |                          |                 "sshCpName": "workerNode_CP2"                                                   |
+    |                          |             }                                                                                   |
+    |                          |         }                                                                                       |
+    |                          |     }                                                                                           |
+    |                          | }                                                                                               |
+    | Instantiation State      | INSTANTIATED                                                                                    |
+    | Links                    | {                                                                                               |
+    |                          |     "self": {                                                                                   |
+    |                          |         "href": "/vnflcm/v1/vnf_instances/3f32428d-e8ce-4d6a-9be9-4c7f3a02ac72"                 |
+    |                          |     },                                                                                          |
+    |                          |     "terminate": {                                                                              |
+    |                          |         "href": "/vnflcm/v1/vnf_instances/3f32428d-e8ce-4d6a-9be9-4c7f3a02ac72/terminate"       |
+    |                          |     },                                                                                          |
+    |                          |     "scale": {                                                                                  |
+    |                          |         "href": "/vnflcm/v1/vnf_instances/3f32428d-e8ce-4d6a-9be9-4c7f3a02ac72/scale"           |
+    |                          |     },                                                                                          |
+    |                          |     "heal": {                                                                                   |
+    |                          |         "href": "/vnflcm/v1/vnf_instances/3f32428d-e8ce-4d6a-9be9-4c7f3a02ac72/heal"            |
+    |                          |     },                                                                                          |
+    |                          |     "changeExtConn": {                                                                          |
+    |                          |         "href": "/vnflcm/v1/vnf_instances/3f32428d-e8ce-4d6a-9be9-4c7f3a02ac72/change_ext_conn" |
+    |                          |     }                                                                                           |
+    |                          | }                                                                                               |
+    | VIM Connection Info      | [                                                                                               |
+    |                          |     {                                                                                           |
+    |                          |         "id": "9ab53adf-ca70-47b2-8877-1858cfb53618",                                           |
+    |                          |         "vimId": "05ef7ca5-7e32-4a6b-a03d-52f811f04496",                                        |
+    |                          |         "vimType": "openstack",                                                                 |
+    |                          |         "interfaceInfo": {},                                                                    |
+    |                          |         "accessInfo": {}                                                                        |
+    |                          |     },                                                                                          |
+    |                          |     {                                                                                           |
+    |                          |         "id": "ef2c6b0c-c930-4d6c-9fe4-7c143e80ad94",                                           |
+    |                          |         "vimId": "2aeef9af-6a5b-4122-8510-21dbc71bc7cb",                                        |
+    |                          |         "vimType": "kubernetes",                                                                |
+    |                          |         "interfaceInfo": null,                                                                  |
+    |                          |         "accessInfo": {                                                                         |
+    |                          |             "authUrl": "https://10.10.0.35:6443"                                                |
+    |                          |         }                                                                                       |
+    |                          |     }                                                                                           |
+    |                          | ]                                                                                               |
+    | VNF Instance Description | None                                                                                            |
+    | VNF Instance Name        | vnf-3f32428d-e8ce-4d6a-9be9-4c7f3a02ac72                                                        |
+    | VNF Product Name         | Sample VNF                                                                                      |
+    | VNF Provider             | Company                                                                                         |
+    | VNF Software Version     | 1.0                                                                                             |
+    | VNFD ID                  | b1db0ce7-ebca-1fb7-95ed-4840d70a1163                                                            |
+    | VNFD Version             | 1.0                                                                                             |
+    | vnfPkgId                 |                                                                                                 |
+    +--------------------------+-------------------------------------------------------------------------------------------------+
 
 2. Multi-master Nodes
 ^^^^^^^^^^^^^^^^^^^^^
@@ -1438,349 +1444,355 @@ So you just execute the following cli command on OpenStack Controller Node.
     $ openstack vnflcm instantiate c5215213-af4b-4080-95ab-377920474e1a ./complex_kubernetes_param_file.json
     Instantiate request for VNF Instance c5215213-af4b-4080-95ab-377920474e1a has been accepted.
     $ openstack vnflcm show c5215213-af4b-4080-95ab-377920474e1a
-    +--------------------------+-------------------------------------------------------------------------------------------+
-    | Field                    | Value                                                                                     |
-    +--------------------------+-------------------------------------------------------------------------------------------+
-    | ID                       | c5215213-af4b-4080-95ab-377920474e1a                                                      |
-    | Instantiated Vnf Info    | {                                                                                         |
-    |                          |     "flavourId": "complex",                                                               |
-    |                          |     "vnfState": "STARTED",                                                                |
-    |                          |     "scaleStatus": [                                                                      |
-    |                          |         {                                                                                 |
-    |                          |             "aspectId": "master_instance",                                                |
-    |                          |             "scaleLevel": 0                                                               |
-    |                          |         },                                                                                |
-    |                          |         {                                                                                 |
-    |                          |             "aspectId": "worker_instance",                                                |
-    |                          |             "scaleLevel": 0                                                               |
-    |                          |         }                                                                                 |
-    |                          |     ],                                                                                    |
-    |                          |     "extCpInfo": [                                                                        |
-    |                          |         {                                                                                 |
-    |                          |             "id": "a36f667a-f0f8-4ac8-a120-b19569d7bd72",                                 |
-    |                          |             "cpdId": "masterNode_CP1",                                                    |
-    |                          |             "extLinkPortId": null,                                                        |
-    |                          |             "associatedVnfcCpId": "bbce9656-f051-434f-8c4a-660ac23e91f6",                 |
-    |                          |             "cpProtocolInfo": [                                                           |
-    |                          |                 {                                                                         |
-    |                          |                     "layerProtocol": "IP_OVER_ETHERNET"                                   |
-    |                          |                 }                                                                         |
-    |                          |             ]                                                                             |
-    |                          |         },                                                                                |
-    |                          |         {                                                                                 |
-    |                          |             "id": "67f38bd4-ae0b-4257-82eb-09a3c2dfd470",                                 |
-    |                          |             "cpdId": "workerNode_CP2",                                                    |
-    |                          |             "extLinkPortId": null,                                                        |
-    |                          |             "associatedVnfcCpId": "b4af0652-74b8-47bd-bcf6-94769bdbf756",                 |
-    |                          |             "cpProtocolInfo": [                                                           |
-    |                          |                 {                                                                         |
-    |                          |                     "layerProtocol": "IP_OVER_ETHERNET"                                   |
-    |                          |                 }                                                                         |
-    |                          |             ]                                                                             |
-    |                          |         }                                                                                 |
-    |                          |     ],                                                                                    |
-    |                          |     "extVirtualLinkInfo": [                                                               |
-    |                          |         {                                                                                 |
-    |                          |             "id": "24e3e9ae-0df4-49d6-9ee4-e21dfe359baf",                                 |
-    |                          |             "resourceHandle": {                                                           |
-    |                          |                 "vimConnectionId": null,                                                  |
-    |                          |                 "resourceId": "71a3fbd1-f31e-4c2c-b0e2-26267d64a9ee",                     |
-    |                          |                 "vimLevelResourceType": null                                              |
-    |                          |             }                                                                             |
-    |                          |         },                                                                                |
-    |                          |         {                                                                                 |
-    |                          |             "id": "2283b96d-64f8-4403-9b21-643aa1058e86",                                 |
-    |                          |             "resourceHandle": {                                                           |
-    |                          |                 "vimConnectionId": null,                                                  |
-    |                          |                 "resourceId": "71a3fbd1-f31e-4c2c-b0e2-26267d64a9ee",                     |
-    |                          |                 "vimLevelResourceType": null                                              |
-    |                          |             }                                                                             |
-    |                          |         }                                                                                 |
-    |                          |     ],                                                                                    |
-    |                          |     "vnfcResourceInfo": [                                                                 |
-    |                          |         {                                                                                 |
-    |                          |             "id": "bbce9656-f051-434f-8c4a-660ac23e91f6",                                 |
-    |                          |             "vduId": "masterNode",                                                        |
-    |                          |             "computeResource": {                                                          |
-    |                          |                 "vimConnectionId": "05ef7ca5-7e32-4a6b-a03d-52f811f04496",                |
-    |                          |                 "resourceId": "a0eccaee-ff7b-4c70-8c11-ba79c8d4deb6",                     |
-    |                          |                 "vimLevelResourceType": "OS::Nova::Server"                                |
-    |                          |             },                                                                            |
-    |                          |             "storageResourceIds": [],                                                     |
-    |                          |             "vnfcCpInfo": [                                                               |
-    |                          |                 {                                                                         |
-    |                          |                     "id": "9fe655ab-1d35-4d22-a6f3-9a07fa797884",                         |
-    |                          |                     "cpdId": "masterNode_CP1",                                            |
-    |                          |                     "vnfExtCpId": null,                                                   |
-    |                          |                     "vnfLinkPortId": "e66a44a4-965f-49dd-b168-ff4cc2485c34",              |
-    |                          |                     "cpProtocolInfo": [                                                   |
-    |                          |                         {                                                                 |
-    |                          |                             "layerProtocol": "IP_OVER_ETHERNET"                           |
-    |                          |                         }                                                                 |
-    |                          |                     ]                                                                     |
-    |                          |                 }                                                                         |
-    |                          |             ]                                                                             |
-    |                          |         },                                                                                |
-    |                          |         {                                                                                 |
-    |                          |             "id": "8bee8301-eb14-4c5c-bab8-a1b244d4d954",                                 |
-    |                          |             "vduId": "masterNode",                                                        |
-    |                          |             "computeResource": {                                                          |
-    |                          |                 "vimConnectionId": "05ef7ca5-7e32-4a6b-a03d-52f811f04496",                |
-    |                          |                 "resourceId": "4a40d65c-3440-4c44-858a-72a66324a11a",                     |
-    |                          |                 "vimLevelResourceType": "OS::Nova::Server"                                |
-    |                          |             },                                                                            |
-    |                          |             "storageResourceIds": [],                                                     |
-    |                          |             "vnfcCpInfo": [                                                               |
-    |                          |                 {                                                                         |
-    |                          |                     "id": "65c9f35a-08a2-4875-bd85-af419f26b19d",                         |
-    |                          |                     "cpdId": "masterNode_CP1",                                            |
-    |                          |                     "vnfExtCpId": null,                                                   |
-    |                          |                     "vnfLinkPortId": "26fa4b33-ad07-4982-ad97-18b66abba541",              |
-    |                          |                     "cpProtocolInfo": [                                                   |
-    |                          |                         {                                                                 |
-    |                          |                             "layerProtocol": "IP_OVER_ETHERNET"                           |
-    |                          |                         }                                                                 |
-    |                          |                     ]                                                                     |
-    |                          |                 }                                                                         |
-    |                          |             ]                                                                             |
-    |                          |         },                                                                                |
-    |                          |         {                                                                                 |
-    |                          |             "id": "28ac0cb9-3bc1-4bc2-8be2-cf60f51b7b7a",                                 |
-    |                          |             "vduId": "masterNode",                                                        |
-    |                          |             "computeResource": {                                                          |
-    |                          |                 "vimConnectionId": "05ef7ca5-7e32-4a6b-a03d-52f811f04496",                |
-    |                          |                 "resourceId": "12708197-9724-41b8-b48c-9eb6862331dc",                     |
-    |                          |                 "vimLevelResourceType": "OS::Nova::Server"                                |
-    |                          |             },                                                                            |
-    |                          |             "storageResourceIds": [],                                                     |
-    |                          |             "vnfcCpInfo": [                                                               |
-    |                          |                 {                                                                         |
-    |                          |                     "id": "d51f3b54-a9ed-46be-8ffe-64b5d07d1a7b",                         |
-    |                          |                     "cpdId": "masterNode_CP1",                                            |
-    |                          |                     "vnfExtCpId": null,                                                   |
-    |                          |                     "vnfLinkPortId": "b71dc885-8e3e-4ccd-ac6f-feff332fd395",              |
-    |                          |                     "cpProtocolInfo": [                                                   |
-    |                          |                         {                                                                 |
-    |                          |                             "layerProtocol": "IP_OVER_ETHERNET"                           |
-    |                          |                         }                                                                 |
-    |                          |                     ]                                                                     |
-    |                          |                 }                                                                         |
-    |                          |             ]                                                                             |
-    |                          |         },                                                                                |
-    |                          |         {                                                                                 |
-    |                          |             "id": "b4af0652-74b8-47bd-bcf6-94769bdbf756",                                 |
-    |                          |             "vduId": "workerNode",                                                        |
-    |                          |             "computeResource": {                                                          |
-    |                          |                 "vimConnectionId": "05ef7ca5-7e32-4a6b-a03d-52f811f04496",                |
-    |                          |                 "resourceId": "5b3ff765-7a9f-447a-a06d-444e963b74c9",                     |
-    |                          |                 "vimLevelResourceType": "OS::Nova::Server"                                |
-    |                          |             },                                                                            |
-    |                          |             "storageResourceIds": [],                                                     |
-    |                          |             "vnfcCpInfo": [                                                               |
-    |                          |                 {                                                                         |
-    |                          |                     "id": "59176610-fc1c-4abe-9648-87a9b8b79640",                         |
-    |                          |                     "cpdId": "workerNode_CP2",                                            |
-    |                          |                     "vnfExtCpId": null,                                                   |
-    |                          |                     "vnfLinkPortId": "977b8775-350d-4ef0-95e5-552c4c4099f3",              |
-    |                          |                     "cpProtocolInfo": [                                                   |
-    |                          |                         {                                                                 |
-    |                          |                             "layerProtocol": "IP_OVER_ETHERNET"                           |
-    |                          |                         }                                                                 |
-    |                          |                     ]                                                                     |
-    |                          |                 }                                                                         |
-    |                          |             ]                                                                             |
-    |                          |         },                                                                                |
-    |                          |         {                                                                                 |
-    |                          |             "id": "974a4b98-5d07-44d4-9e13-a8ed21805111",                                 |
-    |                          |             "vduId": "workerNode",                                                        |
-    |                          |             "computeResource": {                                                          |
-    |                          |                 "vimConnectionId": "05ef7ca5-7e32-4a6b-a03d-52f811f04496",                |
-    |                          |                 "resourceId": "63402e5a-67c9-4f5c-b03f-b21f4a88507f",                     |
-    |                          |                 "vimLevelResourceType": "OS::Nova::Server"                                |
-    |                          |             },                                                                            |
-    |                          |             "storageResourceIds": [],                                                     |
-    |                          |             "vnfcCpInfo": [                                                               |
-    |                          |                 {                                                                         |
-    |                          |                     "id": "523b1328-9704-4ac1-986f-99c9b46ee1c4",                         |
-    |                          |                     "cpdId": "workerNode_CP2",                                            |
-    |                          |                     "vnfExtCpId": null,                                                   |
-    |                          |                     "vnfLinkPortId": "eba708c4-14de-4d96-bc82-ed0abd95780b",              |
-    |                          |                     "cpProtocolInfo": [                                                   |
-    |                          |                         {                                                                 |
-    |                          |                             "layerProtocol": "IP_OVER_ETHERNET"                           |
-    |                          |                         }                                                                 |
-    |                          |                     ]                                                                     |
-    |                          |                 }                                                                         |
-    |                          |             ]                                                                             |
-    |                          |         }                                                                                 |
-    |                          |     ],                                                                                    |
-    |                          |     "vnfVirtualLinkResourceInfo": [                                                       |
-    |                          |         {                                                                                 |
-    |                          |             "id": "96d15ae5-a1d8-4867-aaee-a4372de8bc0e",                                 |
-    |                          |             "vnfVirtualLinkDescId": "24e3e9ae-0df4-49d6-9ee4-e21dfe359baf",               |
-    |                          |             "networkResource": {                                                          |
-    |                          |                 "vimConnectionId": null,                                                  |
-    |                          |                 "resourceId": "71a3fbd1-f31e-4c2c-b0e2-26267d64a9ee",                     |
-    |                          |                 "vimLevelResourceType": "OS::Neutron::Net"                                |
-    |                          |             },                                                                            |
-    |                          |             "vnfLinkPorts": [                                                             |
-    |                          |                 {                                                                         |
-    |                          |                     "id": "e66a44a4-965f-49dd-b168-ff4cc2485c34",                         |
-    |                          |                     "resourceHandle": {                                                   |
-    |                          |                         "vimConnectionId": "05ef7ca5-7e32-4a6b-a03d-52f811f04496",        |
-    |                          |                         "resourceId": "b5ed388b-de4e-4de8-a24a-f1b70c5cce94",             |
-    |                          |                         "vimLevelResourceType": "OS::Neutron::Port"                       |
-    |                          |                     },                                                                    |
-    |                          |                     "cpInstanceId": "9fe655ab-1d35-4d22-a6f3-9a07fa797884"                |
-    |                          |                 },                                                                        |
-    |                          |                 {                                                                         |
-    |                          |                     "id": "26fa4b33-ad07-4982-ad97-18b66abba541",                         |
-    |                          |                     "resourceHandle": {                                                   |
-    |                          |                         "vimConnectionId": "05ef7ca5-7e32-4a6b-a03d-52f811f04496",        |
-    |                          |                         "resourceId": "dfab524f-dec9-4247-973c-a0e22475f950",             |
-    |                          |                         "vimLevelResourceType": "OS::Neutron::Port"                       |
-    |                          |                     },                                                                    |
-    |                          |                     "cpInstanceId": "65c9f35a-08a2-4875-bd85-af419f26b19d"                |
-    |                          |                 },                                                                        |
-    |                          |                 {                                                                         |
-    |                          |                     "id": "b71dc885-8e3e-4ccd-ac6f-feff332fd395",                         |
-    |                          |                     "resourceHandle": {                                                   |
-    |                          |                         "vimConnectionId": "05ef7ca5-7e32-4a6b-a03d-52f811f04496",        |
-    |                          |                         "resourceId": "45733936-0a9e-4eaa-a71f-3a77cb034581",             |
-    |                          |                         "vimLevelResourceType": "OS::Neutron::Port"                       |
-    |                          |                     },                                                                    |
-    |                          |                     "cpInstanceId": "d51f3b54-a9ed-46be-8ffe-64b5d07d1a7b"                |
-    |                          |                 }                                                                         |
-    |                          |             ]                                                                             |
-    |                          |         },                                                                                |
-    |                          |         {                                                                                 |
-    |                          |             "id": "c67b6f41-fd7a-45b2-b69a-8de9623dc16b",                                 |
-    |                          |             "vnfVirtualLinkDescId": "2283b96d-64f8-4403-9b21-643aa1058e86",               |
-    |                          |             "networkResource": {                                                          |
-    |                          |                 "vimConnectionId": null,                                                  |
-    |                          |                 "resourceId": "71a3fbd1-f31e-4c2c-b0e2-26267d64a9ee",                     |
-    |                          |                 "vimLevelResourceType": "OS::Neutron::Net"                                |
-    |                          |             },                                                                            |
-    |                          |             "vnfLinkPorts": [                                                             |
-    |                          |                 {                                                                         |
-    |                          |                     "id": "977b8775-350d-4ef0-95e5-552c4c4099f3",                         |
-    |                          |                     "resourceHandle": {                                                   |
-    |                          |                         "vimConnectionId": "05ef7ca5-7e32-4a6b-a03d-52f811f04496",        |
-    |                          |                         "resourceId": "0002bba0-608b-4e2c-bd4d-23f1717f017c",             |
-    |                          |                         "vimLevelResourceType": "OS::Neutron::Port"                       |
-    |                          |                     },                                                                    |
-    |                          |                     "cpInstanceId": "59176610-fc1c-4abe-9648-87a9b8b79640"                |
-    |                          |                 },                                                                        |
-    |                          |                 {                                                                         |
-    |                          |                     "id": "eba708c4-14de-4d96-bc82-ed0abd95780b",                         |
-    |                          |                     "resourceHandle": {                                                   |
-    |                          |                         "vimConnectionId": "05ef7ca5-7e32-4a6b-a03d-52f811f04496",        |
-    |                          |                         "resourceId": "facc9eae-6f2d-4cfb-89c2-27841eea771c",             |
-    |                          |                         "vimLevelResourceType": "OS::Neutron::Port"                       |
-    |                          |                     },                                                                    |
-    |                          |                     "cpInstanceId": "523b1328-9704-4ac1-986f-99c9b46ee1c4"                |
-    |                          |                 }                                                                         |
-    |                          |             ]                                                                             |
-    |                          |         }                                                                                 |
-    |                          |     ],                                                                                    |
-    |                          |     "vnfcInfo": [                                                                         |
-    |                          |         {                                                                                 |
-    |                          |             "id": "3ca607b9-f270-4077-8af8-d5d244f8893b",                                 |
-    |                          |             "vduId": "masterNode",                                                        |
-    |                          |             "vnfcState": "STARTED"                                                        |
-    |                          |         },                                                                                |
-    |                          |         {                                                                                 |
-    |                          |             "id": "c2b19ef1-f748-4175-9f3a-6792a9ee7a62",                                 |
-    |                          |             "vduId": "masterNode",                                                        |
-    |                          |             "vnfcState": "STARTED"                                                        |
-    |                          |         },                                                                                |
-    |                          |         {                                                                                 |
-    |                          |             "id": "59f5fd29-d20f-426f-a1a6-526757205cb4",                                 |
-    |                          |             "vduId": "masterNode",                                                        |
-    |                          |             "vnfcState": "STARTED"                                                        |
-    |                          |         },                                                                                |
-    |                          |         {                                                                                 |
-    |                          |             "id": "08b3f00e-a133-4262-8edb-03e2484ce870",                                 |
-    |                          |             "vduId": "workerNode",                                                        |
-    |                          |             "vnfcState": "STARTED"                                                        |
-    |                          |         },                                                                                |
-    |                          |         {                                                                                 |
-    |                          |             "id": "027502d6-d072-4819-a502-cb7cc688ec16",                                 |
-    |                          |             "vduId": "workerNode",                                                        |
-    |                          |             "vnfcState": "STARTED"                                                        |
-    |                          |         }                                                                                 |
-    |                          |     ],                                                                                    |
-    |                          |     "additionalParams": {                                                                 |
-    |                          |         "lcm-operation-user-data": "./UserData/k8s_cluster_user_data.py",                 |
-    |                          |         "lcm-operation-user-data-class": "KubernetesClusterUserData",                     |
-    |                          |         "k8sClusterInstallationParam": {                                                  |
-    |                          |             "vimName": "kubernetes_vim_complex",                                          |
-    |                          |             "proxy": {                                                                    |
-    |                          |                 "noProxy": "192.168.246.0/24,10.0.0.1",                                   |
-    |                          |                 "httpProxy": "http://user1:password1@host1:port1",                        |
-    |                          |                 "httpsProxy": "https://user2:password2@host2:port2",                      |
-    |                          |                 "k8sNodeCidr": "10.10.0.0/24"                                             |
-    |                          |             },                                                                            |
-    |                          |             "masterNode": {                                                               |
-    |                          |                 "password": "ubuntu",                                                     |
-    |                          |                 "podCidr": "192.168.3.0/16",                                              |
-    |                          |                 "username": "ubuntu",                                                     |
-    |                          |                 "aspectId": "master_instance",                                            |
-    |                          |                 "nicCpName": "masterNode_CP1",                                            |
-    |                          |                 "sshCpName": "masterNode_CP1",                                            |
-    |                          |                 "clusterCidr": "10.199.187.0/24",                                         |
-    |                          |                 "clusterCpName": "vip_CP"                                                 |
-    |                          |             },                                                                            |
-    |                          |             "scriptPath": "Scripts/install_k8s_cluster.sh",                               |
-    |                          |             "workerNode": {                                                               |
-    |                          |                 "password": "ubuntu",                                                     |
-    |                          |                 "username": "ubuntu",                                                     |
-    |                          |                 "aspectId": "worker_instance",                                            |
-    |                          |                 "nicCpName": "workerNode_CP2",                                            |
-    |                          |                 "sshCpName": "workerNode_CP2"                                             |
-    |                          |             }                                                                             |
-    |                          |         }                                                                                 |
-    |                          |     }                                                                                     |
-    |                          | }                                                                                         |
-    | Instantiation State      | INSTANTIATED                                                                              |
-    | Links                    | {                                                                                         |
-    |                          |     "self": {                                                                             |
-    |                          |         "href": "/vnflcm/v1/vnf_instances/c5215213-af4b-4080-95ab-377920474e1a"           |
-    |                          |     },                                                                                    |
-    |                          |     "terminate": {                                                                        |
-    |                          |         "href": "/vnflcm/v1/vnf_instances/c5215213-af4b-4080-95ab-377920474e1a/terminate" |
-    |                          |     },                                                                                    |
-    |                          |     "heal": {                                                                             |
-    |                          |         "href": "/vnflcm/v1/vnf_instances/c5215213-af4b-4080-95ab-377920474e1a/heal"      |
-    |                          |     }                                                                                     |
-    |                          | }                                                                                         |
-    | VIM Connection Info      | [                                                                                         |
-    |                          |     {                                                                                     |
-    |                          |         "id": "9ab53adf-ca70-47b2-8877-1858cfb53618",                                     |
-    |                          |         "vimId": "05ef7ca5-7e32-4a6b-a03d-52f811f04496",                                  |
-    |                          |         "vimType": "openstack",                                                           |
-    |                          |         "interfaceInfo": {},                                                              |
-    |                          |         "accessInfo": {}                                                                  |
-    |                          |     },                                                                                    |
-    |                          |     {                                                                                     |
-    |                          |         "id": "2e56da35-f343-4f9e-8f04-7722f8edbe7a",                                     |
-    |                          |         "vimId": "3e04bb8e-2dbd-4c32-9575-d2937f3aa931",                                  |
-    |                          |         "vimType": "kubernetes",                                                          |
-    |                          |         "interfaceInfo": null,                                                            |
-    |                          |         "accessInfo": {                                                                   |
-    |                          |             "authUrl": "https://10.10.0.80:16443"                                         |
-    |                          |         }                                                                                 |
-    |                          |     }                                                                                     |
-    |                          | ]                                                                                         |
-    | VNF Instance Description | None                                                                                      |
-    | VNF Instance Name        | vnf-c5215213-af4b-4080-95ab-377920474e1a                                                  |
-    | VNF Product Name         | Sample VNF                                                                                |
-    | VNF Provider             | Company                                                                                   |
-    | VNF Software Version     | 1.0                                                                                       |
-    | VNFD ID                  | b1db0ce7-ebca-1fb7-95ed-4840d70a1163                                                      |
-    | VNFD Version             | 1.0                                                                                       |
-    | vnfPkgId                 |                                                                                           |
-    +--------------------------+-------------------------------------------------------------------------------------------+
+    +--------------------------+-------------------------------------------------------------------------------------------------+
+    | Field                    | Value                                                                                           |
+    +--------------------------+-------------------------------------------------------------------------------------------------+
+    | ID                       | c5215213-af4b-4080-95ab-377920474e1a                                                            |
+    | Instantiated Vnf Info    | {                                                                                               |
+    |                          |     "flavourId": "complex",                                                                     |
+    |                          |     "vnfState": "STARTED",                                                                      |
+    |                          |     "scaleStatus": [                                                                            |
+    |                          |         {                                                                                       |
+    |                          |             "aspectId": "master_instance",                                                      |
+    |                          |             "scaleLevel": 0                                                                     |
+    |                          |         },                                                                                      |
+    |                          |         {                                                                                       |
+    |                          |             "aspectId": "worker_instance",                                                      |
+    |                          |             "scaleLevel": 0                                                                     |
+    |                          |         }                                                                                       |
+    |                          |     ],                                                                                          |
+    |                          |     "extCpInfo": [                                                                              |
+    |                          |         {                                                                                       |
+    |                          |             "id": "a36f667a-f0f8-4ac8-a120-b19569d7bd72",                                       |
+    |                          |             "cpdId": "masterNode_CP1",                                                          |
+    |                          |             "extLinkPortId": null,                                                              |
+    |                          |             "associatedVnfcCpId": "bbce9656-f051-434f-8c4a-660ac23e91f6",                       |
+    |                          |             "cpProtocolInfo": [                                                                 |
+    |                          |                 {                                                                               |
+    |                          |                     "layerProtocol": "IP_OVER_ETHERNET"                                         |
+    |                          |                 }                                                                               |
+    |                          |             ]                                                                                   |
+    |                          |         },                                                                                      |
+    |                          |         {                                                                                       |
+    |                          |             "id": "67f38bd4-ae0b-4257-82eb-09a3c2dfd470",                                       |
+    |                          |             "cpdId": "workerNode_CP2",                                                          |
+    |                          |             "extLinkPortId": null,                                                              |
+    |                          |             "associatedVnfcCpId": "b4af0652-74b8-47bd-bcf6-94769bdbf756",                       |
+    |                          |             "cpProtocolInfo": [                                                                 |
+    |                          |                 {                                                                               |
+    |                          |                     "layerProtocol": "IP_OVER_ETHERNET"                                         |
+    |                          |                 }                                                                               |
+    |                          |             ]                                                                                   |
+    |                          |         }                                                                                       |
+    |                          |     ],                                                                                          |
+    |                          |     "extVirtualLinkInfo": [                                                                     |
+    |                          |         {                                                                                       |
+    |                          |             "id": "24e3e9ae-0df4-49d6-9ee4-e21dfe359baf",                                       |
+    |                          |             "resourceHandle": {                                                                 |
+    |                          |                 "vimConnectionId": null,                                                        |
+    |                          |                 "resourceId": "71a3fbd1-f31e-4c2c-b0e2-26267d64a9ee",                           |
+    |                          |                 "vimLevelResourceType": null                                                    |
+    |                          |             }                                                                                   |
+    |                          |         },                                                                                      |
+    |                          |         {                                                                                       |
+    |                          |             "id": "2283b96d-64f8-4403-9b21-643aa1058e86",                                       |
+    |                          |             "resourceHandle": {                                                                 |
+    |                          |                 "vimConnectionId": null,                                                        |
+    |                          |                 "resourceId": "71a3fbd1-f31e-4c2c-b0e2-26267d64a9ee",                           |
+    |                          |                 "vimLevelResourceType": null                                                    |
+    |                          |             }                                                                                   |
+    |                          |         }                                                                                       |
+    |                          |     ],                                                                                          |
+    |                          |     "vnfcResourceInfo": [                                                                       |
+    |                          |         {                                                                                       |
+    |                          |             "id": "bbce9656-f051-434f-8c4a-660ac23e91f6",                                       |
+    |                          |             "vduId": "masterNode",                                                              |
+    |                          |             "computeResource": {                                                                |
+    |                          |                 "vimConnectionId": "05ef7ca5-7e32-4a6b-a03d-52f811f04496",                      |
+    |                          |                 "resourceId": "a0eccaee-ff7b-4c70-8c11-ba79c8d4deb6",                           |
+    |                          |                 "vimLevelResourceType": "OS::Nova::Server"                                      |
+    |                          |             },                                                                                  |
+    |                          |             "storageResourceIds": [],                                                           |
+    |                          |             "vnfcCpInfo": [                                                                     |
+    |                          |                 {                                                                               |
+    |                          |                     "id": "9fe655ab-1d35-4d22-a6f3-9a07fa797884",                               |
+    |                          |                     "cpdId": "masterNode_CP1",                                                  |
+    |                          |                     "vnfExtCpId": null,                                                         |
+    |                          |                     "vnfLinkPortId": "e66a44a4-965f-49dd-b168-ff4cc2485c34",                    |
+    |                          |                     "cpProtocolInfo": [                                                         |
+    |                          |                         {                                                                       |
+    |                          |                             "layerProtocol": "IP_OVER_ETHERNET"                                 |
+    |                          |                         }                                                                       |
+    |                          |                     ]                                                                           |
+    |                          |                 }                                                                               |
+    |                          |             ]                                                                                   |
+    |                          |         },                                                                                      |
+    |                          |         {                                                                                       |
+    |                          |             "id": "8bee8301-eb14-4c5c-bab8-a1b244d4d954",                                       |
+    |                          |             "vduId": "masterNode",                                                              |
+    |                          |             "computeResource": {                                                                |
+    |                          |                 "vimConnectionId": "05ef7ca5-7e32-4a6b-a03d-52f811f04496",                      |
+    |                          |                 "resourceId": "4a40d65c-3440-4c44-858a-72a66324a11a",                           |
+    |                          |                 "vimLevelResourceType": "OS::Nova::Server"                                      |
+    |                          |             },                                                                                  |
+    |                          |             "storageResourceIds": [],                                                           |
+    |                          |             "vnfcCpInfo": [                                                                     |
+    |                          |                 {                                                                               |
+    |                          |                     "id": "65c9f35a-08a2-4875-bd85-af419f26b19d",                               |
+    |                          |                     "cpdId": "masterNode_CP1",                                                  |
+    |                          |                     "vnfExtCpId": null,                                                         |
+    |                          |                     "vnfLinkPortId": "26fa4b33-ad07-4982-ad97-18b66abba541",                    |
+    |                          |                     "cpProtocolInfo": [                                                         |
+    |                          |                         {                                                                       |
+    |                          |                             "layerProtocol": "IP_OVER_ETHERNET"                                 |
+    |                          |                         }                                                                       |
+    |                          |                     ]                                                                           |
+    |                          |                 }                                                                               |
+    |                          |             ]                                                                                   |
+    |                          |         },                                                                                      |
+    |                          |         {                                                                                       |
+    |                          |             "id": "28ac0cb9-3bc1-4bc2-8be2-cf60f51b7b7a",                                       |
+    |                          |             "vduId": "masterNode",                                                              |
+    |                          |             "computeResource": {                                                                |
+    |                          |                 "vimConnectionId": "05ef7ca5-7e32-4a6b-a03d-52f811f04496",                      |
+    |                          |                 "resourceId": "12708197-9724-41b8-b48c-9eb6862331dc",                           |
+    |                          |                 "vimLevelResourceType": "OS::Nova::Server"                                      |
+    |                          |             },                                                                                  |
+    |                          |             "storageResourceIds": [],                                                           |
+    |                          |             "vnfcCpInfo": [                                                                     |
+    |                          |                 {                                                                               |
+    |                          |                     "id": "d51f3b54-a9ed-46be-8ffe-64b5d07d1a7b",                               |
+    |                          |                     "cpdId": "masterNode_CP1",                                                  |
+    |                          |                     "vnfExtCpId": null,                                                         |
+    |                          |                     "vnfLinkPortId": "b71dc885-8e3e-4ccd-ac6f-feff332fd395",                    |
+    |                          |                     "cpProtocolInfo": [                                                         |
+    |                          |                         {                                                                       |
+    |                          |                             "layerProtocol": "IP_OVER_ETHERNET"                                 |
+    |                          |                         }                                                                       |
+    |                          |                     ]                                                                           |
+    |                          |                 }                                                                               |
+    |                          |             ]                                                                                   |
+    |                          |         },                                                                                      |
+    |                          |         {                                                                                       |
+    |                          |             "id": "b4af0652-74b8-47bd-bcf6-94769bdbf756",                                       |
+    |                          |             "vduId": "workerNode",                                                              |
+    |                          |             "computeResource": {                                                                |
+    |                          |                 "vimConnectionId": "05ef7ca5-7e32-4a6b-a03d-52f811f04496",                      |
+    |                          |                 "resourceId": "5b3ff765-7a9f-447a-a06d-444e963b74c9",                           |
+    |                          |                 "vimLevelResourceType": "OS::Nova::Server"                                      |
+    |                          |             },                                                                                  |
+    |                          |             "storageResourceIds": [],                                                           |
+    |                          |             "vnfcCpInfo": [                                                                     |
+    |                          |                 {                                                                               |
+    |                          |                     "id": "59176610-fc1c-4abe-9648-87a9b8b79640",                               |
+    |                          |                     "cpdId": "workerNode_CP2",                                                  |
+    |                          |                     "vnfExtCpId": null,                                                         |
+    |                          |                     "vnfLinkPortId": "977b8775-350d-4ef0-95e5-552c4c4099f3",                    |
+    |                          |                     "cpProtocolInfo": [                                                         |
+    |                          |                         {                                                                       |
+    |                          |                             "layerProtocol": "IP_OVER_ETHERNET"                                 |
+    |                          |                         }                                                                       |
+    |                          |                     ]                                                                           |
+    |                          |                 }                                                                               |
+    |                          |             ]                                                                                   |
+    |                          |         },                                                                                      |
+    |                          |         {                                                                                       |
+    |                          |             "id": "974a4b98-5d07-44d4-9e13-a8ed21805111",                                       |
+    |                          |             "vduId": "workerNode",                                                              |
+    |                          |             "computeResource": {                                                                |
+    |                          |                 "vimConnectionId": "05ef7ca5-7e32-4a6b-a03d-52f811f04496",                      |
+    |                          |                 "resourceId": "63402e5a-67c9-4f5c-b03f-b21f4a88507f",                           |
+    |                          |                 "vimLevelResourceType": "OS::Nova::Server"                                      |
+    |                          |             },                                                                                  |
+    |                          |             "storageResourceIds": [],                                                           |
+    |                          |             "vnfcCpInfo": [                                                                     |
+    |                          |                 {                                                                               |
+    |                          |                     "id": "523b1328-9704-4ac1-986f-99c9b46ee1c4",                               |
+    |                          |                     "cpdId": "workerNode_CP2",                                                  |
+    |                          |                     "vnfExtCpId": null,                                                         |
+    |                          |                     "vnfLinkPortId": "eba708c4-14de-4d96-bc82-ed0abd95780b",                    |
+    |                          |                     "cpProtocolInfo": [                                                         |
+    |                          |                         {                                                                       |
+    |                          |                             "layerProtocol": "IP_OVER_ETHERNET"                                 |
+    |                          |                         }                                                                       |
+    |                          |                     ]                                                                           |
+    |                          |                 }                                                                               |
+    |                          |             ]                                                                                   |
+    |                          |         }                                                                                       |
+    |                          |     ],                                                                                          |
+    |                          |     "vnfVirtualLinkResourceInfo": [                                                             |
+    |                          |         {                                                                                       |
+    |                          |             "id": "96d15ae5-a1d8-4867-aaee-a4372de8bc0e",                                       |
+    |                          |             "vnfVirtualLinkDescId": "24e3e9ae-0df4-49d6-9ee4-e21dfe359baf",                     |
+    |                          |             "networkResource": {                                                                |
+    |                          |                 "vimConnectionId": null,                                                        |
+    |                          |                 "resourceId": "71a3fbd1-f31e-4c2c-b0e2-26267d64a9ee",                           |
+    |                          |                 "vimLevelResourceType": "OS::Neutron::Net"                                      |
+    |                          |             },                                                                                  |
+    |                          |             "vnfLinkPorts": [                                                                   |
+    |                          |                 {                                                                               |
+    |                          |                     "id": "e66a44a4-965f-49dd-b168-ff4cc2485c34",                               |
+    |                          |                     "resourceHandle": {                                                         |
+    |                          |                         "vimConnectionId": "05ef7ca5-7e32-4a6b-a03d-52f811f04496",              |
+    |                          |                         "resourceId": "b5ed388b-de4e-4de8-a24a-f1b70c5cce94",                   |
+    |                          |                         "vimLevelResourceType": "OS::Neutron::Port"                             |
+    |                          |                     },                                                                          |
+    |                          |                     "cpInstanceId": "9fe655ab-1d35-4d22-a6f3-9a07fa797884"                      |
+    |                          |                 },                                                                              |
+    |                          |                 {                                                                               |
+    |                          |                     "id": "26fa4b33-ad07-4982-ad97-18b66abba541",                               |
+    |                          |                     "resourceHandle": {                                                         |
+    |                          |                         "vimConnectionId": "05ef7ca5-7e32-4a6b-a03d-52f811f04496",              |
+    |                          |                         "resourceId": "dfab524f-dec9-4247-973c-a0e22475f950",                   |
+    |                          |                         "vimLevelResourceType": "OS::Neutron::Port"                             |
+    |                          |                     },                                                                          |
+    |                          |                     "cpInstanceId": "65c9f35a-08a2-4875-bd85-af419f26b19d"                      |
+    |                          |                 },                                                                              |
+    |                          |                 {                                                                               |
+    |                          |                     "id": "b71dc885-8e3e-4ccd-ac6f-feff332fd395",                               |
+    |                          |                     "resourceHandle": {                                                         |
+    |                          |                         "vimConnectionId": "05ef7ca5-7e32-4a6b-a03d-52f811f04496",              |
+    |                          |                         "resourceId": "45733936-0a9e-4eaa-a71f-3a77cb034581",                   |
+    |                          |                         "vimLevelResourceType": "OS::Neutron::Port"                             |
+    |                          |                     },                                                                          |
+    |                          |                     "cpInstanceId": "d51f3b54-a9ed-46be-8ffe-64b5d07d1a7b"                      |
+    |                          |                 }                                                                               |
+    |                          |             ]                                                                                   |
+    |                          |         },                                                                                      |
+    |                          |         {                                                                                       |
+    |                          |             "id": "c67b6f41-fd7a-45b2-b69a-8de9623dc16b",                                       |
+    |                          |             "vnfVirtualLinkDescId": "2283b96d-64f8-4403-9b21-643aa1058e86",                     |
+    |                          |             "networkResource": {                                                                |
+    |                          |                 "vimConnectionId": null,                                                        |
+    |                          |                 "resourceId": "71a3fbd1-f31e-4c2c-b0e2-26267d64a9ee",                           |
+    |                          |                 "vimLevelResourceType": "OS::Neutron::Net"                                      |
+    |                          |             },                                                                                  |
+    |                          |             "vnfLinkPorts": [                                                                   |
+    |                          |                 {                                                                               |
+    |                          |                     "id": "977b8775-350d-4ef0-95e5-552c4c4099f3",                               |
+    |                          |                     "resourceHandle": {                                                         |
+    |                          |                         "vimConnectionId": "05ef7ca5-7e32-4a6b-a03d-52f811f04496",              |
+    |                          |                         "resourceId": "0002bba0-608b-4e2c-bd4d-23f1717f017c",                   |
+    |                          |                         "vimLevelResourceType": "OS::Neutron::Port"                             |
+    |                          |                     },                                                                          |
+    |                          |                     "cpInstanceId": "59176610-fc1c-4abe-9648-87a9b8b79640"                      |
+    |                          |                 },                                                                              |
+    |                          |                 {                                                                               |
+    |                          |                     "id": "eba708c4-14de-4d96-bc82-ed0abd95780b",                               |
+    |                          |                     "resourceHandle": {                                                         |
+    |                          |                         "vimConnectionId": "05ef7ca5-7e32-4a6b-a03d-52f811f04496",              |
+    |                          |                         "resourceId": "facc9eae-6f2d-4cfb-89c2-27841eea771c",                   |
+    |                          |                         "vimLevelResourceType": "OS::Neutron::Port"                             |
+    |                          |                     },                                                                          |
+    |                          |                     "cpInstanceId": "523b1328-9704-4ac1-986f-99c9b46ee1c4"                      |
+    |                          |                 }                                                                               |
+    |                          |             ]                                                                                   |
+    |                          |         }                                                                                       |
+    |                          |     ],                                                                                          |
+    |                          |     "vnfcInfo": [                                                                               |
+    |                          |         {                                                                                       |
+    |                          |             "id": "3ca607b9-f270-4077-8af8-d5d244f8893b",                                       |
+    |                          |             "vduId": "masterNode",                                                              |
+    |                          |             "vnfcState": "STARTED"                                                              |
+    |                          |         },                                                                                      |
+    |                          |         {                                                                                       |
+    |                          |             "id": "c2b19ef1-f748-4175-9f3a-6792a9ee7a62",                                       |
+    |                          |             "vduId": "masterNode",                                                              |
+    |                          |             "vnfcState": "STARTED"                                                              |
+    |                          |         },                                                                                      |
+    |                          |         {                                                                                       |
+    |                          |             "id": "59f5fd29-d20f-426f-a1a6-526757205cb4",                                       |
+    |                          |             "vduId": "masterNode",                                                              |
+    |                          |             "vnfcState": "STARTED"                                                              |
+    |                          |         },                                                                                      |
+    |                          |         {                                                                                       |
+    |                          |             "id": "08b3f00e-a133-4262-8edb-03e2484ce870",                                       |
+    |                          |             "vduId": "workerNode",                                                              |
+    |                          |             "vnfcState": "STARTED"                                                              |
+    |                          |         },                                                                                      |
+    |                          |         {                                                                                       |
+    |                          |             "id": "027502d6-d072-4819-a502-cb7cc688ec16",                                       |
+    |                          |             "vduId": "workerNode",                                                              |
+    |                          |             "vnfcState": "STARTED"                                                              |
+    |                          |         }                                                                                       |
+    |                          |     ],                                                                                          |
+    |                          |     "additionalParams": {                                                                       |
+    |                          |         "lcm-operation-user-data": "./UserData/k8s_cluster_user_data.py",                       |
+    |                          |         "lcm-operation-user-data-class": "KubernetesClusterUserData",                           |
+    |                          |         "k8sClusterInstallationParam": {                                                        |
+    |                          |             "vimName": "kubernetes_vim_complex",                                                |
+    |                          |             "proxy": {                                                                          |
+    |                          |                 "noProxy": "192.168.246.0/24,10.0.0.1",                                         |
+    |                          |                 "httpProxy": "http://user1:password1@host1:port1",                              |
+    |                          |                 "httpsProxy": "https://user2:password2@host2:port2",                            |
+    |                          |                 "k8sNodeCidr": "10.10.0.0/24"                                                   |
+    |                          |             },                                                                                  |
+    |                          |             "masterNode": {                                                                     |
+    |                          |                 "password": "ubuntu",                                                           |
+    |                          |                 "podCidr": "192.168.3.0/16",                                                    |
+    |                          |                 "username": "ubuntu",                                                           |
+    |                          |                 "aspectId": "master_instance",                                                  |
+    |                          |                 "nicCpName": "masterNode_CP1",                                                  |
+    |                          |                 "sshCpName": "masterNode_CP1",                                                  |
+    |                          |                 "clusterCidr": "10.199.187.0/24",                                               |
+    |                          |                 "clusterCpName": "vip_CP"                                                       |
+    |                          |             },                                                                                  |
+    |                          |             "scriptPath": "Scripts/install_k8s_cluster.sh",                                     |
+    |                          |             "workerNode": {                                                                     |
+    |                          |                 "password": "ubuntu",                                                           |
+    |                          |                 "username": "ubuntu",                                                           |
+    |                          |                 "aspectId": "worker_instance",                                                  |
+    |                          |                 "nicCpName": "workerNode_CP2",                                                  |
+    |                          |                 "sshCpName": "workerNode_CP2"                                                   |
+    |                          |             }                                                                                   |
+    |                          |         }                                                                                       |
+    |                          |     }                                                                                           |
+    |                          | }                                                                                               |
+    | Instantiation State      | INSTANTIATED                                                                                    |
+    | Links                    | {                                                                                               |
+    |                          |     "self": {                                                                                   |
+    |                          |         "href": "/vnflcm/v1/vnf_instances/c5215213-af4b-4080-95ab-377920474e1a"                 |
+    |                          |     },                                                                                          |
+    |                          |     "terminate": {                                                                              |
+    |                          |         "href": "/vnflcm/v1/vnf_instances/c5215213-af4b-4080-95ab-377920474e1a/terminate"       |
+    |                          |     },                                                                                          |
+    |                          |     "scale": {                                                                                  |
+    |                          |         "href": "/vnflcm/v1/vnf_instances/c5215213-af4b-4080-95ab-377920474e1a/scale"           |
+    |                          |     },                                                                                          |
+    |                          |     "heal": {                                                                                   |
+    |                          |         "href": "/vnflcm/v1/vnf_instances/c5215213-af4b-4080-95ab-377920474e1a/heal"            |
+    |                          |     },                                                                                          |
+    |                          |     "changeExtConn": {                                                                          |
+    |                          |         "href": "/vnflcm/v1/vnf_instances/c5215213-af4b-4080-95ab-377920474e1a/change_ext_conn" |
+    |                          |     }                                                                                           |
+    |                          | }                                                                                               |
+    | VIM Connection Info      | [                                                                                               |
+    |                          |     {                                                                                           |
+    |                          |         "id": "9ab53adf-ca70-47b2-8877-1858cfb53618",                                           |
+    |                          |         "vimId": "05ef7ca5-7e32-4a6b-a03d-52f811f04496",                                        |
+    |                          |         "vimType": "openstack",                                                                 |
+    |                          |         "interfaceInfo": {},                                                                    |
+    |                          |         "accessInfo": {}                                                                        |
+    |                          |     },                                                                                          |
+    |                          |     {                                                                                           |
+    |                          |         "id": "2e56da35-f343-4f9e-8f04-7722f8edbe7a",                                           |
+    |                          |         "vimId": "3e04bb8e-2dbd-4c32-9575-d2937f3aa931",                                        |
+    |                          |         "vimType": "kubernetes",                                                                |
+    |                          |         "interfaceInfo": null,                                                                  |
+    |                          |         "accessInfo": {                                                                         |
+    |                          |             "authUrl": "https://10.10.0.80:16443"                                               |
+    |                          |         }                                                                                       |
+    |                          |     }                                                                                           |
+    |                          | ]                                                                                               |
+    | VNF Instance Description | None                                                                                            |
+    | VNF Instance Name        | vnf-c5215213-af4b-4080-95ab-377920474e1a                                                        |
+    | VNF Product Name         | Sample VNF                                                                                      |
+    | VNF Provider             | Company                                                                                         |
+    | VNF Software Version     | 1.0                                                                                             |
+    | VNFD ID                  | b1db0ce7-ebca-1fb7-95ed-4840d70a1163                                                            |
+    | VNFD Version             | 1.0                                                                                             |
+    | vnfPkgId                 |                                                                                                 |
+    +--------------------------+-------------------------------------------------------------------------------------------------+
 
 Scale Kubernetes Worker Nodes
 -----------------------------

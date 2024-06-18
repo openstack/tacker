@@ -997,6 +997,9 @@ successful.
    |                             |     "terminate": {                                                                                                   |
    |                             |         "href": "http://localhost:9890/vnflcm/v1/vnf_instances/30d7c432-8ad3-4b05-81df-c5c7f340c62b/terminate"       |
    |                             |     },                                                                                                               |
+   |                             |     "scale": {                                                                                                       |
+   |                             |         "href": "http://localhost:9890/vnflcm/v1/vnf_instances/30d7c432-8ad3-4b05-81df-c5c7f340c62b/scale"           |
+   |                             |     },                                                                                                               |
    |                             |     "heal": {                                                                                                        |
    |                             |         "href": "http://localhost:9890/vnflcm/v1/vnf_instances/30d7c432-8ad3-4b05-81df-c5c7f340c62b/heal"            |
    |                             |     },                                                                                                               |

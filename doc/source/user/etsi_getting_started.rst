@@ -692,6 +692,9 @@ Instantiate VNF
      |                             |     "terminate": {                                                                                                   |
      |                             |         "href": "http://localhost:9890/vnflcm/v1/vnf_instances/810d8c9b-e467-4b06-9265-ac9dce015fce/terminate"       |
      |                             |     },                                                                                                               |
+     |                             |     "scale": {                                                                                                       |
+     |                             |         "href": "http://localhost:9890/vnflcm/v1/vnf_instances/810d8c9b-e467-4b06-9265-ac9dce015fce/scale"           |
+     |                             |     },                                                                                                               |
      |                             |     "heal": {                                                                                                        |
      |                             |         "href": "http://localhost:9890/vnflcm/v1/vnf_instances/810d8c9b-e467-4b06-9265-ac9dce015fce/heal"            |
      |                             |     },                                                                                                               |
