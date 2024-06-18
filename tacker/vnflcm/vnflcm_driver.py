@@ -1734,17 +1734,8 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                         'region_name'))
 
             else:
-                instance_id = vnf_instance.instantiated_vnf_info.instance_id
-                access_info = vim_connection_info.access_info
-                self._vnf_manager.invoke(vim_connection_info.vim_type,
-                    'delete', plugin=self, context=context,
-                    vnf_id=instance_id, auth_attr=access_info,
-                    vnf_instance=vnf_instance)
-
-                self._vnf_manager.invoke(vim_connection_info.vim_type,
-                    'delete_wait', plugin=self, context=context,
-                    vnf_id=instance_id, auth_attr=access_info,
-                    vnf_instance=vnf_instance)
+                self._delete_vnf_instance_resources(context, vnf_instance,
+                    vim_connection_info, update_instantiated_state=False)
 
         vnf_lcm_op_occs.error_point = EP.PRE_VIM_CONTROL
 

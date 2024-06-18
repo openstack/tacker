@@ -2209,6 +2209,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
                                vim_connection_info, scale_name_list, grp_id,
                                op_occ)
 
+    @mock.patch.object(objects.VnfResourceList, 'get_by_vnf_instance_id')
     @mock.patch.object(TackerManager, 'get_service_plugins',
         return_value={'VNFM': FakeVNFMPlugin()})
     @mock.patch.object(VnfLcmDriver,
@@ -2227,7 +2228,8 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             mock_notification,
             mock_lcm_save,
             mock_init_hash,
-            mock_get_service_plugins):
+            mock_get_service_plugins,
+            mock_resource_list):
         mock_init_hash.return_value = {
             "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
                            "b18d663b127100eb72b19eecd7ed51"
@@ -2252,6 +2254,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             operation_params)
         self.assertEqual(1, mock_lcm_save.call_count)
 
+    @mock.patch.object(objects.VnfResourceList, 'get_by_vnf_instance_id')
     @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
     @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver.'
                 '_load_vnf_interface')
@@ -2272,7 +2275,8 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             mock_init_hash,
             mock_get_service_plugins,
             mock_vnf_interfaces,
-            mock_vnfd_dict):
+            mock_vnfd_dict,
+            mock_resource_list):
         mock_init_hash.return_value = {
             "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
                            "b18d663b127100eb72b19eecd7ed51"
@@ -2296,6 +2300,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             operation_params)
         self.assertEqual(1, mock_lcm_save.call_count)
 
+    @mock.patch.object(objects.VnfResourceList, 'get_by_vnf_instance_id')
     @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
     @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver.'
                 '_load_vnf_interface')
@@ -2316,7 +2321,8 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             mock_init_hash,
             mock_get_service_plugins,
             mock_vnf_interfaces,
-            mock_vnfd_dict):
+            mock_vnfd_dict,
+            mock_resource_list):
         mock_init_hash.return_value = {
             "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
                            "b18d663b127100eb72b19eecd7ed51"
@@ -2340,6 +2346,11 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             operation_params)
         self.assertEqual(1, mock_lcm_save.call_count)
 
+    @mock.patch.object(opn.OpenStack, 'delete_vnf_instance_resource')
+    @mock.patch.object(opn.OpenStack, 'delete_wait')
+    @mock.patch.object(opn.OpenStack, 'delete')
+    @mock.patch.object(objects.VnfResource, 'destroy')
+    @mock.patch.object(objects.VnfResourceList, 'get_by_vnf_instance_id')
     @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
     @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver.'
                 '_load_vnf_interface')
@@ -2360,7 +2371,12 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             mock_init_hash,
             mock_get_service_plugins,
             mock_vnf_interfaces,
-            mock_vnfd_dict):
+            mock_vnfd_dict,
+            mock_resource_list,
+            mock_resource_destroy,
+            mock_delete,
+            mock_delete_wait,
+            mock_delete_resource):
         mock_init_hash.return_value = {
             "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
                            "b18d663b127100eb72b19eecd7ed51"
@@ -2373,9 +2389,11 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         vnf_lcm_op_occs = fakes.vnflcm_rollback_insta(error_point=4)
         vnf_info = fakes.vnf_dict()
         vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occs
+        vnf_info['vim_type'] = 'openstack'
         operation_params = jsonutils.loads(vnf_lcm_op_occs.operation_params)
+        mock_vnf_interfaces.return_value = 'vnflcm_noop'
+        mock_resource_list.return_value = [fakes.return_vnf_resource()]
 
-        self._mock_vnf_manager()
         driver = vnflcm_driver.VnfLcmDriver()
         driver.rollback_vnf(
             self.context,
@@ -2383,6 +2401,7 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             vnf_instance,
             operation_params)
         self.assertEqual(1, mock_lcm_save.call_count)
+        self.assertEqual(1, mock_delete_resource.call_count)
 
     @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
     @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver.'
@@ -2875,6 +2894,48 @@ class TestVnflcmDriver(db_base.SqlTestCase):
         self.assertEqual(2, mock_lcm_save.call_count)
         self.assertEqual(1, mock_delete.call_count)
         self.assertEqual(1, mock_delete_wait.call_count)
+
+    @mock.patch.object(objects.VnfResourceList, 'get_by_vnf_instance_id')
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch.object(VnfLcmDriver,
+                       '_init_mgmt_driver_hash')
+    @mock.patch.object(objects.VnfLcmOpOcc, 'save')
+    @mock.patch.object(heat_client.HeatClient, '__init__')
+    @mock.patch.object(opn.OpenStack, 'delete')
+    @mock.patch.object(opn.OpenStack, 'delete_wait')
+    @mock.patch.object(opn.OpenStack, 'delete_vnf_instance_resource')
+    @mock.patch('tacker.vnflcm.vnflcm_driver.VnfLcmDriver.'
+                '_load_vnf_interface')
+    def test_rollback_vnf_delete_vnf_instance_resource_error(
+            self, mock_vnf_interfaces, mock_delete_resource, mock_delete_wait,
+            mock_delete, mock_init, mock_lcm_save, mock_init_hash,
+            mock_vnfd_dict, mock_resource_list):
+        mock_init_hash.return_value = {
+            'vnflcm_noop': 'ffea638bfdbde3fb01f191bbe75b031859'
+                           'b18d663b127100eb72b19eecd7ed51'
+        }
+        mock_vnf_interfaces.return_value = fakes.return_vnf_interfaces()
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
+
+        vnf_instance.instantiated_vnf_info.instance_id = (
+            uuidsentinel.instance_id)
+        vnf_lcm_op_occs = fakes.vnflcm_rollback_insta()
+        vnf_info = fakes.vnf_dict()
+        vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occs
+        operation_params = jsonutils.loads(vnf_lcm_op_occs.operation_params)
+        mock_init.return_value = None
+        mock_resource_list.return_value = [fakes.return_vnf_resource()]
+        mock_delete_resource.side_effect = exceptions.DBAccessError()
+
+        driver = vnflcm_driver.VnfLcmDriver()
+        self.assertRaises(exceptions.DBAccessError, driver.rollback_vnf,
+                          self.context, vnf_info, vnf_instance,
+                          operation_params)
+        self.assertEqual(2, mock_lcm_save.call_count)
+        self.assertEqual(1, mock_delete.call_count)
+        self.assertEqual(1, mock_delete_wait.call_count)
+        self.assertEqual(1, mock_delete_resource.call_count)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
         return_value={'VNFM': FakeVNFMPlugin()})
