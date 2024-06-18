@@ -181,7 +181,8 @@ class VnfPkgmController(wsgi.Controller):
         marker_obj = None
 
         if allrecords != 'yes':
-            limit = CONF.vnf_package.vnf_package_num
+            if not CONF.oslo_policy.enhanced_tacker_policy:
+                limit = CONF.vnf_package.vnf_package_num
 
             # get next page marker object from nextpage id
             if nextpage:
@@ -204,6 +205,9 @@ class VnfPkgmController(wsgi.Controller):
                           vnf_package_policies.VNFPKGM % 'index',
                           target=self._get_policy_target(vnf_package),
                           fatal=False)]
+            if allrecords != 'yes':
+                limit = CONF.vnf_package.vnf_package_num
+                result = result[:limit]
 
         results = self._view_builder.index(result,
                 all_fields=all_fields,

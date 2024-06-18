@@ -28,6 +28,7 @@ from webob import exc
 from oslo_config import cfg
 from oslo_policy import policy as oslo_policy
 from oslo_serialization import jsonutils
+from oslo_utils import uuidutils
 
 from tacker.api.views import vnf_subscriptions as vnf_subscription_view
 from tacker.api.vnflcm.v1 import controller
@@ -43,6 +44,7 @@ from tacker.manager import TackerManager
 from tacker import objects
 from tacker.objects import fields
 from tacker.objects import vnf_lcm_subscriptions as subscription_obj
+from tacker.policies import vnf_lcm as vnf_lcm_policies
 from tacker import policy
 from tacker.tests import constants
 from tacker.tests.unit import base
@@ -5597,6 +5599,45 @@ class TestControllerEnhancedPolicy(TestController):
         self.assertEqual(http_client.OK, resp.status_code)
         self.assertEqual(
             expected_vnf_inst_ids, [inst.get('id') for inst in resp.json])
+
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
+    @mock.patch.object(objects.VnfInstanceList, "get_by_marker_filter")
+    def test_index_enhanced_policy_paging(self, mock_vnf_list, mock_vnf_by_id):
+        cfg.CONF.set_override('vnf_instance_num', 1, group='vnf_lcm')
+        inst_a_1 = fakes.make_vnf_instance('openstack', 'provider_A',
+            area='area_A@region_A', tenant='tenant_A')
+        inst_a_2 = copy.deepcopy(inst_a_1)
+        inst_a_2.id = uuidutils.generate_uuid()
+        inst_b = fakes.make_vnf_instance('openstack', 'provider_B',
+            area='area_B@region_B', tenant='tenant_B')
+        rules = {vnf_lcm_policies.VNFLCM % 'index':
+                 "area:%(area)s and vendor:%(vendor)s and tenant:%(tenant)s"}
+        roles = ['AREA_area_A@region_A', 'VENDOR_provider_A',
+                 'TENANT_tenant_A']
+        policy.set_rules(oslo_policy.Rules.from_dict(rules), overwrite=True)
+        ctx = context.Context('fake', 'fake', roles=roles)
+
+        # first request
+        mock_vnf_list.return_value = [inst_a_1, inst_b, inst_a_2]
+        req = fake_request.HTTPRequest.blank('/vnf_instances')
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'GET'
+        resp = req.get_response(fakes.wsgi_app_v1(fake_auth_context=ctx))
+        self.assertEqual(http_client.OK, resp.status_code)
+        self.assertEqual(
+            [inst_a_1.id], [inst.get('id') for inst in resp.json])
+
+        # second request with nextpage_opaque_marker
+        mock_vnf_list.return_value = [inst_b, inst_a_2]
+        mock_vnf_by_id.return_value = inst_a_1
+        req = fake_request.HTTPRequest.blank('/vnf_instances?'
+            f'nextpage_opaque_marker={inst_a_1.id}')
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'GET'
+        resp = req.get_response(fakes.wsgi_app_v1(fake_auth_context=ctx))
+        self.assertEqual(http_client.OK, resp.status_code)
+        self.assertEqual(
+            [inst_a_2.id], [inst.get('id') for inst in resp.json])
 
     @mock.patch.object(TackerManager, 'get_service_plugins',
                        return_value={'VNFM': FakeVNFMPlugin()})
