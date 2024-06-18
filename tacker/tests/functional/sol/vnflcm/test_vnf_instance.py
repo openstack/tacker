@@ -20,6 +20,7 @@ import time
 from oslo_serialization import jsonutils
 from oslo_utils import uuidutils
 
+from tacker.common import utils as com_utils
 from tacker.objects import fields
 from tacker.tests.functional import base
 from tacker.tests import utils
@@ -35,6 +36,7 @@ VNF_HEAL_TIMEOUT = 600
 VNF_CHANGE_EXT_CONN_TIMEOUT = 600
 RETRY_WAIT_TIME = 5
 WAIT_HEAL = 60  # Time to wait until heal op is completed in sec.
+UPDATE_WAIT_TIME = 10
 
 
 def get_ext_managed_virtual_link(id, vl_desc_id, resource_id):
@@ -305,6 +307,17 @@ class VnfLcmTest(base.BaseTackerTest):
         resp, vnf_instances = self.http_client.do_request(self.base_url, "GET")
         self.assertEqual(200, resp.status_code)
         return vnf_instances
+
+    def _update_vnf_instance(self, id, request_body):
+        url = os.path.join(self.base_url, id)
+
+        resp, response_body = self.http_client.do_request(
+            url, "PATCH", body=jsonutils.dumps(request_body))
+
+        # Wait for operation state completed
+        time.sleep(UPDATE_WAIT_TIME)
+
+        return resp, response_body
 
     def _stack_update_wait(self, stack_id, expected_status,
             timeout=VNF_HEAL_TIMEOUT):
@@ -1211,3 +1224,113 @@ class VnfLcmTest(base.BaseTackerTest):
         self._terminate_vnf_instance(vnf_instance['id'], terminate_req_body)
 
         self._delete_vnf_instance(vnf_instance['id'])
+
+    def test_update_vnf_instance_not_instantiated(self):
+        """Update vnf instance in not_instantiated state."""
+
+        # Create vnf instance
+        vnf_instance_name = (
+            f"vnf_update_vnf_instance-{uuidutils.generate_uuid()}")
+        vnf_instance_description = "vnf_update_vnf_instance"
+        resp, vnf_instance = self._create_vnf_instance(self.vnfd_id_1,
+                vnf_instance_name=vnf_instance_name,
+                vnf_instance_description=vnf_instance_description)
+
+        self.assertIsNotNone(vnf_instance["id"])
+        self.assertEqual(201, resp.status_code)
+
+        self.addCleanup(self._delete_vnf_instance, vnf_instance["id"])
+
+        # Update vnf instance
+        request_body = {
+            "vnfInstanceName": f"{vnf_instance_name}_chg",
+            "vnfInstanceDescription":
+                f"{vnf_instance_description}_chg",
+            "metadata": {"key": "value"}
+        }
+        resp, _ = self._update_vnf_instance(vnf_instance["id"],
+            request_body)
+
+        self.assertEqual(202, resp.status_code)
+
+        expected_result = {
+            "instantiationState": fields.VnfInstanceState.NOT_INSTANTIATED,
+            "vnfInstanceName": request_body["vnfInstanceName"],
+            "vnfInstanceDescription": request_body["vnfInstanceDescription"],
+            "metadata": request_body["metadata"]
+        }
+        self._show_vnf_instance(vnf_instance["id"], expected_result)
+
+    def test_update_vnf_instance_instantiated(self):
+        """Update vnf instance in instantiated state."""
+
+        # Create vnf instance
+        vnf_instance_name = (
+            f"vnf_update_vnf_instance-{uuidutils.generate_uuid()}")
+        vnf_instance_description = "vnf_update_vnf_instance"
+        resp, vnf_instance = self._create_vnf_instance(self.vnfd_id_1,
+                vnf_instance_name=vnf_instance_name,
+                vnf_instance_description=vnf_instance_description)
+        self.assertIsNotNone(vnf_instance["id"])
+        self.assertEqual(201, resp.status_code)
+
+        self.addCleanup(self._delete_vnf_instance, vnf_instance["id"])
+
+        # Instantiate vnf instance
+        request_body = self._instantiate_vnf_request("simple",
+            vim_id=self.vim_id)
+        self._instantiate_vnf_instance(vnf_instance["id"], request_body)
+
+        # Terminate vnf gracefully with graceful timeout set to 60
+        terminate_req_body = {
+            "terminationType": fields.VnfInstanceTerminationType.GRACEFUL,
+            "gracefulTerminationTimeout": 60
+        }
+        self.addCleanup(self._terminate_vnf_instance, vnf_instance["id"],
+                        terminate_req_body)
+
+        # Update vnf instance
+        vnf_instance = self._show_vnf_instance(vnf_instance["id"])
+        vim_connection_info_add = {
+            "id": "11112222-3333-4444-5555-666677778888",
+            "vim_id": vnf_instance["vimConnectionInfo"][0]["vimId"],
+            "vim_type": "openstack",
+            "interface_info": {},
+            "access_info": {},
+            "extra": {}
+        }
+        vnf_instance["vimConnectionInfo"][0]["extra"] = {"key": "value"}
+        vim_connection_info_chg = vnf_instance["vimConnectionInfo"][0]
+
+        request_body = {
+            "vnfInstanceName": f"{vnf_instance_name}_chg",
+            "vnfInstanceDescription":
+                f"{vnf_instance_description}_chg",
+            "metadata": {"key": "value"},
+            "vimConnectionInfo": [
+                vim_connection_info_add,
+                com_utils.convert_camelcase_to_snakecase(
+                    vim_connection_info_chg)
+            ]
+        }
+
+        resp, _ = self._update_vnf_instance(vnf_instance["id"],
+            request_body)
+        self.assertEqual(202, resp.status_code)
+
+        expected_result = {
+            "instantiationState": fields.VnfInstanceState.INSTANTIATED,
+            "vnfInstanceName": request_body["vnfInstanceName"],
+            "vnfInstanceDescription": request_body["vnfInstanceDescription"],
+            "metadata": {
+                **vnf_instance["metadata"],
+                **request_body["metadata"]
+            },
+            "vimConnectionInfo": [
+                com_utils.convert_snakecase_to_camelcase(
+                    vim_connection_info_add),
+                vim_connection_info_chg,
+                vnf_instance["vimConnectionInfo"][1]
+            ]
+        }
+        self._show_vnf_instance(vnf_instance["id"], expected_result)

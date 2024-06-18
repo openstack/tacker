@@ -53,10 +53,19 @@ For update VNF instance, you need to prepare a JSON-formatted definition file.
   ``VnfInfoModificationRequest`` are not supported.
 
   * vnfConfigurableProperties
-  * metadata
   * extensions
   * vnfcInfoModifications
-  * vimConnectionInfo
+  * vimConnectionInfoDeleteIds
+
+
+.. note::
+
+  The update operation can change the ``vimConnectionInfo``
+  associated with an existing VNF instance.
+  Even if update operation specify multiple ``vimConnectionInfo``
+  associated with one VNF instance, only one of them will be used for life
+  cycle management operations.
+  It is not possible to delete the key of registered ``vimConnectionInfo``.
 
 
 How to Update VNF
@@ -125,6 +134,10 @@ Result:
 
 You can confirm that the VNF Instance Name has been changed by the update
 operation.
+
+The following attributes are updated by performing JSON Merge Patch with the
+values set in the request parameter to the current values.
+* metadata
 
 If the ``vnfdId`` is not changed by update operation, the current value
 shall be updated using the request parameter.

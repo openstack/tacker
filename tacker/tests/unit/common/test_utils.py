@@ -149,3 +149,38 @@ class TestConvertStringToBool(testtools.TestCase):
         self.assertTrue(result)
         result = utils.str_to_bool("True")
         self.assertTrue(result)
+
+
+class TestJsonMergePatch(testtools.TestCase):
+    def test_json_merge_patch(self):
+        target = {
+            "key1": "value1", "key2": "value2"
+        }
+        patch = {
+            "key1": "value2", "key2": None, "key3": "value3"
+        }
+        expected_dict = {
+            "key1": "value2", "key3": "value3"
+        }
+        actual_dict = utils.json_merge_patch(target, patch)
+        self.assertEqual(expected_dict, actual_dict)
+
+    def test_json_merge_patch_not_dict_patch(self):
+        target = {
+            "key1": "value1", "key2": "value2"
+        }
+        patch = []
+        expected_dict = patch
+        actual_dict = utils.json_merge_patch(target, patch)
+        self.assertEqual(expected_dict, actual_dict)
+
+    def test_json_merge_patch_not_dict_target(self):
+        target = []
+        patch = {
+            "key1": "value2", "key2": None, "key3": "value3"
+        }
+        expected_dict = {
+            "key1": "value2", "key3": "value3"
+        }
+        actual_dict = utils.json_merge_patch(target, patch)
+        self.assertEqual(expected_dict, actual_dict)

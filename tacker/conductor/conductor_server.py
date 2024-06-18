@@ -2458,6 +2458,15 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
             changed_info.vnf_instance_description = body_data.get(
                 'vnf_instance_description')
 
+        # get updated vnf instance
+        vnf_instance = objects.vnf_instance.VnfInstance.get_by_id(
+            context, lcm_op_obj.vnf_instance_id)
+
+        if body_data.get('metadata'):
+            changed_info.metadata = vnf_instance.vnf_metadata
+        if body_data.get('vim_connection_info'):
+            changed_info.vim_connection_info = vnf_instance.vim_connection_info
+
         # update vnf_lcm_op_occs
         now = timeutils.utcnow()
         lcm_op_obj.id = vnf_lcm_opoccs.get('id')

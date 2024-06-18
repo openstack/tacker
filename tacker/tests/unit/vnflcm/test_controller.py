@@ -2391,6 +2391,43 @@ class TestController(base.TestCase):
         self.assertEqual(http_client.ACCEPTED, resp.status_code)
         mock_update.assert_called_once()
 
+    @mock.patch.object(objects.vnf_instance.VnfInstance, "get_by_id")
+    @mock.patch.object(objects.vnf.VNF, "vnf_index_list")
+    @mock.patch.object(objects.vnf_instance.VnfInstanceList,
+        "vnf_instance_list")
+    @mock.patch.object(objects.vnf_package_vnfd.VnfPackageVnfd,
+        "get_vnf_package_vnfd")
+    def test_update_vimcon_in_not_instantiated(self,
+            mock_vnf_package_vnf_get_vnf_package_vnfd, mock_vnf_instance_list,
+            mock_vnf_index_list, mock_vnf_instance):
+
+        req = fake_request.HTTPRequest.blank(
+            "/vnf_instances/%s" % constants.UUID)
+        mock_vnf_instance.return_value = fakes.return_vnf_instance(
+            fields.VnfInstanceState.NOT_INSTANTIATED)
+        mock_vnf_index_list.return_value = fakes._get_vnf()
+        mock_vnf_instance_list.return_value = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED,
+            tenant_id=req.environ["tacker.context"].project_id)
+        mock_vnf_package_vnf_get_vnf_package_vnfd.return_value =\
+            fakes.return_vnf_package_vnfd()
+
+        body = {"vnfInstanceName": "new_instance_name",
+                "vnfInstanceDescription": "new_instance_discription",
+                "vnfdId": "2c69a161-0000-4b0f-bcf8-391f8fc76600",
+                "metadata": {"testkey": "test_value"},
+                "vimConnectionInfo": {"id": "testid"}}
+        req.body = jsonutils.dump_as_bytes(body)
+        req.headers["Content-Type"] = "application/json"
+        req.method = "PATCH"
+
+        msg = "vimConnectionInfo cannot be modified in NOT_INSTANTIATED."
+        res = self._make_problem_detail(msg, 400, title="Bad Request")
+
+        # Call Update API
+        resp = req.get_response(self.app)
+        self.assertEqual(res.text, resp.text)
+
     @mock.patch.object(objects.VnfInstance, "get_by_id")
     @ddt.data("vnfdId", "vnfPkgId")
     @mock.patch.object(TackerManager, 'get_service_plugins',
@@ -4935,7 +4972,8 @@ class TestControllerEnhancedPolicy(TestController):
             mock_vnf_by_id):
         req = fake_request.HTTPRequest.blank(
             '/vnf_instances/%s' % constants.UUID)
-        mock_vnf_by_id.return_value = fakes.return_vnf_instance()
+        mock_vnf_by_id.return_value = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
         updates = {'status': 'ERROR'}
         mock_vnf_index_list.return_value = fakes._get_vnf(**updates)
 
@@ -5027,7 +5065,8 @@ class TestControllerEnhancedPolicy(TestController):
             mock_get_service_plugins,
             mock_vnf_by_id):
 
-        mock_vnf_by_id.return_value = fakes.return_vnf_instance()
+        mock_vnf_by_id.return_value = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
         mock_vnf_index_list.return_value = None
 
         body = {"vnfInstanceName": "new_instance_name",
@@ -5063,7 +5102,8 @@ class TestControllerEnhancedPolicy(TestController):
             mock_get_service_plugins,
             mock_vnf_by_id):
 
-        mock_vnf_by_id.return_value = fakes.return_vnf_instance()
+        mock_vnf_by_id.return_value = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
         mock_vnf_index_list.return_value = fakes._get_vnf()
         mock_vnf_instance_list.return_value = ""
 
@@ -5106,7 +5146,8 @@ class TestControllerEnhancedPolicy(TestController):
             mock_get_service_plugins,
             mock_vnf_by_id):
 
-        mock_vnf_by_id.return_value = fakes.return_vnf_instance()
+        mock_vnf_by_id.return_value = fakes.return_vnf_instance(
+            fields.VnfInstanceState.INSTANTIATED)
         mock_vnf_index_list.return_value = fakes._get_vnf()
         mock_vnf_instance_list.return_value = fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED)

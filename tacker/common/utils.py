@@ -488,6 +488,21 @@ def is_valid_url(url):
     return True
 
 
+# see IETF RFC 7396
+def json_merge_patch(target, patch):
+    if isinstance(patch, dict):
+        if not isinstance(target, dict):
+            target = {}
+        for key, value in patch.items():
+            if value is None:
+                if key in target:
+                    del target[key]
+            else:
+                target[key] = json_merge_patch(target.get(key), value)
+        return target
+    return patch
+
+
 class CooperativeReader(object):
     """An eventlet thread friendly class for reading in image data.
 

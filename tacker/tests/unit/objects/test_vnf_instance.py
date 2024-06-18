@@ -101,6 +101,17 @@ class TestVnfInstance(SqlTestCase):
         body_data['vnf_configurable_properties'] = {"test": "test_value"}
         body_data['vnfc_info_modifications_delete_ids'] = ["test1"]
         body_data['vnf_pkg_id'] = uuidsentinel.vnf_pkg_id
+        body_data['metadata'] = {"key": "value_chg", "key2": "value"}
+        body_data['vim_connection_info'] = [
+            {
+                "id": "d24f9796-a8e9-4cb0-85ce-5920dc100001",
+                "vim_id": "85355a9f-9ecf-481c-bf65-451677a9ee82",
+                "vim_type": "test",
+                "interface_info": {},
+                "access_info": {},
+                "extra": {"key": "value"}
+            }
+        ]
         return body_data
 
     def _create_vnfd_pkg_data(self):
@@ -227,21 +238,193 @@ class TestVnfInstance(SqlTestCase):
 
     @mock.patch.object(objects.vnf_package.VnfPackage, 'get_by_id')
     def test_update(self, mock_get_by_id):
-        mock_get_by_id.return_value =\
-            fakes_vnflcm.return_vnf_package_with_deployment_flavour()
+        mock_get_by_id.return_value = (
+            fakes_vnflcm.return_vnf_package_with_deployment_flavour())
         vnf_instance_data = fakes.get_vnf_instance_data(
             self.vnf_package.vnfd_id)
         vnf_instance = objects.VnfInstance(context=self.context,
                                            **vnf_instance_data)
         vnf_instance.create()
         id = uuidutils.generate_uuid()
-        vnf_lcm_oppccs = fakes.get_lcm_op_occs_data(
-            id,
-            vnf_instance.id)
+        vnf_lcm_opoccs = fakes.get_lcm_op_occs_data(id, vnf_instance.id)
 
-        vnf_instance.update(
-            self.context,
-            vnf_lcm_oppccs,
-            self.body_data,
-            self.vnfd_pkg_data,
-            vnf_instance_data['vnfd_id'])
+        vnf_instance.update(self.context, vnf_lcm_opoccs, self.body_data,
+            self.vnfd_pkg_data, vnf_instance_data['vnfd_id'])
+
+        vnf_instance_by_id = objects.VnfInstance.get_by_id(
+            self.context, vnf_instance.id)
+        self.assertEqual(self.body_data['vnf_instance_name'],
+            vnf_instance_by_id['vnf_instance_name'])
+        self.assertEqual(self.body_data['vnf_instance_description'],
+            vnf_instance_by_id['vnf_instance_description'])
+        self.assertEqual(self.body_data['metadata'],
+            vnf_instance_by_id['vnf_metadata'])
+        for i in range(0, len(vnf_instance_by_id['vim_connection_info'])):
+            self.assertDictEqual(
+                self.body_data['vim_connection_info'][i],
+                vnf_instance_by_id['vim_connection_info'][i].to_dict()
+            )
+
+    @mock.patch.object(objects.vnf_package.VnfPackage, 'get_by_id')
+    def test_update_metadata_key_is_none(self, mock_get_by_id):
+        mock_get_by_id.return_value = (
+            fakes_vnflcm.return_vnf_package_with_deployment_flavour())
+        vnf_instance_data = fakes.get_vnf_instance_data(
+            self.vnf_package.vnfd_id)
+        vnf_instance = objects.VnfInstance(context=self.context,
+                                           **vnf_instance_data)
+        vnf_instance.create()
+        id = uuidutils.generate_uuid()
+        vnf_lcm_opoccs = fakes.get_lcm_op_occs_data(id, vnf_instance.id)
+
+        # metadata: key is None
+        self.body_data['metadata'] = {'key': None}
+
+        vnf_instance.update(self.context, vnf_lcm_opoccs, self.body_data,
+            self.vnfd_pkg_data, vnf_instance_data['vnfd_id'])
+
+        vnf_instance_by_id = objects.VnfInstance.get_by_id(
+            self.context, vnf_instance.id)
+        self.assertEqual({}, vnf_instance_by_id['vnf_metadata'])
+
+    @mock.patch.object(objects.vnf_package.VnfPackage, 'get_by_id')
+    def test_update_metadata_not_dict(self, mock_get_by_id):
+        mock_get_by_id.return_value = (
+            fakes_vnflcm.return_vnf_package_with_deployment_flavour())
+        vnf_instance_data = fakes.get_vnf_instance_data(
+            self.vnf_package.vnfd_id)
+        vnf_instance = objects.VnfInstance(context=self.context,
+                                           **vnf_instance_data)
+        vnf_instance.create()
+        id = uuidutils.generate_uuid()
+        vnf_lcm_opoccs = fakes.get_lcm_op_occs_data(id, vnf_instance.id)
+
+        # metadata not dict
+        self.body_data['metadata'] = []
+
+        vnf_instance.update(self.context, vnf_lcm_opoccs, self.body_data,
+            self.vnfd_pkg_data, vnf_instance_data['vnfd_id'])
+
+        vnf_instance_by_id = objects.VnfInstance.get_by_id(
+            self.context, vnf_instance.id)
+        self.assertEqual(vnf_instance_data['vnf_metadata'],
+            vnf_instance_by_id['vnf_metadata'])
+
+    @mock.patch.object(objects.vnf_package.VnfPackage, 'get_by_id')
+    def test_update_vim_connection_info_change_element(self, mock_get_by_id):
+        mock_get_by_id.return_value = (
+            fakes_vnflcm.return_vnf_package_with_deployment_flavour())
+        vnf_instance_data = fakes.get_vnf_instance_data(
+            self.vnf_package.vnfd_id)
+        vnf_instance = objects.VnfInstance(context=self.context,
+                                           **vnf_instance_data)
+        vnf_instance.create()
+        id = uuidutils.generate_uuid()
+        vnf_lcm_opoccs = fakes.get_lcm_op_occs_data(id, vnf_instance.id)
+
+        # register vim_connection_info before changing
+        vnf_instance.update(self.context, vnf_lcm_opoccs, self.body_data,
+            self.vnfd_pkg_data, vnf_instance_data['vnfd_id'])
+
+        # vim_connection_info: change element and add new id
+        self.body_data['vim_connection_info'] = [
+            # change element
+            {
+                'id': 'd24f9796-a8e9-4cb0-85ce-5920dc100001',
+                'vim_id': '85355a9f-9ecf-481c-bf65-451677a9ee82',
+                'vim_type': 'test',
+                'interface_info': {},
+                'access_info': {},
+                'extra': {'key': 'value_chg'}
+            },
+            # add new id
+            {
+                'id': 'd24f9796-a8e9-4cb0-85ce-5920dc100002',
+                'vim_id': '85355a9f-9ecf-481c-bf65-451677a9ee82',
+                'vim_type': 'test',
+                'interface_info': {},
+                'access_info': {},
+                'extra': {'key': 'value'}
+            }
+        ]
+        id = uuidutils.generate_uuid()
+        vnf_lcm_opoccs = fakes.get_lcm_op_occs_data(id, vnf_instance.id)
+        vnf_instance.update(self.context, vnf_lcm_opoccs, self.body_data,
+            self.vnfd_pkg_data, vnf_instance_data['vnfd_id'])
+
+        vnf_instance_by_id = objects.VnfInstance.get_by_id(
+            self.context, vnf_instance.id)
+        for i in range(0, len(vnf_instance_by_id['vim_connection_info'])):
+            self.assertDictEqual(
+                self.body_data['vim_connection_info'][i],
+                vnf_instance_by_id['vim_connection_info'][i].to_dict()
+            )
+
+    @mock.patch.object(objects.vnf_package.VnfPackage, 'get_by_id')
+    def test_update_vim_connection_info_no_change_existing_id(
+            self, mock_get_by_id):
+        mock_get_by_id.return_value = (
+            fakes_vnflcm.return_vnf_package_with_deployment_flavour())
+        vnf_instance_data = fakes.get_vnf_instance_data(
+            self.vnf_package.vnfd_id)
+        vnf_instance = objects.VnfInstance(context=self.context,
+                                           **vnf_instance_data)
+        vnf_instance.create()
+        id = uuidutils.generate_uuid()
+        vnf_lcm_opoccs = fakes.get_lcm_op_occs_data(id, vnf_instance.id)
+
+        # register vim_connection_info before changing
+        self.body_data['vim_connection_info'] = [
+            {
+                'id': 'd24f9796-a8e9-4cb0-85ce-5920dc100001',
+                'vim_id': '85355a9f-9ecf-481c-bf65-451677a9ee82',
+                'vim_type': 'test',
+                'interface_info': {},
+                'access_info': {},
+                'extra': {'key': 'value'}
+            },
+            {
+                'id': 'd24f9796-a8e9-4cb0-85ce-5920dc100002',
+                'vim_id': '85355a9f-9ecf-481c-bf65-451677a9ee82',
+                'vim_type': 'test',
+                'interface_info': {},
+                'access_info': {},
+                'extra': {'key': 'value'},
+            }
+        ]
+        vnf_instance.update(self.context, vnf_lcm_opoccs, self.body_data,
+            self.vnfd_pkg_data, vnf_instance_data['vnfd_id'])
+        vnf_instance_by_id_before = objects.VnfInstance.get_by_id(
+            self.context, vnf_instance.id)
+
+        # vim_connection_info: no change of existing id and add new element
+        self.body_data['vim_connection_info'] = [
+            # no change of id: d24f9796-a8e9-4cb0-85ce-5920dc100001
+            # add new element
+            {
+                'id': 'd24f9796-a8e9-4cb0-85ce-5920dc100002',
+                'vim_id': '85355a9f-9ecf-481c-bf65-451677a9ee82',
+                'vim_type': 'test',
+                'interface_info': {},
+                'access_info': {},
+                'extra': {'key': 'value_chg'},
+                'dummy': {},  # add
+            }
+        ]
+        id = uuidutils.generate_uuid()
+        vnf_lcm_opoccs = fakes.get_lcm_op_occs_data(id, vnf_instance.id)
+        vnf_instance.update(self.context, vnf_lcm_opoccs, self.body_data,
+            self.vnfd_pkg_data, vnf_instance_data['vnfd_id'])
+
+        vnf_instance_by_id_after = objects.VnfInstance.get_by_id(
+            self.context, vnf_instance.id)
+        # dummy element can't be registered
+        self.body_data['vim_connection_info'][0].pop('dummy')
+        self.assertDictEqual(
+            self.body_data['vim_connection_info'][0],
+            vnf_instance_by_id_after['vim_connection_info'][0].to_dict()
+        )
+        self.assertDictEqual(
+            vnf_instance_by_id_before['vim_connection_info'][0].to_dict(),
+            vnf_instance_by_id_after['vim_connection_info'][1].to_dict()
+        )

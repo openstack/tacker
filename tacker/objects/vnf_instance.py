@@ -209,26 +209,24 @@ def _merge_vim_connection_info(
 
     result = []
     clone_pre_list = copy.deepcopy(pre_vim_connection_info_list)
-
     for update_vim_connection in update_vim_connection_info_list:
         pre_data = None
-        for i in range(0, len(clone_pre_list) - 1):
-            if clone_pre_list[i].id == update_vim_connection.get('id'):
+        for i, clone_pre in enumerate(clone_pre_list):
+            if clone_pre.id == update_vim_connection.get('id'):
                 pre_data = clone_pre_list.pop(i)
 
         if pre_data is None:
             # new elm.
-            result.append(objects.VimConnectionInfo._from_dict(
-                update_vim_connection))
+            result.append(update_vim_connection)
             continue
 
         convert_dict = pre_data.to_dict()
         update_nested_element(convert_dict, update_vim_connection)
-        result.append(objects.VimConnectionInfo._from_dict(
-            convert_dict))
+        result.append(convert_dict)
 
     # Reflecting unupdated data
-    result.extend(clone_pre_list)
+    for clone_pre in clone_pre_list:
+        result.append(clone_pre.to_dict())
 
     return result
 
@@ -241,15 +239,31 @@ def _update_vnf_instances(
         vnfd_pkg_data,
         vnfd_id):
     updated_values = {}
-    updated_values['vnf_instance_name'] = body_data.get('vnf_instance_name')
-    updated_values['vnf_instance_description'] = body_data.get(
-        'vnf_instance_description')
+    if body_data.get('vnf_instance_name'):
+        updated_values['vnf_instance_name'] = body_data.get(
+            'vnf_instance_name')
+    if body_data.get('vnf_instance_description'):
+        updated_values['vnf_instance_description'] = body_data.get(
+            'vnf_instance_description')
 
     # get vnf_instances
-    vnf_instance = _get_vnf_instance(context, vnfd_id)
+    vnf_instance_id = vnf_lcm_opoccs.get('vnf_instance_id')
+    vnf_instance = objects.vnf_instance.VnfInstance.get_by_id(
+        context, vnf_instance_id)
+
     if body_data.get('metadata'):
-        vnf_instance.vnf_metadata.update(body_data.get('metadata'))
-        updated_values['vnf_metadata'] = vnf_instance.vnf_metadata
+        # NOTE: Not store `configmap_secret_paths` which may be specified in
+        #       metadata for the CNF Update operation.
+        # Reason:
+        # - It is assumed that value of `configmap_secret_paths` is list type.
+        #   But, type of `VnfInstance.vnf_metadata` to be stored in the DB
+        #   is `DictOfStringsField`, that is to say, value of
+        #   `configmap_secret_paths` should be string type.
+        # - Also, `configmap_secret_paths` is not currently stored in the DB
+        #   and is only used in mgmtDriver.
+        body_data['metadata'].pop('configmap_secret_paths', None)
+        updated_values['vnf_metadata'] = utils.json_merge_patch(
+            vnf_instance.vnf_metadata, body_data.get('metadata'))
 
     if body_data.get('vim_connection_info'):
         merge_vim_connection_info = _merge_vim_connection_info(

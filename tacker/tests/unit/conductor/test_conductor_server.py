@@ -164,6 +164,18 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         body_data['vnf_configurable_properties'] = {"test": "test_value"}
         body_data['vnfc_info_modifications_delete_ids'] = ["test1"]
         body_data['vnf_pkg_id'] = uuidsentinel.vnf_pkg_id
+        body_data['metadata'] = {"test_meta": "test_meta_value"}
+        body_data['vim_connection_info'] = [
+            {
+                "id": "d24f9796-a8e9-4cb0-85ce-5920dc100001",
+                "vim_id": "85355a9f-9ecf-481c-bf65-451677a9ee82",
+                "vim_type": "test",
+                "interface_info": {},
+                "access_info": {},
+                "extra": {"test": "test1"}
+            }
+        ]
+
         return body_data
 
     def _create_vnf_lcm_opoccs(self):
@@ -3594,15 +3606,20 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         cfg.CONF.set_override('test_callback_uri', False,
                               group='vnf_lcm')
 
-    @mock.patch.object(conductor_server, 'revert_update_lcm')
+    @mock.patch.object(objects.vnf_instance.VnfInstance, "get_by_id")
     @mock.patch.object(t_context.get_admin_context().session, "add")
     @mock.patch.object(objects.vnf_lcm_op_occs.VnfLcmOpOcc, "save")
     @mock.patch.object(objects.vnf_lcm_op_occs.VnfLcmOpOcc, "create")
-    def test_update(self, mock_create, mock_save, mock_add,
-                    mock_revert):
+    def test_update(self, mock_create, mock_save, mock_add, mock_get_by_id):
         mock_create.return_value = "OK"
         mock_add.return_value = "OK"
         mock_save.return_value = "OK"
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        vnf_instance = objects.vnf_instance.VnfInstance(context=self.context,
+            **vnf_instance_data)
+        mock_get_by_id.return_value = vnf_instance
         vnfd_id = "2c69a161-0000-4b0f-bcf8-391f8fc76600"
 
         self.conductor.update(
@@ -3612,19 +3629,25 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             self.vnfd_pkg_data,
             vnfd_id)
 
-    @mock.patch.object(conductor_server, 'revert_update_lcm')
+    @mock.patch.object(objects.vnf_instance.VnfInstance, "get_by_id")
     @mock.patch.object(t_context.get_admin_context().session, "add")
     @mock.patch.object(objects.vnf_lcm_op_occs.VnfLcmOpOcc, "save")
-    @mock.patch.object(objects.VnfInstance, "update")
+    @mock.patch.object(objects.vnf_instance.VnfInstance, "update")
     @mock.patch.object(objects.vnf_lcm_op_occs.VnfLcmOpOcc, "create")
     def test_update_lcm_with_vnf_pkg_id(self, mock_create,
                                         mock_update, mock_save,
-                                        mock_add, mock_revert):
+                                        mock_add, mock_get_by_id):
         mock_create.return_value = "OK"
         mock_update.return_value = datetime.datetime(
             1900, 1, 1, 1, 1, 1, tzinfo=iso8601.UTC)
         mock_add.return_value = "OK"
         mock_save.return_value = "OK"
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        vnf_instance = objects.vnf_instance.VnfInstance(context=self.context,
+            **vnf_instance_data)
+        mock_get_by_id.return_value = vnf_instance
         vnfd_id = "2c69a161-0000-4b0f-bcf8-391f8fc76600"
 
         self.conductor.update(
@@ -3634,19 +3657,25 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             self.vnfd_pkg_data,
             vnfd_id)
 
-    @mock.patch.object(conductor_server, 'revert_update_lcm')
+    @mock.patch.object(objects.vnf_instance.VnfInstance, "get_by_id")
     @mock.patch.object(t_context.get_admin_context().session, "add")
     @mock.patch.object(objects.vnf_lcm_op_occs.VnfLcmOpOcc, "save")
-    @mock.patch.object(objects.VnfInstance, "update")
+    @mock.patch.object(objects.vnf_instance.VnfInstance, "update")
     @mock.patch.object(objects.vnf_lcm_op_occs.VnfLcmOpOcc, "create")
     def test_update_lcm_without_vnf_instance_name(self, mock_create,
                                         mock_update, mock_save,
-                                        mock_add, mock_revert):
+                                        mock_add, mock_get_by_id):
         mock_create.return_value = "OK"
         mock_update.return_value = datetime.datetime(
             1900, 1, 1, 1, 1, 1, tzinfo=iso8601.UTC)
         mock_add.return_value = "OK"
         mock_save.return_value = "OK"
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        vnf_instance = objects.vnf_instance.VnfInstance(context=self.context,
+            **vnf_instance_data)
+        mock_get_by_id.return_value = vnf_instance
         vnfd_id = "2c69a161-0000-4b0f-bcf8-391f8fc76600"
         self.body_data.pop('vnf_instance_name')
         self.conductor.update(
@@ -3656,19 +3685,25 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             self.vnfd_pkg_data,
             vnfd_id)
 
-    @mock.patch.object(conductor_server, 'revert_update_lcm')
+    @mock.patch.object(objects.vnf_instance.VnfInstance, "get_by_id")
     @mock.patch.object(t_context.get_admin_context().session, "add")
     @mock.patch.object(objects.vnf_lcm_op_occs.VnfLcmOpOcc, "save")
-    @mock.patch.object(objects.VnfInstance, "update")
+    @mock.patch.object(objects.vnf_instance.VnfInstance, "update")
     @mock.patch.object(objects.vnf_lcm_op_occs.VnfLcmOpOcc, "create")
     def test_update_lcm_without_vnf_instance_description(self, mock_create,
                                                   mock_update, mock_save,
-                                                  mock_add, mock_revert):
+                                                  mock_add, mock_get_by_id):
         mock_create.return_value = "OK"
         mock_update.return_value = datetime.datetime(
             1900, 1, 1, 1, 1, 1, tzinfo=iso8601.UTC)
         mock_add.return_value = "OK"
         mock_save.return_value = "OK"
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        vnf_instance = objects.vnf_instance.VnfInstance(context=self.context,
+            **vnf_instance_data)
+        mock_get_by_id.return_value = vnf_instance
         vnfd_id = "2c69a161-0000-4b0f-bcf8-391f8fc76600"
         self.body_data.pop('vnf_instance_description')
         self.conductor.update(
