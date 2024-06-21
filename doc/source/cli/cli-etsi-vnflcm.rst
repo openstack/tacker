@@ -329,7 +329,7 @@ Result:
   |                             |     {                                                                                                                |
   |                             |         "id": "e24f9796-a8e9-4cb0-85ce-5920dcddafa1",                                                                |
   |                             |         "vimId": "fa9fa87e-8be2-425d-85e1-08778d82d95f",                                                             |
-  |                             |         "vimType": "ETSINFV.OPENSTACK_KEYSTONE.v_2",                                                                 |
+  |                             |         "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_2",                                                                 |
   |                             |         "interfaceInfo": {},                                                                                         |
   |                             |         "accessInfo": {},                                                                                            |
   |                             |         "extra": {}                                                                                                  |

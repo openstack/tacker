@@ -546,7 +546,7 @@ class BaseEnhancedPolicyTest(object):
         else:
             raise Exception('vim_user_project_map is needed.')
         image_name = "cirros-0.5.2-x86_64-disk"
-        image_path = test_etc_sample("nfv/common/Files/images",
+        image_path = test_etc_sample("etsi/nfv/common/Files/images",
                                      f"{image_name}.img")
         image_data = {
             'disk_format': 'qcow2',

@@ -75,7 +75,7 @@ class ChangeExtConnRequestTestCase(base.TestCase):
         vim_connection_info = [{
             "id": "6b0ff598-60d6-49b4-a907-a1111de52d92",
             "vim_id": uuidsentinel.vim_id,
-            "vim_type": "ETSINFV.OPENSTACK_KEYSTONE.v_2",
+            "vim_type": "ETSINFV.OPENSTACK_KEYSTONE.V_2",
             "interface_info": {
                 "endpoint": "endpoint_value"},
             "access_info": {

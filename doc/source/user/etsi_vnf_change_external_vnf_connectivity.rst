@@ -83,7 +83,7 @@ definition file before running command for changing the connectivity.
       "vimConnectionInfo": [
           {
               "id": "79a97d01-e5f3-4eaa-b2bc-8f513ecb8a56",
-              "vimType": "ETSINFV.OPENSTACK_KEYSTONE.v_2",
+              "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_2",
               "vimConnectionId": "79a97d01-e5f3-4eaa-b2bc-8f513ecb8a56",
               "interfaceInfo": {
                   "endpoint": "http://127.0.0.1/identity"

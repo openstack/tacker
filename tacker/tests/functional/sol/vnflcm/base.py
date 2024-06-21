@@ -201,7 +201,7 @@ def _create_instantiate_vnf_request_body(flavour_id,
         request_body["vimConnectionInfo"] = [
             {"id": uuidutils.generate_uuid(),
                 "vimId": vim_id,
-                "vimType": "ETSINFV.OPENSTACK_KEYSTONE.v_2"}]
+                "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_2"}]
 
     if add_params:
         request_body["additionalParams"] = add_params

@@ -25,7 +25,7 @@
     ],
     "vimConnectionInfo": [{
             "id": "3cc2c4ff-525c-48b4-94c9-29247223322f",
-            "vimType": "ETSINFV.OPENSTACK_KEYSTONE.v_2",
+            "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_2",
             "vimConnectionId": "c3369b54-e376-4423-bb61-afd255900fea",
             "interfaceInfo": {
                 "endpoint": "http://127.0.0.1/identity"

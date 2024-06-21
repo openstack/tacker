@@ -212,7 +212,7 @@ class VnfInstances:
                 ext_mngd_networks_id),
             "vimConnectionInfo": [{
                 "id": uuidsentinel.vim_connection_id,
-                "vimType": "ETSINFV.OPENSTACK_KEYSTONE.v_2",
+                "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_2",
                 "vimConnectionId": uuidsentinel.vim_connection_id,
                 "interfaceInfo": {
                     "endpoint": "http://127.0.0.1/identity"
