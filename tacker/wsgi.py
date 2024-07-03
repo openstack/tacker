@@ -207,18 +207,17 @@ class Server(object):
                                      ": %s") % CONF.ssl_ca_file)
 
         def wrap_ssl(sock):
-            ssl_kwargs = {
-                'server_side': True,
-                'certfile': CONF.ssl_cert_file,
-                'keyfile': CONF.ssl_key_file,
-                'cert_reqs': ssl.CERT_NONE,
-            }
+            ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+            ssl_context.load_cert_chain(CONF.ssl_cert_file, CONF.ssl_key_file)
 
             if CONF.ssl_ca_file:
-                ssl_kwargs['ca_certs'] = CONF.ssl_ca_file
-                ssl_kwargs['cert_reqs'] = ssl.CERT_REQUIRED
+                ssl_context.verify_mode = ssl.CERT_REQUIRED
+                ssl_context.load_verify_locations(CONF.ssl_ca_file)
+            else:
+                ssl_context.check_hostname = False
+                ssl_context.verify_mode = ssl.CERT_NONE
 
-            return ssl.wrap_socket(sock, **ssl_kwargs)
+            return ssl_context.wrap_socket(sock, server_side=True)
 
         sock = None
         retry_until = time.time() + CONF.retry_until_window
