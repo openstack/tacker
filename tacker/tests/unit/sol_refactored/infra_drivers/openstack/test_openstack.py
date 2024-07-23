@@ -24,6 +24,7 @@ from tacker import context
 from tacker.sol_refactored.common import config
 from tacker.sol_refactored.common import exceptions as sol_ex
 from tacker.sol_refactored.common import vnfd_utils
+from tacker.sol_refactored.infra_drivers.openstack import nova_utils
 from tacker.sol_refactored.infra_drivers.openstack import openstack
 from tacker.sol_refactored import objects
 from tacker.sol_refactored.objects.v2 import fields
@@ -4758,3 +4759,46 @@ class TestOpenstack(base.BaseTestCase):
         # execute
         result = self.driver._get_additional_vdu_id(grant_req, inst)
         self.assertEqual({'VDU1-1', 'VDU1-2'}, result)
+
+    def test_nova_utils_init_no_verify(self):
+        """Test in case `verify` is False.
+
+        `verify` is False when not specifying `nova_verify_cert` and
+        `nova_ca_cert_file`.
+        """
+        vim_info = objects.VimConnectionInfo.from_dict(
+            _vim_connection_info_example)
+        nova_client = nova_utils.NovaClient(vim_info)
+        verify = nova_client.client.auth_handle.verify
+        self.assertEqual(False, verify)
+
+    def test_nova_utils_init_verify(self):
+        """Test in case `verify` is ca_cert path.
+
+        `verify` is ca_cert path when specifying `nova_verify_cert` and
+        `nova_ca_cert_file`.
+        """
+        CONF.v2_vnfm.nova_verify_cert = True
+        ca_cert_path = 'ca_cert_path'
+        CONF.v2_vnfm.nova_ca_cert_file = ca_cert_path
+
+        vim_info = objects.VimConnectionInfo.from_dict(
+            _vim_connection_info_example)
+        nova_client = nova_utils.NovaClient(vim_info)
+        verify = nova_client.client.auth_handle.verify
+        self.assertEqual(ca_cert_path, verify)
+
+    def test_nova_utils_init_verify_no_ca_cert_file(self):
+        """Test in case `verify` is True.
+
+        `verify` is True when specifying `nova_verify_cert` but
+        not specifying `nova_ca_cert_file`.
+        """
+        CONF.v2_vnfm.nova_verify_cert = True
+        CONF.v2_vnfm.nova_ca_cert_file = ''
+
+        vim_info = objects.VimConnectionInfo.from_dict(
+            _vim_connection_info_example)
+        nova_client = nova_utils.NovaClient(vim_info)
+        verify = nova_client.client.auth_handle.verify
+        self.assertEqual(True, verify)

@@ -134,7 +134,15 @@ VNFM_OPTS = [
     cfg.StrOpt('tf_file_dir',
              default='/var/lib/tacker/terraform',
              help=_('Temporary directory for Terraform infra-driver to '
-                    'store terraform config files'))
+                    'store terraform config files')),
+    cfg.BoolOpt('nova_verify_cert',
+                default=False,
+                help=_('Enable certificate verification during SSL/TLS '
+                       'communication to nova server.')),
+    cfg.StrOpt('nova_ca_cert_file',
+               default='',
+               help=_('Specifies the root CA certificate to use when the '
+                      'nova_verify_cert option is True.'))
 ]
 
 CONF.register_opts(VNFM_OPTS, 'v2_vnfm')
