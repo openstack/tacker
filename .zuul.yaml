@@ -234,8 +234,26 @@
       Multinodes job for SOL devstack-based functional tests for vnflcm
     host-vars:
       controller-tacker:
+        devstack_local_conf:
+          post-config:
+            $TACKER_CONF:
+              database:
+                max_pool_size: 0
         tox_envlist: dsvm-functional-sol-vnflcm
-    voting: false
+
+- job:
+    name: tacker-functional-devstack-multinode-sol-vnflcm-userdata
+    parent: tacker-functional-devstack-multinode-sol-parent
+    description: |
+      Multinodes job for SOL devstack-based functional tests for vnflcm with userdata
+    host-vars:
+      controller-tacker:
+        devstack_local_conf:
+          post-config:
+            $TACKER_CONF:
+              database:
+                max_pool_size: 0
+        tox_envlist: dsvm-functional-sol-vnflcm-userdata
 
 - job:
     name: tacker-functional-devstack-multinode-sol-vnfpkgm
@@ -599,8 +617,12 @@
       Multinodes job for SOL Kubernetes Multi tenant devstack-based functional tests
     host-vars:
       controller-tacker:
+        devstack_local_conf:
+          post-config:
+            $TACKER_CONF:
+              database:
+                max_pool_size: 0
         tox_envlist: dsvm-functional-sol-kubernetes
-    voting: false
 
 - job:
     name: tacker-functional-devstack-multinode-sol-kubernetes-multi-tenant
@@ -832,6 +854,7 @@
       jobs:
         - tacker-functional-devstack-multinode-sol-legacy-nfvo
         - tacker-functional-devstack-multinode-sol-vnflcm
+        - tacker-functional-devstack-multinode-sol-vnflcm-userdata
         - tacker-functional-devstack-multinode-sol-vnfpkgm
         - tacker-functional-devstack-multinode-sol-separated-nfvo
         - tacker-functional-devstack-multinode-sol-kubernetes
