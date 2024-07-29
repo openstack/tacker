@@ -33,8 +33,8 @@ image_path = test_utils.test_etc_sample("etsi/nfv/common/Files/images",
     "cirros-0.5.2-x86_64-disk.img")
 
 # tacker/sol_refactored/infra_drivers/openstack/userdata_standard.py
-# samples/functional/sol_v2_common/sampleX
-userdata_dir = "../../../../tacker/sol_refactored/infra_drivers/openstack/"
+# samples/tests/functional/sol_v2_common/sampleX
+userdata_dir = "../../../../../tacker/sol_refactored/infra_drivers/openstack/"
 userdata_file = "userdata_standard.py"
 userdata_path = os.path.abspath(userdata_dir + userdata_file)
 

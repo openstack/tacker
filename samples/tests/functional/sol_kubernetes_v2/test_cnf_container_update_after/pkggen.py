@@ -31,7 +31,7 @@ vnfd_id = uuidutils.generate_uuid()
 # samples/tests/functional/sol_kubernetes_v2/{package_name}
 cur_dir = os.path.dirname(__file__)
 mgmt_driver_path = os.path.join(
-    cur_dir, '../../../../tacker/sol_refactored',
+    cur_dir, '../../../../../tacker/sol_refactored',
     'mgmt_drivers/container_update_mgmt_v2.py')
 utils.make_zip(".", tmp_dir, vnfd_id, mgmt_driver=mgmt_driver_path)
 

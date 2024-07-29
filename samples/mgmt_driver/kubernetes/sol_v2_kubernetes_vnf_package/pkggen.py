@@ -41,8 +41,8 @@ tmp_contents = os.path.join(tmp_dir, "contents")
 shutil.copytree(os.path.join(".", "contents"), tmp_contents)
 
 # add userdata script
-# tacker/sol_refactored/infra_drivers/openstack/userdata_standard.py
-userdata_dir = "../../../../tacker/sol_refactored/infra_drivers/openstack/"
+# tacker/tests/sol_refactored/infra_drivers/openstack/userdata_standard.py
+userdata_dir = "../../../../../tacker/sol_refactored/infra_drivers/openstack/"
 userdata_file = "userdata_standard.py"
 userdata_path = os.path.abspath(userdata_dir + userdata_file)
 # mkdir UserData/ and copy userdata_path into it

@@ -29,8 +29,8 @@ zip_file_name = os.path.basename(os.path.abspath(".")) + '.zip'
 tmp_dir = tempfile.mkdtemp()
 
 # tacker/sol_refactored/infra_drivers/openstack/userdata_standard.py
-# samples/functional/sol_v2_common/sampleX
-userdata_dir = "../../../../tacker/sol_refactored/infra_drivers/openstack/"
+# samples/tests/functional/sol_v2_common/sampleX
+userdata_dir = "../../../../../tacker/sol_refactored/infra_drivers/openstack/"
 userdata_file = "userdata_standard.py"
 userdata_path = os.path.abspath(userdata_dir + userdata_file)
 
