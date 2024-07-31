@@ -56,6 +56,12 @@ class BaseSolV2Test(base_v2.BaseTackerTestV2):
                                           userdata_path=userdata_path,
                                           provider=provider, vnfd_id=vnfd_id)
 
+    @classmethod
+    def upload_vnf_package(cls, zip_file_path, nfvo=False, user_data={}):
+
+        return super().upload_vnf_package(zip_file_path, nfvo=nfvo,
+                                        user_data=user_data)
+
     def get_network_ids(self, networks):
         path = "/v2.0/networks"
         resp, body = self.neutron_client.do_request(path, "GET")

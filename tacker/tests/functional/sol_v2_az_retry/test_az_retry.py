@@ -28,14 +28,7 @@ class AzRetryTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         image_path = utils.test_etc_sample("etsi/nfv/common/Files/images",
             "cirros-0.5.2-x86_64-disk.img")
 
-        # tacker/tests/functional/sol_v2_az_retry(here)
-        #       /sol_refactored
-        cur_dir = os.path.dirname(__file__)
-        userdata_dir = os.path.join(
-            cur_dir, "../../../sol_refactored/infra_drivers/openstack")
-        userdata_file = "userdata_standard.py"
-        userdata_path = os.path.abspath(
-            os.path.join(userdata_dir, userdata_file))
+        userdata_path = utils.userdata("userdata_standard.py")
 
         # for update_stack_retry test
         pkg_path_1 = utils.test_sample(

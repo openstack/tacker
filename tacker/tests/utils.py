@@ -26,14 +26,15 @@ import zipfile
 
 from oslo_log import log as logging
 from oslo_utils import uuidutils
+from tacker.common import utils
 
 
 LOG = logging.getLogger(__name__)
 
 
 def sample_root():
-    return os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                        '../../samples'))
+    return os.path.abspath(os.path.join(utils.proj_root(),
+                                        'samples'))
 
 
 def _test_sample_root():
@@ -48,6 +49,26 @@ def test_sample(*p):
 def test_etc_sample(*p):
     # {tacker_root}/samples/tests/etc/samples
     return test_sample('etc/samples', *p)
+
+
+def _userdata_root():
+    # {tacker_root}/tacker/sol_refactored/infra_drivers/openstack
+    return os.path.abspath(os.path.join(utils.proj_root(),
+                        'tacker/sol_refactored/infra_drivers/openstack'))
+
+
+def userdata(*p):
+    return os.path.join(_userdata_root(), *p)
+
+
+def _mgmt_drivers_root():
+    # {tacker_root}/tacker/sol_refactored/mgmt_drivers
+    return os.path.abspath(os.path.join(utils.proj_root(),
+                        'tacker/sol_refactored/mgmt_drivers'))
+
+
+def mgmt_drivers(*p):
+    return os.path.join(_mgmt_drivers_root(), *p)
 
 
 def read_file(input_file):

@@ -16,10 +16,10 @@
 import os
 import subprocess
 
-from tacker.common import utils as tacker_utils
 import tacker.conf
 from tacker.tests.functional.sol_v2_common import paramgen
 from tacker.tests.functional.sol_v2_common import test_vnflcm_basic_common
+from tacker.tests.functional.sol_v2_common import zipgen
 from tacker.tests import utils
 
 
@@ -49,20 +49,11 @@ class IndividualVnfcMgmtTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         image_path = utils.test_etc_sample("etsi/nfv/common/Files/images",
             "cirros-0.5.2-x86_64-disk.img")
 
-        # tacker/tests/functional/sol_v2(here)
-        #       /sol_refactored
-        cur_dir = os.path.dirname(__file__)
-        userdata_dir = os.path.join(
-            cur_dir, "{}/tacker/sol_refactored/infra_drivers/openstack".format(
-                tacker_utils.proj_root()))
-        userdata_file = "userdata_standard.py"
-        userdata_path = os.path.join(userdata_dir, userdata_file)
+        userdata_path = utils.userdata("userdata_standard.py")
 
         # main vnf package for StandardUserData test
-        pkg_path_1 = utils.test_sample("functional/sol_v2_common",
-                                       "userdata_standard")
-        cls.standard_pkg, cls.standard_vnfd_id = cls.create_vnf_package(
-            pkg_path_1, image_path=image_path, userdata_path=userdata_path)
+        cls.standard_vnfd_id, zip_path = zipgen.userdata_standard()
+        cls.standard_pkg = cls.upload_vnf_package(zip_path)
 
         # for change_vnfpkg test
         pkg_path_2 = utils.test_sample("functional/sol_v2_common",

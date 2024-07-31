@@ -20,8 +20,8 @@ import string
 import tempfile
 
 from tacker.tests.functional.sol_v2_common import paramgen
-from tacker.tests.functional.sol_v2_common import utils
-from tacker.tests import utils as test_utils
+from tacker.tests.functional.sol_v2_common import utils as common_utils
+from tacker.tests import utils
 
 
 SUPPORT_STRING_FOR_VNFD_ID = string.ascii_letters + string.digits + "-._ "
@@ -29,16 +29,13 @@ vnfd_id = SUPPORT_STRING_FOR_VNFD_ID + "upd_max_vnfd_id"
 zip_file_name = os.path.basename(os.path.abspath(".")) + '.zip'
 tmp_dir = tempfile.mkdtemp()
 
-image_path = test_utils.test_etc_sample("etsi/nfv/common/Files/images",
+image_path = utils.test_etc_sample("etsi/nfv/common/Files/images",
     "cirros-0.5.2-x86_64-disk.img")
 
 # tacker/sol_refactored/infra_drivers/openstack/userdata_standard.py
-# samples/tests/functional/sol_v2_common/sampleX
-userdata_dir = "../../../../../tacker/sol_refactored/infra_drivers/openstack/"
-userdata_file = "userdata_standard.py"
-userdata_path = os.path.abspath(userdata_dir + userdata_file)
+userdata_path = utils.userdata("userdata_standard.py")
 
-utils.make_zip(".", tmp_dir, vnfd_id, image_path=image_path,
+common_utils.make_zip(".", tmp_dir, vnfd_id, image_path=image_path,
                userdata_path=userdata_path)
 
 shutil.copy(os.path.join(tmp_dir, zip_file_name), ".")

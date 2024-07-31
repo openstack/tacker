@@ -1,4 +1,4 @@
-# Copyright (C) 2023 Fujitsu
+# Copyright (C) 2024 Nippon Telegraph and Telephone Corporation
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -13,29 +13,32 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import json
 import os
-import shutil
 import tempfile
 
 from oslo_utils import uuidutils
-
-from tacker.tests.functional.sol_kubernetes_v2 import paramgen
 from tacker.tests.functional.sol_v2_common import utils as common_utils
 from tacker.tests import utils
 
 
-zip_file_name = os.path.basename(os.path.abspath(".")) + '.zip'
-tmp_dir = tempfile.mkdtemp()
-vnfd_id = uuidutils.generate_uuid()
-mgmt_driver_path = utils.mgmt_drivers("container_update_mgmt_v2.py")
+def userdata_standard(vnfd_id=None):
+    if vnfd_id is None:
+        vnfd_id = uuidutils.generate_uuid()
 
-common_utils.make_zip(".", tmp_dir, vnfd_id, mgmt_driver=mgmt_driver_path)
+    tmp_dir = tempfile.mkdtemp()
 
-shutil.move(os.path.join(tmp_dir, zip_file_name), ".")
-shutil.rmtree(tmp_dir)
+    sample_path = utils.test_sample(
+        "functional/sol_v2_common/userdata_standard")
 
-cnf_modify_update_req = paramgen.test_cnf_update_modify(vnfd_id)
+    image_path = utils.test_etc_sample("etsi/nfv/common/Files/images",
+        "cirros-0.5.2-x86_64-disk.img")
 
-with open("cnf_modify_update_req", "w", encoding='utf-8') as f:
-    f.write(json.dumps(cnf_modify_update_req, indent=2))
+    userdata_path = utils.userdata("userdata_standard.py")
+
+    common_utils.make_zip(sample_path, tmp_dir, vnfd_id, image_path=image_path,
+            userdata_path=userdata_path)
+
+    zip_file_name = f"{os.path.basename(os.path.abspath(sample_path))}.zip"
+    zip_file_path = os.path.join(tmp_dir, zip_file_name)
+
+    return vnfd_id, zip_file_path

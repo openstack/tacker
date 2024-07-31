@@ -18,6 +18,7 @@ import time
 
 from tacker.tests.functional.sol_kubernetes_v2 import base_v2
 from tacker.tests.functional.sol_kubernetes_v2 import paramgen
+from tacker.tests.functional.sol_kubernetes_v2 import zipgen
 from tacker.tests import utils
 
 WAIT_LCMOCC_UPDATE_TIME = 3
@@ -29,10 +30,8 @@ class VnfLcmHelmTest(base_v2.BaseVnfLcmKubernetesV2Test):
     def setUpClass(cls):
         super(VnfLcmHelmTest, cls).setUpClass()
 
-        test_helm_instantiate_path = utils.test_sample(
-            "functional/sol_kubernetes_v2/test_helm_instantiate")
-        cls.helm_pkg, cls.helm_vnfd_id = cls.create_vnf_package(
-            test_helm_instantiate_path)
+        cls.helm_vnfd_id, zip_path = zipgen.test_helm_instantiate()
+        cls.helm_pkg = cls.upload_vnf_package(zip_path)
 
         test_helm_change_vnf_pkg_path = utils.test_sample(
             "functional/sol_kubernetes_v2/test_helm_change_vnf_pkg")

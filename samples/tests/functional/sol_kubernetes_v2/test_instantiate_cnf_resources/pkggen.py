@@ -14,34 +14,27 @@
 #    under the License.
 
 import json
-import os
 import shutil
-import tempfile
-
-from oslo_utils import uuidutils
 
 from tacker.tests.functional.sol_kubernetes_v2 import paramgen
-from tacker.tests.functional.sol_v2_common import utils
+from tacker.tests.functional.sol_kubernetes_v2 import zipgen
 
 
-zip_file_name = os.path.basename(os.path.abspath(".")) + '.zip'
-tmp_dir = tempfile.mkdtemp()
-vnfd_id = uuidutils.generate_uuid()
+vnfd_id, zip_path = zipgen.test_instantiate_cnf_resources()
 
-# samples/tests/functional/sol_kubernetes_v2/{package_name}
-utils.make_zip(".", tmp_dir, vnfd_id)
-
-shutil.move(os.path.join(tmp_dir, zip_file_name), ".")
-shutil.rmtree(tmp_dir)
+shutil.move(zip_path, ".")
+shutil.rmtree(zip_path.rsplit('/', 1)[0])
 
 create_req = paramgen.test_instantiate_cnf_resources_create(vnfd_id)
 
 # if you instantiate with all k8s resource
-# please change auth_url and bear_token to your own k8s cluster's info
+# please change auth_url, bearer_token and ssl_ca_cert
+# to your own k8s cluster's info
 auth_url = "https://127.0.0.1:6443"
 bearer_token = "your_k8s_cluster_bearer_token"
+ssl_ca_cert = "k8s_ssl_ca_cert"
 max_sample_instantiate = paramgen.max_sample_instantiate(
-    auth_url, bearer_token)
+    auth_url, bearer_token, ssl_ca_cert)
 
 max_sample_terminate = paramgen.max_sample_terminate()
 max_sample_scale_out = paramgen.max_sample_scale_out()
