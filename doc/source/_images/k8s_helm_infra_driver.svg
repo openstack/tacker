@@ -1,0 +1,660 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   sodipodi:docname="k8s_helm_infra_driver.svg"
+   inkscape:version="1.0 (4035a4fb49, 2020-05-01)"
+   id="svg8"
+   version="1.1"
+   viewBox="0 0 297 210"
+   height="210mm"
+   width="297mm">
+  <defs
+     id="defs2">
+    <marker
+       inkscape:isstock="true"
+       style="overflow:visible"
+       id="TriangleOutL"
+       refX="0.0"
+       refY="0.0"
+       orient="auto"
+       inkscape:stockid="TriangleOutL">
+      <path
+         transform="scale(0.8)"
+         style="fill-rule:evenodd;stroke:#ff0000;stroke-width:1pt;stroke-opacity:1;fill:#ff0000;fill-opacity:1"
+         d="M 5.77,0.0 L -2.88,5.0 L -2.88,-5.0 L 5.77,0.0 z "
+         id="path1112" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow1Lend"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="Arrow1Lend"
+       style="overflow:visible;"
+       inkscape:isstock="true">
+      <path
+         id="path1646"
+         d="M 0.0,0.0 L 5.0,-5.0 L -12.5,0.0 L 5.0,5.0 L 0.0,0.0 z "
+         style="fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1;fill:#000000;fill-opacity:1"
+         transform="scale(0.8) rotate(180) translate(12.5,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="TriangleOutL"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="TriangleOutL-0"
+       style="overflow:visible"
+       inkscape:isstock="true">
+      <path
+         id="path1112-9"
+         d="M 5.77,0 -2.88,5 V -5 Z"
+         style="fill:#ff0000;fill-opacity:1;fill-rule:evenodd;stroke:#ff0000;stroke-width:1pt;stroke-opacity:1"
+         transform="scale(0.8)" />
+    </marker>
+  </defs>
+  <sodipodi:namedview
+     inkscape:snap-global="false"
+     inkscape:window-maximized="1"
+     inkscape:window-y="-9"
+     inkscape:window-x="-9"
+     inkscape:window-height="1373"
+     inkscape:window-width="2560"
+     showgrid="false"
+     inkscape:document-rotation="0"
+     inkscape:current-layer="layer1"
+     inkscape:document-units="mm"
+     inkscape:cy="450.4089"
+     inkscape:cx="641.78638"
+     inkscape:zoom="1.4"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0.0"
+     borderopacity="1.0"
+     bordercolor="#666666"
+     pagecolor="#ffffff"
+     id="base" />
+  <metadata
+     id="metadata5">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     id="layer1"
+     inkscape:groupmode="layer"
+     inkscape:label="レイヤー 1">
+    <rect
+       style="fill:none;stroke:#000000;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0"
+       id="rect1402-4-0-0-4-1"
+       width="292.64844"
+       height="24.498877"
+       x="2.1259387"
+       y="184.10922"
+       ry="3.3980031" />
+    <path
+       id="path991"
+       style="fill:#cccccc;stroke:#000000;stroke-width:0.225248;stroke-miterlimit:4;stroke-dasharray:none"
+       d="m 162.67059,139.55639 c 0,2.74069 -6.6653,4.96246 -14.88738,4.96246 -8.22206,0 -14.88736,-2.22177 -14.88736,-4.96246 v -19.84983 c 0,2.74069 6.6653,4.96246 14.88736,4.96246 8.22208,0 14.88738,-2.22177 14.88738,-4.96246 z m 0,-19.84983 a 14.88738,4.9624591 0 0 1 -14.88738,4.96246 14.88738,4.9624591 0 0 1 -14.88736,-4.96246 14.88738,4.9624591 0 0 1 14.88736,-4.96246 14.88738,4.9624591 0 0 1 14.88738,4.96246 z" />
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:0.3;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0"
+       id="rect1402-4"
+       width="29.764189"
+       height="29.764189"
+       x="21.695286"
+       y="54.907501" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 14.125,155.73064 c 280,0 280,0 280,0"
+       id="path1023" />
+    <path
+       id="path1023-2"
+       d="m 14.125,180.95833 c 280,0 280,0 280,0"
+       style="fill:none;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    <rect
+       y="41.885239"
+       x="16.466335"
+       height="58.537563"
+       width="125.25037"
+       id="rect1070-3"
+       style="fill:none;stroke:#000000;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:0.8, 0.8;stroke-dashoffset:0" />
+    <rect
+       style="fill:none;stroke:#000000;stroke-width:0.4;stroke-miterlimit:4;stroke-dasharray:1.6, 1.6;stroke-dashoffset:0"
+       id="rect1070-3-7"
+       width="287.37762"
+       height="129.95682"
+       x="4.5063481"
+       y="16.406326" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.3;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 48.853424,91.375737 V 155.34821"
+       id="path1160" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.52778px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       x="9.6383944"
+       y="13.418154"
+       id="text1230"><tspan
+         sodipodi:role="line"
+         id="tspan927"
+         x="9.6383944"
+         y="13.418154">VNF Instance (K8s: manifest files / Helm: chart file(xxxxx-x.x.x.tgz))</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.52777px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       x="18.652006"
+       y="38.513092"
+       id="text1230-3-0"><tspan
+         y="38.513092"
+         x="18.652006"
+         id="tspan950"
+         sodipodi:role="line">VNFC1 (Workload resources)</tspan></text>
+    <text
+       id="text1230-3-0-1"
+       y="129.84557"
+       x="139.08524"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.52777px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       xml:space="preserve"><tspan
+         sodipodi:role="line"
+         id="tspan1129"
+         x="139.08524"
+         y="129.84557">Volume/</tspan><tspan
+         sodipodi:role="line"
+         x="139.08524"
+         y="134.25528"
+         id="tspan1173">Persistent</tspan><tspan
+         sodipodi:role="line"
+         x="139.08524"
+         y="138.66499"
+         id="tspan1175">Volume</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.52777px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       x="9.6035929"
+       y="152.66193"
+       id="text1230-3-8-8-8"><tspan
+         sodipodi:role="line"
+         id="tspan1131"
+         x="9.6035929"
+         y="152.66193">Pod Network</tspan></text>
+    <text
+       id="text1230-3-8-8-8-6"
+       y="177.99081"
+       x="9.6035929"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.52777px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       xml:space="preserve"><tspan
+         y="177.99081"
+         x="9.6035929"
+         id="tspan951"
+         sodipodi:role="line">Public Network</tspan></text>
+    <rect
+       style="fill:none;stroke:#000000;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:0.8, 0.8;stroke-dashoffset:0"
+       id="rect1070-2-5"
+       width="134.05815"
+       height="74.528389"
+       x="12.25214"
+       y="32.472412" />
+    <text
+       id="text1230-3-06-3"
+       y="30.742184"
+       x="13.89531"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.52777px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583;"
+       xml:space="preserve"><tspan
+         id="tspan1070"
+         sodipodi:role="line">VDU1(Corresponds to metadata.name of the workload resource)</tspan></text>
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.3;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:1.8, 1.8;stroke-dashoffset:0;stroke-opacity:1;marker-end:url(#Arrow1Lend)"
+       d="m 186.90922,91.281245 c 8.6694,9.496115 17.75275,14.935555 28.91518,0"
+       id="path1641"
+       sodipodi:nodetypes="cc" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.52777px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       x="193.73878"
+       y="105.60387"
+       id="text1230-3-06-3-3"><tspan
+         sodipodi:role="line"
+         id="tspan1961"
+         x="193.73878"
+         y="105.60387">Scale Out</tspan><tspan
+         id="tspan1120"
+         sodipodi:role="line"
+         x="193.73878"
+         y="110.01358">(Change replicas)</tspan></text>
+    <rect
+       y="54.907497"
+       x="62.60302"
+       height="29.764193"
+       width="29.764193"
+       id="rect1402-4-2"
+       style="fill:#ffffff;stroke:#000000;stroke-width:0.3;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0" />
+    <rect
+       y="54.907497"
+       x="97.754807"
+       height="29.764193"
+       width="29.764193"
+       id="rect1402-4-0"
+       style="fill:#ffffff;stroke:#000000;stroke-width:0.3;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0" />
+    <rect
+       y="49.936646"
+       x="19.164907"
+       height="39.705898"
+       width="34.705898"
+       id="rect1402-4-5"
+       style="fill:none;stroke:#000000;stroke-width:0.3;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0" />
+    <circle
+       style="fill:#cccccc;stroke:#000000;stroke-width:0.4;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0"
+       id="path1104"
+       cx="48.66444"
+       cy="89.769348"
+       r="1.6063988" />
+    <rect
+       style="fill:none;stroke:#000000;stroke-width:0.3;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0"
+       id="rect1402-4-5-8"
+       width="74.709244"
+       height="39.564808"
+       x="57.722359"
+       y="50.007191" />
+    <circle
+       r="1.6063988"
+       cy="89.769348"
+       cx="70.445312"
+       id="path1104-5"
+       style="fill:#cccccc;stroke:#000000;stroke-width:0.4;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0" />
+    <rect
+       style="fill:#cccccc;stroke:#000000;stroke-width:0.152154;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0"
+       id="rect1402-4-0-0"
+       width="29.847845"
+       height="14.847846"
+       x="257.59143"
+       y="91.636589"
+       ry="4.3501692" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.52777px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       x="265.97485"
+       y="100.34294"
+       id="text1230-3-0-1-8"><tspan
+         sodipodi:role="line"
+         id="tspan1025"
+         x="265.97485"
+         y="100.34294">Service</tspan></text>
+    <text
+       id="text1230-3-0-1-8-9"
+       y="71.072029"
+       x="101.02007"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.52777px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       xml:space="preserve"><tspan
+         sodipodi:role="line"
+         id="tspan1065"
+         x="101.02007"
+         y="71.072029">Container2-2</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.52777px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       x="65.94149"
+       y="71.072029"
+       id="text1230-3-0-1-8-9-8"><tspan
+         id="tspan1045-0"
+         sodipodi:role="line"
+         x="65.94149"
+         y="71.072029"
+         style="stroke-width:0.264583">Container2-1</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.52777px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       x="26.959557"
+       y="71.068588"
+       id="text1230-3-0-1-8-9-2"><tspan
+         sodipodi:role="line"
+         id="tspan1085"
+         x="26.959557"
+         y="71.068588">Container1</tspan></text>
+    <text
+       id="text1230-3-0-1-8-9-2-2"
+       y="48.337029"
+       x="19.486343"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.52777px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       xml:space="preserve"><tspan
+         sodipodi:role="line"
+         id="tspan1105"
+         x="19.486343"
+         y="48.337029">Pod1</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.52777px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       x="59.200531"
+       y="47.42654"
+       id="text1230-3-0-1-8-9-2-2-3"><tspan
+         sodipodi:role="line"
+         id="tspan1125"
+         x="59.200531"
+         y="47.42654">Pod2</tspan></text>
+    <rect
+       ry="4.3501692"
+       y="32.066341"
+       x="257.59143"
+       height="14.847846"
+       width="29.847845"
+       id="rect1402-4-0-0-9"
+       style="fill:#cccccc;stroke:#000000;stroke-width:0.152154;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0" />
+    <text
+       id="text1230-3-0-1-8-5"
+       y="38.610905"
+       x="262.40143"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.52777px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       xml:space="preserve"><tspan
+         sodipodi:role="line"
+         id="tspan928"
+         x="262.40143"
+         y="38.610905">ConfigMap/</tspan><tspan
+         sodipodi:role="line"
+         x="262.40143"
+         y="43.020618"
+         id="tspan932">Secret</tspan></text>
+    <rect
+       y="54.907501"
+       x="159.84558"
+       height="29.764189"
+       width="29.764189"
+       id="rect1058"
+       style="fill:#ffffff;stroke:#000000;stroke-width:0.3;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0" />
+    <rect
+       style="fill:none;stroke:#000000;stroke-width:0.173909;stroke-miterlimit:4;stroke-dasharray:0.695635, 0.695635;stroke-dashoffset:0"
+       id="rect1060"
+       width="94.660385"
+       height="58.563656"
+       x="154.60359"
+       y="41.872192" />
+    <text
+       id="text1064"
+       y="38.513092"
+       x="156.80231"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.52777px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       xml:space="preserve"><tspan
+         y="38.513092"
+         x="156.80231"
+         id="tspan952"
+         sodipodi:role="line">VNFC2 (Workload resources)</tspan></text>
+    <rect
+       y="32.460121"
+       x="150.39014"
+       height="74.552979"
+       width="103.08869"
+       id="rect1066"
+       style="fill:none;stroke:#000000;stroke-width:0.175412;stroke-miterlimit:4;stroke-dasharray:0.70165, 0.70165;stroke-dashoffset:0" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.52777px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583;"
+       x="152.04561"
+       y="30.742184"
+       id="text1070"><tspan
+         id="tspan1072"
+         sodipodi:role="line">VDU2(Corresponds to metadata.name of the workload resource)</tspan></text>
+    <rect
+       style="fill:none;stroke:#000000;stroke-width:0.3;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0"
+       id="rect1076"
+       width="34.705898"
+       height="39.705898"
+       x="157.3152"
+       y="49.936646" />
+    <text
+       id="text1090"
+       y="71.068588"
+       x="165.10985"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.52777px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       xml:space="preserve"><tspan
+         y="71.068588"
+         x="165.10985"
+         id="tspan1088"
+         sodipodi:role="line">Container1</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.52777px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       x="157.63664"
+       y="48.337029"
+       id="text1094"><tspan
+         y="48.337029"
+         x="157.63664"
+         id="tspan1092"
+         sodipodi:role="line">Pod1</tspan></text>
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:0.3;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0"
+       id="rect1130"
+       width="29.764189"
+       height="29.764189"
+       x="212.76225"
+       y="54.907501" />
+    <rect
+       y="49.936646"
+       x="210.23187"
+       height="39.705898"
+       width="34.705898"
+       id="rect1132"
+       style="fill:none;stroke:#000000;stroke-width:0.3;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.52777px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       x="218.02652"
+       y="71.068588"
+       id="text1136"><tspan
+         sodipodi:role="line"
+         id="tspan1150"
+         x="218.02652"
+         y="71.068588">Container1'</tspan></text>
+    <text
+       id="text1140"
+       y="48.337029"
+       x="210.55331"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.52777px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       xml:space="preserve"><tspan
+         sodipodi:role="line"
+         id="tspan1148"
+         x="210.55331"
+         y="48.337029">Pod1'</tspan></text>
+    <rect
+       ry="4.3501692"
+       y="54.488148"
+       x="257.59143"
+       height="14.847846"
+       width="29.847845"
+       id="rect1402-4-0-0-1"
+       style="fill:#cccccc;stroke:#000000;stroke-width:0.152154;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.52777px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       x="261.10437"
+       y="60.971558"
+       id="text1230-3-0-1-8-5-9"><tspan
+         sodipodi:role="line"
+         id="tspan955"
+         x="261.10437"
+         y="60.971558">Persistent</tspan><tspan
+         sodipodi:role="line"
+         x="261.10437"
+         y="65.381271"
+         id="tspan977">VolumeClaim</tspan></text>
+    <rect
+       style="fill:none;stroke:#000000;stroke-width:0.3;stroke-miterlimit:4;stroke-dasharray:1.2, 1.2;stroke-dashoffset:0"
+       id="rect1066-0"
+       width="280.60083"
+       height="87.757332"
+       x="9.189167"
+       y="24.290115" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.52777px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       x="10.871501"
+       y="21.670755"
+       id="text1230-3-06-3-6"><tspan
+         sodipodi:role="line"
+         id="tspan1210"
+         x="10.871501"
+         y="21.670755">Namespace</tspan></text>
+    <circle
+       style="fill:#cccccc;stroke:#000000;stroke-width:0.4;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0"
+       id="path1104-5-3"
+       cx="173.30209"
+       cy="89.769341"
+       r="1.6063988" />
+    <circle
+       r="1.6063988"
+       cy="89.769348"
+       cx="227.91965"
+       id="path1104-5-3-3"
+       style="fill:#cccccc;stroke:#000000;stroke-width:0.4;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0" />
+    <circle
+       r="1.6063988"
+       cy="106.21131"
+       cx="272.51535"
+       id="path1104-5-3-9"
+       style="fill:#cccccc;stroke:#000000;stroke-width:0.4;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0" />
+    <path
+       id="path1160-9"
+       d="M 70.49256,91.517481 V 155.48995"
+       style="fill:none;stroke:#000000;stroke-width:0.3;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.3;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 173.68006,91.517484 V 155.48995"
+       id="path1160-9-4" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.3;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 228.01413,91.42299 v 63.97247"
+       id="path1160-9-5" />
+    <path
+       id="path1160-9-5-4"
+       d="m 272.51535,107.67321 v 48.20357"
+       style="fill:none;stroke:#000000;stroke-width:0.260414;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    <rect
+       ry="4.3501692"
+       y="160.86397"
+       x="121.66103"
+       height="14.847846"
+       width="29.847845"
+       id="rect1402-4-0-0-4"
+       style="fill:#ffffff;stroke:#000000;stroke-width:0.152154;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0" />
+    <text
+       id="text1230-3-0-1-8-2"
+       y="169.27319"
+       x="126.36338"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.52777px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       xml:space="preserve"><tspan
+         y="169.27319"
+         x="126.36338"
+         id="tspan949"
+         sodipodi:role="line">kube-proxy</tspan></text>
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.212132;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 136.58495,175.80617 v 5"
+       id="path1160-9-4-4-6" />
+    <text
+       id="text966"
+       y="120.5744"
+       x="8.6934538"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.52778px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#ff0000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       xml:space="preserve"><tspan
+         y="120.5744"
+         x="8.6934538"
+         id="tspan1042"
+         sodipodi:role="line">CPs are not managed</tspan><tspan
+         id="tspan1044"
+         y="124.98412"
+         x="8.6934538"
+         sodipodi:role="line">by Tacker</tspan></text>
+    <path
+       id="path968"
+       d="M 23.434524,116.79464 43.656249,93.36012"
+       style="fill:#ff0000;stroke:#ff0000;stroke-width:0.1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:0.3, 0.3;stroke-dashoffset:0;stroke-opacity:1;marker-end:url(#TriangleOutL)" />
+    <text
+       id="text1230-9"
+       y="6.3160124"
+       x="2.9283421"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:5.64444px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       xml:space="preserve"><tspan
+         sodipodi:role="line"
+         id="tspan988"
+         x="2.9283421"
+         y="6.3160124">VNF Related Resources (Kubernetes/Helm Infra-Driver)</tspan></text>
+    <path
+       id="path1011"
+       d="m 136.58495,155.90294 v 5"
+       style="fill:none;stroke:#000000;stroke-width:0.212132;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.52777px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#0000ff;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       x="112.85325"
+       y="37.418777"
+       id="text1230-3-2"><tspan
+         y="37.418777"
+         x="112.85325"
+         id="tspan1060"
+         sodipodi:role="line"
+         style="stroke-width:0.264583">vnfcResourceInfo</tspan></text>
+    <text
+       id="text1230-3-2-1"
+       y="37.040802"
+       x="220.76544"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.52777px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#0000ff;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       xml:space="preserve"><tspan
+         style="stroke-width:0.264583"
+         sodipodi:role="line"
+         id="tspan1060-2"
+         x="220.76544"
+         y="37.040802">vnfcResourceInfo</tspan></text>
+    <text
+       id="text1230-3-0-0"
+       y="193.89545"
+       x="10.679576"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.52777px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       xml:space="preserve"><tspan
+         y="193.89545"
+         x="10.679576"
+         id="tspan972"
+         sodipodi:role="line">Workload resources are Pod, Deployment, DaemonSet, StatefulSet and ReplicaSet.</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.52777px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       x="10.639964"
+       y="206.80197"
+       id="text1230-3-0-0-5"><tspan
+         y="206.80197"
+         x="10.639964"
+         id="tspan1063"
+         sodipodi:role="line">Grayed-out resources are included in the VNF as InstantiatedVnfInfo.metadata but are not managed by Tacker.</tspan></text>
+    <text
+       id="text1230-3-0-0-5-8"
+       y="188.82999"
+       x="6.9481773"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.52777px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       xml:space="preserve"><tspan
+         y="188.82999"
+         x="6.9481773"
+         id="tspan1046"
+         sodipodi:role="line">NOTE:</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.52777px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       x="10.828952"
+       y="198.47675"
+       id="text1230-3-0-0-6"><tspan
+         y="198.47675"
+         x="10.828952"
+         id="tspan1093"
+         sodipodi:role="line">The topology_template.node_templates.VDU_node(Node type is tosca.nodes.nfv.VDU.Compute).properties.name corresponds to metadata.name of the </tspan><tspan
+         id="tspan1095"
+         y="202.88646"
+         x="10.828952"
+         sodipodi:role="line">workload resources.</tspan></text>
+  </g>
+</svg>

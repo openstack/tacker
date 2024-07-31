@@ -2,12 +2,10 @@
 Tacker Architecture
 ===================
 
-Tacker design can be described by the following diagram:
+The following diagram shows the overview of the Tacker architecture
 
-.. figure:: ../_images/tacker-design.svg
-    :figwidth: 700 px
-    :align: left
-    :scale: 80 %
+.. figure:: /_images/tacker-design.svg
+
 
 Packages:
 
@@ -34,6 +32,77 @@ Components:
 * **InfraDriver** - is responsible for exact actions to operate OpenStack or
   Kubernates.
 
+APIs:
+
+Tacker consists of three independent versions: Legacy, v1, and v2.
+Each version is separated by API and has the following functions.
+
+.. note::
+
+  Tacker was originally designed to have both NFVO and VNFM functionalities
+  that are now called Legacy API and the most parts have already been
+  deprecated except for VIM Management which is left mainly for debugging
+  purposes.
+  ETSI NFV-SOL API, on the other hand, is a brand new design that provides
+  Generic VNFM functionality in compliance with the ETSI NFV standard.
+
+
+.. list-table:: API versions
+  :widths: 2 1 3 5
+  :header-rows: 1
+
+  * - API type
+    - Version
+    - Function
+    - ETSI NFV-SOL Version
+  * - Legacy API
+    - Legacy
+    - `VIM Management`_
+    - None
+  * - ESTI NFV-SOL API
+    - v1
+    - `v1 VNF Lyfecycle Management`_
+    - | `ETSI NFV-SOL002 2.6.1`_
+      | `ETSI NFV-SOL003 2.6.1`_
+      | `ETSI NFV-SOL013 3.4.1`_
+  * - ESTI NFV-SOL API
+    - v1
+    - `VNF Package Management`_
+    - | `ETSI NFV-SOL004 2.6.1`_
+      | `ETSI NFV-SOL005 2.6.1`_
+  * - ESTI NFV-SOL API
+    - v2
+    - `v2 VNF Lyfecycle Management`_
+    - | `ETSI NFV-SOL002 3.3.1`_ (\*1)
+      | `ETSI NFV-SOL003 3.3.1`_
+      | `ETSI NFV-SOL013 3.4.1`_ (\*2)
+  * - ESTI NFV-SOL API
+    - v2
+    - `VNF Performance Management`_
+    - | `ETSI NFV-SOL002 3.3.1`_
+      | `ETSI NFV-SOL003 3.3.1`_
+      | `ETSI NFV-SOL013 3.4.1`_ (\*2)
+  * - ESTI NFV-SOL API
+    - v2
+    - `VNF Fault Management`_
+    - | `ETSI NFV-SOL002 3.3.1`_
+      | `ETSI NFV-SOL003 3.3.1`_
+      | `ETSI NFV-SOL013 3.4.1`_ (\*2)
+
+
+(\*1)The functionality related to VNF LCM Coordination in
+Change current VNF package complies with `ETSI NFV-SOL002 3.6.1`_.
+
+(\*2)OAUTH2_CLIENT_CERT in SubscriptionAuthentication is compliant with
+`ETSI NFV-SOL013 3.5.1`_.
+
+
+.. note::
+
+  See `Tacker Horizon User Guide`_ details on APIs
+  supported by Tacker Horizon.
+
+
 Tacker Service
 --------------
 
@@ -43,65 +112,111 @@ Tacker service is composed of two main processes:
 * tacker-conductor.service
 
 *tacker.service* is a web server with Web Server Gateway Interface (WSGI)
-waiting for the REST calls to redirect them to the drivers. Some operations
-are sent to the Tacker Conductor via RPC. Two types of API are supported;
-ESTI NFV-SOL API and Legacy API.
+waiting for the REST API calls and it passes some operations to the
+*tacker-conductor.service* via RPC. Two types of API are supported;
+ETSI NFV-SOL API and Legacy API.
 
 *tacker-conductor.service* implements some complicated logic and operations
 for orchestrations and VNF managements. It is mainly responsible for ETSI
 NFV-SOL based API operations and communicates with OpenStack or Kubernetes
-VIM by the infra drivers. Heat client or Kubernetes python client provides the
-IF to operate or manage resources for each VIM.
+VIM by the infra drivers.
+
 
 ETSI NFV-SOL Tacker Implementation
 ----------------------------------
 
 Tacker ETSI NFV-SOL based implementation is described as the following:
 
-.. figure:: ../_images/tacker-design-etsi.svg
-    :figwidth: 700 px
-    :align: left
-    :width: 700 px
+.. figure:: /_images/tacker-design-etsi.svg
 
-In Ussuri release, VNF Package Management Interface in `NFV-SOL005`_ and VNF
-Lifecycle Management Interface in `NFV-SOL002`_ and `NFV-SOL003`_ are
-implemented. They provide a basic function block for VNF instances.
-
-.. TODO(yoshito-ito): add supported ETSI doc and reference
-  The supported operations and attributes are summarized in
-  :doc:`./supported-etsi-operation` and :doc:`./supported-etsi-resource`.
 
 When a REST API call is sent to tacker-server, some simple operations are
-executed in tacker-server with DB queries. The others are redirected to
+executed in tacker-server with DB queries. The others are delegated to
 `Conductor Server` via RPC, and `VNF Lifecycle Driver` calls appropriate
 infra-driver to execute the actual logics for control and management of
 virtualised resources.
 
-Tacker also provides configuring system for VNF. The mgmt-driver can be called
-by `Conductor Server`.
+Below is an example of resources created/configured when Openstack InfraDriver
+is used.
 
-.. note:: VIM related operations such as "Register VIM" and "Update VIM" are
-          not defined in ETSI NFV-SOL. Users may need to use legacy Tacker.
+.. figure:: /_images/openstack_infra_driver.svg
+
+
+OpenStack InfraDriver uses Nova Instance, Cinder Storage, Neutron Port, etc.
+as resources to configure VNFC.
+
+And below is an example of resources created/configured when Kubernetes/Helm
+InfraDriver is used.
+
+.. figure:: /_images/k8s_helm_infra_driver.svg
+
+
+Kubernetes/Helm InfraDriver uses Pods, Containers, etc. as resources
+to configure VNFC.
+In addition to these, Volume, ConfigMap, Secret, etc. are also used as
+resources to configure VNF Instance.
+
+Tacker also provides a framework to enable lifecycle hooks called mgmt-driver.
+See `v1 Management Driver`_ and `v2 Management Driver`_ for details.
+
+.. note::
+
+  VIM Management operations such as "Register VIM" and "Update VIM" are
+  not defined in ETSI NFV-SOL.
+  Users may need to use Legacy Tacker or an external NFVO.
+
 
 Legacy Tacker Implementation
 ----------------------------
 
 Legacy Tacker implementation is described as the following:
 
-.. figure:: ../_images/tacker-design-legacy.svg
-    :figwidth: 800 px
-    :align: left
-    :width: 800 px
+.. figure:: /_images/tacker-design-legacy.svg
+
 
 When a REST API call is sent to tacker-server, VNFM and NFVO plugins handle
 the request and execute connected methods in each plugin. The NFVO plugin
 invokes required vim-driver methods.
 
-.. note:: Legacy API features other than the VIM feature have been deprecated.
-          So only Nfvo receives the API from the tacker-client, but Vnfm and
-          VNFMPlugin remain because they are used by VNF LCM API V1.
+.. warning::
 
-.. _NFV-SOL002 : https://portal.etsi.org/webapp/WorkProgram/Report_WorkItem.asp?WKI_ID=49492
-.. _NFV-SOL003 : https://portal.etsi.org/webapp/WorkProgram/Report_WorkItem.asp?WKI_ID=49506
-.. _NFV-SOL005 : https://portal.etsi.org/webapp/WorkProgram/Report_WorkItem.asp?WKI_ID=50935
+  Legacy API features other than the VIM feature have been deprecated.
+  So only Nfvo receives the API from the tacker-client, but Vnfm and
+  VNFMPlugin remain because they are used by v1 VNF Lyfecycle Management.
 
+
+.. _ETSI NFV-SOL002 2.6.1:
+  https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/002/02.06.01_60/gs_nfv-sol002v020601p.pdf
+.. _ETSI NFV-SOL002 3.3.1:
+  https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/002/03.03.01_60/gs_nfv-sol002v030301p.pdf
+.. _ETSI NFV-SOL002 3.6.1:
+  https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/002/03.06.01_60/gs_nfv-sol002v030601p.pdf
+.. _ETSI NFV-SOL003 2.6.1:
+  https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/003/02.06.01_60/gs_nfv-sol003v020601p.pdf
+.. _ETSI NFV-SOL003 3.3.1:
+  https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/003/03.03.01_60/gs_nfv-sol003v030301p.pdf
+.. _ETSI NFV-SOL004 2.6.1:
+  https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/004/02.06.01_60/gs_nfv-sol004v020601p.pdf
+.. _ETSI NFV-SOL005 2.6.1:
+  https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/005/02.06.01_60/gs_nfv-sol005v020601p.pdf
+.. _ETSI NFV-SOL013 3.4.1:
+  https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/013/03.04.01_60/gs_nfv-sol013v030401p.pdf
+.. _ETSI NFV-SOL013 3.5.1:
+  https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/013/03.05.01_60/gs_nfv-sol013v030501p.pdf
+.. _VIM Management:
+  https://docs.openstack.org/api-ref/nfv-orchestration/v1/legacy.html
+.. _VNF Package Management:
+  https://docs.openstack.org/api-ref/nfv-orchestration/v1/vnfpkgm.html
+.. _v1 VNF Lyfecycle Management:
+  https://docs.openstack.org/api-ref/nfv-orchestration/v1/vnflcm.html
+.. _v2 VNF Lyfecycle Management:
+  https://docs.openstack.org/api-ref/nfv-orchestration/v2/vnflcm.html
+.. _VNF Performance Management:
+  https://docs.openstack.org/api-ref/nfv-orchestration/v2/vnfpm.html
+.. _VNF Fault Management:
+  https://docs.openstack.org/api-ref/nfv-orchestration/v2/vnffm.html
+.. _v1 Management Driver:
+  https://docs.openstack.org/tacker/latest/user/etsi_use_case_guide.html#management-driver
+.. _v2 Management Driver:
+  https://docs.openstack.org/tacker/latest/user/v2/use_case_guide.html#management-driver
+.. _Tacker Horizon User Guide: https://docs.openstack.org/tacker-horizon/latest/user/index.html
