@@ -740,6 +740,8 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         self.assertEqual(
             mock_send.call_args[0][1].get('operationState'),
             'ROLLED_BACK')
+        self.vnflcm_driver._vnf_instance_update.assert_called_once_with(
+            self.context, vnf_instance, task_state=None)
 
     @mock.patch('tacker.conductor.conductor_server.Conductor'
                 '.send_notification')
@@ -791,6 +793,8 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         self.assertEqual(
             mock_send.call_args[0][1].get('operationState'),
             'ROLLED_BACK')
+        self.vnflcm_driver._vnf_instance_update.assert_called_once_with(
+            self.context, vnf_instance, task_state=None)
 
     @unittest.skip("Such test is no longer feasible.")
     @mock.patch.object(objects.VnfLcmOpOcc, "save")
@@ -1455,6 +1459,8 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         self.assertEqual(
             mock_send.call_args[0][1].get('operationState'),
             'ROLLED_BACK')
+        self.vnflcm_driver._vnf_instance_update.assert_called_once_with(
+            self.context, vnf_instance, task_state=None)
 
     @mock.patch('tacker.conductor.conductor_server.Conductor'
                 '.send_notification')
@@ -1500,6 +1506,56 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         self.assertEqual(
             mock_send.call_args[0][1].get('operationState'),
             'ROLLED_BACK')
+        self.vnflcm_driver._vnf_instance_update.assert_called_once_with(
+            self.context, vnf_instance, task_state=None)
+
+    @mock.patch('tacker.conductor.conductor_server.LOG')
+    @mock.patch('tacker.conductor.conductor_server.Conductor'
+                '.send_notification')
+    @mock.patch.object(coordination.Coordinator, 'get_lock')
+    @mock.patch.object(conductor_server.Conductor, '_get_grant_execute')
+    @mock.patch.object(test_nfvo_client.GrantRequest, 'grants')
+    @mock.patch.object(objects.VnfLcmOpOcc, 'save')
+    @mock.patch.object(objects.VnfLcmOpOcc, 'get_by_id')
+    def test_terminate_vnf_instance_grant_and_vnf_instance_update_exception(
+            self, mock_vnf_by_id, mock_save, mock_grants, mock_exec,
+            mock_get_lock, mock_send, mock_log):
+        def _vnf_instance_update(self, context, vnf_instance, **kwargs):
+            raise Exception('test_ex')
+        FakeVnfLcmDriver._vnf_instance_update = _vnf_instance_update
+
+        vnf_package_vnfd = self._create_and_upload_vnf_package()
+        vnf_instance_data = fake_obj.get_vnf_instance_data(
+            vnf_package_vnfd.vnfd_id)
+        vnf_instance_data['instantiation_state'] = (
+            fields.VnfInstanceState.INSTANTIATED)
+        vnf_instance = objects.VnfInstance(context=self.context,
+            **vnf_instance_data)
+        vnf_instance.create()
+        vnf_instance.instantiated_vnf_info = objects.InstantiatedVnfInfo(
+            flavour_id='simple',
+            vnf_instance_id=vnf_instance.id)
+        vnf_instance.instantiated_vnf_info.reinitialize()
+
+        terminate_vnf_req = objects.TerminateVnfRequest(
+            termination_type=fields.VnfInstanceTerminationType.GRACEFUL)
+        vnfLcmOpOccId = 'a9c36d21-21aa-4692-8922-7999bbcae08c'
+        vnf_dict = db_utils.get_dummy_vnf(instance_id=self.instance_uuid)
+        vnf_dict['before_error_point'] = fields.ErrorPoint.INITIAL
+
+        mock_exec.return_value = True
+        mock_grants.side_effect = (
+            requests.exceptions.HTTPError('MockException'))
+        self.assertRaises(requests.exceptions.HTTPError,
+            self.conductor.terminate, self.context, vnfLcmOpOccId,
+            vnf_instance, terminate_vnf_req, vnf_dict)
+        self.assertEqual(
+            mock_send.call_args[0][1].get('operationState'), 'ROLLED_BACK')
+        self.vnflcm_driver._vnf_instance_update.assert_called_once_with(
+            self.context, vnf_instance, task_state=None)
+        expected_log = 'Failed to revert task state for vnf instance'
+        mock_log.error.assert_called_once_with(
+            f'{expected_log} {vnf_instance.id}. Error: test_ex')
 
     @mock.patch('tacker.conductor.conductor_server.Conductor'
                 '._change_vnf_status')
@@ -2242,6 +2298,8 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         self.assertEqual(
             mock_send.call_args[0][1].get('operationState'),
             'ROLLED_BACK')
+        self.vnflcm_driver._vnf_instance_update.assert_called_once_with(
+            self.context, vnf_instance, task_state=None)
 
     @mock.patch('tacker.vnflcm.utils'
                 '._build_instantiated_vnf_info')
@@ -2318,6 +2376,8 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         self.assertEqual(
             mock_send.call_args[0][1].get('operationState'),
             'ROLLED_BACK')
+        self.vnflcm_driver._vnf_instance_update.assert_called_once_with(
+            self.context, vnf_instance, task_state=None)
 
     @mock.patch('tacker.conductor.conductor_server.Conductor.'
                 '_update_vnf_attributes_stack_param')
@@ -2865,6 +2925,8 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         self.assertEqual(
             mock_send.call_args[0][1].get('operationState'),
             'ROLLED_BACK')
+        self.vnflcm_driver._vnf_instance_update.assert_called_once_with(
+            self.context, vnf_instance, task_state=None)
 
     @mock.patch('tacker.conductor.conductor_server.Conductor'
                 '.send_notification')
@@ -2959,6 +3021,8 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         self.assertEqual(
             mock_send.call_args[0][1].get('operationState'),
             'ROLLED_BACK')
+        self.vnflcm_driver._vnf_instance_update.assert_called_once_with(
+            self.context, vnf_instance, task_state=None)
 
     @mock.patch.object(objects.LccnSubscriptionRequest,
                        'vnf_lcm_subscriptions_get')
@@ -3790,6 +3854,8 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         self.assertEqual(
             mock_send_notification.call_args[0][1].get('operationState'),
             'ROLLED_BACK')
+        self.vnflcm_driver._vnf_instance_update.assert_called_once_with(
+            self.context, vnf_instance, task_state=None)
 
     @mock.patch('tacker.conductor.conductor_server.Conductor.'
                 '_update_instantiated_vnf_info_change_ext_conn')
@@ -3857,6 +3923,8 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         self.assertEqual(
             mock_send_notification.call_args[0][1].get('operationState'),
             'ROLLED_BACK')
+        self.vnflcm_driver._vnf_instance_update.assert_called_once_with(
+            self.context, vnf_instance, task_state=None)
 
     @mock.patch('tacker.conductor.conductor_server.Conductor.'
                 '_change_vnf_status')
