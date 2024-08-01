@@ -303,7 +303,6 @@
                 auto_scaling: true
                 auto_healing: true
         tox_envlist: dsvm-functional-sol-v2-vnflcm
-    voting: false
 
 - job:
     name: tacker-functional-devstack-multinode-sol-v2-notification
@@ -763,7 +762,7 @@
 
 - job:
     name: tacker-functional-devstack-multinode-sol-v2-az-retry
-    parent: tacker-functional-devstack-multinode-sol-v2
+    parent: tacker-functional-devstack-multinode-sol-parent
     description: |
       Multinodes job for retry of AZ selection in SOL V2 devstack-based functional tests
     host-vars:
