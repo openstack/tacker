@@ -4,6 +4,14 @@ ETSI NFV-SOL CNF Healing
 
 This document describes how to heal CNF in Tacker v2 API.
 
+.. note::
+
+  The content of this document has been confirmed to work
+  using the following VNF Package.
+
+  * `test_instantiate_cnf_resources for 2023.2 Bobcat`_
+
+
 Overview
 --------
 
@@ -243,15 +251,6 @@ Result:
       "vnfcState": "STARTED"
     }
   ]
-
-
-History of Checks
------------------
-
-The content of this document has been confirmed to work
-using the following VNF Package.
-
-* `test_instantiate_cnf_resources for 2023.2 Bobcat`_
 
 
 .. _NFV-SOL002 v3.3.1: https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/002/03.03.01_60/gs_nfv-sol002v030301p.pdf

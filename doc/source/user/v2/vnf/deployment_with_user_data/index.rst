@@ -7,6 +7,13 @@ LCM operation user data in Tacker v2 API using CLI commands.
 Please check `LCM-user-data spec`_ and `NFV-SOL014 v2.8.1`_
 for more information on LCM operation user data.
 
+.. note::
+
+  The content of this document has been confirmed to work
+  using the following VNF Package.
+
+  * `basic_lcms_max_individual_vnfc for 2023.2 Bobcat`_
+
 
 Overview
 --------
@@ -120,8 +127,9 @@ As an example, you can create a VNF Package as follow.
 .. code-block:: console
 
   $ python3 -m pip install TACKER_ROOT
+  $ export PYTHONPATH=TACKER_ROOT
   $ cd TACKER_ROOT/samples/tests/functional/sol_v2_common/basic_lcms_max_individual_vnfc
-  $ python3 pre.yaml
+  $ python3 pre.py
   +---------------------------+--------------------------------------+
   | Field                     | Value                                |
   +---------------------------+--------------------------------------+
@@ -880,15 +888,6 @@ Result:
 .. code-block:: console
 
   VnfInstance 394575b8-50ae-43a2-9aa6-a7691ea10794 not found.
-
-
-History of Checks
------------------
-
-The content of this document has been confirmed to work
-using the following VNF Package.
-
-* `basic_lcms_max_individual_vnfc for 2023.2 Bobcat`_
 
 
 .. _LCM-user-data spec: https://specs.openstack.org/openstack/tacker-specs/specs/ussuri/lcm-operation-with-lcm-operation-user-data.html

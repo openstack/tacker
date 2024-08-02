@@ -13,6 +13,14 @@ using Helm in Tacker v2 API.
   :doc:`/user/mgmt_driver_deploy_k8s_and_cnf_with_helm`.
 
 
+.. note::
+
+  The content of this document has been confirmed to work
+  using the following VNF Package.
+
+  * `test_helm_instantiate for 2023.2 Bobcat`_
+
+
 Overview
 --------
 
@@ -1176,15 +1184,6 @@ Tacker Antelope release
 Tacker Bobcat release
 
 - Helm: 3.11
-
-
-History of Checks
------------------
-
-The content of this document has been confirmed to work
-using the following VNF Package.
-
-* `test_helm_instantiate for 2023.2 Bobcat`_
 
 
 .. _test_helm_instantiate for 2023.2 Bobcat:

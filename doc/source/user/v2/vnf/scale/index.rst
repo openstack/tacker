@@ -4,6 +4,14 @@ ETSI NFV-SOL VNF Scaling
 
 This document describes how to scale VNF in Tacker v2 API.
 
+.. note::
+
+  The content of this document has been confirmed to work
+  using the following VNF Package.
+
+  * `basic_lcms_max_individual_vnfc for 2023.2 Bobcat`_
+
+
 Overview
 --------
 
@@ -338,15 +346,6 @@ There were two child-stacks(ID: f4221c17-0b42-41c8-af4e-66b15a730275
 and ID: 10a627b8-afde-4ecc-b44a-2200b733ea2e) with
 a parent-stack(ID: cbf6a703-f8fc-441a-9e9d-4f5f723a1e69),
 it can be seen that one of them is decreased by the Scale-in operation.
-
-
-History of Checks
------------------
-
-The content of this document has been confirmed to work
-using the following VNF Package.
-
-* `basic_lcms_max_individual_vnfc for 2023.2 Bobcat`_
 
 
 .. _NFV-SOL001 v2.6.1: https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/001/02.06.01_60/gs_NFV-SOL001v020601p.pdf

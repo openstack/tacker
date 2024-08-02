@@ -5,6 +5,14 @@ ETSI NFV-SOL CNF (Containerized VNF) Deployment
 This section covers how to deploy ETSI NFV-SOL containerized VNF
 in Tacker v2 API using Kubernetes VIM.
 
+.. note::
+
+  The content of this document has been confirmed to work
+  using the following VNF Package.
+
+  * `test_instantiate_cnf_resources for 2023.2 Bobcat`_
+
+
 Overview
 --------
 
@@ -229,6 +237,7 @@ As an example, you can create a VNF Package as follow.
 .. code-block:: console
 
   $ python3 -m pip install TACKER_ROOT
+  $ export PYTHONPATH=TACKER_ROOT
   $ cd TACKER_ROOT/samples/tests/functional/sol_kubernetes_v2/test_instantiate_cnf_resources
   $ python3 pkggen.py
   $ ll
@@ -1013,15 +1022,6 @@ Tacker Antelope release
 Tacker Bobcat release
 
 - Kubernetes: 1.26
-
-
-History of Checks
------------------
-
-The content of this document has been confirmed to work
-using the following VNF Package.
-
-* `test_instantiate_cnf_resources for 2023.2 Bobcat`_
 
 
 .. _Kubernetes API resource: https://opendev.org/openstack/tacker/src/branch/master/tacker/tests/unit/vnfm/infra_drivers/kubernetes/kubernetes_api_resource

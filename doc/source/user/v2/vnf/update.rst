@@ -4,6 +4,14 @@ ETSI NFV-SOL VNF Update
 
 This document describes how to update VNF in Tacker v2 API.
 
+.. note::
+
+  The content of this document has been confirmed to work
+  using the following VNF Package.
+
+  * `basic_lcms_max_individual_vnfc for 2023.2 Bobcat`_
+
+
 Prerequisites
 -------------
 
@@ -145,15 +153,6 @@ new vnfdId.
 
   If the vnfdId of a VNF Instance is updated after "Instantiation",
   the actual resources will not be updated until "Scale" or "Heal" is performed.
-
-
-History of Checks
------------------
-
-The content of this document has been confirmed to work
-using the following VNF Package.
-
-* `basic_lcms_max_individual_vnfc for 2023.2 Bobcat`_
 
 
 .. _Heat CLI reference: https://docs.openstack.org/python-openstackclient/latest/cli/plugin-commands/heat.html

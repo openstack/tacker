@@ -5,6 +5,11 @@ ETSI NFV-SOL CNF Auto Scaling With Prometheus via PM Job Interfaces
 This document describes how to auto scale CNF in Tacker v2 API with
 Prometheus via Performance Management Job Interfaces.
 
+.. note::
+
+  The content of this document has been confirmed to work
+  using Prometheus 2.45 and Alertmanager 0.26.
+
 
 Overview
 --------
@@ -639,13 +644,6 @@ Here is an example of getting the specified PM report:
   |         |     }                                                                                 |
   |         | ]                                                                                     |
   +---------+---------------------------------------------------------------------------------------+
-
-
-History of Checks
------------------
-
-The content of this document has been confirmed to work
-using Prometheus 2.45 and Alertmanager 0.26.
 
 
 .. _ETSI NFV-SOL 002 v3.3.1:

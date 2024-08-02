@@ -5,6 +5,11 @@ ETSI NFV-SOL CNF Auto Healing With Prometheus via FM Interfaces
 This document describes how to auto heal CNF in Tacker v2 API with
 Prometheus via Fault Management Interfaces.
 
+.. note::
+
+  The content of this document has been confirmed to work
+  using Prometheus 2.45 and Alertmanager 0.26.
+
 
 Overview
 --------
@@ -715,13 +720,6 @@ Here is an example of deleting the specified FM subscription:
 
   $ openstack vnffm sub delete d6da0fff-a032-429e-8560-06e8af685e2c --os-tacker-api-version 2
   VNF FM subscription 'd6da0fff-a032-429e-8560-06e8af685e2c' deleted successfully
-
-
-History of Checks
------------------
-
-The content of this document has been confirmed to work
-using Prometheus 2.45 and Alertmanager 0.26.
 
 
 .. _the sample:

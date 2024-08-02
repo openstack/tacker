@@ -11,6 +11,43 @@ using StandardUserData as the UserData class in Tacker.
   StandardUserData(userdata script for not using AutoScalingGroup).
 
 
+.. note::
+
+  The content of this document has been confirmed to work
+  using the following VNF Packages.
+
+  * `userdata_standard for 2023.2 Bobcat`_
+  * `userdata_standard_change_vnfpkg_nw for 2023.2 Bobcat`_
+
+  Please also refer to the samples below.
+
+  * `change_vnfpkg_before with StandardUserData`_
+  * `change_vnfpkg_after with StandardUserData`_
+
+  If you use the samples, you need to add the following files:
+
+  * Definitions/etsi_nfv_sol001_common_types.yaml
+  * Definitions/etsi_nfv_sol001_vnfd_types.yaml
+  * Files/images/cirros-0.5.2-x86_64-disk.img
+
+  The samples make the following updates:
+
+  * VDU1
+
+    * change image
+    * change flavor
+    * add network
+
+  * VDU2
+
+    * change image
+    * add network
+
+  * VDU3
+
+    * no change
+
+
 Overview
 --------
 
@@ -1068,47 +1105,6 @@ See `Heat CLI reference`_ for details on Heat CLI commands.
 
     You can check 'attributes.addresses' has been changed.
     In this example, 'net0' has been added.
-
-
-History of Checks
------------------
-
-The content of this document has been confirmed to work
-using the following VNF Packages.
-
-* `userdata_standard for 2023.2 Bobcat`_
-* `userdata_standard_change_vnfpkg_nw for 2023.2 Bobcat`_
-
-Please also refer to the samples below.
-
-* `change_vnfpkg_before with StandardUserData`_
-* `change_vnfpkg_after with StandardUserData`_
-
-  .. note::
-
-    If you use the samples, you need to add the following files:
-
-    * Definitions/etsi_nfv_sol001_common_types.yaml
-    * Definitions/etsi_nfv_sol001_vnfd_types.yaml
-    * Files/images/cirros-0.5.2-x86_64-disk.img
-
-
-The samples make the following updates:
-
-* VDU1
-
-  * change image
-  * change flavor
-  * add network
-
-* VDU2
-
-  * change image
-  * add network
-
-* VDU3
-
-  * no change
 
 
 .. _Heat CLI reference: https://docs.openstack.org/python-openstackclient/latest/cli/plugin-commands/heat.html

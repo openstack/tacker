@@ -12,6 +12,15 @@ in Tacker v1 API.
   for Tacker v2 API.
 
 
+.. note::
+
+  The content of this document has been confirmed to
+  using the following VNF Packages.
+
+  * `test_cnf_container_update_before for 2023.2 Bobcat`_
+  * `test_cnf_container_update_after for 2023.2 Bobcat`_
+
+
 Overview
 --------
 
@@ -830,16 +839,6 @@ You can see that only the Pods are restarted whose ConfigMap/Secret or images
 are updated. When it comes to Deployments, DaemonSets and ReplicaSets whose
 ConfigMap/Secret or images are updated, their pods will be deleted and
 recreated.
-
-
-History of Checks
------------------
-
-The content of this document has been confirmed to
-using the following VNF Packages.
-
-* `test_cnf_container_update_before for 2023.2 Bobcat`_
-* `test_cnf_container_update_after for 2023.2 Bobcat`_
 
 
 .. _NFV-SOL001 v2.6.1: https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/001/02.06.01_60/gs_NFV-SOL001v020601p.pdf

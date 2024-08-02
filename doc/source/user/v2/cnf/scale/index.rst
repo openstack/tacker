@@ -4,6 +4,13 @@ ETSI NFV-SOL CNF Scaling
 
 This document describes how to scale CNF in Tacker v2 API.
 
+.. note::
+
+  The content of this document has been confirmed to work
+  using the following VNF Package.
+
+  * `test_instantiate_cnf_resources for 2023.2 Bobcat`_
+
 
 Overview
 --------
@@ -234,15 +241,6 @@ Replicas information after scale-in:
   $ kubectl get deployment
   NAME   READY   UP-TO-DATE   AVAILABLE   AGE
   vdu1   2/2     2            2           7h12m
-
-
-History of Checks
------------------
-
-The content of this document has been confirmed to work
-using the following VNF Package.
-
-* `test_instantiate_cnf_resources for 2023.2 Bobcat`_
 
 
 .. _NFV-SOL001 v2.6.1: https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/001/02.06.01_60/gs_NFV-SOL001v020601p.pdf

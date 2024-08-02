@@ -4,6 +4,14 @@ ETSI NFV-SOL VNF error-handling
 
 This document describes how to error-handling VNF in Tacker v2 API.
 
+.. note::
+
+  The content of this document has been confirmed to work
+  using the following VNF Package.
+
+  * `error_network for 2023.2 Bobcat`_
+  * `server_notification for 2023.2 Bobcat`_
+
 
 Prerequisites
 -------------
@@ -557,16 +565,6 @@ After the above modification, MgmtDriver can also be called in error-handling.
 
     In the process of error-handling, the specific action of MgmtDriver
     needs to be customized by the user or provider.
-
-
-History of Checks
------------------
-
-The content of this document has been confirmed to work
-using the following VNF Package.
-
-* `error_network for 2023.2 Bobcat`_
-* `server_notification for 2023.2 Bobcat`_
 
 
 .. _VNF LCM v2 API:

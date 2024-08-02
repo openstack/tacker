@@ -6,6 +6,13 @@ This document describes how to update CNF in Tacker.
 Please refer to the :doc:`/user/v2/cnf/update_with_mgmt_driver/index`
 for how to update CNF with Mgmt Driver in Tacker.
 
+.. note::
+
+  The content of this document has been confirmed to work
+  using the following VNF Package.
+
+  * `test_instantiate_cnf_resources for 2023.2 Bobcat`_
+
 
 Prerequisites
 -------------
@@ -158,15 +165,6 @@ new vnfdId.
   ``vnfdId before the update`` shall be used.
   Therefore, in order to maintain the update of ``vnfdId``, it is necessary to
   execute "Terminate VNF" once and then "Instantiate VNF".
-
-
-History of Checks
------------------
-
-The content of this document has been confirmed to work
-using the following VNF Package.
-
-* `test_instantiate_cnf_resources for 2023.2 Bobcat`_
 
 
 .. _test_instantiate_cnf_resources for 2023.2 Bobcat:

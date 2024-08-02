@@ -10,6 +10,14 @@ This document describes how to scale CNF in Tacker v1 API.
   See :doc:`/user/v2/cnf/scale/index` for Tacker v2 API.
 
 
+.. note::
+
+  The content of this document has been confirmed to work
+  using the following VNF Package.
+
+  * `test_cnf_scale for 2023.2 Bobcat`_
+
+
 Overview
 --------
 
@@ -377,15 +385,6 @@ Replicas information after scale-in:
   $ kubectl get deployment
   NAME   READY   UP-TO-DATE   AVAILABLE   AGE
   vdu1   1/1     1            1           2d
-
-
-History of Checks
------------------
-
-The content of this document has been confirmed to work
-using the following VNF Package.
-
-* `test_cnf_scale for 2023.2 Bobcat`_
 
 
 .. _samples/tests/etc/samples/etsi/nfv/test_cnf_scale:
