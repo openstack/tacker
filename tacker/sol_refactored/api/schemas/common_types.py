@@ -194,7 +194,7 @@ CpProtocolData = {
     'properties': {
         'layerProtocol': {
             'type': 'string',
-            'enum': 'IP_OVER_ETHERNET'},
+            'enum': ['IP_OVER_ETHERNET']},
         'ipOverEthernet': IpOverEthernetAddressData,
     },
     'required': ['layerProtocol'],
