@@ -230,7 +230,7 @@ You can set following parameter in additionalParams:
   * ``vnfdId`` is the VNFD id of the new VNF package you uploaded.
   * ``lcm-operation-coordinate-old-vnf`` and
     ``lcm-operation-coordinate-new-vnf`` are unique implementations of Tacker
-    to simulate the coordination interface in `ETSI SOL002 v3.5.1`_. Mainly a
+    to simulate the coordination interface in `ETSI SOL002 v3.6.1`_. Mainly a
     script that can communicate with the VM after the VM is created, perform
     special customization of the VM or confirm the status of the VM.
   * ``vimConnectionInfo`` is an optional parameter.
@@ -1174,7 +1174,7 @@ The samples make the following updates:
 
 
 .. _Heat CLI reference: https://docs.openstack.org/python-openstackclient/latest/cli/plugin-commands/heat.html
-.. _ETSI SOL002 v3.5.1: https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/002/03.05.01_60/gs_nfv-sol002v030501p.pdf
+.. _ETSI SOL002 v3.6.1: https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/002/03.06.01_60/gs_nfv-sol002v030601p.pdf
 .. _test_instantiate_vnf_with_old_image_or_volume for 2023.2 Bobcat:
   https://opendev.org/openstack/tacker/src/branch/stable/2023.2/tacker/tests/functional/sol_v2_common/samples/test_instantiate_vnf_with_old_image_or_volume
 .. _test_change_vnf_pkg_with_new_image for 2023.2 Bobcat:

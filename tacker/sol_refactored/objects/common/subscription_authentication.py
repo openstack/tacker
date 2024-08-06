@@ -18,7 +18,7 @@ from tacker.sol_refactored.objects import fields
 
 
 # NFV-SOL 013
-# - v3.5.1 Table 8.3.4-1
+# - v3.4.1 Table 8.3.4-1
 @base.TackerObjectRegistry.register
 class SubscriptionAuthentication(base.TackerObject,
                                  base.TackerObjectDictCompat):
@@ -31,7 +31,10 @@ class SubscriptionAuthentication(base.TackerObject,
             valid_values=[
                 'BASIC',
                 'OAUTH2_CLIENT_CREDENTIALS',
+                # NOTE: 'OAUTH2_CLIENT_CERT' is defined
+                # in NFV-SOL 013 v3.5.1 Table 8.3.4-1
                 'OAUTH2_CLIENT_CERT',
+                # `TLS_CERT` is not supported
                 'TLS_CERT',
             ],
             nullable=False),
@@ -39,6 +42,8 @@ class SubscriptionAuthentication(base.TackerObject,
             'SubscriptionAuthentication_ParamsBasic', nullable=True),
         'paramsOauth2ClientCredentials': fields.ObjectField(
             'SubscriptionAuthentication_ParamsOauth2', nullable=True),
+        # NOTE: 'paramsOauth2ClientCert' is defined
+        # in NFV-SOL 013 v3.5.1 Table 8.3.4-1
         'paramsOauth2ClientCert': fields.ObjectField(
             'SubscriptionAuthentication_ParamsOauth2ClientCert',
             nullable=True),

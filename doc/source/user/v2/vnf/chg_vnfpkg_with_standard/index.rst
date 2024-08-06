@@ -259,7 +259,7 @@ definition file before running command.
   * ``lcm-operation-coordinate-old-vnf`` and
     ``lcm-operation-coordinate-new-vnf`` are unique implementations of
     Tacker to simulate the coordination interface in
-    `ETSI NFV-SOL002 v3.5.1`_.
+    `ETSI NFV-SOL002 v3.6.1`_.
     Mainly a script that can communicate with the VM after the VM is
     created, perform special customization of the VM or confirm the
     status of the VM.
@@ -1112,7 +1112,7 @@ The samples make the following updates:
 
 
 .. _Heat CLI reference: https://docs.openstack.org/python-openstackclient/latest/cli/plugin-commands/heat.html
-.. _ETSI NFV-SOL002 v3.5.1: https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/002/03.05.01_60/gs_nfv-sol002v030501p.pdf
+.. _ETSI NFV-SOL002 v3.6.1: https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/002/03.06.01_60/gs_nfv-sol002v030601p.pdf
 .. _userdata_standard for 2023.2 Bobcat:
   https://opendev.org/openstack/tacker/src/branch/stable/2023.2/tacker/tests/functional/sol_v2_common/samples/userdata_standard
 .. _userdata_standard_change_vnfpkg_nw for 2023.2 Bobcat:

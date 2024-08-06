@@ -122,7 +122,7 @@ _IpAddresses = {
     'additionalProperties': True
 }
 
-# SOL013 v3.5.1 8.3.4
+# SOL013 v3.4.1 8.3.4
 SubscriptionAuthentication = {
     'type': 'object',
     'properties': {
@@ -131,8 +131,11 @@ SubscriptionAuthentication = {
             'items': {
                 'type': 'string',
                 'enum': [
+                    # NOTE: 'TLS_CERT' is not supported
                     'BASIC',
                     'OAUTH2_CLIENT_CREDENTIALS',
+                    # NOTE: 'OAUTH2_CLIENT_CERT' is defined
+                    # in NFV-SOL 013 v3.5.1 8.3.4
                     'OAUTH2_CLIENT_CERT']
             }
         },
@@ -151,6 +154,8 @@ SubscriptionAuthentication = {
                 'tokenEndpoint': {'type': 'string'}
             }
         },
+        # NOTE: 'paramsOauth2ClientCert' is defined
+        # in NFV-SOL 013 v3.5.1 8.3.4
         'paramsOauth2ClientCert': {
             'type': 'object',
             'properties': {

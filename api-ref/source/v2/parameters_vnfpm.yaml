@@ -44,11 +44,7 @@ authentication_auth_type:
     after mutually authenticating using client identifier
     and X.509 certificates towards the token endpoint.
 
-    TLS_CERT: Every HTTP request to the
-    notification endpoint is sent over a mutually
-    authenticated TLS session, i.e. not only the
-    server is authenticated, but also the client is
-    authenticated during the TLS tunnel setup.
+    TLS_CERT is not supported.
   in: body
   required: true
   type: array
