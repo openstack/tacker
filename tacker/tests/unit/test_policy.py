@@ -54,14 +54,14 @@ class PolicyFileTestCase(base.BaseTestCase):
             action = "example:test"
             with open(tmpfilename, "w") as policyfile:
                 policyfile.write("""{"example:test": ""}""")
-            policy.init()
+            policy.init(suppress_deprecation_warnings=True)
             policy.enforce(self.context, action, self.target)
             with open(tmpfilename, "w") as policyfile:
                 policyfile.write("""{"example:test": "!"}""")
             # NOTE(vish): reset stored policy cache so we don't have to
             # sleep(1)
             policy._POLICY_CACHE = {}
-            policy.init()
+            policy.init(suppress_deprecation_warnings=True)
             self.assertRaises(exceptions.PolicyNotAuthorized,
                               policy.enforce,
                               self.context,
@@ -76,7 +76,7 @@ class PolicyTestCase(base.BaseTestCase):
         policy.reset()
         self.addCleanup(policy.reset)
         # NOTE(vish): preload rules to circumvent reloading from file
-        policy.init()
+        policy.init(suppress_deprecation_warnings=True)
         rules = {
             "true": '@',
             "example:allowed": '@',
@@ -178,7 +178,7 @@ class DefaultPolicyTestCase(base.BaseTestCase):
         super(DefaultPolicyTestCase, self).setUp()
         self.skipTest("Not ready yet")
         policy.reset()
-        policy.init()
+        policy.init(suppress_deprecation_warnings=True)
         self.addCleanup(policy.reset)
 
         self.rules = {
@@ -228,7 +228,7 @@ class TackerPolicyTestCase(base.BaseTestCase):
         super(TackerPolicyTestCase, self).setUp()
         self.skipTest("Not ready yet")
         policy.reset()
-        policy.init()
+        policy.init(suppress_deprecation_warnings=True)
         self.addCleanup(policy.reset)
         self.admin_only_legacy = "role:admin"
         self.admin_or_owner_legacy = "role:admin or tenant_id:%(tenant_id)s"
@@ -477,7 +477,7 @@ class TackerPolicyTestCase(base.BaseTestCase):
         # Trigger a policy with rule admin_or_owner
         action = "create_network"
         target = {'tenant_id': 'fake'}
-        policy.init()
+        policy.init(suppress_deprecation_warnings=True)
         self.assertRaises(exceptions.PolicyCheckError,
                           policy.enforce,
                           self.context, action, target)

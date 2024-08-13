@@ -156,7 +156,7 @@ class BaseTestCase(testtools.TestCase):
         cfg.CONF.set_override('state_path', self.temp_dir)
 
         self.setup_config()
-        policy.init()
+        policy.init(suppress_deprecation_warnings=True)
         self.addCleanup(policy.reset)
         self.addCleanup(mock.patch.stopall)
         self.addCleanup(CONF.reset)

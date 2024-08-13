@@ -33,7 +33,7 @@
           - compute2
 
 - nodeset:
-    name: openstack-k8s-4-nodes-jammy
+    name: openstack-k8s-3-nodes-jammy
     nodes:
       - name: controller
         label: ubuntu-jammy
@@ -41,18 +41,11 @@
         label: ubuntu-jammy
       - name: controller-k8s
         label: ubuntu-jammy
-      - name: compute1
-        label: ubuntu-jammy
     groups:
-      - name: compute
-        nodes:
-          - controller-k8s
-          - compute1
       - name: subnode
         nodes:
           - controller-tacker
           - controller-k8s
-          - compute1
       - name: switch
         nodes:
           - controller
@@ -60,7 +53,6 @@
         nodes:
           - controller-tacker
           - controller-k8s
-          - compute1
 
 - job:
     name: tacker-functional-devstack-multinode-sol-parent
@@ -105,8 +97,6 @@
         OVN_L3_CREATE_PUBLIC_NETWORK: true
         OVN_DBS_LOG_LEVEL: dbg
         Q_ML2_PLUGIN_MECHANISM_DRIVERS: ovn,logger
-        # TODO(ueha): Remove this workarround if the Zuul jobs succeed with GROBAL_VENV=true
-        GLOBAL_VENV: false
       test_matrix_configs: [neutron]
       zuul_work_dir: src/opendev.org/openstack/tacker
     host-vars:
@@ -218,8 +208,6 @@
           L2_AGENT_EXTENSIONS: qos
           ENABLE_CHASSIS_AS_GW: false
           Q_ML2_PLUGIN_MECHANISM_DRIVERS: ovn,logger
-          # TODO(ueha): Remove this workarround if the Zuul jobs succeed with GROBAL_VENV=true
-          GLOBAL_VENV: false
         devstack_services:
           # To override the parent job's definitions.
           tls-proxy: false
@@ -404,7 +392,7 @@
     description: |
       Abstraction multinodes job for SOL devstack-based kubernetes functional
       tests
-    nodeset: openstack-k8s-4-nodes-jammy
+    nodeset: openstack-k8s-3-nodes-jammy
     pre-run: playbooks/devstack/pre.yaml
     run: playbooks/devstack/run.yaml
     post-run: playbooks/devstack/post.yaml
@@ -543,7 +531,7 @@
           USE_PYTHON3: true
           ENABLE_CHASSIS_AS_GW: false
           Q_ML2_PLUGIN_MECHANISM_DRIVERS: ovn,logger
-          # TODO(ueha): Remove this workarround if the Zuul jobs succeed with GROBAL_VENV=true
+          # TODO(ueha): Remove this workarround if the Zuul jobs succeed with GLOBAL_VENV=true
           GLOBAL_VENV: false
         devstack_services:
           dstat: false
@@ -583,7 +571,7 @@
         OVN_L3_CREATE_PUBLIC_NETWORK: true
         OVN_DBS_LOG_LEVEL: dbg
         Q_ML2_PLUGIN_MECHANISM_DRIVERS: ovn,logger
-        # TODO(ueha): Remove this workarround if the Zuul jobs succeed with GROBAL_VENV=true
+        # TODO(ueha): Remove this workarround if the Zuul jobs succeed with GLOBAL_VENV=true
         GLOBAL_VENV: false
       devstack_local_conf:
         post-config:
