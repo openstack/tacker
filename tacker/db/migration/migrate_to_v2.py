@@ -55,38 +55,12 @@ def env(*_vars, **kwargs):
     return kwargs.get('default', '')
 
 
-DEFAULT_OPTS = [
-    cfg.BoolOpt('use_credential_encryption', default=False,
-                help=_("Enable to encrypt the credential"))
-]
-
-CONF.register_opts(DEFAULT_OPTS)
-
 OPTS = [cfg.StrOpt('user_domain_id',
                    default=env("OS_USER_DOMAIN_ID", default='default'),
                    help='User Domain Id'),
         cfg.StrOpt('project_domain_id',
                    default=env("OS_DOMAIN_ID", default='default'),
-                   help='Project Domain Id'),
-        cfg.StrOpt('password',
-                   default=env("OS_PASSWORD", default="default"),
-                   help='User Password'),
-        cfg.StrOpt('username',
-                   default=env("OS_USERNAME", default="default"),
-                   help='User Name'),
-        cfg.StrOpt('user_domain_name',
-                   default=env("OS_USER_DOMAIN_NAME", default='Default'),
-                   help='Use Domain Name'),
-        cfg.StrOpt('project_name',
-                   default=env("OS_PROJECT_NAME", default='default'),
-                   help='Project Name'),
-        cfg.StrOpt('project_domain_name',
-                   default=env("OS_PROJECT_DOMAIN_NAME", default='Default'),
-                   help='Project Domain Name'),
-        cfg.StrOpt('auth_url',
-                   default=env("OS_AUTH_URL",
-                               default='http://localhost/identity/v3'),
-                   help='Keystone endpoint')]
+                   help='Project Domain Id')]
 
 CONF.register_opts(OPTS, 'keystone_authtoken')
 

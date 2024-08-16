@@ -21,6 +21,7 @@ from oslo_serialization import jsonutils
 from sqlalchemy import desc
 from sqlalchemy.orm import joinedload
 
+from tacker._i18n import _
 from tacker.common import crypt_utils
 from tacker import context as t_context
 from tacker.db import api as db_api
@@ -32,22 +33,41 @@ from tacker.tests.functional.sol_separated_nfvo_v2 import fake_grant_v2
 from tacker.tests.functional.sol_v2_common import test_vnflcm_basic_common
 from tacker.tests import utils
 
+
+# TODO(yasufum): Such a registering options may cause a DuplicatedOptError. So,
+# it should be revised. The reason of the registration is required here is the
+# options are evaluated before importing expected modules.
 # NOTE: Loads the Tacker configuration required to use the decrypt method in
 # the test method.
 CORE_OPTS = [
-    cfg.BoolOpt('use_credential_encryption'),
-    cfg.StrOpt('keymanager_type'),
-    cfg.StrOpt('crypt_key_dir')
-]
+    cfg.BoolOpt('use_credential_encryption', default=False,
+                help=_("Enable to encrypt the credential")),
+    cfg.StrOpt('keymanager_type', default="barbican",
+               help=_("The type of keymanager to use when the "
+                      "'use_credential_encryption' option is True")),
+    cfg.StrOpt('crypt_key_dir', default="/etc/tacker/crypt/fernet_keys",
+               help=_("Dir.path to store fernet_keys"))]
 cfg.CONF.register_opts(CORE_OPTS)
+
 OPTS = [
-    cfg.StrOpt('password'),
-    cfg.StrOpt('username'),
-    cfg.StrOpt('user_domain_name'),
-    cfg.StrOpt('project_name'),
-    cfg.StrOpt('project_domain_name'),
-    cfg.StrOpt('auth_url')
-]
+    cfg.StrOpt('password',
+               default='default',
+               help='User Password'),
+    cfg.StrOpt('username',
+               default='default',
+               help='User Name'),
+    cfg.StrOpt('user_domain_name',
+               default='Default',
+               help='Use Domain Name'),
+    cfg.StrOpt('project_name',
+               default='default',
+               help='Project Name'),
+    cfg.StrOpt('project_domain_name',
+               default='Default',
+               help='Project Domain Name'),
+    cfg.StrOpt('auth_url',
+               default='http://localhost/identity/v3',
+               help='Keystone endpoint')]
 cfg.CONF.register_opts(OPTS, 'keystone_authtoken')
 
 
