@@ -151,7 +151,7 @@
        --project {{ os_project_tenant1 }}
        --os-project-domain {{ os_domain_tenant1 }}
        --os-user-domain {{ os_domain_tenant1 }}
-       --endpoint {{ kuryr_k8s_api_url }} --os-disable-cert-verify
+       --endpoint {{ k8s_api_url }} --os-disable-cert-verify
        --k8s-token {{ hostvars['controller-k8s'].admin_token.stdout }}
        -o {{ k8s_vim_conf_path_tenant1 }}
 
@@ -185,7 +185,7 @@
        --project {{ os_project_tenant2 }}
        --os-project-domain {{ os_domain_tenant2 }}
        --os-user-domain {{ os_domain_tenant2 }}
-       --endpoint {{ kuryr_k8s_api_url }} --os-disable-cert-verify
+       --endpoint {{ k8s_api_url }} --os-disable-cert-verify
        --k8s-token {{ hostvars['controller-k8s'].admin_token.stdout }}
        -o {{ k8s_vim_conf_path_tenant2 }}
 
@@ -213,4 +213,4 @@
 
   when:
     - inventory_hostname == 'controller-tacker'
-    - kuryr_k8s_api_url is defined
+    - k8s_api_url is defined

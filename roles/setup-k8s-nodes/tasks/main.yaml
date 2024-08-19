@@ -33,4 +33,4 @@
     become: yes
   when:
     - inventory_hostname == 'controller-k8s'
-    - kuryr_k8s_api_url is defined
+    - k8s_api_url is defined
