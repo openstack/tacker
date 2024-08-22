@@ -49,28 +49,6 @@ class ServerNotificationTest(test_vnflcm_basic_common.CommonVnfLcmTest):
     @classmethod
     def setUpClass(cls):
         super(ServerNotificationTest, cls).setUpClass()
-        image_path = utils.test_etc_sample("etsi/nfv/common/Files/images",
-            "cirros-0.5.2-x86_64-disk.img")
-
-        # for basic lcms tests max pattern
-        basic_lcms_max_path = utils.test_sample("functional/sol_v2_common",
-                                                "basic_lcms_max")
-        cls.max_pkg, cls.max_vnfd_id = cls.create_vnf_package(
-            basic_lcms_max_path, image_path=image_path)
-
-        # for basic lcms tests min pattern
-        basic_lcms_min_path = utils.test_sample("functional/sol_v2_common",
-                                                "basic_lcms_min")
-        # no image contained
-        cls.min_pkg, cls.min_vnfd_id = cls.create_vnf_package(
-            basic_lcms_min_path)
-
-        # for update vnf test
-        update_vnf_path = utils.test_sample("functional/sol_v2_common",
-                                            "update_vnf")
-        # no image contained
-        cls.upd_pkg, cls.upd_vnfd_id = cls.create_vnf_package(
-            update_vnf_path)
 
         # for server_notification test
         server_notification_path = utils.test_sample(
@@ -82,9 +60,6 @@ class ServerNotificationTest(test_vnflcm_basic_common.CommonVnfLcmTest):
     @classmethod
     def tearDownClass(cls):
         super(ServerNotificationTest, cls).tearDownClass()
-        cls.delete_vnf_package(cls.max_pkg)
-        cls.delete_vnf_package(cls.min_pkg)
-        cls.delete_vnf_package(cls.upd_pkg)
         cls.delete_vnf_package(cls.svn_pkg)
 
     def setUp(self):

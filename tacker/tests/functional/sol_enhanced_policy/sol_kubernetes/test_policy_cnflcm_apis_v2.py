@@ -584,9 +584,9 @@ class VnflcmAPIsV2CNFBase(BaseVnfLcmKubernetesV2Test, BaseEnhancedPolicyTest):
         self._step_lcm_delete('user_all', inst_id_b, 204)
 
 
-class VnflcmAPIsV2VNFInstantiateWithArea(VnflcmAPIsV2CNFBase):
+class VnflcmAPIsV2CNFInstantiateWithArea(VnflcmAPIsV2CNFBase):
 
-    def test_vnflcm_apis_v2_cnf_without_area_in_vim_conn_info(self):
+    def test_vnflcm_apis_v2_cnf_with_area_in_vim_conn_info(self):
 
         inst_id_a, inst_id_b = (
             self.vnflcm_apis_v2_cnf_test_before_instantiate())
@@ -606,7 +606,7 @@ class VnflcmAPIsV2VNFInstantiateWithArea(VnflcmAPIsV2CNFBase):
         self.vnflcm_apis_v2_cnf_test_after_instantiate(inst_id_a, inst_id_b)
 
 
-class VnflcmAPIsV2CNFInstantiateWithoutArea(VnflcmAPIsV2CNFBase):
+class VnflcmAPIsV2CNFInstantiateWithAreaInRegisteredVim(VnflcmAPIsV2CNFBase):
 
     @classmethod
     def setUpClass(cls):
@@ -638,7 +638,7 @@ class VnflcmAPIsV2CNFInstantiateWithoutArea(VnflcmAPIsV2CNFBase):
 
         super().tearDownClass()
 
-    def test_vnflcm_apis_v2_cnf_with_area_in_vim_conn_info(self):
+    def test_vnflcm_apis_v2_cnf_with_area_in_registered_vim(self):
         inst_id_a, inst_id_b = (
             self.vnflcm_apis_v2_cnf_test_before_instantiate())
 

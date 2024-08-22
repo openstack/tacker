@@ -15,7 +15,7 @@ from tacker.tests.functional.sol_enhanced_policy.base import (
     VimAPIsTest)
 
 
-class VimAPIsOpenstackTest(VimAPIsTest):
+class VimAPIsKubernetesTest(VimAPIsTest):
 
     def test_vim_apis_vim_with_area_kubernetes(self):
         self._test_vim_apis_enhanced_policy('kubernetes', 'local-k8s-vim.yaml')

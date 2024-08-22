@@ -238,10 +238,6 @@ class VnfLcmTest(test_vnflcm_basic_common.CommonVnfLcmTest):
           - 15. Terminate VNF instance
           - 16. Delete VNF instance
           - 17. Delete subscription
-          - 18. Create VNF instance
-          - 19. Instantiate VNF (will fail)
-          - 20. Rollback instantiation operation
-          - 21. Delete VNF instance
         """
 
         # setup
