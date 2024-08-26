@@ -296,10 +296,14 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                 if endpoint:
                     status_flag = True
             except Exception as e:
-                msg = _('read endpoinds failed.kind:{kind}.reason:{e}'.format(
-                    kind=service.kind, e=e))
-                LOG.error(msg)
-                raise exceptions.ReadEndpoindsFalse(error=msg)
+                if isinstance(e, client.ApiException) and e.status == 404:
+                    pass
+                else:
+                    msg = _(
+                        'read endpoints failed.kind:{kind}.reason:{e}'.format(
+                            kind=service.kind, e=e))
+                    LOG.error(msg)
+                    raise exceptions.ReadEndpointsFalse(error=msg)
         if status_flag:
             k8s_obj['status'] = 'Create_complete'
             k8s_obj['message'] = "Service is created"

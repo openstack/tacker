@@ -349,9 +349,12 @@ class Service(NamespacedResource):
                 if endpoint_info:
                     return True
             except Exception as ex:
-                sol_title = "Read Endpoint failed"
-                raise sol_ex.K8sOperationFailed(sol_title=sol_title,
-                                                sol_detail=str(ex))
+                if isinstance(ex, client.ApiException) and ex.status == 404:
+                    return False
+                else:
+                    sol_title = "Read Endpoint failed"
+                    raise sol_ex.K8sOperationFailed(sol_title=sol_title,
+                                                    sol_detail=str(ex))
 
 
 class ServiceAccount(NamespacedResource):

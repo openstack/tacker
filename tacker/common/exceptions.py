@@ -153,7 +153,7 @@ class InitApiFalse(TackerException):
     message = _('Failed to init resource.')
 
 
-class ReadEndpoindsFalse(TackerException):
+class ReadEndpointsFalse(TackerException):
     message = _('The method to read a resource failed.')
 
 

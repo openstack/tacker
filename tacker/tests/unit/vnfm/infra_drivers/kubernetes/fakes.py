@@ -350,7 +350,7 @@ def fake_service_false():
     )
 
 
-def fake_endpoinds():
+def fake_endpoints():
     return client.V1Endpoints(
         api_version='v1',
         kind='Endpoints',

@@ -121,10 +121,10 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(client.CoreV1Api, 'read_namespaced_service')
     @mock.patch.object(client.CoreV1Api, 'read_namespaced_endpoints')
     def test_create_wait_k8s_success_service(
-            self, mock_endpoinds, mock_read_service):
+            self, mock_endpoints, mock_read_service):
         k8s_objs = fakes.fake_k8s_objs_service()
         k8s_client_dict = self.k8s_client_dict
-        mock_endpoinds.return_value = fakes.fake_endpoinds()
+        mock_endpoints.return_value = fakes.fake_endpoints()
         mock_read_service.return_value = fakes.fake_service()
         checked_objs = self.kubernetes.\
             create_wait_k8s(k8s_objs, k8s_client_dict,
@@ -134,22 +134,38 @@ class TestKubernetes(base.TestCase):
     @mock.patch.object(client.CoreV1Api, 'read_namespaced_service')
     @mock.patch.object(client.CoreV1Api, 'read_namespaced_endpoints')
     def test_create_wait_k8s_failure_service(
-            self, mock_endpoinds, mock_read_service):
+            self, mock_endpoints, mock_read_service):
         k8s_objs = fakes.fake_k8s_objs_service_false_cluster_ip()
         k8s_client_dict = self.k8s_client_dict
-        mock_endpoinds.return_value = None
+        mock_endpoints.return_value = None
         mock_read_service.return_value = fakes.fake_service_false()
         self.assertRaises(vnfm.CNFCreateWaitFailed,
                           self.kubernetes.create_wait_k8s,
                           k8s_objs, k8s_client_dict, self.vnf_instance)
 
     @mock.patch.object(client.CoreV1Api, 'read_namespaced_service')
-    def test_create_wait_k8s_failure_service_read_endpoinds(
-            self, mock_read_service):
+    @mock.patch.object(client.CoreV1Api, 'read_namespaced_endpoints')
+    def test_create_wait_k8s_failure_service_read_endpoints(
+            self, mock_endpoints, mock_read_service):
         k8s_objs = fakes.fake_k8s_objs_service_false_cluster_ip()
         k8s_client_dict = self.k8s_client_dict
         mock_read_service.return_value = fakes.fake_service()
-        self.assertRaises(exceptions.ReadEndpoindsFalse,
+        ex = client.ApiException(status=401)
+        mock_endpoints.side_effect = ex
+        self.assertRaises(exceptions.ReadEndpointsFalse,
+                          self.kubernetes.create_wait_k8s,
+                          k8s_objs, k8s_client_dict, self.vnf_instance)
+
+    @mock.patch.object(client.CoreV1Api, 'read_namespaced_service')
+    @mock.patch.object(client.CoreV1Api, 'read_namespaced_endpoints')
+    def test_create_wait_k8s_failure_service_read_endpoints_not_exist(
+            self, mock_endpoints, mock_read_service):
+        k8s_objs = fakes.fake_k8s_objs_service_false_cluster_ip()
+        k8s_client_dict = self.k8s_client_dict
+        mock_read_service.return_value = fakes.fake_service()
+        ex = client.ApiException(status=404)
+        mock_endpoints.side_effect = ex
+        self.assertRaises(vnfm.CNFCreateWaitFailed,
                           self.kubernetes.create_wait_k8s,
                           k8s_objs, k8s_client_dict, self.vnf_instance)
 
