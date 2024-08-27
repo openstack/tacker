@@ -25,7 +25,7 @@ As mentioned in Prerequisites, the VNF must be created
 before performing error-handling.
 
 Details of CLI commands are described in
-:doc:`/cli/cli-etsi-vnflcm`.
+:doc:`/cli/v2/vnflcm`.
 
 There are some operations to error-handling VNF.
 
@@ -44,7 +44,7 @@ Identify VNF_LCM_OP_OCC_ID
 The VNF_LCM_OP_OCC_ID can be obtained via CLI.
 
 Details of CLI commands are described in
-:doc:`/cli/cli-etsi-vnflcm`.
+:doc:`/cli/v2/vnflcm`.
 
 Before checking the "VNF_LCM_OP_OCC_ID", you should get VNF_INSTANCE_ID first.
 

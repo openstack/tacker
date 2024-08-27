@@ -1,8 +1,14 @@
-========================
-VNF Lifecycle Management
-========================
+=======================================
+VNF Lifecycle Management with v1 Tacker
+=======================================
 
 This document describes how to manage VNF Lifecycle with CLI in Tacker.
+
+.. note::
+
+  This is a document for Tacker v1 API.
+  See :doc:`/cli/v2/vnflcm` for Tacker v2 API.
+
 
 Prerequisites
 -------------

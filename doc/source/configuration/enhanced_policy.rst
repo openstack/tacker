@@ -826,7 +826,7 @@ instantiate VNF. Below are two samples of <param-file>.
      }
 
 
-For VNF LCM API version 2, please refer to :doc:`/cli/cli-etsi-vnflcm` to
+For VNF LCM API version 2, please refer to :doc:`/cli/v2/vnflcm` to
 instantiate VNF. Below are two samples of <param-file>.
 
 #. If the vim in the ``vimConnectionInfo`` parameter of <param-file> is an

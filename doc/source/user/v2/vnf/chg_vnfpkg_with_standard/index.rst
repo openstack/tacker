@@ -102,7 +102,7 @@ You need to upload the VNF package you want to change to before
 executing change current vnf package.
 
 Details of CLI commands are described in
-:doc:`/cli/cli-etsi-vnflcm`.
+:doc:`/cli/v2/vnflcm`.
 
 .. note::
 

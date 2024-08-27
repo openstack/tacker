@@ -261,7 +261,7 @@ recreate the deployment, DaemonSet and ReplicaSet to update.
     `samples/tests/functional/sol_kubernetes_v2/test_cnf_container_update_after`_
 
 
-Details of CLI commands are described in :doc:`/cli/cli-etsi-vnflcm`.
+Details of CLI commands are described in :doc:`/cli/v2/vnflcm`.
 
 
 How to Update CNF

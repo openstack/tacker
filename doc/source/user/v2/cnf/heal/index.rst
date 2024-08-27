@@ -48,7 +48,7 @@ CNF Healing Procedure
 As mentioned in Prerequisites and Healing target VNF instance, the VNF must be
 instantiated before healing.
 
-Details of CLI commands are described in :doc:`/cli/cli-etsi-vnflcm`.
+Details of CLI commands are described in :doc:`/cli/v2/vnflcm`.
 
 There are two main methods for CNF healing.
 

@@ -23,7 +23,7 @@ As mentioned in Prerequisites, the VNF must be created
 before performing update.
 
 Details of CLI commands are described in
-:doc:`/cli/cli-etsi-vnflcm`.
+:doc:`/cli/v2/vnflcm`.
 
 For update VNF instance, you need to prepare a JSON-formatted definition file.
 
