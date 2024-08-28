@@ -121,6 +121,9 @@ attributes.
 
       As "all" is treated as a special value, the above attribute of resource
       cannot use "all" as the attribute value.
+      If the attribute of resource is set to "all" by mistake, only users with
+      the admin role or special roles can access the resource, and other users
+      cannot access it.
 
 
 Conversion rules

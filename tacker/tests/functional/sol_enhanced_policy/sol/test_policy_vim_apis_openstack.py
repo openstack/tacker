@@ -23,3 +23,7 @@ class VimAPIsOpenstackTest(VimAPIsTest):
     def test_vim_apis_vim_without_area_openstack(self):
         self._test_vim_apis_vim_without_area_attribute(
             'openstack', 'local-vim.yaml')
+
+    def test_vim_apis_vim_with_area_openstack_special_role(self):
+        self._test_vim_apis_enhanced_policy_special_role(
+            'openstack', 'local-vim.yaml')

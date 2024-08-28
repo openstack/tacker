@@ -766,6 +766,36 @@ class VimAPIsTest(BaseTackerTest, BaseEnhancedPolicyTest):
         # step 9 VIM-Delete, Resource Group C / User Group admin
         self._step_vim_delete('user_admin', vim_c, 204)
 
+    def _test_vim_apis_enhanced_policy_special_role(self, vim_type, local_vim):
+        # step 1 VIM-Register, Area special role / User Group A
+        vim_a_1 = self._step_vim_register(
+            'user_a', vim_type, local_vim, 'vim_a_1', 'all@region_A', 201)
+
+        # step 2 VIM-Register, Area special role / User Group A
+        vim_a_2 = self._step_vim_register(
+            'user_a', vim_type, local_vim, 'vim_a_2', 'all@all', 201)
+
+        # step 3 VIM-Show, Area special role / User Group A
+        self._step_vim_show('user_a', vim_a_1, 404)
+
+        # step 4 VIM-Show, Area special role / User Group A
+        self._step_vim_show('user_a', vim_a_2, 404)
+
+        # step 5 VIM-Show, Area special role / User Group All
+        self._step_vim_show('user_all', vim_a_1, 200)
+
+        # step 6 VIM-Show, Area special role / User Group Admin
+        self._step_vim_show('user_admin', vim_a_2, 200)
+
+        # step 7 VIM-Delete, Area special role / User Group A
+        self._step_vim_delete('user_a', vim_a_1, 404)
+
+        # step 8 VIM-Delete, Area special role / User Group All
+        self._step_vim_delete('user_all', vim_a_1, 204)
+
+        # step 9 VIM-Delete, Area special role / User Group Admin
+        self._step_vim_delete('user_admin', vim_a_2, 204)
+
 
 class VnflcmAPIsV1Base(vnflcm_base.BaseVnfLcmTest, BaseEnhancedPolicyTest):
 

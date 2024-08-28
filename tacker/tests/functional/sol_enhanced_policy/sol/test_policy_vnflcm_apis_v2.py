@@ -41,6 +41,8 @@ class VnflcmAPIsV2VNFBase(CommonVnfLcmTest, BaseEnhancedPolicyTest):
                    'TENANT_tenant_B', 'manager'],
         'user_c': ['VENDOR_company_C', 'AREA_area_C@region_C',
                    'TENANT_tenant_C', 'manager'],
+        'user_c_1': ['VENDOR_all', 'AREA_all@all',
+                     'TENANT_tenant_C', 'manager'],
         'user_all': ['VENDOR_all', 'AREA_all@all',
                      'TENANT_all', 'manager'],
         'user_admin': ['admin']
@@ -49,6 +51,7 @@ class VnflcmAPIsV2VNFBase(CommonVnfLcmTest, BaseEnhancedPolicyTest):
         'user_a': 'tenant_A',
         'user_b': 'tenant_B',
         'user_c': 'tenant_C',
+        'user_c_1': 'all',
         'user_all': 'tenant_B',
         'user_admin': 'tenant_C'
     }
@@ -119,6 +122,10 @@ class VnflcmAPIsV2VNFBase(CommonVnfLcmTest, BaseEnhancedPolicyTest):
             change_vnfpkg_from_image_to_image_path_2, image_path=image_path,
             provider='company_C')
 
+        # for Vendor Special Role
+        cls.vnf_pkg_sr, cls.vnfd_id_sr = cls.create_vnf_package(
+            basic_lcms_min_path, image_path=image_path, provider='all')
+
     @classmethod
     def tearDownClass(cls):
         cls.delete_vnf_package(cls.vnf_pkg_a)
@@ -130,6 +137,7 @@ class VnflcmAPIsV2VNFBase(CommonVnfLcmTest, BaseEnhancedPolicyTest):
         cls.delete_vnf_package(cls.vnf_pkg_c)
         cls.delete_vnf_package(cls.vnf_pkg_c_1)
         cls.delete_vnf_package(cls.vnf_pkg_c_2)
+        cls.delete_vnf_package(cls.vnf_pkg_sr)
         BaseEnhancedPolicyTest.tearDownClass()
         super(VnflcmAPIsV2VNFBase, cls).tearDownClass()
 
@@ -738,6 +746,63 @@ class VnflcmAPIsV2VNFInstantiateWithArea(VnflcmAPIsV2VNFBase):
         self.vnflcm_apis_v2_vnf_test_after_instantiate(
             sub_id, inst_id_a, inst_id_b, zone_name_list, glance_image,
             flavour_vdu_dict)
+
+    def test_vnflcm_apis_v2_vnf_with_area_in_vim_conn_info_sr_area(self):
+        # test in case area is special role, including vendor is special role
+
+        glance_image = None
+        flavour_vdu_dict = None
+        zone_name_list = None
+
+        # step 1 LCM-CreateV2, Vendor Special Role / User Group A
+        self._step_lcm_create('user_a', self.vnfd_id_sr, 403)
+
+        # step 2 LCM-CreateV2, Resource Group A / User Group A
+        inst_id_a = self._step_lcm_create('user_a', self.vnfd_id_a, 201)
+
+        # step 3 LCM-InstantiateV2, Area Special Role / User Group A
+        self._step_lcm_instantiate('user_a', inst_id_a, 'tenant_A',
+                                   glance_image, flavour_vdu_dict,
+                                   zone_name_list, 202, area='all@all')
+
+        # step 4 LCM-ShowV2, Area Special Role / User Group A
+        self._step_lcm_show('user_a', inst_id_a, 403)
+
+        # step 5 LCM-ShowV2, Area Special Role / User Group Admin
+        self._step_lcm_show('user_admin', inst_id_a, 200)
+
+        # step 6 LCM-TerminateV2, Area Special Role / User Group Admin
+        self._step_lcm_terminate('user_admin', inst_id_a, 202)
+
+        # step 7 LCM-DeleteV2, Resource Group A / User Group Admin
+        self._step_lcm_delete('user_admin', inst_id_a, 204)
+
+    def test_vnflcm_apis_v2_vnf_with_area_in_vim_conn_info_sr_tenant(self):
+        # test in case tenant: special role
+
+        glance_image = None
+        flavour_vdu_dict = None
+        zone_name_list = None
+
+        # step 1 LCM-CreateV2, Resource Group C / User Group C-1
+        inst_id_c = self._step_lcm_create('user_c_1', self.vnfd_id_c, 201)
+
+        # step 2 LCM-InstantiateV2, Tenant Special Role / User Group C-1
+        self._step_lcm_instantiate('user_c_1', inst_id_c, 'all',
+                                   glance_image, flavour_vdu_dict,
+                                   zone_name_list, 202, area='area_C@region_C')
+
+        # step 3 LCM-ShowV2, Tenant Special Role / User Group C_1
+        self._step_lcm_show('user_c_1', inst_id_c, 403)
+
+        # step 4 LCM-ShowV2, Tenant Special Role / User Group Admin
+        self._step_lcm_show('user_admin', inst_id_c, 200)
+
+        # step 5 LCM-TerminateV2, Tenant Special Role / User Group Admin
+        self._step_lcm_terminate('user_admin', inst_id_c, 202)
+
+        # step 6 LCM-DeleteV2, Resource Group C / User Group Admin
+        self._step_lcm_delete('user_admin', inst_id_c, 204)
 
 
 class VnflcmAPIsV2VNFInstantiateWithAreaInRegisteredVim(VnflcmAPIsV2VNFBase):

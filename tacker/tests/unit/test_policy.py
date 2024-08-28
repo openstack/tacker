@@ -30,7 +30,10 @@ from tacker.common import exceptions
 from tacker import context
 from tacker import manager
 from tacker import policy
+from tacker.sol_refactored.common import config
 from tacker.tests import base
+
+CONF = config.CONF
 
 
 class PolicyFileTestCase(base.BaseTestCase):
@@ -555,3 +558,39 @@ class TackerPolicyTestCase(base.BaseTestCase):
             {'extension:provider_network:set': 'rule:admin_only'},
             dict((policy, 'rule:admin_only') for policy in
                  expected_policies))
+
+
+class EnhancedPolicyTestCace(base.BaseTestCase):
+    def setUp(self):
+        super(EnhancedPolicyTestCace, self).setUp()
+        CONF.set_override(
+            'enhanced_tacker_policy', True, group='oslo_policy')
+        policy.reset()
+        self.addCleanup(policy.reset)
+        policy.init()
+        rules = {
+            'manager_and_owner': 'role:manager and project_id:%(project_id)s',
+            'vim_attrs_cmp': 'area:%(area)s',
+            'create_vim': 'rule:manager_and_owner or role:admin',
+            'get_vim': 'rule:vim_attrs_cmp or role:admin'
+        }
+        policy.set_rules(common_policy.Rules.from_dict(rules), overwrite=True)
+        self.context = context.Context('fake', 'fake', roles=['manager'])
+        self.target = {'project_id': 'fake', 'user_id': 'fake', 'vendor': '*',
+                       'area': '*', 'tenant': '*'}
+
+    @mock.patch.object(common_policy.Enforcer, 'enforce')
+    def test_enforce_with_target_special_role(self, mock_enforce):
+        self.target['vendor'] = 'all'
+        action = 'create_vim'
+        result = policy.enforce(self.context, action, self.target)
+        self.assertTrue(result)
+        self.assertTrue(mock_enforce.called)
+
+    @mock.patch.object(common_policy.Enforcer, 'enforce')
+    def test_check_with_target_special_role(self, mock_enforce):
+        self.target['vendor'] = 'all'
+        action = 'get_vim'
+        result = policy.check(self.context, action, self.target)
+        self.assertFalse(result)
+        self.assertFalse(mock_enforce.called)
