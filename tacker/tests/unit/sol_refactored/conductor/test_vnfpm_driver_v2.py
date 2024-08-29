@@ -41,36 +41,66 @@ class TestVnfPmDriverV2(base.BaseTestCase):
                             mock_send):
         mock_create.return_value = None
         mock_update.return_value = None
-        pm_job = objects.PmJobV2(
-            id='pm_job_1',
+        pm_job1 = objects.PmJobV2(
+            id='pm_job_id1',
             objectTtype='VNF',
             authentication=objects.SubscriptionAuthentication(
-                authType=["BASIC"],
+                authType=['BASIC'],
                 paramsBasic=objects.SubscriptionAuthentication_ParamsBasic(
                     userName='test',
                     password='test'
                 ),
             ),
-            callbackUri='http://127.0.0.1/callback'
+            callbackUri='http://127.0.0.1/callback1'
         )
-        report = {
-            "id": "fake_id",
-            "jobId": "fake_job_id",
-            "entries": [{
-                "objectType": "VNF",
-                "objectInstanceId": "instance_id_1",
-                "subObjectInstanceId": "subObjectInstanceId_1",
+        pm_job2 = objects.PmJobV2(
+            id='pm_job_id2',
+            objectTtype='VNF',
+            authentication=objects.SubscriptionAuthentication(
+                authType=['BASIC'],
+                paramsBasic=objects.SubscriptionAuthentication_ParamsBasic(
+                    userName='test',
+                    password='test'
+                ),
+            ),
+            callbackUri='http://127.0.0.1/callback2'
+        )
+        mock_update_report.side_effect = [pm_job1, pm_job2]
+        mock_send.return_value = None
+        report1 = {
+            'id': 'fake_id1',
+            'jobId': 'pm_job_id1',
+            'entries': [{
+                'objectType': 'VNF',
+                'objectInstanceId': 'instance_id1',
+                'subObjectInstanceId': 'subObjectInstanceId1',
                 'performanceValues': [{
-                    'timeStamp': "2022-06-21T23:47:36.453Z",
-                    'value': "99.0"
+                    'timeStamp': '2022-06-21T23:47:36.453Z',
+                    'value': '99.0'
                 }]
             }]
         }
-
-        mock_update_report.return_value = pm_job
-        mock_send.return_value = None
-        VnfPmDriverV2().store_job_info(context=self.context,
-                                       report=report)
+        report2 = {
+            'id': 'fake_id2',
+            'jobId': 'pm_job_id2',
+            'entries': [{
+                'objectType': 'VNF',
+                'objectInstanceId': 'instance_id2',
+                'subObjectInstanceId': 'subObjectInstanceId2',
+                'performanceValues': [{
+                    'timeStamp': '2022-06-21T23:47:36.453Z',
+                    'value': '99.0'
+                }]
+            }]
+        }
+        reports = [report1, report2]
+        VnfPmDriverV2().store_job_info(context=self.context, reports=reports)
+        call1 = mock.call(mock.ANY, 'pm_job_id1', mock.ANY, mock.ANY, mock.ANY)
+        call2 = mock.call(mock.ANY, 'pm_job_id2', mock.ANY, mock.ANY, mock.ANY)
+        mock_update_report.assert_has_calls([call1, call2])
+        call1 = mock.call(mock.ANY, pm_job1, mock.ANY, mock.ANY)
+        call2 = mock.call(mock.ANY, pm_job2, mock.ANY, mock.ANY)
+        mock_send.assert_has_calls([call1, call2])
 
     @mock.patch.object(subsc_utils, 'send_notification')
     @mock.patch.object(objects.base.TackerPersistentObject, 'get_by_id')

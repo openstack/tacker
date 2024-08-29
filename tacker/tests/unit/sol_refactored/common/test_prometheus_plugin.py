@@ -53,12 +53,13 @@ _body_base = {
     'truncatedAlerts': 0
 }
 
+_pm_job_id1 = '64e46b0e-887a-4691-8d2b-aa3d7b157e2c'
 _body_pm_alert1 = {
     'status': 'firing',
     'labels': {
         'receiver_type': 'tacker',
         'function_type': 'vnfpm',
-        'job_id': '64e46b0e-887a-4691-8d2b-aa3d7b157e2c',
+        'job_id': _pm_job_id1,
         'metric': 'VCpuUsageMeanVnf.'
                   '25b9b9d0-2461-4109-866e-a7767375415b',
         'object_instance_id': '25b9b9d0-2461-4109-866e-a7767375415b'
@@ -88,6 +89,11 @@ _body_pm_alert5['labels']['metric'] = 'ByteIncomingVnfIntCp'
 
 _body_pm_alert6 = copy.deepcopy(_body_pm_alert1)
 _body_pm_alert6['labels']['metric'] = 'InvalidMetric'
+
+# job_id and object_instance_id are changed for multiple job alerts
+_body_pm_alert7 = copy.deepcopy(_body_pm_alert1)
+_body_pm_alert7['labels']['job_id'] = 'pm_job_id2'
+_body_pm_alert7['labels']['object_instance_id'] = 'obj_instance_id2'
 
 _body_pm_threshold_alert1 = {
     'status': 'firing',
@@ -136,6 +142,11 @@ _body_pm1.update({
 _body_pm2 = copy.deepcopy(_body_base)
 _body_pm2.update({
     'alerts': [_body_pm_alert5, _body_pm_alert6]
+})
+
+_body_pm3 = copy.deepcopy(_body_base)
+_body_pm3.update({
+    'alerts': [_body_pm_alert1, _body_pm_alert1, _body_pm_alert7]
 })
 
 _body_pm_threshold1 = copy.deepcopy(_body_base)
@@ -204,6 +215,10 @@ _pm_job2['objectType'] = 'VnfIntCp'
 _pm_job2['criteria']['performanceMetric'] = ['ByteIncomingVnfIntCp']
 _pm_job2['criteria']['performanceMetricGroup'] = [
     'VnfInternalCp', 'VnfExternalCp']
+
+_pm_job3 = copy.deepcopy(_pm_job)
+_pm_job3['id'] = 'pm_job_id2'
+_pm_job3['objectInstanceIds'] = ['obj_instance_id2']
 
 _pm_threshold = {
     'id': 'threshold_id',
@@ -472,7 +487,7 @@ class TestPrometheusPluginPm(base.TestCase):
             result = pp._alert(self.request, body=_body_pm1)
             self.assertTrue(len(result) > 0)
             self.assertEqual(
-                result[0]['objectInstanceId'],
+                result[_pm_job_id1][0]['objectInstanceId'],
                 '25b9b9d0-2461-4109-866e-a7767375415b')
 
     @mock.patch.object(pm_job_utils, 'get_pm_report')
@@ -489,7 +504,7 @@ class TestPrometheusPluginPm(base.TestCase):
         with freezegun.freeze_time(datetime_test):
             result = pp._alert(self.request, body=_body_pm2)
             self.assertTrue(len(result) == 1)
-            self.assertEqual(result[0]["performanceMetric"],
+            self.assertEqual(result[_pm_job_id1][0]["performanceMetric"],
                              'ByteIncomingVnfIntCp')
 
     @mock.patch.object(pm_job_utils, 'get_pm_report')
@@ -507,7 +522,7 @@ class TestPrometheusPluginPm(base.TestCase):
             result = pp._alert(self.request, body=_body_pm1)
             self.assertTrue(len(result) > 0)
             self.assertEqual(
-                result[0]['objectInstanceId'],
+                result[_pm_job_id1][0]['objectInstanceId'],
                 '25b9b9d0-2461-4109-866e-a7767375415b')
         mock_pm_report.return_value = None
         unload_uuidsentinel()
@@ -515,7 +530,7 @@ class TestPrometheusPluginPm(base.TestCase):
             result = pp._alert(self.request, body=_body_pm1)
             self.assertTrue(len(result) > 0)
             self.assertEqual(
-                result[0]['objectInstanceId'],
+                result[_pm_job_id1][0]['objectInstanceId'],
                 '25b9b9d0-2461-4109-866e-a7767375415b')
 
     @mock.patch.object(pm_job_utils, 'get_pm_report')
@@ -558,8 +573,33 @@ class TestPrometheusPluginPm(base.TestCase):
             result = pp._alert(self.request, body=_body_pm1)
             self.assertTrue(len(result) > 0)
             self.assertEqual(
-                result[0]['objectInstanceId'],
+                result[_pm_job_id1][0]['objectInstanceId'],
                 '25b9b9d0-2461-4109-866e-a7767375415b')
+
+    @mock.patch.object(pm_job_utils, 'get_pm_report')
+    @mock.patch.object(pm_job_utils, 'get_pm_job')
+    def test_pm_multi_job_alerts(self, mock_pm_job, mock_pm_report):
+        self.config_fixture.config(
+            group='prometheus_plugin', performance_management=True)
+        return_pm_job1 = objects.PmJobV2.from_dict(_pm_job)
+        return_pm_job2 = objects.PmJobV2.from_dict(_pm_job3)
+        mock_pm_job.side_effect = [return_pm_job1, return_pm_job1,
+            return_pm_job2]
+        mock_pm_report.return_value = [objects.PerformanceReportV2.from_dict(
+            _pm_report)]
+        pp = mon_base.MonitoringPlugin.get_instance(
+            prometheus_plugin.PrometheusPluginPm)
+
+        unload_uuidsentinel()
+        with freezegun.freeze_time(datetime_test):
+            result = pp._alert(self.request, body=_body_pm3)
+            self.assertTrue(len(result) == 2)
+            self.assertEqual(result[_pm_job_id1][0]['objectInstanceId'],
+                '25b9b9d0-2461-4109-866e-a7767375415b')
+            self.assertEqual(result[_pm_job_id1][1]['objectInstanceId'],
+                '25b9b9d0-2461-4109-866e-a7767375415b')
+            self.assertEqual(result['pm_job_id2'][0]['objectInstanceId'],
+                'obj_instance_id2')
 
     def test_pm_error_access_info(self):
         self.config_fixture.config(

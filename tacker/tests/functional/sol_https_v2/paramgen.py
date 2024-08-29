@@ -288,7 +288,7 @@ def pm_event(job_id, inst_id):
 
 
 def entries(body, inst_id):
-    return {
+    return [{
         'id': uuidutils.generate_uuid(),
         'jobId': body.get("id"),
         'entries': [{
@@ -300,7 +300,7 @@ def entries(body, inst_id):
                 'value': 0.8
             }]
         }],
-    }
+    }]
 
 
 def alarm(inst_id):
