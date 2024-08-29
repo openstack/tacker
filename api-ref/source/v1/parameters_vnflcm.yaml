@@ -195,11 +195,7 @@ authentication_auth_type:
     an OAuth 2.0 bearer token, obtained using the
     client credentials grant type.
 
-    TLS_CERT: Every HTTP request to the
-    notification endpoint is sent over a mutually
-    authenticated TLS session, i.e. not only the
-    server is authenticated, but also the client is
-    authenticated during the TLS tunnel setup.
+    TLS_CERT is not supported.
   in: body
   required: true
   type: string

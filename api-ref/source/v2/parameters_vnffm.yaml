@@ -72,6 +72,63 @@ authentication:
   in: body
   required: false
   type: string
+authentication_auth_type:
+  description: |
+    Defines the types of Authentication/Authorization which
+    the API consumer is willing to accept when receiving a
+    notification.
+    Permitted values:
+
+    BASIC: In every HTTP request to the
+    notification endpoint, use HTTP Basic
+    authentication with the client credentials.
+
+    OAUTH2_CLIENT_CREDENTIALS: In every HTTP request
+    to the notification endpoint, use an OAuth 2.0 token,
+    obtained using the client credentials grant type
+    after authenticating using client identifier and
+    client password towards the token endpoint.
+
+    OAUTH2_CLIENT_CERT: In every HTTP request to
+    the notification endpoint, use an OAuth 2.0 token,
+    obtained using the client credentials grant type
+    after mutually authenticating using client identifier
+    and X.509 certificates towards the token endpoint.
+
+    TLS_CERT is not supported.
+  in: body
+  required: true
+  type: array
+authentication_params_basic:
+  description: |
+    Parameters for authentication/authorization using BASIC.
+    Shall be present if authType is "BASIC" and the
+    contained information has not been provisioned out of
+    band. Shall be absent otherwise.
+  in: body
+  required: false
+  type: object
+authentication_params_oauth2_client_cert:
+  description: |
+    Parameters for authentication/authorization using
+    OAUTH2_CLIENT_CERT.
+    Shall be present if authType is "OAUTH2_CLIENT_CERT" and the
+    contained information has not been provisioned out of band.
+    Shall be absent otherwise.
+  in: body
+  required: false
+  type: object
+authentication_params_oauth2_client_credentials:
+  description: |
+    Parameters for authentication/authorization using
+    OAUTH2_CLIENT_CREDENTIALS.
+    Shall be present if authType is
+    "OAUTH2_CLIENT_CREDENTIALS" and the contained
+    information has not been provisioned out of band.
+    Shall be absent otherwise.
+  in: body
+  required: false
+  type: object
 callback_uri:
   description: |
     The URI of the endpoint to send the notification to.
@@ -229,6 +286,85 @@ object_instance:
   in: body
   required: false
   type: object
+params_oauth2_client_cert_certificate_ref:
+  description: |
+    Fingerprint of the client certificate. The hash function
+    shall use SHA256 or higher. Shall be present if it has not
+    been provisioned out of band.
+  in: body
+  required: true
+  type: object
+params_oauth2_client_cert_client_id:
+  description: |
+    Client identifier to be used in the access token request
+    of the OAuth 2.0 client credentials grant type. Shall be
+    present if it has not been provisioned out of band.
+  in: body
+  required: true
+  type: string
+params_oauth2_client_cert_token_endpoint:
+  description: |
+    The token endpoint from which the access token can be
+    obtained. Shall be present if it has not been provisioned
+    out of band.
+  in: body
+  required: true
+  type: string
+params_oauth2_client_cert_type:
+  description: |
+    The type of fingerprint.
+    Permitted values:
+
+    x5t#S256: The SHA-256 thumbprint of the X.509 certificate
+    as defined in section 4.1.8 of IETF RFC 7515.
+  in: body
+  required: true
+  type: string
+params_oauth2_client_cert_value:
+  description: |
+    The fingerprint value as defined by the type. Shall be
+    present if it has not been provisioned out of band.
+  in: body
+  required: true
+  type: string
+params_oauth2_client_credentials_client_id:
+  description: |
+    Client identifier to be used in the access token request
+    of the OAuth 2.0 client credentials grant type. Shall be
+    present if it has not been provisioned out of band.
+  in: body
+  required: false
+  type: string
+params_oauth2_client_credentials_client_password:
+  description: |
+    Client password to be used in the access token request
+    of the OAuth 2.0 client credentials grant type. Shall be
+    present if it has not been provisioned out of band.
+  in: body
+  required: false
+  type: string
+params_oauth2_client_credentials_token_endpoint:
+  description: |
+    The token endpoint from which the access token can be
+    obtained. Shall be present if it has not been provisioned
+    out of band.
+  in: body
+  required: false
+  type: string
+paramsBasic_password:
+  description: |
+    Password to be used in HTTP Basic authentication.
+    Shall be present if it has not been provisioned out of band.
+  in: body
+  required: false
+  type: string
+paramsBasic_userName:
+  description: |
+    Username to be used in HTTP Basic authentication.
+    Shall be present if it has not been provisioned out of band.
+  in: body
+  required: false
+  type: string
 perceived_severity:
   description: |
     Perceived severity of the managed object failure. CRITICAL,MAJOR,MINOR,
