@@ -5,6 +5,42 @@ ETSI NFV-SOL VNF Change Current VNF Package
 This document describes how to change current VNF package for VNF
 in Tacker v2 API.
 
+.. note::
+
+  The content of this document has been confirmed to work
+  using the following VNF Packages.
+
+  * `test_instantiate_vnf_with_old_image_or_volume for 2023.2 Bobcat`_
+  * `test_change_vnf_pkg_with_new_image for 2023.2 Bobcat`_
+  * `test_change_vnf_pkg_with_new_volume for 2023.2 Bobcat`_
+
+  Please also refer to the samples below.
+
+  * `change_vnfpkg_before`_
+  * `change_vnfpkg_after`_
+
+  If you use the samples, you need to add the following files:
+
+  * Definitions/etsi_nfv_sol001_common_types.yaml
+  * Definitions/etsi_nfv_sol001_vnfd_types.yaml
+  * Files/images/cirros-0.5.2-x86_64-disk.img
+
+  The samples make the following updates:
+
+  * VDU1
+
+    * change image
+    * change network
+
+  * VDU2
+
+    * change image
+    * change flavor
+
+  * VDU3
+
+    * no change
+
 
 Overview
 --------
@@ -1129,48 +1165,6 @@ See `Heat CLI reference`_ for details on Heat CLI commands.
 
     You can check 'attributes.addresses' has been changed.
     In this example, 'net1' has been changed.
-
-
-History of Checks
------------------
-
-The content of this document has been confirmed to work
-using the following VNF Packages.
-
-* `test_instantiate_vnf_with_old_image_or_volume for 2023.2 Bobcat`_
-* `test_change_vnf_pkg_with_new_image for 2023.2 Bobcat`_
-* `test_change_vnf_pkg_with_new_volume for 2023.2 Bobcat`_
-
-
-Please also refer to the samples below.
-
-* `change_vnfpkg_before`_
-* `change_vnfpkg_after`_
-
-  .. note::
-
-    If you use the samples, you need to add the following files:
-
-    * Definitions/etsi_nfv_sol001_common_types.yaml
-    * Definitions/etsi_nfv_sol001_vnfd_types.yaml
-    * Files/images/cirros-0.5.2-x86_64-disk.img
-
-
-The samples make the following updates:
-
-* VDU1
-
-  * change image
-  * change network
-
-* VDU2
-
-  * change image
-  * change flavor
-
-* VDU3
-
-  * no change
 
 
 .. _Heat CLI reference: https://docs.openstack.org/python-openstackclient/latest/cli/plugin-commands/heat.html

@@ -5,6 +5,14 @@ ETSI NFV-SOL CNF Change Current VNF Package
 This document describes how to change current VNF package for CNF
 in Tacker v2 API.
 
+.. note::
+
+  The content of this document has been confirmed to work
+  using the following VNF Packages.
+
+  * `test_instantiate_cnf_resources for 2023.2 Bobcat`_
+  * `test_change_vnf_pkg_with_deployment for 2023.2 Bobcat`_
+
 
 Overview
 --------
@@ -396,16 +404,6 @@ Result:
   ``name`` of pods has changed before and after operation.
   The age of pods under deployment has been reset, so pods under
   this deployment has redeployed before and after operation.
-
-
-History of Checks
------------------
-
-The content of this document has been confirmed to work
-using the following VNF Packages.
-
-* `test_instantiate_cnf_resources for 2023.2 Bobcat`_
-* `test_change_vnf_pkg_with_deployment for 2023.2 Bobcat`_
 
 
 .. _VNF Package for Common instantiate:

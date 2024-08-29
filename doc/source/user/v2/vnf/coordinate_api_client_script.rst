@@ -6,6 +6,14 @@ This document describes how to use the sample coordinateVNF
 script for ETSI NFV-SOL VNF LCM coordination API
 in the ChangeCurrentVNFPackage v2 API.
 
+.. note::
+
+  The contents of this document are written with reference to the following
+  sample script and request for 2023.2 Bobcat.
+
+  * `coordinate_vnf.py of userdata_standard for 2023.2 Bobcat`_
+  * `sample4_change_vnfpkg of userdata_standard_change_vnfpkg for 2023.2 Bobcat`_
+
 
 Overview
 --------
@@ -614,16 +622,6 @@ the VNF LCM Coordination API.
 
    When finish VNF LCM coordination API operation via the CoordinateVNF script,
    Change current VNF Package operation will finish successfully.
-
-
-History of Checks
------------------
-
-The contents of this document are written with reference to the following
-sample script and request for 2023.2 Bobcat.
-
-* `coordinate_vnf.py of userdata_standard for 2023.2 Bobcat`_
-* `sample4_change_vnfpkg of userdata_standard_change_vnfpkg for 2023.2 Bobcat`_
 
 
 .. _ETSI NFV-SOL 002 v3.6.1: https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/002/03.06.01_60/gs_nfv-sol002v030601p.pdf

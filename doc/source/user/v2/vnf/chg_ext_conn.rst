@@ -5,6 +5,14 @@ ETSI NFV-SOL Change External VNF Connectivity
 This document describes how to change external VNF connectivity
 in Tacker v2 API.
 
+.. note::
+
+  The content of this document has been confirmed to work
+  using the following VNF Package.
+
+  * `basic_lcms_max_individual_vnfc for 2023.2 Bobcat`_
+
+
 Prerequisites
 -------------
 
@@ -310,15 +318,6 @@ Result:
 
 
 See `Heat CLI reference`_. for details on Heat CLI commands.
-
-
-History of Checks
------------------
-
-The content of this document has been confirmed to work
-using the following VNF Package.
-
-* `basic_lcms_max_individual_vnfc for 2023.2 Bobcat`_
 
 
 .. _Heat CLI reference: https://docs.openstack.org/python-openstackclient/latest/cli/plugin-commands/heat.html

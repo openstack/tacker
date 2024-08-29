@@ -4,6 +4,14 @@ ETSI NFV-SOL VNF Healing
 
 This document describes how to heal VNF in v2 Tacker.
 
+.. note::
+
+  The content of this document has been confirmed to work
+  using the following VNF Package.
+
+  * `basic_lcms_max_individual_vnfc for 2023.2 Bobcat`_
+
+
 Overview
 --------
 
@@ -756,15 +764,6 @@ Result:
 
   'ID' has changed from the ID before healing.
   'Stack Status' transitions to CREATE_COMPLETE.
-
-
-History of Checks
------------------
-
-The content of this document has been confirmed to work
-using the following VNF Package.
-
-* `basic_lcms_max_individual_vnfc for 2023.2 Bobcat`_
 
 
 .. _NFV-SOL002 v3.3.1: https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/002/03.03.01_60/gs_nfv-sol002v030301p.pdf

@@ -749,7 +749,7 @@ Delete VNF
 
    .. code-block:: console
 
-     $ openstack vnflcm delete c98b05c7-bc96-43f8-a688-4d8079ffa3bf
+     $ openstack vnflcm delete c98b05c7-bc96-43f8-a688-4d8079ffa3bf --os-tacker-api-version 2
      Vnf instance 'c98b05c7-bc96-43f8-a688-4d8079ffa3bf' is deleted successfully
 
 

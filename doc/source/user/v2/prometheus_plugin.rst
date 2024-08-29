@@ -2,6 +2,12 @@
 Prometheus Plugin Use Case Guide
 ================================
 
+.. note::
+
+  The content of this document has been confirmed to work
+  using Prometheus 2.45 and Alertmanager 0.26.
+
+
 Overview
 ~~~~~~~~
 
@@ -740,13 +746,6 @@ tacker.sol_refactored.common.monitoring_plugin_base.MonitoringPlugin.
   * - ``auto_healing_class``
     - PrometheusPluginAutoHealing
     - Class name for auto healing.
-
-
-History of Checks
------------------
-
-The content of this document has been confirmed to work
-using Prometheus 2.45 and Alertmanager 0.26.
 
 
 .. _ETSI GS NFV-SOL 003:
