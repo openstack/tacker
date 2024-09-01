@@ -288,7 +288,7 @@ definition file before running command.
 .. note::
   * ``vnfdId`` is the VNFD id of the new VNF package you uploaded.
   * ``extVirtualLinks`` is an optional parameter.
-    This operation can change external CP for the the VNF instance.
+    This operation can change external CP for the VNF instance.
   * ``extManagedVirtualLinks`` is an optional parameter.
     Note that if the VNF instance uses ``extManagedVirtualLinkInfo``,
     ``extManagedVirtualLinks`` needs to be set in the request

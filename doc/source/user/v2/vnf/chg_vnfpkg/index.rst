@@ -283,7 +283,7 @@ You can set following parameter in additionalParams:
     current values.
     For ``metadata``, the value set before this operation is maintained.
   * ``extVirtualLinks`` is an optional parameter.
-    This operation can change external CP for the the VNF instance.
+    This operation can change external CP for the VNF instance.
 
 
 .. note::
