@@ -258,6 +258,13 @@ def grant_error_common(function):
                 vnf_instance = keyed_args['vnf_instance']
                 vnf_lcm_op_occ_id = keyed_args['vnf_lcm_op_occ_id']
                 try:
+                    self.vnflcm_driver._vnf_instance_update(
+                        context, vnf_instance, task_state=None)
+                except Exception as e:
+                    LOG.error(
+                        'Failed to revert task state for vnf '
+                        f'instance {vnf_instance.id}. Error: {e}')
+                try:
                     vnf_lcm_op_occs = objects.VnfLcmOpOcc.get_by_id(
                         context, vnf_lcm_op_occ_id)
                     timestamp = datetime.datetime.utcnow()
