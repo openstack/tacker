@@ -83,8 +83,9 @@ Help:
 .. code-block:: console
 
   $ openstack vnflcm create --help
-  usage: openstack vnflcm create [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN] [--noindent] [--prefix PREFIX]
-                                 [--max-width <integer>] [--fit-width] [--print-empty] [--name <vnf-instance-name>]
+  usage: openstack vnflcm create [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN]
+                                 [--noindent] [--prefix PREFIX] [--max-width <integer>]
+                                 [--fit-width] [--print-empty] [--name <vnf-instance-name>]
                                  [--description <vnf-instance-description>] [--I <param-file>]
                                  <vnfd-id>
 
@@ -100,7 +101,8 @@ Help:
     --description <vnf-instance-description>
                           Description of the VNF instance to be created.
     --I <param-file>
-                          Instantiate VNF subsequently after it's creation. Specify instantiate request parameters in a json file.
+                          Instantiate VNF subsequently after it's creation. Specify instantiate request
+                          parameters in a json file.
 
   output formatters:
     output formatter options
@@ -121,10 +123,10 @@ Help:
 
   table formatter:
     --max-width <integer>
-                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH environment variable, but the
-                          parameter takes precedence.
-    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the environment variable
-                          CLIFF_FIT_WIDTH=1 to always enable
+                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH
+                          environment variable, but the parameter takes precedence.
+    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the
+                          environment variable CLIFF_FIT_WIDTH=1 to always enable
     --print-empty         Print empty table if there is no data to show.
 
   This command is provided by the python-tackerclient plugin.
@@ -195,8 +197,9 @@ Help:
 
   $ openstack vnflcm list --help
   usage: openstack vnflcm list [-h] [-f {csv,json,table,value,yaml}] [-c COLUMN]
-                               [--quote {all,minimal,none,nonnumeric}] [--noindent] [--max-width <integer>] [--fit-width]
-                               [--print-empty] [--sort-column SORT_COLUMN] [--sort-ascending | --sort-descending]
+                               [--quote {all,minimal,none,nonnumeric}] [--noindent]
+                               [--max-width <integer>] [--fit-width] [--print-empty]
+                               [--sort-column SORT_COLUMN] [--sort-ascending | --sort-descending]
 
   List VNF Instance
 
@@ -211,8 +214,8 @@ Help:
     -c COLUMN, --column COLUMN
                           specify the column(s) to include, can be repeated to show multiple columns
     --sort-column SORT_COLUMN
-                          specify the column(s) to sort the data (columns specified first have a priority, non-existing columns are
-                          ignored), can be repeated
+                          specify the column(s) to sort the data (columns specified first have a priority,
+                          non-existing columns are ignored), can be repeated
     --sort-ascending      sort the column(s) in ascending order
     --sort-descending     sort the column(s) in descending order
 
@@ -225,10 +228,10 @@ Help:
 
   table formatter:
     --max-width <integer>
-                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH environment variable, but the
-                          parameter takes precedence.
-    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the environment variable
-                          CLIFF_FIT_WIDTH=1 to always enable
+                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH
+                          environment variable, but the parameter takes precedence.
+    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the
+                          environment variable CLIFF_FIT_WIDTH=1 to always enable
     --print-empty         Print empty table if there is no data to show.
 
   This command is provided by the python-tackerclient plugin.
@@ -358,8 +361,9 @@ Help:
 .. code-block:: console
 
   $ openstack vnflcm show --help
-  usage: openstack vnflcm show [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN] [--noindent] [--prefix PREFIX]
-                               [--max-width <integer>] [--fit-width] [--print-empty]
+  usage: openstack vnflcm show [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN]
+                               [--noindent] [--prefix PREFIX] [--max-width <integer>]
+                               [--fit-width] [--print-empty]
                                <vnf-instance>
 
   Display VNF instance details
@@ -390,10 +394,10 @@ Help:
 
   table formatter:
     --max-width <integer>
-                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH environment variable, but the
-                          parameter takes precedence.
-    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the environment variable
-                          CLIFF_FIT_WIDTH=1 to always enable
+                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH
+                          environment variable, but the parameter takes precedence.
+    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the
+                          environment variable CLIFF_FIT_WIDTH=1 to always enable
     --print-empty         Print empty table if there is no data to show.
 
   This command is provided by the python-tackerclient plugin.
@@ -422,7 +426,8 @@ Help:
 
   $ openstack vnflcm terminate --help
   usage: openstack vnflcm terminate [-h] [--termination-type <termination-type>]
-                                    [--graceful-termination-timeout <graceful-termination-timeout>] [--D]
+                                    [--graceful-termination-timeout <graceful-termination-timeout>]
+                                    [--D]
                                     <vnf-instance>
 
   Terminate a VNF instance
@@ -436,8 +441,9 @@ Help:
     --termination-type <termination-type>
                           Termination type can be 'GRACEFUL' or 'FORCEFUL'. Default is 'GRACEFUL'
     --graceful-termination-timeout <graceful-termination-timeout>
-                          This attribute is only applicable in case of graceful termination. It defines the time to wait for the VNF to be
-                          taken out of service before shutting down the VNF and releasing the resources. The unit is seconds.
+                          This attribute is only applicable in case of graceful termination. It defines the
+                          time to wait for the VNF to be taken out of service before shutting down the VNF and
+                          releasing the resources. The unit is seconds.
     --D                   Delete VNF Instance subsequently after it's termination
 
   This command is provided by the python-tackerclient plugin.
@@ -596,7 +602,10 @@ Help:
 .. code-block:: console
 
   $ openstack vnflcm scale --help
-  usage: openstack vnflcm scale [-h] [--number-of-steps <number-of-steps>] [--additional-param-file <additional-param-file>] --type <type> --aspect-id <aspect-id> <vnf-instance>
+  usage: openstack vnflcm scale [-h] [--number-of-steps <number-of-steps>]
+                                [--additional-param-file <additional-param-file>] --type
+                                <type> --aspect-id <aspect-id>
+                                <vnf-instance>
 
   Scale a VNF Instance
 
@@ -723,8 +732,10 @@ Help:
 
 .. code-block:: console
 
-  usage: openstack vnflcm op cancel [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN] [--noindent] [--prefix PREFIX] [--max-width <integer>] [--fit-width] [--print-empty]
-                                    [--cancel-mode <cancel-mode>]
+  $ openstack vnflcm op cancel --help
+  usage: openstack vnflcm op cancel [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN]
+                                    [--noindent] [--prefix PREFIX] [--max-width <integer>]
+                                    [--fit-width] [--print-empty] [--cancel-mode <cancel-mode>]
                                     <vnf-lcm-op-occ-id>
 
   Cancel VNF Instance
@@ -757,8 +768,10 @@ Help:
 
   table formatter:
     --max-width <integer>
-                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH environment variable, but the parameter takes precedence.
-    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the environment variable CLIFF_FIT_WIDTH=1 to always enable
+                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH
+                          environment variable, but the parameter takes precedence.
+    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the
+                          environment variable CLIFF_FIT_WIDTH=1 to always enable
     --print-empty         Print empty table if there is no data to show.
 
   This command is provided by the python-tackerclient plugin.
@@ -880,7 +893,10 @@ Help:
 .. code-block:: console
 
   $ openstack vnflcm op fail --help
-  usage: openstack vnflcm op fail [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN] [--noindent] [--prefix PREFIX] [--max-width <integer>] [--fit-width] [--print-empty] <vnf-lcm-op-occ-id>
+  usage: openstack vnflcm op fail [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN]
+                                  [--noindent] [--prefix PREFIX] [--max-width <integer>]
+                                  [--fit-width] [--print-empty]
+                                  <vnf-lcm-op-occ-id>
 
   Fail VNF Instance
 
@@ -910,8 +926,10 @@ Help:
 
   table formatter:
     --max-width <integer>
-                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH environment variable, but the parameter takes precedence.
-    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the environment variable CLIFF_FIT_WIDTH=1 to always enable
+                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH
+                          environment variable, but the parameter takes precedence.
+    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the
+                          environment variable CLIFF_FIT_WIDTH=1 to always enable
     --print-empty         Print empty table if there is no data to show.
 
   This command is provided by the python-tackerclient plugin.
@@ -941,8 +959,12 @@ Help:
 .. code-block:: console
 
   $ openstack vnflcm op list --help
-  usage: openstack vnflcm op list [-h] [-f {csv,json,table,value,yaml}] [-c COLUMN] [--quote {all,minimal,none,nonnumeric}] [--noindent] [--max-width <integer>] [--fit-width] [--print-empty]
-                                  [--sort-column SORT_COLUMN] [--sort-ascending | --sort-descending] [--filter <filter>] [--fields <fields> | --exclude-fields <exclude-fields>]
+  usage: openstack vnflcm op list [-h] [-f {csv,json,table,value,yaml}] [-c COLUMN]
+                                  [--quote {all,minimal,none,nonnumeric}] [--noindent]
+                                  [--max-width <integer>] [--fit-width] [--print-empty]
+                                  [--sort-column SORT_COLUMN] [--sort-ascending | --sort-descending]
+                                  [--filter <filter>]
+                                  [--fields <fields> | --exclude-fields <exclude-fields>]
 
   List LCM Operation Occurrences
 
@@ -963,7 +985,8 @@ Help:
     -c COLUMN, --column COLUMN
                           specify the column(s) to include, can be repeated to show multiple columns
     --sort-column SORT_COLUMN
-                          specify the column(s) to sort the data (columns specified first have a priority, non-existing columns are ignored), can be repeated
+                          specify the column(s) to sort the data (columns specified first have a priority,
+                          non-existing columns are ignored), can be repeated
     --sort-ascending      sort the column(s) in ascending order
     --sort-descending     sort the column(s) in descending order
 
@@ -976,8 +999,10 @@ Help:
 
   table formatter:
     --max-width <integer>
-                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH environment variable, but the parameter takes precedence.
-    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the environment variable CLIFF_FIT_WIDTH=1 to always enable
+                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH
+                          environment variable, but the parameter takes precedence.
+    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the
+                          environment variable CLIFF_FIT_WIDTH=1 to always enable
     --print-empty         Print empty table if there is no data to show.
 
   This command is provided by the python-tackerclient plugin.
@@ -1065,7 +1090,10 @@ Help:
 .. code-block:: console
 
   $ openstack vnflcm op show --help
-  usage: openstack vnflcm op show [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN] [--noindent] [--prefix PREFIX] [--max-width <integer>] [--fit-width] [--print-empty] <vnf-lcm-op-occ-id>
+  usage: openstack vnflcm op show [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN]
+                                  [--noindent] [--prefix PREFIX] [--max-width <integer>]
+                                  [--fit-width] [--print-empty]
+                                  <vnf-lcm-op-occ-id>
 
   Display Operation Occurrence details
 
@@ -1095,8 +1123,10 @@ Help:
 
   table formatter:
     --max-width <integer>
-                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH environment variable, but the parameter takes precedence.
-    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the environment variable CLIFF_FIT_WIDTH=1 to always enable
+                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH
+                          environment variable, but the parameter takes precedence.
+    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the
+                          environment variable CLIFF_FIT_WIDTH=1 to always enable
     --print-empty         Print empty table if there is no data to show.
 
   This command is provided by the python-tackerclient plugin.
@@ -1173,7 +1203,10 @@ Help:
 .. code-block:: console
 
   $ openstack vnflcm subsc create --help
-  usage: openstack vnflcm subsc create [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN] [--noindent] [--prefix PREFIX] [--max-width <integer>] [--fit-width] [--print-empty] <param-file>
+  usage: openstack vnflcm subsc create [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN]
+                                       [--noindent] [--prefix PREFIX] [--max-width <integer>]
+                                       [--fit-width] [--print-empty]
+                                       <param-file>
 
   Create a new Lccn Subscription
 
@@ -1202,8 +1235,10 @@ Help:
 
   table formatter:
     --max-width <integer>
-                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH environment variable, but the parameter takes precedence.
-    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the environment variable CLIFF_FIT_WIDTH=1 to always enable
+                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH
+                          environment variable, but the parameter takes precedence.
+    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the
+                          environment variable CLIFF_FIT_WIDTH=1 to always enable
     --print-empty         Print empty table if there is no data to show.
 
   This command is provided by the python-tackerclient plugin.
@@ -1233,8 +1268,11 @@ Help:
 .. code-block:: console
 
   $ openstack vnflcm subsc list --help
-  usage: openstack vnflcm subsc list [-h] [-f {csv,json,table,value,yaml}] [-c COLUMN] [--quote {all,minimal,none,nonnumeric}] [--noindent] [--max-width <integer>] [--fit-width] [--print-empty]
-                                     [--sort-column SORT_COLUMN] [--sort-ascending | --sort-descending] [--filter <filter>]
+  usage: openstack vnflcm subsc list [-h] [-f {csv,json,table,value,yaml}] [-c COLUMN]
+                                     [--quote {all,minimal,none,nonnumeric}] [--noindent]
+                                     [--max-width <integer>] [--fit-width] [--print-empty]
+                                     [--sort-column SORT_COLUMN]
+                                     [--sort-ascending | --sort-descending] [--filter <filter>]
 
   List Lccn Subscriptions
 
@@ -1251,7 +1289,8 @@ Help:
     -c COLUMN, --column COLUMN
                           specify the column(s) to include, can be repeated to show multiple columns
     --sort-column SORT_COLUMN
-                          specify the column(s) to sort the data (columns specified first have a priority, non-existing columns are ignored), can be repeated
+                          specify the column(s) to sort the data (columns specified first have a priority,
+                          non-existing columns are ignored), can be repeated
     --sort-ascending      sort the column(s) in ascending order
     --sort-descending     sort the column(s) in descending order
 
@@ -1264,8 +1303,10 @@ Help:
 
   table formatter:
     --max-width <integer>
-                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH environment variable, but the parameter takes precedence.
-    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the environment variable CLIFF_FIT_WIDTH=1 to always enable
+                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH
+                          environment variable, but the parameter takes precedence.
+    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the
+                          environment variable CLIFF_FIT_WIDTH=1 to always enable
     --print-empty         Print empty table if there is no data to show.
 
   This command is provided by the python-tackerclient plugin.
@@ -1341,7 +1382,10 @@ Help:
 .. code-block:: console
 
   $ openstack vnflcm subsc show --help
-  usage: openstack vnflcm subsc show [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN] [--noindent] [--prefix PREFIX] [--max-width <integer>] [--fit-width] [--print-empty] <subscription-id>
+  usage: openstack vnflcm subsc show [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN]
+                                     [--noindent] [--prefix PREFIX] [--max-width <integer>]
+                                     [--fit-width] [--print-empty]
+                                     <subscription-id>
 
   Display Lccn Subscription details
 
@@ -1371,8 +1415,10 @@ Help:
 
   table formatter:
     --max-width <integer>
-                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH environment variable, but the parameter takes precedence.
-    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the environment variable CLIFF_FIT_WIDTH=1 to always enable
+                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH
+                          environment variable, but the parameter takes precedence.
+    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the
+                          environment variable CLIFF_FIT_WIDTH=1 to always enable
     --print-empty         Print empty table if there is no data to show.
 
   This command is provided by the python-tackerclient plugin.
@@ -1456,7 +1502,9 @@ Help:
 .. code-block:: console
 
   $ openstack vnflcm versions --help
-  usage: openstack vnflcm versions [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN] [--noindent] [--prefix PREFIX] [--max-width <integer>] [--fit-width] [--print-empty] [--major-version <major-version>]
+  usage: openstack vnflcm versions [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN]
+                                   [--noindent] [--prefix PREFIX] [--max-width <integer>]
+                                   [--fit-width] [--print-empty] [--major-version <major-version>]
 
   Show VnfLcm Api versions
 
@@ -1484,8 +1532,10 @@ Help:
 
   table formatter:
     --max-width <integer>
-                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH environment variable, but the parameter takes precedence.
-    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the environment variable CLIFF_FIT_WIDTH=1 to always enable
+                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH
+                          environment variable, but the parameter takes precedence.
+    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the
+                          environment variable CLIFF_FIT_WIDTH=1 to always enable
     --print-empty         Print empty table if there is no data to show.
 
   This command is provided by the python-tackerclient plugin.

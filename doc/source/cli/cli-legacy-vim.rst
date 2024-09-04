@@ -310,8 +310,9 @@ Help:
 .. code-block:: console
 
   $ openstack vim register --help
-  usage: openstack vim register [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN] [--noindent] [--prefix PREFIX]
-                                [--max-width <integer>] [--fit-width] [--print-empty] [--tenant-id TENANT_ID] --config-file
+  usage: openstack vim register [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN]
+                                [--noindent] [--prefix PREFIX] [--max-width <integer>]
+                                [--fit-width] [--print-empty] [--tenant-id TENANT_ID] --config-file
                                 CONFIG_FILE [--description DESCRIPTION] [--is-default]
                                 NAME
 
@@ -349,10 +350,10 @@ Help:
 
   table formatter:
     --max-width <integer>
-                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH environment variable, but the parameter
-                          takes precedence.
-    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the environment variable CLIFF_FIT_WIDTH=1
-                          to always enable
+                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH
+                          environment variable, but the parameter takes precedence.
+    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the
+                          environment variable CLIFF_FIT_WIDTH=1 to always enable
     --print-empty         Print empty table if there is no data to show.
 
   This command is provided by the python-tackerclient plugin.
@@ -383,9 +384,11 @@ Help:
 .. code-block:: console
 
   $ openstack vim list --help
-  usage: openstack vim list [-h] [-f {csv,json,table,value,yaml}] [-c COLUMN] [--quote {all,minimal,none,nonnumeric}]
-                            [--noindent] [--max-width <integer>] [--fit-width] [--print-empty] [--sort-column SORT_COLUMN]
-                            [--sort-ascending | --sort-descending] [--long]
+  usage: openstack vim list [-h] [-f {csv,json,table,value,yaml}] [-c COLUMN]
+                            [--quote {all,minimal,none,nonnumeric}] [--noindent]
+                            [--max-width <integer>] [--fit-width] [--print-empty]
+                            [--sort-column SORT_COLUMN] [--sort-ascending | --sort-descending]
+                            [--long]
 
   List VIMs that belong to a given tenant.
 
@@ -401,8 +404,8 @@ Help:
     -c COLUMN, --column COLUMN
                           specify the column(s) to include, can be repeated to show multiple columns
     --sort-column SORT_COLUMN
-                          specify the column(s) to sort the data (columns specified first have a priority, non-existing columns are ignored), can be
-                          repeated
+                          specify the column(s) to sort the data (columns specified first have a priority,
+                          non-existing columns are ignored), can be repeated
     --sort-ascending      sort the column(s) in ascending order
     --sort-descending     sort the column(s) in descending order
 
@@ -415,10 +418,10 @@ Help:
 
   table formatter:
     --max-width <integer>
-                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH environment variable, but the parameter
-                          takes precedence.
-    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the environment variable CLIFF_FIT_WIDTH=1
-                          to always enable
+                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH
+                          environment variable, but the parameter takes precedence.
+    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the
+                          environment variable CLIFF_FIT_WIDTH=1 to always enable
     --print-empty         Print empty table if there is no data to show.
 
   This command is provided by the python-tackerclient plugin.
@@ -481,8 +484,9 @@ Help:
 .. code-block:: console
 
   $ openstack vim show --help
-  usage: openstack vim show [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN] [--noindent] [--prefix PREFIX]
-                            [--max-width <integer>] [--fit-width] [--print-empty]
+  usage: openstack vim show [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN] [--noindent]
+                            [--prefix PREFIX] [--max-width <integer>] [--fit-width]
+                            [--print-empty]
                             <VIM>
 
   Display VIM details
@@ -512,10 +516,10 @@ Help:
 
   table formatter:
     --max-width <integer>
-                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH environment variable, but the parameter
-                          takes precedence.
-    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the environment variable CLIFF_FIT_WIDTH=1
-                          to always enable
+                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH
+                          environment variable, but the parameter takes precedence.
+    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the
+                          environment variable CLIFF_FIT_WIDTH=1 to always enable
     --print-empty         Print empty table if there is no data to show.
 
   This command is provided by the python-tackerclient plugin.
@@ -579,8 +583,9 @@ Help:
 .. code-block:: console
 
   $ openstack vim set --help
-  usage: openstack vim set [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN] [--noindent] [--prefix PREFIX]
-                           [--max-width <integer>] [--fit-width] [--print-empty] [--config-file CONFIG_FILE] [--name NAME]
+  usage: openstack vim set [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN] [--noindent]
+                           [--prefix PREFIX] [--max-width <integer>] [--fit-width]
+                           [--print-empty] [--config-file CONFIG_FILE] [--name NAME]
                            [--description DESCRIPTION] [--is-default {True,False}]
                            VIM
 
@@ -618,10 +623,10 @@ Help:
 
   table formatter:
     --max-width <integer>
-                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH environment variable, but the parameter
-                          takes precedence.
-    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the environment variable CLIFF_FIT_WIDTH=1
-                          to always enable
+                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH
+                          environment variable, but the parameter takes precedence.
+    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the
+                          environment variable CLIFF_FIT_WIDTH=1 to always enable
     --print-empty         Print empty table if there is no data to show.
 
   This command is provided by the python-tackerclient plugin.
@@ -660,5 +665,3 @@ Help:
     -h, --help     show this help message and exit
 
   This command is provided by the python-tackerclient plugin.
-
-
