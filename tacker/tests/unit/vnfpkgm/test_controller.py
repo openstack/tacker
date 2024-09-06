@@ -14,6 +14,7 @@
 #    under the License.
 
 
+import copy
 import ddt
 from http import client as http_client
 import json
@@ -26,6 +27,7 @@ from webob import exc
 from oslo_config import cfg
 from oslo_policy import policy as oslo_policy
 from oslo_serialization import jsonutils
+from oslo_utils import uuidutils
 
 from tacker._i18n import _
 from tacker.api.vnfpkgm.v1 import controller
@@ -1726,3 +1728,50 @@ class TestControllerEnhancedPolicy(TestController):
         self.assertEqual(http_client.OK, resp.status_code)
         self.assertEqual(
             expected_pkg_ids, [pkg.get('id') for pkg in resp.json])
+
+    @mock.patch.object(vnf_package.VnfPackage, "get_by_id")
+    @mock.patch.object(VnfPackagesList, "get_by_marker_filter")
+    def test_index_enhanced_policy_paging(self, mock_pkg_list, mock_pkg_by_id):
+        cfg.CONF.set_override('vnf_package_num', 1, group='vnf_package')
+        pkg_a_1 = fakes.return_vnfpkg_obj(
+            vnf_package_updates={'id': uuidutils.generate_uuid()},
+            vnfd_updates={
+                'vnf_provider': 'provider_A',
+                'id': uuidutils.generate_uuid(),
+            })
+        pkg_a_2 = copy.deepcopy(pkg_a_1)
+        pkg_a_2.id = uuidutils.generate_uuid()
+        pkg_a_2.vnfd.id = uuidutils.generate_uuid()
+        pkg_b = fakes.return_vnfpkg_obj(
+            vnf_package_updates={'id': uuidutils.generate_uuid()},
+            vnfd_updates={
+                'vnf_provider': 'provider_B',
+                'id': uuidutils.generate_uuid(),
+            })
+        rules = {
+            vnf_package_policies.VNFPKGM % 'index': "vendor:%(vendor)s"}
+        roles = ['VENDOR_provider_A']
+        policy.set_rules(oslo_policy.Rules.from_dict(rules), overwrite=True)
+        ctx = context.Context('fake', 'fake', roles=roles)
+
+        # first request
+        mock_pkg_list.return_value = [pkg_a_1, pkg_b, pkg_a_2]
+        req = fake_request.HTTPRequest.blank('/vnf_packages')
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'GET'
+        resp = req.get_response(fakes.wsgi_app_v1(fake_auth_context=ctx))
+        self.assertEqual(http_client.OK, resp.status_code)
+        self.assertEqual(
+            [pkg_a_1.id], [pkg.get('id') for pkg in resp.json])
+
+        # second request with nextpage_opaque_marker
+        mock_pkg_list.return_value = [pkg_b, pkg_a_2]
+        mock_pkg_by_id.return_value = pkg_a_1
+        req = fake_request.HTTPRequest.blank('/vnf_packages?'
+            f'nextpage_opaque_marker={pkg_a_1.id}')
+        req.headers['Content-Type'] = 'application/json'
+        req.method = 'GET'
+        resp = req.get_response(fakes.wsgi_app_v1(fake_auth_context=ctx))
+        self.assertEqual(http_client.OK, resp.status_code)
+        self.assertEqual(
+            [pkg_a_2.id], [pkg.get('id') for pkg in resp.json])

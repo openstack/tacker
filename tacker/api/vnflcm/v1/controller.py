@@ -660,7 +660,8 @@ class VnfLcmController(wsgi.Controller):
 
         # get maximum record size per page
         if allrecords != 'yes':
-            limit = CONF.vnf_lcm.vnf_instance_num
+            if not CONF.oslo_policy.enhanced_tacker_policy:
+                limit = CONF.vnf_lcm.vnf_instance_num
 
             # get next page marker object from nextpage id
             if nextpage:
@@ -682,6 +683,9 @@ class VnfLcmController(wsgi.Controller):
                     vnf_lcm_policies.VNFLCM % 'index',
                     target=self._get_policy_target(vnf_instance),
                     fatal=False)]
+            if allrecords != 'yes':
+                limit = CONF.vnf_lcm.vnf_instance_num
+                result = result[:limit]
 
         result = self._view_builder.index(result)
 
