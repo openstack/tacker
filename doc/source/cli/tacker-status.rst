@@ -25,45 +25,79 @@ CLI interface for Tacker status commands
 Synopsis
 ========
 
-::
+.. code-block:: console
 
-  tacker-status <category> <command> [<args>]
+  $ tacker-status <category> <command> [<args>]
+
 
 Description
 ===========
 
-:program:`tacker-status` is a tool that provides routines for checking the
+The ``tacker-status`` command is a tool that provides routines for checking the
 status of a Tacker deployment.
 
 Options
 =======
 
-The standard pattern for executing a :program:`tacker-status` command is::
+The standard pattern for executing a ``tacker-status`` command is:
 
-    tacker-status <category> <command> [<args>]
+.. code-block:: console
 
-Run without arguments to see a list of available command categories::
+  $ tacker-status <category> <command> [<args>]
 
-    tacker-status
 
-Categories are:
+You can run the command with `\-h` or `\-\-help` to see a list of
+available command categories and usage.
+
+.. code-block:: console
+
+  $ tacker-status --help
+  usage: tacker-status [-h] [--config-dir DIR] [--config-file PATH] {upgrade} ...
+
+  options:
+    -h, --help          show this help message and exit
+    --config-dir DIR    Path to a config directory to pull `*.conf` files from. This file set is sorted, so as
+                        to provide a predictable parse order if individual options are over-ridden. The set is
+                        parsed after the file(s) specified via previous --config-file, arguments hence over-
+                        ridden options in the directory take precedence. This option must be set from the
+                        command-line.
+    --config-file PATH  Path to a config file to use. Multiple config files can be specified, with values in
+                        later files taking precedence. Defaults to None. This option must be set from the
+                        command-line.
+
+    {upgrade}
+
+
+As shown in the above output, currently available category is:
 
 * ``upgrade``
 
-Detailed descriptions are below:
+You can also see a list of all commands in category such as ``upgrade``
+by running the command with category argument and `\-h` or `\-\-help` option.
 
-You can also run with a category argument such as ``upgrade`` to see a list of
-all commands in that category::
+.. code-block:: console
 
-    tacker-status upgrade
+  $ tacker-status upgrade --help
+  usage: tacker-status upgrade [-h] [--json] check
 
-These sections describe the available categories and arguments for
-:program:`tacker-status`.
+  positional arguments:
+    check
+
+  options:
+    -h, --help  show this help message and exit
+    --json      Output the results in JSON format. Default is to print results in human readable table format.
+
+
+As shown in the above output, currently available command of
+``upgrade`` category is:
+
+* ``check``
+
+Following sections describe the available categories
+and arguments for ``tacker-status``.
 
 Upgrade
 ~~~~~~~
-
-.. _tacker-status-checks:
 
 ``tacker-status upgrade check``
   Performs a release-specific readiness check before restarting services with
@@ -71,29 +105,47 @@ Upgrade
   incompatible object states, or other conditions that could lead to
   failures while upgrading.
 
+  .. code-block:: console
+
+    $ tacker-status upgrade check
+    +-------------------------------------------+
+    | Upgrade Check Results                     |
+    +-------------------------------------------+
+    | Check: Policy File JSON to YAML Migration |
+    | Result: Success                           |
+    | Details: None                             |
+    +-------------------------------------------+
+
+
   **Return Codes**
 
   .. list-table::
-     :widths: 20 80
-     :header-rows: 1
+      :widths: 20 80
+      :header-rows: 1
 
-     * - Return code
-       - Description
-     * - 0
-       - All upgrade readiness checks passed successfully and there is nothing
-         to do.
-     * - 1
-       - At least one check encountered an issue and requires further
-         investigation. This is considered a warning but the upgrade may be OK.
-     * - 2
-       - There was an upgrade status check failure that needs to be
-         investigated. This should be considered something that stops an
-         upgrade.
-     * - 255
-       - An unexpected error occurred.
+      * - Return code
+        - Description
+      * - 0
+        - All upgrade readiness checks passed successfully and there is nothing
+          to do.
+      * - 1
+        - At least one check encountered an issue and requires further
+          investigation. This is considered a warning but the upgrade may be OK.
+      * - 2
+        - There was an upgrade status check failure that needs to be
+          investigated. This should be considered something that stops an
+          upgrade.
+      * - 255
+        - An unexpected error occurred.
 
-  **History of Checks**
+
+  **History of Upgrade checks**
 
   **0.11.0 (Stein)**
 
-  * Sample check to be filled in with checks as they are added in Stein.
+  * Add the functionality of tacker-status CLI for performing upgrade checks.
+
+  **5.0.0 (Wallaby)**
+
+  * Add check of the change the default value of '[oslo_policy] policy_file'
+    config option from 'policy.json' to 'policy.yaml'.

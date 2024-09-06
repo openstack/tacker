@@ -36,8 +36,8 @@ Operations for Legacy implementation
   cli-legacy-vim
 
 
-Other operations
-----------------
+Tacker Management Commands
+--------------------------
 
 .. toctree::
   :maxdepth: 1
