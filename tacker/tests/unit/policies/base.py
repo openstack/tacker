@@ -46,7 +46,7 @@ class BasePolicyTest(base.TestCase):
             # policy and initialize again so that rule will be re-loaded
             # considering the enforce_new_defaults new value.
             policy.reset()
-            policy.init()
+            policy.init(suppress_deprecation_warnings=True)
             self.addCleanup(policy.reset)
 
         self.admin_project_id = uuids.admin_project_id

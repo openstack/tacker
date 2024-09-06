@@ -16,6 +16,7 @@
 import os
 import pickle
 import subprocess
+import sys
 
 from oslo_log import log as logging
 from oslo_utils import uuidutils
@@ -119,7 +120,7 @@ class VnfLcmDriverV2(object):
         # script is relative path to Definitions/xxx.yaml
         script_path = os.path.join(tmp_csar_dir, "Definitions", script)
 
-        out = subprocess.run(["python3", script_path],
+        out = subprocess.run([sys.executable, script_path],
             input=pickle.dumps(script_dict),
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 

@@ -1049,7 +1049,7 @@ class JSONV2TestCase(APIv2TestBase, testlib_api.WebTestCase):
     def test_get_keystone_strip_admin_only_attribute(self):
         tenant_id = _uuid()
         # Inject rule in policy engine
-        policy.init()
+        policy.init(suppress_deprecation_warnings=True)
         common_policy._rules['get_network:name'] = common_policy.parse_rule(
             "rule:admin_only")
         res = self._test_get(tenant_id, tenant_id, 200)

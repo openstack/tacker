@@ -19,6 +19,7 @@ import os
 import pickle
 import re
 import subprocess
+import sys
 import yaml
 
 from dateutil import parser
@@ -672,7 +673,7 @@ class Openstack(object):
 
         tmp_csar_dir = vnfd.make_tmp_csar_dir()
         script_path = os.path.join(tmp_csar_dir, script)
-        out = subprocess.run(["python3", script_path],
+        out = subprocess.run([sys.executable, script_path],
             input=pickle.dumps(vnfc_param),
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         vnfd.remove_tmp_csar_dir(tmp_csar_dir)
@@ -889,7 +890,7 @@ class Openstack(object):
             script_path = os.path.join(
                 os.path.dirname(__file__), "userdata_main.py")
 
-            out = subprocess.run(["python3", script_path],
+            out = subprocess.run([sys.executable, script_path],
                 input=pickle.dumps(script_dict),
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
