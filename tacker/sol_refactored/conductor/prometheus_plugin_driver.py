@@ -17,7 +17,7 @@ import threading
 
 from oslo_log import log as logging
 from tacker.sol_refactored.common import config as cfg
-from tacker.sol_refactored.common import vnflcm_utils
+from tacker.sol_refactored.conductor import vnflcm_auto
 from tacker.sol_refactored import objects
 
 LOG = logging.getLogger(__name__)
@@ -65,39 +65,11 @@ class VnfmAutoHealTimer():
         self.cancel()
 
 
-class PrometheusPluginDriverStub():
-    def trigger_scale(self, context, vnf_instance_id, scale_req):
-        pass
-
-    def enqueue_heal(self, context, vnf_instance_id, vnfc_info_id):
-        pass
-
-    def dequeue_heal(self, vnf_instance_id):
-        pass
-
-
 class PrometheusPluginDriver():
-    _instance = None
-
-    @staticmethod
-    def instance():
-        if PrometheusPluginDriver._instance is None:
-            if (CONF.prometheus_plugin.auto_scaling or
-                    CONF.prometheus_plugin.auto_healing or
-                    CONF.prometheus_plugin.fault_management or
-                    CONF.prometheus_plugin.performance_management):
-                PrometheusPluginDriver()
-            else:
-                stub = PrometheusPluginDriverStub()
-                PrometheusPluginDriver._instance = stub
-        return PrometheusPluginDriver._instance
-
-    def __init__(self):
-        if PrometheusPluginDriver._instance:
-            raise SystemError("Not constructor but instance() should be used.")
-        PrometheusPluginDriver._instance = self
+    def __init__(self, conductor):
         self.timer_map = {}
         self.expiration_time = CONF.prometheus_plugin.timer_interval
+        self.conductor = conductor
 
     def enqueue_heal(self, context, vnf_instance_id, vnfc_info_id):
         if vnf_instance_id not in self.timer_map:
@@ -112,11 +84,11 @@ class PrometheusPluginDriver():
             del self.timer_map[vnf_instance_id]
 
     def _trigger_heal(self, context, vnf_instance_id, vnfc_info_ids):
-        heal_req = objects.HealVnfRequest(vnfcInstanceId=vnfc_info_ids)
-        body = heal_req.to_dict()
         LOG.info(f"VNFM AutoHealing is triggered. vnf: {vnf_instance_id}, "
                  f"vnfcInstanceId: {vnfc_info_ids}")
-        vnflcm_utils.heal(context, vnf_instance_id, body, auto_invocation=True)
+        heal_req = objects.HealVnfRequest(vnfcInstanceId=vnfc_info_ids)
+        vnflcm_auto.auto_heal(context, vnf_instance_id, heal_req.to_dict(),
+                              self.conductor)
 
     def _timer_expired(self, context, vnf_instance_id, vnfc_info_ids):
         self.dequeue_heal(vnf_instance_id)
@@ -126,5 +98,5 @@ class PrometheusPluginDriver():
         LOG.info(f"VNFM AutoScaling is triggered. vnf: {vnf_instance_id}, "
                  f"type: {scale_req['type']}, aspectId: "
                  f"{scale_req['aspectId']}")
-        vnflcm_utils.scale(context, vnf_instance_id, scale_req,
-                           auto_invocation=True)
+        vnflcm_auto.auto_scale(context, vnf_instance_id, scale_req,
+                               self.conductor)

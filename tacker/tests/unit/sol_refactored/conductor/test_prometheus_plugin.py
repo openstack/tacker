@@ -16,9 +16,9 @@
 import time
 
 from tacker import context
-from tacker.sol_refactored.common import vnflcm_utils
 from tacker.sol_refactored.conductor import conductor_v2
 from tacker.sol_refactored.conductor import prometheus_plugin_driver as pp_drv
+from tacker.sol_refactored.conductor import vnflcm_auto
 from tacker.sol_refactored import objects
 from tacker.tests.unit.db import base as db_base
 
@@ -123,14 +123,11 @@ class TestPrometheusPlugin(db_base.SqlTestCase):
         self.config_fixture.config(
             group='prometheus_plugin', performance_management=True)
         self.conductor = conductor_v2.ConductorV2()
-        pp_drv.PrometheusPluginDriver._instance = None
 
     def tearDown(self):
         super(TestPrometheusPlugin, self).tearDown()
-        # delete singleton object
-        pp_drv.PrometheusPluginDriver._instance = None
 
-    @mock.patch.object(vnflcm_utils, 'scale')
+    @mock.patch.object(vnflcm_auto, 'auto_scale')
     def test_trigger_scale(self, mock_do_scale):
         scale_req = {
             'type': 'SCALE_OUT',
@@ -139,33 +136,7 @@ class TestPrometheusPlugin(db_base.SqlTestCase):
         self.conductor.trigger_scale(
             self.context, 'vnf_instance_id', scale_req)
 
-    def test_constructor(self):
-        self.config_fixture.config(
-            group='prometheus_plugin', performance_management=True)
-
-    def test_driver_stub(self):
-        self.config_fixture.config(
-            group='prometheus_plugin', performance_management=False)
-        pp_drv.PrometheusPluginDriver._instance = None
-        drv = pp_drv.PrometheusPluginDriver.instance()
-        drv.trigger_scale(None, None, None)
-        self.config_fixture.config(
-            group='prometheus_plugin', performance_management=True)
-        drv = pp_drv.PrometheusPluginDriver.instance()
-
-    def test_driver_constructor(self):
-        self.config_fixture.config(
-            group='prometheus_plugin', performance_management=True)
-        pp_drv.PrometheusPluginDriver.instance()
-        self.assertRaises(
-            SystemError,
-            pp_drv.PrometheusPluginDriver)
-
     def test_conductor_vnfm_auto_heal_queue(self):
-        self.config_fixture.config(
-            group='prometheus_plugin', auto_healing=True)
-        pp_drv.PrometheusPluginDriver._instance = None
-        self.conductor.prom_driver = pp_drv.PrometheusPluginDriver.instance()
         self.config_fixture.config(
             group='prometheus_plugin', timer_interval=1)
         # queueing test
@@ -187,12 +158,8 @@ class TestPrometheusPlugin(db_base.SqlTestCase):
         self.conductor.dequeue_auto_heal_instance(
             self.context, 'invalid_id')
 
-    @mock.patch.object(vnflcm_utils, 'heal')
+    @mock.patch.object(vnflcm_auto, 'auto_heal')
     def test_conductor_timer_expired(self, mock_do_heal):
-        self.config_fixture.config(
-            group='prometheus_plugin', auto_healing=True)
-        pp_drv.PrometheusPluginDriver._instance = None
-        self.conductor.prom_driver = pp_drv.PrometheusPluginDriver.instance()
         self.conductor.prom_driver._timer_expired(
             self.context, 'test_id', ['id'])
 

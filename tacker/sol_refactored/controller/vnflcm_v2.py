@@ -29,7 +29,6 @@ from tacker.sol_refactored.common import lcm_op_occ_utils as lcmocc_utils
 from tacker.sol_refactored.common import subscription_utils as subsc_utils
 from tacker.sol_refactored.common import vim_utils
 from tacker.sol_refactored.common import vnf_instance_utils as inst_utils
-from tacker.sol_refactored.common import vnflcm_utils
 from tacker.sol_refactored.conductor import conductor_rpc_v2
 from tacker.sol_refactored.controller import vnflcm_view
 from tacker.sol_refactored.nfvo import nfvo_client
@@ -205,7 +204,7 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
                         detail="vnfcInstanceId(%s) does not exist."
                         % vnfc_mod['id'])
 
-        lcmocc = vnflcm_utils.new_lcmocc(
+        lcmocc = lcmocc_utils.new_lcmocc(
             id, v2fields.LcmOperationType.MODIFY_INFO,
             body, v2fields.LcmOperationStateType.PROCESSING)
         lcmocc.create(context)
@@ -249,21 +248,24 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
 
         return target
 
+    def _check_policy(self, context, inst, action):
+        if config.CONF.oslo_policy.enhanced_tacker_policy:
+            context.can(POLICY_NAME.format(action),
+                        target=self._get_policy_target(inst))
+
     @validator.schema(schema.InstantiateVnfRequest_V200, '2.0.0')
     @coordinate.lock_vnf_instance('{id}')
     def instantiate(self, request, id, body):
         context = request.context
         inst = inst_utils.get_inst(context, id)
-        if config.CONF.oslo_policy.enhanced_tacker_policy:
-            context.can(POLICY_NAME.format('instantiate'),
-                        target=self._get_policy_target(inst))
+        self._check_policy(context, inst, 'instantiate')
 
         if inst.instantiationState != 'NOT_INSTANTIATED':
             raise sol_ex.VnfInstanceIsInstantiated(inst_id=id)
 
         lcmocc_utils.check_lcmocc_in_progress(context, id)
 
-        lcmocc = vnflcm_utils.new_lcmocc(
+        lcmocc = lcmocc_utils.new_lcmocc(
             id, v2fields.LcmOperationType.INSTANTIATE, body)
 
         req_param = lcmocc.operationParams
@@ -291,16 +293,14 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
     def terminate(self, request, id, body):
         context = request.context
         inst = inst_utils.get_inst(context, id)
-        if config.CONF.oslo_policy.enhanced_tacker_policy:
-            context.can(POLICY_NAME.format('terminate'),
-                        target=self._get_policy_target(inst))
+        self._check_policy(context, inst, 'terminate')
 
         if inst.instantiationState != 'INSTANTIATED':
             raise sol_ex.VnfInstanceIsNotInstantiated(inst_id=id)
 
         lcmocc_utils.check_lcmocc_in_progress(context, id)
 
-        lcmocc = vnflcm_utils.new_lcmocc(
+        lcmocc = lcmocc_utils.new_lcmocc(
             id, v2fields.LcmOperationType.TERMINATE, body)
         lcmocc.create(context)
 
@@ -314,11 +314,26 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
     def scale(self, request, id, body):
         context = request.context
         inst = inst_utils.get_inst(context, id)
-        if config.CONF.oslo_policy.enhanced_tacker_policy:
-            context.can(POLICY_NAME.format('scale'),
-                        target=self._get_policy_target(inst))
+        self._check_policy(context, inst, 'scale')
 
-        lcmocc = vnflcm_utils.scale(context, id, body, inst=inst)
+        if inst.instantiationState != 'INSTANTIATED':
+            raise sol_ex.VnfInstanceIsNotInstantiated(inst_id=id)
+
+        lcmocc_utils.check_lcmocc_in_progress(context, id)
+
+        # check parameters
+        if 'numberOfSteps' not in body:
+            # set default value (1) defined by SOL specification for
+            # the convenience of the following methods.
+            body['numberOfSteps'] = 1
+        inst_utils.check_scale_level(inst, body['aspectId'],
+                                     body['type'], body['numberOfSteps'])
+
+        lcmocc = lcmocc_utils.new_lcmocc(
+            id, v2fields.LcmOperationType.SCALE, body)
+        lcmocc.create(context)
+
+        self.conductor_rpc.start_lcm_op(context, lcmocc.id)
 
         location = lcmocc_utils.lcmocc_href(lcmocc.id, self.endpoint)
 
@@ -328,11 +343,27 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
     def heal(self, request, id, body):
         context = request.context
         inst = inst_utils.get_inst(context, id)
-        if config.CONF.oslo_policy.enhanced_tacker_policy:
-            context.can(POLICY_NAME.format('heal'),
-                        target=self._get_policy_target(inst))
+        self._check_policy(context, inst, 'heal')
 
-        lcmocc = vnflcm_utils.heal(context, id, body, inst=inst)
+        if inst.instantiationState != 'INSTANTIATED':
+            raise sol_ex.VnfInstanceIsNotInstantiated(inst_id=id)
+
+        lcmocc_utils.check_lcmocc_in_progress(context, id)
+
+        # check parameter for later use
+        is_all = body.get('additionalParams', {}).get('all', False)
+        if not isinstance(is_all, bool):
+            raise sol_ex.SolValidationError(
+                detail="additionalParams['all'] must be bool.")
+
+        if 'vnfcInstanceId' in body:
+            inst_utils.check_vnfc_ids(inst, body['vnfcInstanceId'])
+
+        lcmocc = lcmocc_utils.new_lcmocc(
+            id, v2fields.LcmOperationType.HEAL, body)
+        lcmocc.create(context)
+
+        self.conductor_rpc.start_lcm_op(context, lcmocc.id)
 
         location = lcmocc_utils.lcmocc_href(lcmocc.id, self.endpoint)
 
@@ -343,16 +374,14 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
     def change_ext_conn(self, request, id, body):
         context = request.context
         inst = inst_utils.get_inst(context, id)
-        if config.CONF.oslo_policy.enhanced_tacker_policy:
-            context.can(POLICY_NAME.format('change_ext_conn'),
-                        target=self._get_policy_target(inst))
+        self._check_policy(context, inst, 'change_ext_conn')
 
         if inst.instantiationState != 'INSTANTIATED':
             raise sol_ex.VnfInstanceIsNotInstantiated(inst_id=id)
 
         lcmocc_utils.check_lcmocc_in_progress(context, id)
 
-        lcmocc = vnflcm_utils.new_lcmocc(
+        lcmocc = lcmocc_utils.new_lcmocc(
             id, v2fields.LcmOperationType.CHANGE_EXT_CONN, body)
         lcmocc.create(context)
 
@@ -404,16 +433,14 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
     def change_vnfpkg(self, request, id, body):
         context = request.context
         inst = inst_utils.get_inst(context, id)
-        if config.CONF.oslo_policy.enhanced_tacker_policy:
-            context.can(POLICY_NAME.format('change_vnfpkg'),
-                        target=self._get_policy_target(inst))
-        vnfd_id = body['vnfdId']
+        self._check_policy(context, inst, 'change_vnfpkg')
 
         if inst.instantiationState != 'INSTANTIATED':
             raise sol_ex.VnfInstanceIsNotInstantiated(inst_id=id)
 
         lcmocc_utils.check_lcmocc_in_progress(context, id)
 
+        vnfd_id = body['vnfdId']
         pkg_info = self.nfvo_client.get_vnf_package_info_vnfd(
             context, vnfd_id)
         if pkg_info.operationalState != "ENABLED":
@@ -440,7 +467,7 @@ class VnfLcmControllerV2(sol_wsgi.SolAPIController):
             raise sol_ex.SolValidationError(
                 detail="'lcm-kubernetes-def-files' must be specified")
 
-        lcmocc = vnflcm_utils.new_lcmocc(
+        lcmocc = lcmocc_utils.new_lcmocc(
             id, v2fields.LcmOperationType.CHANGE_VNFPKG, body)
 
         lcmocc.create(context)

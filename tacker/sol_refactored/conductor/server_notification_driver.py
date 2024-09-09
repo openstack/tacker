@@ -20,8 +20,7 @@ from oslo_utils import encodeutils
 
 from tacker import context as tacker_context
 from tacker.sol_refactored.common import config as cfg
-from tacker.sol_refactored.common import vnflcm_utils
-from tacker.sol_refactored.conductor import conductor_rpc_v2 as rpc
+from tacker.sol_refactored.conductor import vnflcm_auto
 from tacker.sol_refactored import objects
 
 LOG = logging.getLogger(__name__)
@@ -67,29 +66,10 @@ class ServerNotificationTimer():
 
 
 class ServerNotificationDriver():
-    _instance = None
-
-    @staticmethod
-    def instance():
-        if not ServerNotificationDriver._instance:
-            ServerNotificationDriver._instance = (
-                ServerNotificationDriverMain()
-                if CONF.server_notification.server_notification
-                else ServerNotificationDriver())
-        return ServerNotificationDriver._instance
-
-    def notify(self, vnf_instance_id, vnfc_instance_ids):
-        pass
-
-    def remove_timer(self, vnf_instance_id):
-        pass
-
-
-class ServerNotificationDriverMain(ServerNotificationDriver):
-    def __init__(self):
+    def __init__(self, conductor):
         self.timer_map = {}
         self.expiration_time = CONF.server_notification.timer_interval
-        self.rpc = rpc.VnfLcmRpcApiV2()
+        self.conductor = conductor
 
     def notify(self, vnf_instance_id, vnfc_instance_ids):
         if vnf_instance_id not in self.timer_map:
@@ -103,14 +83,14 @@ class ServerNotificationDriverMain(ServerNotificationDriver):
             del self.timer_map[vnf_instance_id]
 
     def request_heal(self, vnf_instance_id, vnfc_instance_ids):
-        heal_req = objects.HealVnfRequest(vnfcInstanceId=vnfc_instance_ids)
-        body = heal_req.to_dict()
         LOG.info("server_notification auto healing is processed: %s.",
                  vnf_instance_id)
         context = tacker_context.get_admin_context()
+        heal_req = objects.HealVnfRequest(vnfcInstanceId=vnfc_instance_ids)
+        body = heal_req.to_dict()
         try:
-            vnflcm_utils.heal(context, vnf_instance_id, body,
-                              auto_invocation=True)
+            vnflcm_auto.auto_heal(context, vnf_instance_id, body,
+                                  self.conductor)
         except Exception as exp:
             LOG.error(str(body))
             LOG.error("server_notification auto healing is failed: %s.",
