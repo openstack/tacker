@@ -1,47 +1,54 @@
 ==============================================================
-Using External Authentication Server OAuth2.0 Grant for Tacker
+Using External Authorization Server OAuth 2.0 Grant for Tacker
 ==============================================================
+
+.. note::
+
+  The content of this document has been confirmed to work using
+  Tacker 2024.1 Caracal and Keystone 25.0.4.
+
 
 Overview
 ~~~~~~~~
-Sometimes users may use the Client Credentials Grant flow in `RFC6749`_
-OAuth 2.0 Authorization Framework provided by a third-party authorization
-server (such as `Keycloak`_) for user authentication. OAuth2.0 Client
-Credentials Grant flow is prescribed in the API specification of ETSI
-`NFV-SOL013 v3.3.1`_. Tacker uses the keystone middleware to support OAuth2.0
-Client Credentials Grant through the third-party authorization server.
-In addition, Tacker can also via the Client Credentials Grant flow in
-`RFC6749`_ OAuth 2.0 Authorization Framework access other OpenStack services
-that use the third-party authentication servers for user authentication.
+
+Sometimes users may use the Client Credentials Grant flow of `RFC6749`_ OAuth
+2.0 Authorization Framework provided by a third-party authorization server
+(such as `Keycloak`_) for user authentication. OAuth 2.0 Client Credentials
+Grant flow is prescribed in the API specification of ETSI `NFV-SOL013 v3.3.1`_.
+
+Tacker uses the Keystonemiddleware to support OAuth 2.0 Client Credentials
+Grant provided by the external OAuth 2.0 authorization server. In addition,
+Tacker can also access other OpenStack services that use the external OAuth 2.0
+authorization server, using the Client Credentials Grant flow for user
+authentication.
 
 Preparations
 ~~~~~~~~~~~~
-To use external OAuth2.0 authorization server for Tacker, it is necessary
-to confirm that the token filter factory ``external_oauth2_token`` is supported
-in the keystone middleware. In this example, the `Keycloak`_ server is used as
-the third-party authorization server, and keycloak.host is the domain name
-used by the `Keycloak`_ server, and the domain name used by the Tacker server
-is tacker.host.
+
+To use external OAuth 2.0 authorization server for Authenticating Tacker API,
+it is necessary to confirm that the token filter factory
+``external_oauth2_token`` is supported in the Keystonemiddleware. In this
+example, the `Keycloak`_ server is used as the external OAuth 2.0 authorization
+server. The `keycloak.host` is the domain name used by the `Keycloak`_ server,
+and the domain name used by the Tacker server is `tacker.host`.
 
 Guide
 ~~~~~
-To use external OAuth2.0 authorization server for Tacker, you should configure
-the tacker-server and the Keystone middleware in the following steps.
 
-.. _RFC6749: https://datatracker.ietf.org/doc/html/rfc6749
-.. _Keycloak: https://www.keycloak.org/
-.. _NFV-SOL013 v3.3.1: https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/013/03.03.01_60/gs_nfv-sol013v030301p.pdf
+To use external OAuth 2.0 authorization server for Tacker, you should configure
+the Tacker server and the Keystonemiddleware in the following steps.
 
-Enable To Use External OAuth2.0 Authorization Server
-----------------------------------------------------
-To handle API requests using external OAuth2.0 authorization server
-authorization you have to configure the keystone middleware which accepts
-API calls from clients and verifies a client's identity,
-see `Middleware Architecture`_.
+Enable To Use external OAuth 2.0 authorization server
+-----------------------------------------------------
+
+To authenticate API requests using external OAuth 2.0 authorization server,
+you have to configure the Keystonemiddleware which accepts API calls from
+clients and verifies a client's identity. For detail, see
+`Middleware Architecture`_.
 
 1. Add ``keystonemiddleware.external_oauth2_token:filter_factory`` to the
-   configuration file ``api-paste.ini`` to enable External OAuth2.0
-   Authorization Server Authorization.
+   configuration file ``api-paste.ini`` to enable external OAuth 2.0
+   authorization Server authentication.
 
    .. code-block:: console
 
@@ -58,233 +65,274 @@ see `Middleware Architecture`_.
     [composite:vnflcm_v2]
     keystone = request_id catch_errors external_oauth2_token keystonecontext vnflcmaapp_v2
 
+    [composite:vnfpm_v2]
+    keystone = request_id catch_errors external_oauth2_token keystonecontext vnfpmaapp_v2
+
     [composite:vnflcm_versions]
     keystone = request_id catch_errors external_oauth2_token keystonecontext vnflcm_api_versions
+
+    [composite:vnffm_v1]
+    keystone = request_id catch_errors external_oauth2_token keystonecontext vnffmaapp_v1
 
     [filter:external_oauth2_token]
     paste.filter_factory = keystonemiddleware.external_oauth2_token:filter_factory
 
-2. Modify the configuration file ``tacker.conf`` to enable keystone middleware
-   to access the external OAuth2.0 authorization server to verify the token
-   and enable Tacker to get an access token through the external OAuth2.0
+2. Modify the configuration file ``tacker.conf`` to enable Keystonemiddleware
+   to use the external OAuth 2.0 authorization server to verify the token
+   and enable Tacker to get an access token from the external OAuth 2.0
    authorization server to access other OpenStack services.
 
-   If the external OAuth2.0 authorization server requires HTTPS communication,
-   you need to set the config parameters ``cafile`` and ``insecure``. When the
-   certificate specified in the config parameter ``cafile`` needs to be used
-   for authentication, the config parameter ``insecure`` needs to set True.
-   If the config parameter ``cafile`` is not required or the certificate
-   specified by the config parameter ``cafile`` is not used for authentication,
-   the config parameter ``insecure`` must be set to False. If the external
-   OAuth2.0 authorization server requires mTLS communication, you need to set
-   the config parameters ``certfile``, ``keyfile`` and ``cafile``.
+   If the external OAuth 2.0 authorization server requires HTTPS communication,
+   you need to specify the CA certificate to the config parameters ``cafile``
+   to verify the external OAuth 2.0 authorization server's certificate. If the
+   config parameter ``insecure`` is set to True, the CA certificate specified
+   by the config parameter ``cafile`` is not used for verification.
 
-   If the config parameter ``thumbprint_verify`` is set to true, you need to
-   refer to the `OAuth2.0 mTLS usage guide`_ to enable mTLS for Tacker. Users
-   accessing the Tacker APIs must use the same client certificate that they
-   used when obtaining an access token from the external OAuth2.0 authorization
-   server. It is also necessary to ensure that the information about the access
-   token obtained through the Introspect API includes the client certificate
-   thumbprint information. For the field ``cnf/x5t#S256`` used to store the
-   thumbprint of the client certificate, see the subsequent sample.
+   If the external OAuth 2.0 authorization server requires mTLS communication,
+   you need to configure the config parameters ``certfile``, ``keyfile`` and
+   ``cafile``.
 
-   In order to ensure that Tacker can correctly obtain user information, such
+   If you need to enable Tacker server to use mTLS communication, you must set
+   the config parameter ``use_ssl`` to True and you need to configure the
+   config parameters ``ssl_cert_file``, ``ssl_key_file`` and ``ssl_ca_file``.
+   You can refer to the `OAuth 2.0 mTLS usage guide`_ to generating the
+   client/server certificates for mTLS.
+
+   If the config parameter ``thumbprint_verify`` is set to True, the token will
+   be verified against the client certificate that used to obtain access token.
+   So, to access Tacker APIs, you need to use the same client certificate that
+   is used to obtain access token from the external OAuth 2.0 authorization
+   server. It is also necessary to ensure that the external OAuth 2.0
+   authorization server is configured to include the client certificate
+   thumbprint information in access token. For the claim used to store the
+   thumbprint of the client certificate ``cnf/x5t#S256``, see the subsequent
+   samples.
+
+   In order to enable Tacker to able to obtain user information, such
    as Project ID, User ID, Roles, etc., it is necessary to set the config
-   parameters that starts with ``mapping`` and ensure that all access tokens
+   parameters that starts with ``mapping_`` and ensure that all access tokens
    contain data that conforms to the specified format.
 
-   If the config parameter ``use_ext_oauth2_auth`` is set to true, Tacker APIs
-   will obtain an access token from the external OAuth2.0 authorization server
+   If the config parameter ``use_ext_oauth2_auth`` is set to True, Tacker APIs
+   will obtain an access token from the external OAuth 2.0 authorization server
    and then access other OpenStack services such as Barbican. If the config
-   parameter ``use_ext_oauth2_auth`` is set to false, Tacker APIs will keep the
-   original logic, get an x-auth-token from the keystone identity server, and
+   parameter ``use_ext_oauth2_auth`` is set to False, Tacker APIs will keep the
+   original logic, get an x-auth-token from the Keystone identity server, and
    then access the other OpenStack services.
 
-   Currently, five methods are supported: ``client_secret_basic``,
-   ``client_secret_post``, ``private_key_jwt``, ``client_secret_jwt``,
-   and ``tls_client_auth``, as detailed below:
+   The current Tacker APIs supports the following 5 Client Credentials Grant
+   flows:
 
-   client_secret_basic:
-       When the external OAuth2.0 authorization server requires to use the mTLS
-       protocol and the ``client_secret_basic`` authentication method, and the
-       Tacker APIs requires to use mTLS, the following configuration is
-       performed:
+   * ``client_secret_basic``
+   * ``client_secret_post``
+   * ``private_key_jwt``
+   * ``client_secret_jwt``
+   * ``tls_client_auth``
 
-       .. code-block:: console
 
-        [DEFAULT]
-        use_ssl=True
-        ssl_ca_file=/etc/tacker/multi_ca.pem
-        ssl_cert_file=/etc/tacker/tacker_host.pem
-        ssl_key_file=/etc/tacker/tacker_host.key
+   The following parts is the sample configurations for each method.
 
-        [ext_oauth2_auth]
-        use_ext_oauth2_auth=True
-        token_endpoint=https://keycloak.host:8443/realms/x509/protocol/openid-connect/token
-        scope=openstack
-        introspect_endpoint=https://keycloak.host:8443/realms/x509/protocol/openid-connect/token/introspect
-        audience=https://keycloak.host:8443/realms/x509
-        auth_method=client_secret_basic
-        client_id=tacker_service
-        client_secret=fsf3DkMQck5WxdLuhMSOh4e2ZLQTM4K5
-        certfile=/etc/tacker/service-account-tacker_service.crt
-        keyfile=/etc/tacker/service-account-tacker_service.pem
-        cafile=/etc/tacker/root-ca.crt
-        insecure=True
-        thumbprint_verify=True
-        mapping_project_id=project.id
-        mapping_project_name=project.name
-        mapping_project_domain_id=project.domain.id
-        mapping_project_domain_name=project.domain.name
-        mapping_user_id=client_id
-        mapping_user_name=username
-        mapping_user_domain_id=user_domain.id
-        mapping_user_domain_name=user_domain.name
-        mapping_roles=user_role
+   * client_secret_basic:
+      This is sample configuration of ``client_secret_basic`` authentication
+      method with these requirements:
 
-   client_secret_post:
-       When the external OAuth2.0 authorization server requires to use the HTTP
-       protocol and the ``client_secret_post`` authentication method, and the
-       Tacker APIs do not require to use mTLS, the following configuration is
-       performed:
+      * Tacker APIs requires mTLS
+      * External 0Auth 2.0 authorization server requires mTLS
+      * Token thumbprint confirmation is required
 
-       .. code-block:: console
+      .. code-block:: console
 
-        [DEFAULT]
-        use_ssl=True
-        ssl_cert_file=/etc/tacker/tacker_host.pem
-        ssl_key_file=/etc/tacker/tacker_host.key
+       [DEFAULT]
+       use_ssl=True
+       ssl_ca_file=/etc/tacker/ca.pem
+       ssl_cert_file=/etc/tacker/tacker_server.pem
+       ssl_key_file=/etc/tacker/tacker_server.key
 
-        [ext_oauth2_auth]
-        use_ext_oauth2_auth=True
-        token_endpoint=http://keycloak.host:8443/realms/x509/protocol/openid-connect/token
-        scope=openstack
-        introspect_endpoint=http://keycloak.host:8443/realms/x509/protocol/openid-connect/token/introspect
-        audience=http://keycloak.host:8443/realms/x509
-        auth_method=client_secret_post
-        client_id=tacker_service
-        client_secret=fsf3DkMQck5WxdLuhMSOh4e2ZLQTM4K5
-        insecure=False
-        thumbprint_verify=False
-        mapping_project_id=project.id
-        mapping_project_name=project.name
-        mapping_project_domain_id=project.domain.id
-        mapping_project_domain_name=project.domain.name
-        mapping_user_id=client_id
-        mapping_user_name=username
-        mapping_user_domain_id=user_domain.id
-        mapping_user_domain_name=user_domain.name
-        mapping_roles=user_role
+       [ext_oauth2_auth]
+       use_ext_oauth2_auth=True
+       token_endpoint=https://keycloak.host:8443/realms/testrealm/protocol/openid-connect/token
+       scope=openstack
+       introspect_endpoint=https://keycloak.host:8443/realms/testrealm/protocol/openid-connect/token/introspect
+       audience=https://keycloak.host:8443/realms/testrealm
+       auth_method=client_secret_basic
+       client_id=tacker_service
+       client_secret=sPocbjFjQCmrPPAXY9IUOVNJ9Cw3rDw5
+       certfile=/etc/tacker/tacker_client.pem
+       keyfile=/etc/tacker/tacker_client.key
+       cafile=/etc/tacker/ca.pem
+       insecure=False
+       thumbprint_verify=True
+       mapping_project_id=project.id
+       mapping_project_name=project.name
+       mapping_project_domain_id=project.domain.id
+       mapping_project_domain_name=project.domain.name
+       mapping_user_id=user.id
+       mapping_user_name=user.name
+       mapping_user_domain_id=user.domain.id
+       mapping_user_domain_name=user.domain.name
+       mapping_roles=user.roles
 
-   private_key_jwt:
-       When the external OAuth2.0 authorization server requires to use the
-       HTTPS protocol and the ``private_key_jwt`` authentication method, and
-       the Tacker APIs do not require to use mTLS, the following configuration
-       is performed:
 
-       .. code-block:: console
+   * client_secret_post:
+      This is sample configuration of ``client_secret_post`` authentication
+      method with these requirements:
 
-        [DEFAULT]
-        use_ssl=False
+      * Tacker APIs requires HTTPS
+      * External 0Auth 2.0 authorization server doesn't require HTTPS
+      * Token thumbprint confirmation is not required
 
-        [ext_oauth2_auth]
-        use_ext_oauth2_auth=True
-        token_endpoint=https://keycloak.host:8443/realms/x509/protocol/openid-connect/token
-        scope=openstack
-        introspect_endpoint=https://keycloak.host:8443/realms/x509/protocol/openid-connect/token/introspect
-        audience=https://keycloak.host:8443/realms/x509
-        auth_method=private_key_jwt
-        client_id=tacker_service
-        cafile=/etc/tacker/root-ca.crt
-        insecure=True
-        jwt_key_file=/etc/tacker/service-account-tacker_service_keyjwt.key
-        jwt_algorithm=RS256
-        jwt_bearer_time_out=7200
-        thumbprint_verify=False
-        mapping_project_id=project.id
-        mapping_project_name=project.name
-        mapping_project_domain_id=project.domain.id
-        mapping_project_domain_name=project.domain.name
-        mapping_user_id=client_id
-        mapping_user_name=username
-        mapping_user_domain_id=user_domain.id
-        mapping_user_domain_name=user_domain.name
-        mapping_roles=user_role
+      .. code-block:: console
 
-   client_secret_jwt:
-       When the external OAuth2.0 authorization server requires to use the mTLS
-       protocol and the ``client_secret_jwt`` authentication method, and the
-       Tacker APIs do not require to use mTLS, the following configuration is
-       performed:
+       [DEFAULT]
+       use_ssl=True
+       ssl_cert_file=/etc/tacker/tacker_server.pem
+       ssl_key_file=/etc/tacker/tacker_server.key
 
-       .. code-block:: console
+       [ext_oauth2_auth]
+       use_ext_oauth2_auth=True
+       token_endpoint=http://keycloak.host:8080/realms/testrealm/protocol/openid-connect/token
+       scope=openstack
+       introspect_endpoint=http://keycloak.host:8080/realms/testrealm/protocol/openid-connect/token/introspect
+       audience=http://keycloak.host:8080/realms/testrealm
+       auth_method=client_secret_post
+       client_id=tacker_service
+       client_secret=sPocbjFjQCmrPPAXY9IUOVNJ9Cw3rDw5
+       insecure=True
+       thumbprint_verify=False
+       mapping_project_id=project.id
+       mapping_project_name=project.name
+       mapping_project_domain_id=project.domain.id
+       mapping_project_domain_name=project.domain.name
+       mapping_user_id=user.id
+       mapping_user_name=user.name
+       mapping_user_domain_id=user.domain.id
+       mapping_user_domain_name=user.domain.name
+       mapping_roles=user.roles
 
-        [DEFAULT]
-        use_ssl=False
+   * private_key_jwt:
+      This is sample configuration of ``private_key_jwt`` authentication
+      method with these requirements:
 
-        [ext_oauth2_auth]
-        use_ext_oauth2_auth=True
-        token_endpoint=https://keycloak.host:8443/realms/x509/protocol/openid-connect/token
-        scope=openstack
-        introspect_endpoint=https://keycloak.host:8443/realms/x509/protocol/openid-connect/token/introspect
-        audience=https://keycloak.host:8443/realms/x509
-        auth_method=client_secret_jwt
-        client_id=tacker_service
-        client_secret=OrGhhu8K2QGWtWABfLM9akUwqnSuwLU1
-        certfile=/etc/tacker/service-account-tacker_service.crt
-        keyfile=/etc/tacker/service-account-tacker_service.pem
-        cafile=/etc/tacker/root-ca.crt
-        insecure=True
-        jwt_algorithm=HS512
-        jwt_bearer_time_out=7200
-        thumbprint_verify=False
-        mapping_project_id=project.id
-        mapping_project_name=project.name
-        mapping_project_domain_id=project.domain.id
-        mapping_project_domain_name=project.domain.name
-        mapping_user_id=client_id
-        mapping_user_name=username
-        mapping_user_domain_id=user_domain.id
-        mapping_user_domain_name=user_domain.name
-        mapping_roles=user_role
+      * Tacker APIs doesn't require HTTPS
+      * External 0Auth 2.0 authorization requires HTTPS
+      * Token thumbprint confirmation is not required
 
-   tls_client_auth:
-       When the external OAuth2.0 authorization server requires to use the mTLS
-       protocol and the ``tls_client_auth`` authentication method, and the
-       Tacker APIs requires to use mTLS, the following configuration is
-       performed:
+      .. code-block:: console
 
-       .. code-block:: console
+       [DEFAULT]
+       use_ssl=False
 
-        [DEFAULT]
-        use_ssl=True
-        ssl_ca_file=/etc/tacker/multi_ca.pem
-        ssl_cert_file=/etc/tacker/tacker_host.pem
-        ssl_key_file=/etc/tacker/tacker_host.key
+       [ext_oauth2_auth]
+       use_ext_oauth2_auth=True
+       token_endpoint=https://keycloak.host:8443/realms/testrealm/protocol/openid-connect/token
+       scope=openstack
+       introspect_endpoint=https://keycloak.host:8443/realms/testrealm/protocol/openid-connect/token/introspect
+       audience=https://keycloak.host:8443/realms/testrealm
+       auth_method=private_key_jwt
+       client_id=tacker_service
+       jwt_key_file=/etc/tacker/private_jwt.key
+       jwt_algorithm=RS256
+       jwt_bearer_time_out=7200
+       cafile=/etc/tacker/ca.pem
+       insecure=False
+       thumbprint_verify=False
+       mapping_project_id=project.id
+       mapping_project_name=project.name
+       mapping_project_domain_id=project.domain.id
+       mapping_project_domain_name=project.domain.name
+       mapping_user_id=user.id
+       mapping_user_name=user.name
+       mapping_user_domain_id=user.domain.id
+       mapping_user_domain_name=user.domain.name
+       mapping_roles=user.roles
 
-        [ext_oauth2_auth]
-        use_ext_oauth2_auth=True
-        token_endpoint=https://keycloak.host:8443/realms/x509/protocol/openid-connect/token
-        scope=openstack
-        introspect_endpoint=https://keycloak.host:8443/realms/x509/protocol/openid-connect/token/introspect
-        audience=https://keycloak.host:8443/realms/x509
-        auth_method=tls_client_auth
-        client_id=tacker_service
-        client_secret=OrGhhu8K2QGWtWABfLM9akUwqnSuwLU1
-        certfile=/etc/tacker/service-account-tacker_service.crt
-        keyfile=/etc/tacker/service-account-tacker_service.pem
-        cafile=/etc/tacker/root-ca.crt
-        insecure=True
-        thumbprint_verify=True
-        mapping_project_id=project.id
-        mapping_project_name=project.name
-        mapping_project_domain_id=project.domain.id
-        mapping_project_domain_name=project.domain.name
-        mapping_user_id=client_id
-        mapping_user_name=username
-        mapping_user_domain_id=user_domain.id
-        mapping_user_domain_name=user_domain.name
-        mapping_roles=user_role
+
+   * client_secret_jwt:
+      This sample configuration of ``client_secret_jwt`` authentication
+      method with these requirements:
+
+      * Tacker APIs doesn't require HTTPS
+      * External 0Auth 2.0 authorization server requires mTLS
+      * Token thumbprint confirmation is not required
+
+      .. code-block:: console
+
+       [DEFAULT]
+       use_ssl=False
+
+       [ext_oauth2_auth]
+
+       use_ext_oauth2_auth=True
+       token_endpoint=https://keycloak.host:8443/realms/testrealm/protocol/openid-connect/token
+       scope=openstack
+       introspect_endpoint=https://keycloak.host:8443/realms/testrealm/protocol/openid-connect/token/introspect
+       audience=https://keycloak.host:8443/realms/testrealm
+       auth_method=client_secret_jwt
+       client_id=tacker_service
+       client_secret=gLQnfhNWrDMk6cKMKgKSALDcpiB2Hk7k
+       certfile=/etc/tacker/tacker_client.pem
+       keyfile=/etc/tacker/tacker_client.key
+       jwt_algorithm=HS512
+       jwt_bearer_time_out=7200
+       cafile=/etc/tacker/ca.pem
+       insecure=False
+       thumbprint_verify=False
+       mapping_project_id=project.id
+       mapping_project_name=project.name
+       mapping_project_domain_id=project.domain.id
+       mapping_project_domain_name=project.domain.name
+       mapping_user_id=user.id
+       mapping_user_name=user.name
+       mapping_user_domain_id=user.domain.id
+       mapping_user_domain_name=user.domain.name
+       mapping_roles=user.roles
+
+
+   * tls_client_auth:
+      This sample configuration of ``tls_client_auth`` authentication method
+      with these requirements:
+
+      * Tacker APIs requires mTLS
+      * External 0Auth 2.0 authorization server requires mTLS
+      * Token thumbprint confirmation is required
+
+      .. note::
+
+       Unlike mTLS is optional in the other authentication methods, mTLS is
+       necessary when ``tls_client_auth`` is being used for authentication.
+
+
+      .. code-block:: console
+
+       [DEFAULT]
+       use_ssl=True
+       ssl_ca_file=/etc/tacker/ca.pem
+       ssl_cert_file=/etc/tacker/tacker_server.pem
+       ssl_key_file=/etc/tacker/tacker_server.key
+
+       [ext_oauth2_auth]
+       use_ext_oauth2_auth=True
+       token_endpoint=https://keycloak.host:8443/realms/testrealm/protocol/openid-connect/token
+       scope=openstack
+       introspect_endpoint=https://keycloak.host:8443/realms/testrealm/protocol/openid-connect/token/introspect
+       audience=https://keycloak.host:8443/realms/testrealm
+       auth_method=tls_client_auth
+       client_id=tacker_service
+       certfile=/etc/tacker/tacker_client.pem
+       keyfile=/etc/tacker/tacker_client.key
+       cafile=/etc/tacker/ca.pem
+       insecure=False
+       thumbprint_verify=True
+       mapping_project_id=project.id
+       mapping_project_name=project.name
+       mapping_project_domain_id=project.domain.id
+       mapping_project_domain_name=project.domain.name
+       mapping_user_id=user.id
+       mapping_user_name=user.name
+       mapping_user_domain_id=user.domain.id
+       mapping_user_domain_name=user.domain.name
+       mapping_roles=user.roles
+
 
 3. Restart Tacker service so that the modified configuration information takes
    effect.
@@ -294,261 +342,360 @@ see `Middleware Architecture`_.
     $ sudo systemctl restart devstack@tacker.service
     $ sudo systemctl restart devstack@tacker-conductor.service
 
-4. Access the Tacker APIs with the OAuth2.0 access token to confirm
-   that OAuth2.0 Client Credentials Grant flow works correctly.
 
-   The current Tacker APIs can receive OAuth2.0 access tokens obtained through
-   the following 5 methods: ``client_secret_basic``, ``client_secret_post``,
-   ``private_key_jwt``, ``client_secret_jwt``, and ``tls_client_auth``.
-   Different external OAuth2.0 authorization servers will have different
-   methods to obtain OAuth2.0 access tokens. The following example is only
-   applicable to scenarios where `Keycloak`_ is used as the OAuth2.0
-   authentication server.
+Verifying Access to Tacker APIs Using External Authorization Server
+-------------------------------------------------------------------
 
-   client_secret_basic:
-       When the `Keycloak`_ server requires to use the mTLS protocol and
-       the ``client_secret_basic`` authentication method, The following example
-       is used to get an access token and use the access token to access
-       Tacker APIs.
+Access to the Tacker APIs with the OAuth 2.0 access token to verify
+that OAuth 2.0 Client Credentials Grant flow works correctly.
 
-       There are three steps:
+Using different external OAuth 2.0 authorization servers will need different
+methods of obtaining access tokens. The following examples are only applicable
+to scenarios where `Keycloak`_ is used as the external authorization server.
 
-       1. Execute the Get token API
-          (/realms/x509/protocol/openid-connect/token) provided by keycloak.
+There are three steps to verify access to Tacker APIs using `Keycloak`_ as
+external OAuth 2.0 Authentication server:
 
-       2. Execute the List VIM API (/v1.0/vims) provided by tacker using the
-          token obtained from keycloak.
+1. Execute the Get token API
+   (/realms/{realm_name}/protocol/openid-connect/token) provided by
+   `Keycloak`_.
+2. Execute the Tacker APIs using the access token obtained from `Keycloak`_.
+   For example, List VIM API (/v1.0/vims) provided by Tacker is used in this
+   document.
+3. Check the access token of the introspect API provided by `Keycloak`_ from
+   the Tacker server logs.
 
-       3. Check the results of the introspect API provided by keycloak from the
-          Tacker server logs.
+The following parts is the examples for each of the 5 authentication methods.
+The Tacker configuration used for each example can be referred to previous
+chapter.
 
-       .. code-block:: console
+* client_secret_basic:
+   When the `Keycloak`_ server requires to use the mTLS protocol and
+   the ``client_secret_basic`` authentication method:
 
-        $ curl -i -X POST https://keycloak.host:8443/realms/x509/protocol/openid-connect/token \
-        -u test_user:L3gOqrORqoIZIgrZUZsCFY9AdnFvxLDm  \
-        -d "scope=tacker" \
-        -d "grant_type=client_credentials" \
-        --cacert /etc/tacker/root-ca.crt \
-        --key /home/user/service-account-test_user.key \
-        --cert /home/user/service-account-test_user.crt
-        HTTP/2 200
-        content-type: application/json
+   .. code-block:: console
 
-        {"access_token":"eyJhbG...LxZhfUdmoztnsJGr0mB7hvg",
-        "expires_in":1800,"refresh_expires_in":0,"token_type":"Bearer",
-        "not-before-policy":0,"scope":"tacker"}
+    $ curl -i -X POST https://keycloak.host:8443/realms/testrealm/protocol/openid-connect/token \
+    -u tacker_service:sPocbjFjQCmrPPAXY9IUOVNJ9Cw3rDw5 \
+    -d "scope=openstack" \
+    -d "grant_type=client_credentials" \
+    --cacert /opt/stack/certs/ca.pem \
+    --key /opt/stack/certs/client.key \
+    --cert /opt/stack/certs/client.pem
+    HTTP/2 200
+    cache-control: no-store
+    pragma: no-cache
+    content-length: 1873
+    content-type: application/json
+    referrer-policy: no-referrer
+    strict-transport-security: max-age=31536000; includeSubDomains
+    x-content-type-options: nosniff
+    x-frame-options: SAMEORIGIN
+    x-xss-protection: 1; mode=block
+    {"access_token":"eyJhbGciOiJ.....MkgZ_T0dzJZg",
+    "expires_in":300,"refresh_expires_in":0,
+    "token_type":"Bearer","not-before-policy":0,
+    "scope":"openstack"}
 
-        $ curl  -i -X GET https://tacker.host:9890/v1.0/vims \
-        -H "Authorization: Bearer eyJhbG...LxZhfUdmoztnsJGr0mB7hvg"  \
-        --cacert /etc/tacker/root-ca.crt \
-        --key /home/user/service-account-test_user.key \
-        --cert /home/user/service-account-test_user.crt
-        HTTP/2 200
-        content-type: application/json
+    $ curl  -i -X GET https://tacker.host:9890/v1.0/vims \
+    -H "Authorization: Bearer eyJhbGciOiJ.....MkgZ_T0dzJZg"  \
+    --cacert /opt/stack/certs/ca.pem \
+    --key /opt/stack/certs/client.key \
+    --cert /opt/stack/certs/client.pem
+    HTTP/1.1 200 OK
+    Content-Type: application/json
+    Content-Length: 2182
+    X-Openstack-Request-Id: req-7c1abeac-2179-4dde-b3e7-639b16853ca3
+    Date: Mon, 09 Sep 2024 01:30:59 GMT
+    {"vims": [{"id": "ce04bbe5-3ffe-449f-ba2a-69c0a747b9ad", "type": "kubernetes",
+    "tenant_id": "2e189ea6c1df4e4ba6d89de254b3a534", "name": "test-vim-k8s",
+    "description": "", "placement_attr": {"regions": ["default", "kube-node-lease",
+    "kube-public", "kube-system"]}, "is_default": true, "created_at": "2024-07-04 09:07:56",
+    "updated_at": null, "extra": {}, "auth_url": "https://10.0.2.15:6443",
+    "vim_project": {"name": "nfv"}, "auth_cred": {"bearer_token": "***",
+    "ssl_ca_cert": "gAAAAABmhm.....oN2Ps5SOO6yhOF_4w==", "auth_url":
+    "https://10.0.2.15:6443", "username": "None", "key_type": "barbican_key",
+    "secret_uuid": "***"}, "status": "ACTIVE"}]}
 
-        {"vims": []}
+    $ tail -f /opt/stack/log/tacker-server.log
+    DEBUG keystonemiddleware.external_oauth2_token [-] The introspect API response:
+    {'exp': 1725845511, 'iat': 1725845211, 'jti': '79c8bc7b-b29e-484a-afde-1bab169ce482',
+    'iss': 'https://keycloak.host:8443/realms/testrealm', 'aud': 'account',
+    'sub': '7e3c5cb5-48a4-460c-b206-b8dca2ea0c36', 'typ': 'Bearer',
+    'azp': 'tacker_service', 'acr': '1', 'allowed-origins': ['https://127.0.0.1:9890/'],
+    'realm_access': {'roles': ['offline_access', 'uma_authorization', 'default-roles-testrealm']},
+    'resource_access': {'tacker_service': {'roles': ['uma_protection']},
+    'account': {'roles': ['manage-account', 'manage-account-links', 'view-profile']}},
+    'cnf': {'x5t#S256': 'YGhr3eS01OTAAxAeksVwNc22gDnB-SSJPL7Y1BuqKvo'}, 'scope': 'openstack',
+    'project': {'domain': {'name': 'Default', 'id': 'default'},
+    'name': 'nfv', 'id': '2e189ea6c1df4e4ba6d89de254b3a534'},
+    'preferred_username': 'service-account-tacker_service',
+    'user': {'domain': {'name': 'Default', 'id': 'default'},
+    'roles': 'admin', 'name': 'nfv_user', 'id': '173c59254d3040969e359e5df0a3b475'},
+    'client_id': 'tacker_service', 'username': 'service-account-tacker_service',
+    'token_type': 'Bearer', 'active': True} _fetch_token /opt/stack/data/venv/lib/python3.10/site-packages/keystonemiddleware/external_oauth2_token.py:732
 
-        $ tail -f /opt/stack/log/tacker-server.log
-        2023-02-17 06:45:50.249 DEBUG keystonemiddleware.external_oauth2_token [-] The introspect API response:
-        {'exp': 1676618506, 'iat': 1676616706, 'jti': '7e4a7d26-e8f4-4065-bcfb-2d9c6fc40681',
-        'iss': 'https://keycloak.host:8443/realms/x509', 'aud': 'account',
-        'sub': '9ffa28c0-b325-4cb7-9a87-ea76ce3dcc6d', 'typ': 'Bearer', 'azp': 'test_user', 'acr': '1',
-        'realm_access': {'roles': ['offline_access', 'uma_authorization', 'default-roles-x509']},
-        'resource_access': {'test_user': {'roles': ['member', 'admin']},
-        'account': {'roles': ['manage-account', 'manage-account-links', 'view-profile']}},
-        'cnf': {'x5t#S256': 'uwsXk4-tc62mdRMQ8o-gNyTj9HVH6YQKApXfOSdtjVo'},
-        'scope': 'tacker',
-        'user_role': 'admin',
-        'user_domain': {'id': 'default', 'name': 'Default'},
-        'project': {'id': '781381c76b2144f3a72ba2ec1ceda585', 'name': 'x509_demo', 'domain': {'id': 'default', 'name': 'Default'}},
-        'client_id': 'test_user', 'username': 'service-account-test_user', 'active': True}
-        from (pid=3757068) _fetch_token /usr/local/lib/python3.8/dist-packages/keystonemiddleware/external_oauth2_token.py:572
+* client_secret_post:
+   When the `Keycloak`_ server requires to use the HTTP protocol and
+   the ``client_secret_post`` authentication method:
 
-   client_secret_post:
-       When the `Keycloak`_ server requires to use the HTTP protocol and
-       the ``client_secret_post`` authentication method, The following example
-       is used to get an access token and use the access token to access Tacker
-       APIs.
+   .. code-block:: console
 
-       .. code-block:: console
+    $ curl -i -X POST http://keycloak.host:8080/realms/testrealm/protocol/openid-connect/token \
+    -d "client_id=tacker_service" -d "client_secret=sPocbjFjQCmrPPAXY9IUOVNJ9Cw3rDw5" \
+    -d "scope=openstack" \
+    -d "grant_type=client_credentials"
+    HTTP/1.1 200 OK
+    Cache-Control: no-store
+    Pragma: no-cache
+    content-length: 1785
+    Content-Type: application/json
+    Referrer-Policy: no-referrer
+    Strict-Transport-Security: max-age=31536000; includeSubDomains
+    X-Content-Type-Options: nosniff
+    X-Frame-Options: SAMEORIGIN
+    X-XSS-Protection: 1; mode=block
+    {"access_token":"eyJhbGciOiJ.....dLL5j7v9DkI7g",
+    "expires_in":300,"refresh_expires_in":0,
+    "token_type":"Bearer","not-before-policy":0,
+    "scope":"openstack"}
 
-        $ curl -i -X POST http://keycloak.host:8443/realms/x509/protocol/openid-connect/token \
-        -d "client_id=test_user"  -d "client_secret=L3gOqrORqoIZIgrZUZsCFY9AdnFvxLDm" \
-        -d "scope=tacker" \
-        -d "grant_type=client_credentials"
-        HTTP/2 200
-        content-type: application/json
+    $ curl  -i -X GET https://tacker.host:9890/v1.0/vims \
+    -H "Authorization: Bearer eyJhbGciOiJ.....dLL5j7v9DkI7g" \
+    --cacert /opt/stack/certs/ca.pem
+    HTTP/1.1 200 OK
+    Content-Type: application/json
+    Content-Length: 2182
+    X-Openstack-Request-Id: req-1960f278-82db-4ccf-81a1-be0839c024d2
+    Date: Mon, 09 Sep 2024 02:02:59 GMT
+    {"vims": [{"id": "ce04bbe5-3ffe-449f-ba2a-69c0a747b9ad", "type": "kubernetes",
+    "tenant_id": "2e189ea6c1df4e4ba6d89de254b3a534", "name": "test-vim-k8s",
+    "description": "", "placement_attr": {"regions": ["default", "kube-node-lease",
+    "kube-public", "kube-system"]}, "is_default": true, "created_at": "2024-07-04 09:07:56",
+    "updated_at": null, "extra": {}, "auth_url": "https://10.0.2.15:6443",
+    "vim_project": {"name": "nfv"}, "auth_cred": {"bearer_token": "***",
+    "ssl_ca_cert": "gAAAAABmhm.....oN2Ps5SOO6yhOF_4w==", "auth_url":
+    "https://10.0.2.15:6443", "username": "None", "key_type": "barbican_key",
+    "secret_uuid": "***"}, "status": "ACTIVE"}]}
 
-        {"access_token":"eyJhbGciOiJSUz...6liLqohYVEdda1SKPykV4RtG11V8r9kme_KTwzw",
-        "expires_in":1800,"refresh_expires_in":0,"token_type":"Bearer",
-        "not-before-policy":0,"scope":"tacker"}
+    $ tail -f /opt/stack/log/tacker-server.log
+    DEBUG keystonemiddleware.external_oauth2_token [-] The introspect API response:
+    {'exp': 1725847413, 'iat': 1725847113, 'jti': 'db3bb08e-3b78-4c5b-9a62-6c382401d31a',
+    'iss': 'http://keycloak.host:8080/realms/testrealm', 'aud': 'account',
+    'sub': '7e3c5cb5-48a4-460c-b206-b8dca2ea0c36', 'typ': 'Bearer',
+    'azp': 'tacker_service', 'acr': '1', 'allowed-origins': ['https://127.0.0.1:9890/'],
+    'realm_access': {'roles': ['offline_access', 'uma_authorization', 'default-roles-testrealm']},
+    'resource_access': {'tacker_service': {'roles': ['uma_protection']},
+    'account': {'roles': ['manage-account', 'manage-account-links', 'view-profile']}},
+    'scope': 'openstack', 'project': {'domain': {'name': 'Default', 'id': 'default'},
+    'name': 'nfv', 'id': '2e189ea6c1df4e4ba6d89de254b3a534'}, 'preferred_username':
+    'service-account-tacker_service', 'user': {'domain': {'name': 'Default', 'id': 'default'},
+    'roles': 'admin', 'name': 'nfv_user', 'id': '173c59254d3040969e359e5df0a3b475'},
+    'client_id': 'tacker_service', 'username': 'service-account-tacker_service',
+    'token_type': 'Bearer', 'active': True} _fetch_token /opt/stack/data/venv/lib/python3.10/site-packages/keystonemiddleware/external_oauth2_token.py:732
 
-        $ curl  -i -X GET http://tacker.host:9890/v1.0/vims \
-        -H "Authorization: Bearer eyJhbGciOiJSUz...6liLqohYVEdda1SKPykV4RtG11V8r9kme_KTwzw"
-        HTTP/2 200
-        content-type: application/json
 
-        {"vims": []}
+* private_key_jwt:
+   When the `Keycloak`_ server requires to use the HTTPS protocol and
+   the ``private_key_jwt`` authentication method:
 
-        $ tail -f /opt/stack/log/tacker-server.log
-        2023-02-17 06:38:12.073 DEBUG keystonemiddleware.external_oauth2_token [-] The introspect API response:
-        {'exp': 1676618048, 'iat': 1676616248, 'jti': '97e38dc8-191c-4ace-b9c0-3e81baf4bfc1',
-        'iss': 'http://keycloak.host:8443/realms/x509', 'aud': 'account',
-        'sub': '9ffa28c0-b325-4cb7-9a87-ea76ce3dcc6d', 'typ': 'Bearer', 'azp': 'test_user', 'acr': '1',
-        'realm_access': {'roles': ['offline_access', 'uma_authorization', 'default-roles-x509']},
-        'resource_access': {'test_user': {'roles': ['member', 'admin']},
-        'account': {'roles': ['manage-account', 'manage-account-links', 'view-profile']}},
-        'scope': 'tacker',
-        'user_role': 'admin',
-        'user_domain': {'id': 'default', 'name': 'Default'},
-        'project': {'id': '781381c76b2144f3a72ba2ec1ceda585', 'name': 'x509_demo', 'domain': {'id': 'default', 'name': 'Default'}},
-        'client_id': 'test_user', 'username': 'service-account-test_user', 'active': True}
-        from (pid=3757068) _fetch_token /usr/local/lib/python3.8/dist-packages/keystonemiddleware/external_oauth2_token.py:572
+   .. code-block:: console
 
-   private_key_jwt:
-       When the `Keycloak`_ server requires to use the HTTPS protocol and
-       the ``private_key_jwt`` authentication method, The following example is
-       used to get an access token and use the access token to access Tacker
-       APIs.
+    $ curl -i -X POST https://keycloak.host:8443/realms/testrealm/protocol/openid-connect/token \
+    -d "client_id=tacker_service" \
+    -d "client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer" \
+    -d "client_assertion=eyJhbGciOiJS.....EOr5ndYF4I6qg" \
+    -d "grant_type=client_credentials" \
+    --cacert /opt/stack/certs/ca.pem
+    HTTP/2 200
+    cache-control: no-store
+    pragma: no-cache
+    content-length: 1786
+    content-type: application/json
+    referrer-policy: no-referrer
+    strict-transport-security: max-age=31536000; includeSubDomains
+    x-content-type-options: nosniff
+    x-frame-options: SAMEORIGIN
+    x-xss-protection: 1; mode=block
+    {"access_token":"eyJhbGciOiJSUz.....AQC1ms_YuUUgc8A",
+    "expires_in":300,"refresh_expires_in":0,
+    "token_type":"Bearer","not-before-policy":0,
+    "scope":"openstack"}
 
-       .. code-block:: console
+    $ curl  -i -X GET http://tacker.host:9890/v1.0/vims \
+    -H "Authorization: Bearer eyJhbGciOiJSUz.....AQC1ms_YuUUgc8A"  \
+    HTTP/1.1 200 OK
+    Content-Type: application/json
+    Content-Length: 2182
+    X-Openstack-Request-Id: req-9c287081-bd0b-4e43-ae80-06acfa1ca3a2
+    Date: Mon, 09 Sep 2024 03:17:02 GMT
+    {"vims": [{"id": "ce04bbe5-3ffe-449f-ba2a-69c0a747b9ad", "type": "kubernetes",
+    "tenant_id": "2e189ea6c1df4e4ba6d89de254b3a534", "name": "test-vim-k8s",
+    "description": "", "placement_attr": {"regions": ["default", "kube-node-lease",
+    "kube-public", "kube-system"]}, "is_default": true, "created_at": "2024-07-04 09:07:56",
+    "updated_at": null, "extra": {}, "auth_url": "https://10.0.2.15:6443",
+    "vim_project": {"name": "nfv"}, "auth_cred": {"bearer_token": "***",
+    "ssl_ca_cert": "gAAAAABmhm.....oN2Ps5SOO6yhOF_4w==", "auth_url":
+    "https://10.0.2.15:6443", "username": "None", "key_type": "barbican_key",
+    "secret_uuid": "***"}, "status": "ACTIVE"}]}
 
-        $ curl -i -X POST https://keycloak.host:8443/realms/x509/protocol/openid-connect/token \
-        -d "client_id=keyjwt_client" \
-        -d "client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer" \
-        -d "client_assertion=eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI2ZG...VcCRHxhuc" \
-        -d "grant_type=client_credentials" \
-        --cacert /etc/tacker/root-ca.crt \
-        HTTP/2 200
-        content-type: application/json
+     $ tail -f /opt/stack/log/tacker-server.log
+     DEBUG keystonemiddleware.external_oauth2_token [-] The introspect API response:
+     {'exp': 1725852092, 'iat': 1725851792, 'jti': '3e61de0d-dc23-4a96-a08f-cce233e5a205',
+     'iss': 'https://keycloak.host:8443/realms/testrealm', 'aud': 'account',
+     'sub': '7e3c5cb5-48a4-460c-b206-b8dca2ea0c36', 'typ': 'Bearer',
+     'azp': 'tacker_service', 'acr': '1', 'allowed-origins': ['https://127.0.0.1:9890/'],
+     'realm_access': {'roles': ['offline_access', 'uma_authorization', 'default-roles-testrealm']},
+     'resource_access': {'tacker_service': {'roles': ['uma_protection']},
+     'account': {'roles': ['manage-account', 'manage-account-links', 'view-profile']}},
+     'scope': 'openstack', 'project': {'domain': {'name': 'Default', 'id': 'default'},
+     'name': 'nfv', 'id': '2e189ea6c1df4e4ba6d89de254b3a534'},
+     'preferred_username': 'service-account-tacker_service',
+     'user': {'domain': {'name': 'Default', 'id': 'default'}, 'roles': 'admin',
+     'name': 'nfv_user', 'id': '173c59254d3040969e359e5df0a3b475'}, 'client_id': 'tacker_service',
+     'username': 'service-account-tacker_service', 'token_type': 'Bearer',
+     'active': True} _fetch_token /opt/stack/data/venv/lib/python3.10/site-packages/keystonemiddleware/external_oauth2_token.py:732
 
-        {"access_token":"eyJhbG...wNL5LpRfkaYQ",
-        "expires_in":300,"refresh_expires_in":0,"token_type":"Bearer",
-        "not-before-policy":0,"scope":"tacker"}
 
-        $ curl  -i -X GET https://tacker.host:9890/v1.0/vims \
-        -H "Authorization: Bearer eyJhbG...wNL5LpRfkaYQ"  \
-        --cacert /etc/tacker/root-ca.crt \
-        HTTP/2 200
-        content-type: application/json
+* client_secret_jwt:
+   When the `Keycloak`_ server requires to use the mTLS protocol and
+   the ``client_secret_jwt`` authentication method:
 
-        {"vims": []}
+   .. code-block:: console
 
-        $ tail -f /opt/stack/log/tacker-server.log
-        2023-02-17 07:27:43.125 DEBUG keystonemiddleware.external_oauth2_token [-] The introspect API response:
-        {'exp': 1676619519, 'iat': 1676619219, 'jti': '44f439a6-ba0a-4f40-95a8-783cfe883ded',
-        'iss': 'https://keycloak.host:8443/realms/x509', 'aud': 'account',
-        'sub': '571cf4a0-1f9b-40e6-b1d9-a82699ef2408', 'typ': 'Bearer', 'azp': 'keyjwt_client',
-        'preferred_username': 'service-account-keyjwt_client', 'email_verified': False, 'acr': '1',
-        'realm_access': {'roles': ['offline_access', 'uma_authorization', 'default-roles-x509']},
-        'resource_access': {'account': {'roles': ['manage-account', 'manage-account-links', 'view-profile']}},
-        'scope': 'tacker',
-        'user_role': 'member,reader,admin',
-        'user_domain': {'id': 'default', 'name': 'Default'},
-        'project': {'id': '781381c76b2144f3a72ba2ec1ceda585', 'name': 'x509_demo', 'domain': {'id': 'default', 'name': 'Default'}},
-        'client_id': 'keyjwt_client', 'username': 'service-account-keyjwt_client', 'active': True}
-        from (pid=3757068) _fetch_token /usr/local/lib/python3.8/dist-packages/keystonemiddleware/external_oauth2_token.py:572
+    $ curl -i -X POST https://keycloak.host:8443/realms/testrealm/protocol/openid-connect/token \
+    -d "client_id=tacker_service" \
+    -d "client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer" \
+    -d "client_assertion=eyJhbGciOiJIUzUx.....UVZ11WvcKg" \
+    -d "grant_type=client_credentials" \
+    --cacert /opt/stack/certs/ca.pem \
+    --key /opt/stack/certs/client.key \
+    --cert /opt/stack/certs/client.pem
+    HTTP/2 200
+    cache-control: no-store
+    pragma: no-cache
+    content-length: 1786
+    content-type: application/json
+    referrer-policy: no-referrer
+    strict-transport-security: max-age=31536000; includeSubDomains
+    x-content-type-options: nosniff
+    x-frame-options: SAMEORIGIN
+    x-xss-protection: 1; mode=block
+    {"access_token":"eyJhbGciOiJ.....m3tUXO7h22A",
+    "expires_in":300,"refresh_expires_in":0,
+    "token_type":"Bearer","not-before-policy":0,
+    "scope":"openstack"}
 
-   client_secret_jwt:
-       When the `Keycloak`_ server requires to use the mTLS protocol and
-       the ``client_secret_jwt`` authentication method, The following example
-       is used to get an access token and use the access token to access Tacker
-       APIs.
+    $ curl  -i -X GET http://tacker.host:9890/v1.0/vims \
+    -H "Authorization: Bearer eyJhbGciOiJ.....m3tUXO7h22A"  \
+    HTTP/1.1 200 OK
+    Content-Type: application/json
+    Content-Length: 2182
+    X-Openstack-Request-Id: req-777f61b4-e9ea-40b8-90ef-ad1a628070eb
+    Date: Mon, 09 Sep 2024 05:19:48 GMT
+    {"vims": [{"id": "ce04bbe5-3ffe-449f-ba2a-69c0a747b9ad", "type": "kubernetes",
+    "tenant_id": "2e189ea6c1df4e4ba6d89de254b3a534", "name": "test-vim-k8s",
+    "description": "", "placement_attr": {"regions": ["default", "kube-node-lease",
+    "kube-public", "kube-system"]}, "is_default": true, "created_at": "2024-07-04 09:07:56",
+    "updated_at": null, "extra": {}, "auth_url": "https://10.0.2.15:6443",
+    "vim_project": {"name": "nfv"}, "auth_cred": {"bearer_token": "***",
+    "ssl_ca_cert": "gAAAAABmhm.....oN2Ps5SOO6yhOF_4w==", "auth_url":
+    "https://10.0.2.15:6443", "username": "None", "key_type": "barbican_key",
+    "secret_uuid": "***"}, "status": "ACTIVE"}]}
 
-       .. code-block:: console
+    $ tail -f /opt/stack/log/tacker-server.log
+    DEBUG keystonemiddleware.external_oauth2_token [-] The introspect API response:
+    {'exp': 1725859285, 'iat': 1725858985, 'jti': '9b93e2db-f948-48c3-bd75-acae1da70861',
+    'iss': 'https://keycloak.host:8443/realms/testrealm', 'aud': 'account',
+    'sub': '7e3c5cb5-48a4-460c-b206-b8dca2ea0c36', 'typ': 'Bearer',
+    'azp': 'tacker_service', 'acr': '1', 'allowed-origins': ['https://127.0.0.1:9890/'],
+    'realm_access': {'roles': ['offline_access', 'uma_authorization', 'default-roles-testrealm']},
+    'resource_access': {'tacker_service': {'roles': ['uma_protection']},
+    'account': {'roles': ['manage-account', 'manage-account-links', 'view-profile']}},
+    'scope': 'openstack', 'project': {'domain': {'name': 'Default', 'id': 'default'},
+    'name': 'nfv', 'id': '2e189ea6c1df4e4ba6d89de254b3a534'}, 'preferred_username': 'service-account-tacker_service',
+    'user': {'domain': {'name': 'Default', 'id': 'default'},
+    'roles': 'admin', 'name': 'nfv_user', 'id': '173c59254d3040969e359e5df0a3b475'},
+    'client_id': 'tacker_service', 'username': 'service-account-tacker_service',
+    'token_type': 'Bearer', 'active': True} _fetch_token /opt/stack/data/venv/lib/python3.10/site-packages/keystonemiddleware/external_oauth2_token.py:732
 
-        $ curl -i -X POST https://keycloak.host:8443/realms/x509/protocol/openid-connect/token \
-        -d "client_id=test_user" \
-        -d "client_secret=Lc2r8g4dyLhkko1U1SnascZd0OBKywXl" \
-        -d "client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer" \
-        -d "client_assertion=eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJqdGkiOi...wOSJ9.tJ77ruMcWv0...18LyfLA" \
-        -d "grant_type=client_credentials"  \
-        --cacert /etc/tacker/root-ca.crt \
-        --key /home/user/service-account-test_user.key \
-        --cert /home/user/service-account-test_user.crt
-        HTTP/2 200
-        content-type: application/json
 
-        {"access_token":"eyJhbGciOiJSU...F3QiGVd3XP_NWpaG5CssLQFK2A",
-        "expires_in":300,"refresh_expires_in":0,"token_type":"Bearer",
-        "not-before-policy":0,"scope":"tacker"}
+* tls_client_auth:
+   When the `Keycloak`_ server requires to use the mTLS protocol and
+   the ``tls_client_auth`` authentication method:
 
-        $ curl  -i -X GET https://tacker.host:9890/v1.0/vims \
-        -H "Authorization: Bearer eyJhbGciOiJSU...F3QiGVd3XP_NWpaG5CssLQFK2A"  \
-        --cacert /etc/tacker/root-ca.crt
-        HTTP/2 200
-        content-type: application/json
+   .. code-block:: console
 
-        {"vims": []}
+    $ curl -i -X POST https://keycloak.host:8443/realms/testrealm/protocol/openid-connect/token \
+    -d "client_id=tacker_service" \
+    -d "scope=openstack" \
+    -d "grant_type=client_credentials" \
+    --cacert /opt/stack/certs/ca.pem \
+    --key /opt/stack/certs/client.key \
+    --cert /opt/stack/certs/client.pem
+    HTTP/2 200
+    cache-control: no-store
+    pragma: no-cache
+    content-length: 1786
+    content-type: application/json
+    referrer-policy: no-referrer
+    strict-transport-security: max-age=31536000; includeSubDomains
+    x-content-type-options: nosniff
+    x-frame-options: SAMEORIGIN
+    x-xss-protection: 1; mode=block
+    {"access_token":"eyJhbGciOiJ.....KS05dgQbXQm4FosedDw",
+    "expires_in":300,"refresh_expires_in":0,
+    "token_type":"Bearer","not-before-policy":0,
+    "scope":"openstack"}
 
-        $ tail -f /opt/stack/log/tacker-server.log
-        2023-02-17 07:13:49.616 DEBUG keystonemiddleware.external_oauth2_token [-] The introspect API response:
-        {'exp': 1676618686, 'iat': 1676618386, 'jti': '25355211-b55c-408e-8434-51c32ab349a5',
-        'iss': 'https://keycloak.host:8443/realms/x509', 'aud': 'account',
-        'sub': '181fefcc-88f4-4124-bebf-efb1471c8696', 'typ': 'Bearer', 'azp': 'test_user',
-        'preferred_username': 'service-account-test_user', 'email_verified': False, 'acr': '1',
-        'realm_access': {'roles': ['offline_access', 'uma_authorization', 'default-roles-x509']},
-        'resource_access': {'account': {'roles': ['manage-account', 'manage-account-links', 'view-profile']}},
-        'cnf': {'x5t#S256': 'Kv2q-GjkXjVm7-IJfBBw9yBeeFuR7zk7akcTs-9pErU'},
-        'scope': 'tacker',
-        'user_role': 'admin,member,reader',
-        'user_domain': {'id': 'default', 'name': 'Default'},
-        'project': {'id': '781381c76b2144f3a72ba2ec1ceda585', 'name': 'x509_demo', 'domain': {'id': 'default', 'name': 'Default'}},
-        'client_id': 'test_user', 'username': 'service-account-test_user', 'active': True}
-        from (pid=3757068) _fetch_token /usr/local/lib/python3.8/dist-packages/keystonemiddleware/external_oauth2_token.py:572
+    $ curl -i -X GET https://tacker.host:9890/v1.0/vims \
+    -H "Authorization: Bearer eyJhbGciOiJ.....KS05dgQbXQm4FosedDw" \
+    --cacert /opt/stack/certs/ca.pem \
+    --key /opt/stack/certs/client.key \
+    --cert /opt/stack/certs/client.pem
+    HTTP/1.1 200 OK
+    Content-Type: application/json
+    Content-Length: 2182
+    X-Openstack-Request-Id: req-10d08c2c-acc1-4d77-8029-4718381ce704
+    Date: Mon, 09 Sep 2024 05:47:39 GMT
+    {"vims": [{"id": "ce04bbe5-3ffe-449f-ba2a-69c0a747b9ad", "type": "kubernetes",
+    "tenant_id": "2e189ea6c1df4e4ba6d89de254b3a534", "name": "test-vim-k8s",
+    "description": "", "placement_attr": {"regions": ["default", "kube-node-lease",
+    "kube-public", "kube-system"]}, "is_default": true, "created_at": "2024-07-04 09:07:56",
+    "updated_at": null, "extra": {}, "auth_url": "https://10.0.2.15:6443",
+    "vim_project": {"name": "nfv"}, "auth_cred": {"bearer_token": "***",
+    "ssl_ca_cert": "gAAAAABmhm.....oN2Ps5SOO6yhOF_4w==", "auth_url":
+    "https://10.0.2.15:6443", "username": "None", "key_type": "barbican_key",
+    "secret_uuid": "***"}, "status": "ACTIVE"}]}
 
-   tls_client_auth:
-       When the `Keycloak`_ server requires to use the mTLS protocol and
-       the ``tls_client_auth`` authentication method, The following example is
-       used to get an access token and use the access token to access Tacker
-       APIs.
+    $ tail -f /opt/stack/log/tacker-server.log
+    DEBUG keystonemiddleware.external_oauth2_token [-] The introspect API response:
+    {'exp': 1725861128, 'iat': 1725860828, 'jti': '72d45cb4-ee3c-4c00-b137-be603612761f',
+    'iss': 'https://keycloak.host:8443/realms/testrealm', 'aud': 'account',
+    'sub': '7e3c5cb5-48a4-460c-b206-b8dca2ea0c36', 'typ': 'Bearer',
+    'azp': 'tacker_service', 'acr': '1', 'allowed-origins': ['https://127.0.0.1:9890/'],
+    'realm_access': {'roles': ['offline_access', 'uma_authorization', 'default-roles-testrealm']},
+    'resource_access': {'tacker_service': {'roles': ['uma_protection']},
+    'account': {'roles': ['manage-account', 'manage-account-links', 'view-profile']}},
+    'cnf': {'x5t#S256': 'YGhr3eS01OTAAxAeksVwNc22gDnB-SSJPL7Y1BuqKvo'}, 'scope': 'openstack',
+    'project': {'domain': {'name': 'Default', 'id': 'default'},
+    'name': 'nfv', 'id': '2e189ea6c1df4e4ba6d89de254b3a534'},
+    'preferred_username': 'service-account-tacker_service',
+    'user': {'domain': {'name': 'Default', 'id': 'default'},
+    'roles': 'admin', 'name': 'nfv_user', 'id': '173c59254d3040969e359e5df0a3b475'},
+    'client_id': 'tacker_service', 'username': 'service-account-tacker_service', 'token_type': 'Bearer',
+    'active': True} _fetch_token /opt/stack/data/venv/lib/python3.10/site-packages/keystonemiddleware/external_oauth2_token.py:732
 
-       .. code-block:: console
-
-        $ curl -i -X POST https://keycloak.host:8443/realms/x509/protocol/openid-connect/token \
-        -d "client_id=test_user"  \
-        -d "scope=tacker" \
-        -d "grant_type=client_credentials" \
-        --cacert /etc/tacker/root-ca.crt \
-        --key /home/user/service-account-test_user.key \
-        --cert /home/user/service-account-test_user.crt
-        HTTP/2 200
-        content-type: application/json
-
-        {"access_token":"eyJhbGciOiJSU...oNCJB1FlDaKSvoVW2pw",
-        "expires_in":300,"refresh_expires_in":0,"token_type":"Bearer",
-        "not-before-policy":0,"scope":"tacker"}
-
-        $ curl  -i -X GET https://tacker.host:9890/v1.0/vims \
-        -H "Authorization: Bearer eyJhbGciOiJSU...oNCJB1FlDaKSvoVW2pw"  \
-        --cacert /etc/tacker/root-ca.crt \
-        --key /home/user/service-account-test_user.key \
-        --cert /home/user/service-account-test_user.crt
-        HTTP/2 200
-        content-type: application/json
-
-        $ tail -f /opt/stack/log/tacker-server.log
-        2023-02-17 06:51:10.813 DEBUG keystonemiddleware.external_oauth2_token [-] The introspect API response:
-        {'exp': 1676617327, 'iat': 1676617027, 'jti': 'eb00125b-d735-4b6e-881f-09a6a7f5e239',
-        'iss': 'https://keycloak.host:8443/realms/x509', 'aud': 'account',
-        'sub': '46988f24-6206-4389-8f49-f42d9fad0053', 'typ': 'Bearer', 'azp': 'test_user',
-        'preferred_username': 'service-account-test_user', 'email_verified': False, 'acr': '1',
-        'realm_access': {'roles': ['offline_access', 'uma_authorization', 'default-roles-x509']},
-        'resource_access': {'account': {'roles': ['manage-account', 'manage-account-links', 'view-profile']}},
-        'cnf': {'x5t#S256': 'n3SavmAthh5FtxtrdCLb9hHBIHgimDbsB4vaSRAD1UU'},
-        'scope': 'tacker',
-        'user_role': 'member,reader,admin',
-        'user_domain': {'id': 'default', 'name': 'Default'},
-        'project': {'id': '781381c76b2144f3a72ba2ec1ceda585', 'name': 'x509_demo', 'domain': {'id': 'default', 'name': 'Default'}},
-        'client_id': 'test_user', 'username': 'service-account-test_user', 'active': True}
-        from (pid=3757068) _fetch_token /usr/local/lib/python3.8/dist-packages/keystonemiddleware/external_oauth2_token.py:572
-
-.. _OAuth2.0 mTLS usage guide: https://docs.openstack.org/tacker/latest/admin/oauth2_mtls_usage_guide.html
-.. _Middleware Architecture: https://docs.openstack.org/keystonemiddleware/latest/middlewarearchitecture.html
 
 About OpenStack Command
 -----------------------
-When using an external OAuth2.0 authorization server, the current version of
+
+When using an external OAuth 2.0 authorization server, the current version of
 OpenStack Command is not supported.
 
 .. _tacker.conf: https://docs.openstack.org/tacker/latest/configuration/config.html
+.. _RFC6749: https://datatracker.ietf.org/doc/html/rfc6749
+.. _Keycloak: https://www.keycloak.org/
+.. _NFV-SOL013 v3.3.1: https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/013/03.03.01_60/gs_nfv-sol013v030301p.pdf
+.. _OAuth 2.0 mTLS usage guide: https://docs.openstack.org/tacker/latest/admin/oauth2_mtls_usage_guide.html
+.. _Middleware Architecture: https://docs.openstack.org/keystonemiddleware/latest/middlewarearchitecture.html
