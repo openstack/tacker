@@ -1614,7 +1614,7 @@ class VnfLcmController(wsgi.Controller):
                            http_client.NOT_FOUND, http_client.CONFLICT))
     @validation.schema(vnf_lcm.cancel)
     def cancel(self, request, id, body):
-        """SOL003 v3.5.1 5.4.17 Resource: Cancel operation task
+        """SOL003 v2.6.1 5.4.17 Resource: Cancel operation task
 
         @param request: A request object
         @param id: Identifier of a VNF lifecycle management operation
