@@ -488,48 +488,48 @@ def get_test_data_policy_index():
         area='area_A@region_A', tenant='tenant_A')
     # OK
     test_data.append({
-        'vnf_instance_list': [inst_1],
+        'vnf_instance_list': [inst_1.to_dict()],
         'rules': rule_area_vendor_tenant,
         'roles': ['AREA_area_A@region_A', 'VENDOR_provider_A',
                   'TENANT_tenant_A'],
         'expected_vnf_inst_ids': [inst_1.id]
     })
     test_data.append({
-        'vnf_instance_list': [inst_1],
+        'vnf_instance_list': [inst_1.to_dict()],
         'rules': rule_area_vendor_tenant,
         'roles': ['AREA_all@all', 'VENDOR_all', 'TENANT_all'],
         'expected_vnf_inst_ids': [inst_1.id]
     })
     test_data.append({
-        'vnf_instance_list': [inst_1],
+        'vnf_instance_list': [inst_1.to_dict()],
         'rules': rule_area_vendor_tenant,
         'roles': ['AREA_all@region_A', 'VENDOR_all', 'TENANT_all'],
         'expected_vnf_inst_ids': [inst_1.id]
     })
     # wrong region role
     test_data.append({
-        'vnf_instance_list': [inst_1],
+        'vnf_instance_list': [inst_1.to_dict()],
         'rules': rule_area_vendor_tenant,
         'roles': ['AREA_all@region_B', 'VENDOR_all', 'TENANT_all'],
         'expected_vnf_inst_ids': []
     })
     # wrong area role
     test_data.append({
-        'vnf_instance_list': [inst_1],
+        'vnf_instance_list': [inst_1.to_dict()],
         'rules': rule_area_vendor_tenant,
         'roles': ['AREA_area_B@region_A', 'VENDOR_provider_A', 'TENANT_all'],
         'expected_vnf_inst_ids': []
     })
     # wrong vendor role
     test_data.append({
-        'vnf_instance_list': [inst_1],
+        'vnf_instance_list': [inst_1.to_dict()],
         'rules': rule_area_vendor_tenant,
         'roles': ['AREA_area_A@region_A', 'VENDOR_provider_B', 'TENANT_all'],
         'expected_vnf_inst_ids': []
     })
     # wrong tenant role
     test_data.append({
-        'vnf_instance_list': [inst_1],
+        'vnf_instance_list': [inst_1.to_dict()],
         'rules': rule_area_vendor_tenant,
         'roles': ['AREA_area_A@region_A', 'VENDOR_provider_A', 'TENANT_B'],
         'expected_vnf_inst_ids': []
@@ -539,7 +539,7 @@ def get_test_data_policy_index():
         'ETSINFV.OPENSTACK_KEYSTONE.V_3', 'INSTANTIATED', 'provider_A',
         tenant='tenant_A')
     test_data.append({
-        'vnf_instance_list': [inst_2],
+        'vnf_instance_list': [inst_2.to_dict()],
         'rules': rule_area_vendor_tenant,
         'roles': ['AREA_area_A@region_A', 'VENDOR_provider_A'],
         'expected_vnf_inst_ids': []
@@ -549,7 +549,7 @@ def get_test_data_policy_index():
         'ETSINFV.OPENSTACK_KEYSTONE.V_3', 'NOT_INSTANTIATED', 'provider_A',
         tenant='tenant_A')
     test_data.append({
-        'vnf_instance_list': [inst_3],
+        'vnf_instance_list': [inst_3.to_dict()],
         'rules': rule_area_vendor_tenant,
         'roles': ['VENDOR_provider_A'],
         'expected_vnf_inst_ids': [inst_3.id]
@@ -560,7 +560,7 @@ def get_test_data_policy_index():
         tenant='namespace_A')
     # OK
     test_data.append({
-        'vnf_instance_list': [inst_4],
+        'vnf_instance_list': [inst_4.to_dict()],
         'rules': rule_area_vendor_tenant,
         'roles': [
             'AREA_area_A@region_A',
@@ -569,7 +569,7 @@ def get_test_data_policy_index():
         'expected_vnf_inst_ids': [inst_4.id]
     })
     test_data.append({
-        'vnf_instance_list': [inst_4],
+        'vnf_instance_list': [inst_4.to_dict()],
         'rules': rule_area_vendor_tenant,
         'roles': [
             'AREA_all@region_A',
@@ -578,7 +578,7 @@ def get_test_data_policy_index():
         'expected_vnf_inst_ids': [inst_4.id]
     })
     test_data.append({
-        'vnf_instance_list': [inst_4],
+        'vnf_instance_list': [inst_4.to_dict()],
         'rules': rule_area_vendor_tenant,
         'roles': [
             'AREA_all@all',
@@ -588,7 +588,7 @@ def get_test_data_policy_index():
     })
     # wrong region role
     test_data.append({
-        'vnf_instance_list': [inst_4],
+        'vnf_instance_list': [inst_4.to_dict()],
         'rules': rule_area_vendor_tenant,
         'roles': [
             'AREA_all@region_B',
@@ -598,7 +598,7 @@ def get_test_data_policy_index():
     })
     # wrong region role
     test_data.append({
-        'vnf_instance_list': [inst_4],
+        'vnf_instance_list': [inst_4.to_dict()],
         'rules': rule_area_vendor_tenant,
         'roles': [
             'AREA_area_B@region_A',
@@ -608,7 +608,7 @@ def get_test_data_policy_index():
     })
     # wrong vendor role
     test_data.append({
-        'vnf_instance_list': [inst_4],
+        'vnf_instance_list': [inst_4.to_dict()],
         'rules': rule_area_vendor_tenant,
         'roles': [
             'AREA_area_A@region_A',
@@ -618,7 +618,7 @@ def get_test_data_policy_index():
     })
     # wrong namespace
     test_data.append({
-        'vnf_instance_list': [inst_4],
+        'vnf_instance_list': [inst_4.to_dict()],
         'rules': rule_area_vendor_tenant,
         'roles': [
             'AREA_all@all',
@@ -630,7 +630,7 @@ def get_test_data_policy_index():
     inst_5 = make_vnf_instance(
         'kubernetes', 'INSTANTIATED', 'provider_A', area='area_A@region_A')
     test_data.append({
-        'vnf_instance_list': [inst_5],
+        'vnf_instance_list': [inst_5.to_dict()],
         'rules': rule_area_vendor_tenant,
         'roles': [
             'AREA_area_A@region_A',
@@ -642,7 +642,7 @@ def get_test_data_policy_index():
         'kubernetes', 'NOT_INSTANTIATED', 'provider_A')
     # OK
     test_data.append({
-        'vnf_instance_list': [inst_6],
+        'vnf_instance_list': [inst_6.to_dict()],
         'rules': rule_area_vendor_tenant,
         'roles': [
             'VENDOR_provider_A',
@@ -761,14 +761,15 @@ class TestVnflcmV2(db_base.SqlTestCase):
         result = self.controller.create(request=self.request, body=body)
         self.assertEqual(201, result.status)
 
-    @mock.patch.object(inst_utils, 'get_inst_all')
-    def test_index(self, mock_inst):
+    def test_index(self):
         request = requests.Request()
         request.context = self.context
         request.GET = {'filter': f'(eq,vnfdId,{SAMPLE_VNFD_ID})'}
-        mock_inst.return_value = [objects.VnfInstanceV2(
+        inst = objects.VnfInstanceV2(
             id='inst-1', vnfdId=SAMPLE_VNFD_ID,
-            instantiationState='NOT_INSTANTIATED')]
+            instantiationState='NOT_INSTANTIATED')
+        self.controller._inst_view.get_dict_all = mock.Mock(
+            return_value=[inst.to_dict()])
 
         result = self.controller.index(request)
         self.assertEqual(200, result.status)
@@ -1251,15 +1252,16 @@ class TestVnflcmV2(db_base.SqlTestCase):
             request=self.request, id='subsc-1')
         self.assertEqual(204, result.status)
 
-    @mock.patch.object(lcmocc_utils, 'get_lcmocc_all')
-    def test_lcm_op_occ_list(self, mock_lcmocc):
+    def test_lcm_op_occ_list(self):
         request = requests.Request()
         request.context = self.context
         request.GET = {
             'filter': f'(eq,operation,'
                       f'{fields.LcmOperationType.INSTANTIATE})'}
-        mock_lcmocc.return_value = [objects.VnfLcmOpOccV2(
-            id='lcmocc-1', operation='INSTANTIATE', vnfInstanceId='inst-1')]
+        lcmocc = objects.VnfLcmOpOccV2(
+            id='lcmocc-1', operation='INSTANTIATE', vnfInstanceId='inst-1')
+        self.controller._lcmocc_view.get_dict_all = mock.Mock(
+            return_value=[lcmocc.to_dict()])
 
         result = self.controller.lcm_op_occ_list(request)
         self.assertEqual(200, result.status)
@@ -2350,11 +2352,11 @@ class TestVnflcmV2EnhancedPolicy(TestVnflcmV2):
 
     @ddt.data(*get_test_data_policy_index())
     @ddt.unpack
-    @mock.patch.object(inst_utils, 'get_inst_all')
-    def test_index_enhanced_policy(self, mock_inst, vnf_instance_list,
+    def test_index_enhanced_policy(self, vnf_instance_list,
             rules, roles, expected_vnf_inst_ids):
         self._overwrite_policy(rules)
-        mock_inst.return_value = vnf_instance_list
+        self.controller._inst_view.get_dict_all = mock.Mock(
+            return_value=vnf_instance_list)
         request = self._fake_request(roles)
         request.GET = {}
 

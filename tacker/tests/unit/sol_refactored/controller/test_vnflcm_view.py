@@ -141,10 +141,37 @@ class TestAttributeSelector(base.BaseTestCase):
         self.assertEqual(r, {'bar': 2, 'baz': 3})
 
 
+class TestEnhanceAttributeSelector(base.BaseTestCase):
+
+    def test_filter_extra_attrs(self):
+        selector = vnflcm_view.EnhanceAttributeSelector(
+            {'foo', 'bar'}, {'foo', 'bar'}, set())
+        selector.add_extra_attrs({'baz'})
+        r = selector.filter({'foo': 1, 'bar': 2, 'baz': 3})
+        self.assertEqual(r, {'foo': 1, 'bar': 2})
+
+    def test_filter_exclude_fields(self):
+        selector = vnflcm_view.EnhanceAttributeSelector(
+            {'aaa'}, set(), set(), exclude_fields='aaa/foo,ccc/bar')
+        r = selector.filter({'aaa': {'foo': 1, 'bar': 2, 'baz': 3},
+                            'bbb': 4, 'ccc': {'foo': 5, 'bar': 6}})
+        self.assertEqual(r, {'aaa': {'bar': 2, 'baz': 3}, 'bbb': 4,
+                         'ccc': {'foo': 5}})
+
+    def test_filter_fields(self):
+        selector = vnflcm_view.EnhanceAttributeSelector(
+            {'aaa', 'bbb', 'ccc'}, {'aaa'}, {'bbb', 'ccc'},
+            fields='bbb/foo,bbb/baz,ccc/bar')
+        r = selector.filter({'aaa': 1, 'bbb': {'foo': 1, 'bar': 2, 'baz': 3},
+                            'ccc': {'foo': 4, 'bar': 5}})
+        self.assertEqual(r, {'aaa': 1, 'bbb': {'foo': 1, 'baz': 3},
+                         'ccc': {'bar': 5}})
+
+
 class TestBaseViewBuilder(base.BaseTestCase):
 
     def test_parse_filter(self):
-        builder = vnflcm_view.BaseViewBuilder()
+        builder = vnflcm_view.BaseViewBuilder('endpoint', 100)
         f1 = builder.parse_filter("(eq,foo/bar,abc)")
         self.assertEqual(len(f1), 1)
         self.assertEqual(f1[0].attr, ['foo', 'bar'])
@@ -173,7 +200,7 @@ class TestBaseViewBuilder(base.BaseTestCase):
         self.assertEqual(len(f5[0].values), 1)
 
     def test_parse_filter_invalid(self):
-        builder = vnflcm_view.BaseViewBuilder()
+        builder = vnflcm_view.BaseViewBuilder('endpoint', 100)
         self.assertRaises(sol_ex.InvalidAttributeFilter,
                           builder.parse_filter,
                           "(le,foo/bar,abc)")

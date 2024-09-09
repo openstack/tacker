@@ -411,8 +411,6 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
         self.assertEqual(200, resp.status_code)
         self.check_resp_headers_in_get(resp)
         for inst in body:
-            self.assertIn('vnfInstanceName', inst)
-            self.assertIn('vnfInstanceDescription', inst)
             self.assertIn('vimConnectionInfo', inst)
             self.assertIn('instantiatedVnfInfo', inst)
             self.assertIn('metadata', inst)
@@ -424,24 +422,20 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
         self.assertEqual(200, resp.status_code)
         self.check_resp_headers_in_get(resp)
         for inst in body:
-            self.assertNotIn('vnfInstanceName', inst)
-            self.assertNotIn('vnfInstanceDescription', inst)
             self.assertNotIn('vimConnectionInfo', inst)
             self.assertNotIn('instantiatedVnfInfo', inst)
             self.assertIn('metadata', inst)
         # * exclude_fields=<list>
         #   -> check the attribute specified in "exclude_fields" is not set
         filter_expr = {'filter': f'(eq,id,{inst_id})',
-                       'exclude_fields': 'vnfInstanceName'}
+                       'exclude_fields': 'metadata'}
         resp, body = self.list_vnf_instance(filter_expr)
         self.assertEqual(200, resp.status_code)
         self.check_resp_headers_in_get(resp)
         for inst in body:
-            self.assertNotIn('vnfInstanceName', inst)
-            self.assertIn('vnfInstanceDescription', inst)
             self.assertIn('vimConnectionInfo', inst)
             self.assertIn('instantiatedVnfInfo', inst)
-            self.assertIn('metadata', inst)
+            self.assertNotIn('metadata', inst)
         # * exclude_default
         #   -> check the attribute omitted in "exclude_default" is not set.
         filter_expr = {'filter': f'(eq,id,{inst_id})',
@@ -450,8 +444,6 @@ class IndividualVnfcMgmtBasicTest(base_v2.BaseSolV2Test):
         self.assertEqual(200, resp.status_code)
         self.check_resp_headers_in_get(resp)
         for inst in body:
-            self.assertIn('vnfInstanceName', inst)
-            self.assertIn('vnfInstanceDescription', inst)
             self.assertNotIn('vimConnectionInfo', inst)
             self.assertNotIn('instantiatedVnfInfo', inst)
             self.assertNotIn('metadata', inst)

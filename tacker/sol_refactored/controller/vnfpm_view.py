@@ -28,9 +28,6 @@ CONF = config.CONF
 class PmJobViewBuilder(base_view.BaseViewBuilder):
     _EXCLUDE_DEFAULT = []
 
-    def __init__(self, endpoint):
-        self.endpoint = endpoint
-
     def detail(self, pm_job, selector=None):
         # NOTE: _links is not saved in DB. create when it is necessary.
         if not pm_job.obj_attr_is_set('_links'):
@@ -56,10 +53,9 @@ class PmJobViewBuilder(base_view.BaseViewBuilder):
 
 
 class PmThresholdViewBuilder(base_view.BaseViewBuilder):
-    _EXCLUDE_DEFAULT = []
-
-    def __init__(self, endpoint):
-        self.endpoint = endpoint
+    def parse_selector(self, req):
+        # no selector in the API
+        return None
 
     def detail(self, threshold, selector=None):
         # NOTE: _links is not saved in DB. create when it is necessary.
@@ -70,6 +66,4 @@ class PmThresholdViewBuilder(base_view.BaseViewBuilder):
         resp = threshold.to_dict()
         resp.pop('authentication', None)
         resp.pop('metadata', None)
-        if selector is not None:
-            resp = selector.filter(threshold, resp)
         return resp

@@ -2419,27 +2419,26 @@ class TestLcmOpOccUtils(base.BaseTestCase):
     def test_make_lcmocc_links(self):
         lcmocc = objects.VnfLcmOpOccV2(
             id='test-1', vnfInstanceId='instance-1', operation='INSTANTIATE')
+        lcmocc = lcmocc.to_dict()
         endpoint = 'http://127.0.0.1:9890'
 
-        expected_result = objects.VnfLcmOpOccV2_Links()
-        expected_result.self = objects.Link(
-            href=f'{endpoint}/vnflcm/v2/vnf_lcm_op_occs/{lcmocc.id}')
-        expected_result.vnfInstance = objects.Link(
-            href=f'{endpoint}/vnflcm/v2/vnf_instances/{lcmocc.vnfInstanceId}')
-        expected_result.retry = objects.Link(
-            href=f'{endpoint}/vnflcm/v2/vnf_lcm_op_occs/{lcmocc.id}/retry')
-        expected_result.rollback = objects.Link(
-            href=f'{endpoint}/vnflcm/v2/vnf_lcm_op_occs/{lcmocc.id}/rollback')
-        expected_result.fail = objects.Link(
-            href=f'{endpoint}/vnflcm/v2/vnf_lcm_op_occs/{lcmocc.id}/fail')
+        lcmocc_id = lcmocc['id']
+        inst_id = lcmocc['vnfInstanceId']
+        h_self = f'{endpoint}/vnflcm/v2/vnf_lcm_op_occs/{lcmocc_id}'
+        h_inst = f'{endpoint}/vnflcm/v2/vnf_instances/{inst_id}'
+        h_retry = f'{endpoint}/vnflcm/v2/vnf_lcm_op_occs/{lcmocc_id}/retry'
+        h_rback = f'{endpoint}/vnflcm/v2/vnf_lcm_op_occs/{lcmocc_id}/rollback'
+        h_fail = f'{endpoint}/vnflcm/v2/vnf_lcm_op_occs/{lcmocc_id}/fail'
+        expected_result = {
+            'self': {'href': h_self},
+            'vnfInstance': {'href': h_inst},
+            'retry': {'href': h_retry},
+            'rollback': {'href': h_rback},
+            'fail': {'href': h_fail}
+        }
 
         result = lcmocc_utils.make_lcmocc_links(lcmocc, endpoint)
-        self.assertEqual(expected_result.self.href, result.self.href)
-        self.assertEqual(expected_result.vnfInstance.href,
-                         result.vnfInstance.href)
-        self.assertEqual(expected_result.retry.href, result.retry.href)
-        self.assertEqual(expected_result.rollback.href, result.rollback.href)
-        self.assertEqual(expected_result.fail.href, result.fail.href)
+        self.assertEqual(expected_result, result)
 
     def test_make_lcmocc_notif_data(self):
         subsc_short = objects.LccnSubscriptionV2(
