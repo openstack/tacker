@@ -9,7 +9,7 @@ This document describes how to manage VNF Package with CLI in Tacker.
   The content of this document has been confirmed to work
   using the following VNF package.
 
-  * `vnfpkgm1 for 2024.1 Cracal`_
+  * `vnfpkgm1 for 2024.1 Caracal`_
 
 
 Prerequisites
@@ -59,15 +59,17 @@ Help:
 .. code-block:: console
 
   $ openstack vnf package create --help
-  usage: openstack vnf package create [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN] [--noindent] [--prefix PREFIX] [--max-width <integer>] [--fit-width]
-                                      [--print-empty] [--user-data <key=value>]
+  usage: openstack vnf package create [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN]
+                                      [--noindent] [--prefix PREFIX] [--max-width <integer>]
+                                      [--fit-width] [--print-empty] [--user-data <key=value>]
 
   Create a new VNF Package
 
   options:
     -h, --help            show this help message and exit
     --user-data <key=value>
-                          User defined data for the VNF package (repeat option to set multiple user defined data)
+                          User defined data for the VNF package (repeat option to set multiple user defined
+                          data)
 
   output formatters:
     output formatter options
@@ -88,8 +90,10 @@ Help:
 
   table formatter:
     --max-width <integer>
-                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH environment variable, but the parameter takes precedence.
-    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the environment variable CLIFF_FIT_WIDTH=1 to always enable
+                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH
+                          environment variable, but the parameter takes precedence.
+    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the
+                          environment variable CLIFF_FIT_WIDTH=1 to always enable
     --print-empty         Print empty table if there is no data to show.
 
   This command is provided by the python-tackerclient plugin.
@@ -119,7 +123,9 @@ Help:
 .. code-block:: console
 
   $ openstack vnf package upload --help
-  usage: openstack vnf package upload [-h] (--path <file> | --url <Uri>) [--user-name <user-name>] [--password <password>] <vnf-package>
+  usage: openstack vnf package upload [-h] (--path <file> | --url <Uri>)
+                                      [--user-name <user-name>] [--password <password>]
+                                      <vnf-package>
 
   Upload VNF Package
 
@@ -158,7 +164,8 @@ Help:
 .. code-block:: console
 
   $ openstack vnf package download --help
-  usage: openstack vnf package download [-h] [--file <FILE>] [--vnfd] [--type <type>] <vnf-package>
+  usage: openstack vnf package download [-h] [--file <FILE>] [--vnfd] [--type <type>]
+                                        <vnf-package>
 
   Download VNF package contents or VNFD of an on-boarded VNF package.
 
@@ -169,11 +176,14 @@ Help:
   options:
     -h, --help            show this help message and exit
     --file <FILE>
-                          Local file to save downloaded VNF Package or VNFD data. If this is not specified and there is no redirection then data will not be saved.
+                          Local file to save downloaded VNF Package or VNFD data. If this is not specified and
+                          there is no redirection then data will not be saved.
     --vnfd                Download VNFD of an on-boarded vnf package.
     --type <type>
-                          Provide text/plain when VNFD is implemented as a single YAML file otherwise use application/zip. If you are not aware whether VNFD is a single or multiple yaml
-                          files, then you can specify 'both' option value. Provide this option only when --vnfd is set.
+                          Provide text/plain when VNFD is implemented as a single YAML file otherwise use
+                          application/zip. If you are not aware whether VNFD is a single or multiple yaml
+                          files, then you can specify 'both' option value. Provide this option only when
+                          --vnfd is set.
 
   This command is provided by the python-tackerclient plugin.
 
@@ -196,7 +206,8 @@ Help:
 .. code-block:: console
 
   $ openstack vnf package artifact download --help
-  usage: openstack vnf package artifact download [-h] [--file <FILE>] <vnf-package> <artifact-path>
+  usage: openstack vnf package artifact download [-h] [--file <FILE>]
+                                                 <vnf-package> <artifact-path>
 
   Download VNF package artifact of an on-boarded VNF package.
 
@@ -209,7 +220,8 @@ Help:
   options:
     -h, --help            show this help message and exit
     --file <FILE>
-                          Local file to save downloaded VNF Package artifact file data. If this is not specified and there is no redirection then data will not be saved.
+                          Local file to save downloaded VNF Package artifact file data. If this is not
+                          specified and there is no redirection then data will not be saved.
 
   This command is provided by the python-tackerclient plugin.
 
@@ -245,9 +257,13 @@ Help:
 .. code-block:: console
 
   $ openstack vnf package list --help
-  usage: openstack vnf package list [-h] [-f {csv,json,table,value,yaml}] [-c COLUMN] [--quote {all,minimal,none,nonnumeric}] [--noindent]
-                                    [--max-width <integer>] [--fit-width] [--print-empty] [--sort-column SORT_COLUMN] [--sort-ascending | --sort-descending]
-                                    [--filter <filter>] [--all_fields | --fields fields | --exclude_fields exclude-fields] [--exclude_default]
+  usage: openstack vnf package list [-h] [-f {csv,json,table,value,yaml}] [-c COLUMN]
+                                    [--quote {all,minimal,none,nonnumeric}] [--noindent]
+                                    [--max-width <integer>] [--fit-width] [--print-empty]
+                                    [--sort-column SORT_COLUMN] [--sort-ascending | --sort-descending]
+                                    [--filter <filter>]
+                                    [--all_fields | --fields fields | --exclude_fields exclude-fields]
+                                    [--exclude_default]
 
   List VNF Packages
 
@@ -260,8 +276,9 @@ Help:
                           Complex attributes to be included into the response
     --exclude_fields exclude-fields
                           Complex attributes to be excluded from the response
-    --exclude_default     Indicates to exclude all complex attributes from the response. This argument can be used alone or with --fields and --filter. For all other combinations tacker
-                          server will throw bad request error
+    --exclude_default     Indicates to exclude all complex attributes from the response. This argument can be
+                          used alone or with --fields and --filter. For all other combinations tacker server
+                          will throw bad request error
 
   output formatters:
     output formatter options
@@ -271,7 +288,8 @@ Help:
     -c COLUMN, --column COLUMN
                           specify the column(s) to include, can be repeated to show multiple columns
     --sort-column SORT_COLUMN
-                          specify the column(s) to sort the data (columns specified first have a priority, non-existing columns are ignored), can be repeated
+                          specify the column(s) to sort the data (columns specified first have a priority,
+                          non-existing columns are ignored), can be repeated
     --sort-ascending      sort the column(s) in ascending order
     --sort-descending     sort the column(s) in descending order
 
@@ -284,8 +302,10 @@ Help:
 
   table formatter:
     --max-width <integer>
-                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH environment variable, but the parameter takes precedence.
-    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the environment variable CLIFF_FIT_WIDTH=1 to always enable
+                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH
+                          environment variable, but the parameter takes precedence.
+    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the
+                          environment variable CLIFF_FIT_WIDTH=1 to always enable
     --print-empty         Print empty table if there is no data to show.
 
   This command is provided by the python-tackerclient plugin.
@@ -394,8 +414,9 @@ Help:
 .. code-block:: console
 
   $ openstack vnf package show --help
-  usage: openstack vnf package show [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN] [--noindent] [--prefix PREFIX] [--max-width <integer>] [--fit-width]
-                                    [--print-empty]
+  usage: openstack vnf package show [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN]
+                                    [--noindent] [--prefix PREFIX] [--max-width <integer>]
+                                    [--fit-width] [--print-empty]
                                     <vnf-package>
 
   Show VNF Package Details
@@ -426,8 +447,10 @@ Help:
 
   table formatter:
     --max-width <integer>
-                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH environment variable, but the parameter takes precedence.
-    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the environment variable CLIFF_FIT_WIDTH=1 to always enable
+                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH
+                          environment variable, but the parameter takes precedence.
+    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the
+                          environment variable CLIFF_FIT_WIDTH=1 to always enable
     --print-empty         Print empty table if there is no data to show.
 
   This command is provided by the python-tackerclient plugin.
@@ -459,8 +482,11 @@ Help:
 .. code-block:: console
 
   $ openstack vnf package update --help
-  usage: openstack vnf package update [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN] [--noindent] [--prefix PREFIX] [--max-width <integer>] [--fit-width]
-                                      [--print-empty] [--operational-state <operational-state>] [--user-data <key=value>]
+  usage: openstack vnf package update [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN]
+                                      [--noindent] [--prefix PREFIX] [--max-width <integer>]
+                                      [--fit-width] [--print-empty]
+                                      [--operational-state <operational-state>]
+                                      [--user-data <key=value>]
                                       <vnf-package>
 
   Update information about an individual VNF package
@@ -472,9 +498,11 @@ Help:
   options:
     -h, --help            show this help message and exit
     --operational-state <operational-state>
-                          Change the operational state of VNF Package, Valid values are 'ENABLED' or 'DISABLED'.
+                          Change the operational state of VNF Package, Valid values are 'ENABLED' or
+                          'DISABLED'.
     --user-data <key=value>
-                          User defined data for the VNF package (repeat option to set multiple user defined data)
+                          User defined data for the VNF package (repeat option to set multiple user defined
+                          data)
 
   output formatters:
     output formatter options
@@ -495,8 +523,10 @@ Help:
 
   table formatter:
     --max-width <integer>
-                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH environment variable, but the parameter takes precedence.
-    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the environment variable CLIFF_FIT_WIDTH=1 to always enable
+                          Maximum display width, <1 to disable. You can also use the CLIFF_MAX_TERM_WIDTH
+                          environment variable, but the parameter takes precedence.
+    --fit-width           Fit the table to the display width. Implied if --max-width greater than 0. Set the
+                          environment variable CLIFF_FIT_WIDTH=1 to always enable
     --print-empty         Print empty table if there is no data to show.
 
   This command is provided by the python-tackerclient plugin.
@@ -538,5 +568,5 @@ Help:
   This command is provided by the python-tackerclient plugin.
 
 
-.. _vnfpkgm1 for 2024.1 Cracal:
+.. _vnfpkgm1 for 2024.1 Caracal:
   https://opendev.org/openstack/tacker/src/branch/stable/2024.1/samples/tests/etc/samples/etsi/nfv/vnfpkgm1
