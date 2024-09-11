@@ -541,6 +541,9 @@ Result:
   |                             |     "terminate": {                                                                                                   |
   |                             |         "href": "http://localhost:9890/vnflcm/v1/vnf_instances/c3f9c200-7f52-42c5-9c64-6032faa3faf8/terminate"       |
   |                             |     },                                                                                                               |
+  |                             |     "scale": {                                                                                                       |
+  |                             |         "href": "http://localhost:9890/vnflcm/v1/vnf_instances/c3f9c200-7f52-42c5-9c64-6032faa3faf8/scale"           |
+  |                             |     },                                                                                                               |
   |                             |     "heal": {                                                                                                        |
   |                             |         "href": "http://localhost:9890/vnflcm/v1/vnf_instances/c3f9c200-7f52-42c5-9c64-6032faa3faf8/heal"            |
   |                             |     },                                                                                                               |

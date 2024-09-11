@@ -285,6 +285,9 @@ Result:
   |                             |     "terminate": {                                                                                                   |
   |                             |         "href": "http://localhost:9890/vnflcm/v1/vnf_instances/2a9a1197-953b-4f0a-b510-5ab4ab979959/terminate"       |
   |                             |     },                                                                                                               |
+  |                             |     "scale": {                                                                                                       |
+  |                             |         "href": "http://localhost:9890/vnflcm/v1/vnf_instances/2a9a1197-953b-4f0a-b510-5ab4ab979959/scale"           |
+  |                             |     },                                                                                                               |
   |                             |     "heal": {                                                                                                        |
   |                             |         "href": "http://localhost:9890/vnflcm/v1/vnf_instances/2a9a1197-953b-4f0a-b510-5ab4ab979959/heal"            |
   |                             |     },                                                                                                               |
@@ -425,6 +428,9 @@ Result:
   |                             |     },                                                                                                               |
   |                             |     "terminate": {                                                                                                   |
   |                             |         "href": "http://localhost:9890/vnflcm/v1/vnf_instances/2a9a1197-953b-4f0a-b510-5ab4ab979959/terminate"       |
+  |                             |     },                                                                                                               |
+  |                             |     "scale": {                                                                                                       |
+  |                             |         "href": "http://localhost:9890/vnflcm/v1/vnf_instances/2a9a1197-953b-4f0a-b510-5ab4ab979959/scale"           |
   |                             |     },                                                                                                               |
   |                             |     "heal": {                                                                                                        |
   |                             |         "href": "http://localhost:9890/vnflcm/v1/vnf_instances/2a9a1197-953b-4f0a-b510-5ab4ab979959/heal"            |
@@ -573,6 +579,9 @@ Result:
   |                             |     },                                                                                                               |
   |                             |     "terminate": {                                                                                                   |
   |                             |         "href": "http://localhost:9890/vnflcm/v1/vnf_instances/2a9a1197-953b-4f0a-b510-5ab4ab979959/terminate"       |
+  |                             |     },                                                                                                               |
+  |                             |     "scale": {                                                                                                       |
+  |                             |         "href": "http://localhost:9890/vnflcm/v1/vnf_instances/2a9a1197-953b-4f0a-b510-5ab4ab979959/scale"           |
   |                             |     },                                                                                                               |
   |                             |     "heal": {                                                                                                        |
   |                             |         "href": "http://localhost:9890/vnflcm/v1/vnf_instances/2a9a1197-953b-4f0a-b510-5ab4ab979959/heal"            |

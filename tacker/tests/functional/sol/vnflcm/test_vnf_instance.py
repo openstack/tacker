@@ -25,6 +25,8 @@ from tacker.tests.functional import base
 from tacker.tests import utils
 from tacker.vnfm.infra_drivers.openstack import constants as infra_cnst
 
+import tacker.conf
+CONF = tacker.conf.CONF
 
 VNF_PACKAGE_UPLOAD_TIMEOUT = 300
 VNF_INSTANTIATE_TIMEOUT = 600
@@ -584,52 +586,88 @@ class VnfLcmTest(base.BaseTackerTest):
 
         self._delete_vnf_instance(vnf_instance['id'])
 
-    def test_list_vnf_instances(self):
-        """Create vnf instances and check list API display those vnfs."""
+    def test_list_and_show_vnf_instances(self):
+        """Test list vnf instances and show a vnf instance"""
 
         # Create vnf instance 01 and don't instantiate this one.
         vnf_instance_name = "List-VNF-Instance-0"
         resp, vnf_instance_0 = self._create_vnf_instance(self.vnfd_id_1,
-                vnf_instance_name=vnf_instance_name)
+            vnf_instance_name=vnf_instance_name)
 
-        self.assertIsNotNone(vnf_instance_0['id'])
+        self.assertIsNotNone(vnf_instance_0["id"])
         self.assertEqual(201, resp.status_code)
 
-        self.addCleanup(self._delete_vnf_instance, vnf_instance_0['id'])
+        self.addCleanup(self._delete_vnf_instance, vnf_instance_0["id"])
+
+        endpoint = CONF.vnf_lcm.endpoint_url.rstrip("/")
+        vid = vnf_instance_0["id"]
+        links = {
+            "self": {"href":
+                f"{endpoint}/vnflcm/v1/vnf_instances/{vid}"},
+            "instantiate": {"href":
+                f"{endpoint}/vnflcm/v1/vnf_instances/{vid}/instantiate"}
+        }
+        # Show vnf instance to check each parameter
+        expected_result = {
+            "instantiationState": fields.VnfInstanceState.NOT_INSTANTIATED,
+            "vnfInstanceName": vnf_instance_name, "_links": links
+        }
+        self._show_vnf_instance(vid, expected_result)
 
         # Create vnf instance 02 with 'VNF' as name and instantiate this one.
         # We can verify if vnf instance can be created with 'VNF' name itself.
         vnf_instance_name = "VNF"
         resp, vnf_instance_1 = self._create_vnf_instance(self.vnfd_id_1,
-                vnf_instance_name=vnf_instance_name)
+            vnf_instance_name=vnf_instance_name)
 
-        self.assertIsNotNone(vnf_instance_1['id'])
+        self.assertIsNotNone(vnf_instance_1["id"])
         self.assertEqual(201, resp.status_code)
 
         request_body = self._instantiate_vnf_request("simple",
             vim_id=self.vim_id)
 
-        self._instantiate_vnf_instance(vnf_instance_1['id'], request_body)
+        self._instantiate_vnf_instance(vnf_instance_1["id"], request_body)
         # Terminate vnf gracefully with graceful timeout set to 60
         terminate_req_body = {
             "terminationType": fields.VnfInstanceTerminationType.GRACEFUL,
             'gracefulTerminationTimeout': 60
         }
 
-        self.addCleanup(self._delete_vnf_instance, vnf_instance_1['id'])
-        self.addCleanup(self._terminate_vnf_instance, vnf_instance_1['id'],
+        self.addCleanup(self._delete_vnf_instance, vnf_instance_1["id"])
+        self.addCleanup(self._terminate_vnf_instance, vnf_instance_1["id"],
                         terminate_req_body)
 
         # List vnf instances to check if first one is in NOT_INSTANTIATED
         # state and the second one is INSTANTIATED
         vnf_instances = self._list_vnf_instances()
         for vnf_instance in vnf_instances:
-            if vnf_instance['id'] == vnf_instance_0['id']:
+            if vnf_instance["id"] == vnf_instance_0["id"]:
                 self.assertEqual(fields.VnfInstanceState.NOT_INSTANTIATED,
-                        vnf_instance['instantiationState'])
-            elif vnf_instance['id'] == vnf_instance_1['id']:
+                    vnf_instance["instantiationState"])
+            elif vnf_instance["id"] == vnf_instance_1["id"]:
                 self.assertEqual(fields.VnfInstanceState.INSTANTIATED,
-                        vnf_instance['instantiationState'])
+                    vnf_instance["instantiationState"])
+
+        vid = vnf_instance_1["id"]
+        links = {
+            "self": {"href":
+                f"{endpoint}/vnflcm/v1/vnf_instances/{vid}"},
+            "terminate": {"href":
+                f"{endpoint}/vnflcm/v1/vnf_instances/{vid}/terminate"},
+            "scale": {"href":
+                f"{endpoint}/vnflcm/v1/vnf_instances/{vid}/scale"},
+            "heal": {"href":
+                f"{endpoint}/vnflcm/v1/vnf_instances/{vid}/heal"},
+            "changeExtConn": {"href":
+                f"{endpoint}/vnflcm/v1/vnf_instances/{vid}/change_ext_conn"}
+        }
+        # Show vnf instance to check each parameter
+        expected_result = {
+            "instantiationState": fields.VnfInstanceState.INSTANTIATED,
+            "vnfInstanceName": vnf_instance_name,
+            "_links": links
+        }
+        self._show_vnf_instance(vid, expected_result)
 
     def test_instantiate_vnf_with_flavour(self):
         """Test instantiation and heal API without instantiation level

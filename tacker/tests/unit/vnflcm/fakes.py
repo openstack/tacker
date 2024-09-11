@@ -256,6 +256,10 @@ def _instantiated_vnf_links(vnf_instance_id):
             '{endpoint}/vnflcm/v1/vnf_instances/{id}/terminate'.format(
                 endpoint=CONF.vnf_lcm.endpoint_url.rstrip("/"),
                 id=vnf_instance_id)},
+        "scale": {"href":
+            '{endpoint}/vnflcm/v1/vnf_instances/{id}/scale'.format(
+                endpoint=CONF.vnf_lcm.endpoint_url.rstrip("/"),
+                id=vnf_instance_id)},
         "heal": {"href":
             '{endpoint}/vnflcm/v1/vnf_instances/{id}/heal'.format(
                 endpoint=CONF.vnf_lcm.endpoint_url.rstrip("/"),

@@ -357,6 +357,9 @@ Check instantiation state:
     |                          |     "terminate": {                                                                              |
     |                          |         "href": "/vnflcm/v1/vnf_instances/f93ed99c-e2f2-4f18-8377-37a171ea344f/terminate"       |
     |                          |     },                                                                                          |
+    |                          |     "scale": {                                                                                  |
+    |                          |         "href": "/vnflcm/v1/vnf_instances/f93ed99c-e2f2-4f18-8377-37a171ea344f/scale"           |
+    |                          |     },                                                                                          |
     |                          |     "heal": {                                                                                   |
     |                          |         "href": "/vnflcm/v1/vnf_instances/f93ed99c-e2f2-4f18-8377-37a171ea344f/heal"            |
     |                          |     },                                                                                          |

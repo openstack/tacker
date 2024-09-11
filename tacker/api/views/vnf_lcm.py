@@ -67,6 +67,12 @@ class ViewBuilder(base.BaseViewBuilder):
                     .format(endpoint=CONF.vnf_lcm.endpoint_url.rstrip("/"),
                         id=vnf_instance.id)
                 },
+                "scale": {
+                    "href":
+                    '{endpoint}/vnflcm/v1/vnf_instances/{id}/scale'
+                    .format(endpoint=CONF.vnf_lcm.endpoint_url.rstrip("/"),
+                        id=vnf_instance.id)
+                },
                 "heal": {
                     "href":
                     '{endpoint}/vnflcm/v1/vnf_instances/{id}/heal'

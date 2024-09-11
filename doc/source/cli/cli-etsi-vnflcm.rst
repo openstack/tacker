@@ -318,6 +318,9 @@ Result:
   |                             |     "terminate": {                                                                                                   |
   |                             |         "href": "http://localhost:9890/vnflcm/v1/vnf_instances/74c71ef9-b223-4a5f-9987-de476eab122f/terminate"       |
   |                             |     },                                                                                                               |
+  |                             |     "scale": {                                                                                                       |
+  |                             |         "href": "http://localhost:9890/vnflcm/v1/vnf_instances/74c71ef9-b223-4a5f-9987-de476eab122f/scale"           |
+  |                             |     },                                                                                                               |
   |                             |     "heal": {                                                                                                        |
   |                             |         "href": "http://localhost:9890/vnflcm/v1/vnf_instances/74c71ef9-b223-4a5f-9987-de476eab122f/heal"            |
   |                             |     },                                                                                                               |
