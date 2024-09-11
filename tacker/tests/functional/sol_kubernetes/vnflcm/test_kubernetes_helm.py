@@ -91,6 +91,7 @@ class VnfLcmKubernetesHelmTest(vnflcm_base.BaseVnfLcmKubernetesTest):
                 self.assertNotEqual(
                     before_vnfc_rsc['computeResource']['resourceId'],
                     after_vnfc_rsc['computeResource']['resourceId'])
+        self.assertEqual(len(before_vnfc_rscs), len(after_vnfc_rscs))
 
     def test_vnflcm_with_helmchart(self):
         """Test LCM using Helm chart
@@ -149,6 +150,11 @@ class VnfLcmKubernetesHelmTest(vnflcm_base.BaseVnfLcmKubernetesTest):
         self._test_scale_cnf(vnf_instance, aspect_id="vdu1_aspect")
         self._test_scale_cnf(vnf_instance, aspect_id="vdu2_aspect")
         self._test_heal_cnf_with_sol002(vnf_instance)
+        self._test_heal_cnf_with_sol003(vnf_instance)
+
+        # assert that healing entire VNF keeps the scaled out state
+        _ = self._test_scale(
+            vnf_instance['id'], 'SCALE_OUT', "vdu1_aspect", 0)
         self._test_heal_cnf_with_sol003(vnf_instance)
 
         self._terminate_vnf_instance(vnf_instance['id'])
@@ -218,13 +224,16 @@ class VnfLcmKubernetesHelmTest(vnflcm_base.BaseVnfLcmKubernetesTest):
         additional_param = inst_additional_param
         request_body = self._instantiate_vnf_instance_request(
             flavour_id, vim_id=self.vim_id, additional_param=additional_param,
-            extra_param=inst_extra_param)
+            extra_param=inst_extra_param,
+            inst_level_id='instantiation_level_2')
 
         self._instantiate_vnf_instance(vnf_instance['id'], request_body)
         vnf_instance = self._show_vnf_instance(vnf_instance['id'])
 
         self.assertEqual(
             'INSTANTIATED', vnf_instance['instantiationState'])
+        vnfc_rscs = self._get_vnfc_resource_info(vnf_instance)
+        self.assertEqual(len(vnfc_rscs), 6)
         vnflcm_op_occ = self._get_vnflcm_op_occs_by_id(
             self.context, vnf_instance['id'])
         self.assertEqual('COMPLETED', vnflcm_op_occ.operation_state)

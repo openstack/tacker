@@ -1756,6 +1756,7 @@ class TestKubernetes(base.TestCase):
             resource_type=resource_type)
         mock_read_namespaced_pod.assert_called()
 
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
     @mock.patch.object(translate_outputs.Transformer, 'get_k8s_objs_from_yaml')
     @mock.patch.object(translate_outputs.Transformer, 'deploy_k8s')
     @mock.patch.object(client.AppsV1Api, 'read_namespaced_deployment')
@@ -1768,8 +1769,9 @@ class TestKubernetes(base.TestCase):
             mock_get_k8s_client_dict,
             mock_read_namespaced_deployment,
             mock_deploy_k8s,
-            mock_get_k8s_objs_from_yaml):
-        vnf = objects.VnfInstance(vnf_metadata={'namespace': 'default'})
+            mock_get_k8s_objs_from_yaml,
+            mock_vnfd_dict):
+        vnf = fd_utils.get_vnf_instance_object()
         vim_connection_info = objects.VimConnectionInfo(
             access_info={'auth_url': 'http://fake-url/identity/v3'})
         deployment_obj = fakes.fake_v1_deployment()
@@ -1778,9 +1780,10 @@ class TestKubernetes(base.TestCase):
             fakes.fake_k8s_objs_deployment()
 
         mock_deploy_k8s.return_value = fakes.fake_k8s_objs_deployment()
-        mock_get_k8s_client_dict.retrun_value = fakes.fake_k8s_client_dict()
+        mock_get_k8s_client_dict.return_value = fakes.fake_k8s_client_dict()
 
         mock_create_wait_k8s.return_value = fakes.fake_k8s_objs_deployment()
+        mock_vnfd_dict.return_value = vnflcm_fakes.vnfd_dict_cnf()
 
         vnfd_dict = fakes.fake_vnf_dict()
         instantiate_vnf_req = objects.InstantiateVnfRequest(
@@ -1798,6 +1801,59 @@ class TestKubernetes(base.TestCase):
             "{'namespace': 'test', 'name': " +
             "'curry-test001', 'apiVersion': 'apps/v1', " +
             "'kind': 'Deployment', 'status': 'Creating'}")
+        self.assertEqual(vnfd_dict['scale_status'][0].aspect_id, 'vdu1_aspect')
+        self.assertEqual(vnfd_dict['scale_status'][0].scale_level, 0)
+
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
+    @mock.patch.object(translate_outputs.Transformer, 'get_k8s_objs_from_yaml')
+    @mock.patch.object(translate_outputs.Transformer, 'deploy_k8s')
+    @mock.patch.object(client.AppsV1Api, 'read_namespaced_deployment')
+    @mock.patch.object(kubernetes_utils.KubernetesHTTPAPI,
+                       'get_k8s_client_dict')
+    @mock.patch.object(kubernetes_driver.Kubernetes, 'create_wait_k8s')
+    def test_instantiate_vnf_with_inst_level_and_vdu_mapping(
+            self,
+            mock_create_wait_k8s,
+            mock_get_k8s_client_dict,
+            mock_read_namespaced_deployment,
+            mock_deploy_k8s,
+            mock_get_k8s_objs_from_yaml,
+            mock_vnfd_dict):
+        vnf = fd_utils.get_vnf_instance_object()
+        vim_connection_info = objects.VimConnectionInfo(
+            access_info={'auth_url': 'http://fake-url/identity/v3'})
+        deployment_obj = fakes.fake_v1_deployment()
+        mock_read_namespaced_deployment.return_value = deployment_obj
+        mock_get_k8s_objs_from_yaml.return_value = \
+            fakes.fake_k8s_objs_deployment()
+
+        mock_deploy_k8s.return_value = fakes.fake_k8s_objs_deployment()
+        mock_get_k8s_client_dict.return_value = fakes.fake_k8s_client_dict()
+
+        mock_create_wait_k8s.return_value = fakes.fake_k8s_objs_deployment()
+        mock_vnfd_dict.return_value = vnflcm_fakes.vnfd_dict_cnf()
+
+        vnfd_dict = fakes.fake_vnf_dict()
+        instantiate_vnf_req = objects.InstantiateVnfRequest(
+            instantiation_level_id='instantiation_level_2',
+            additional_params={
+                'lcm-kubernetes-def-files': 'test-file',
+                'vdu_mapping': {'VDU1': {'name': 'curry-test001',
+                                         'kind': 'Deployment'}}})
+        grant_response = None
+        base_hot_dict = None
+        vnf_package_path = self.yaml_path
+        result = self.kubernetes.instantiate_vnf(
+            self.context, vnf, vnfd_dict, vim_connection_info,
+            instantiate_vnf_req, grant_response, vnf_package_path,
+            base_hot_dict)
+        self.assertEqual(
+            result,
+            "{'namespace': 'test', 'name': " +
+            "'curry-test001', 'apiVersion': 'apps/v1', " +
+            "'kind': 'Deployment', 'status': 'Creating'}")
+        self.assertEqual(vnfd_dict['scale_status'][0].aspect_id, 'vdu1_aspect')
+        self.assertEqual(vnfd_dict['scale_status'][0].scale_level, 2)
 
     @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
     @mock.patch.object(translate_outputs.Transformer, 'get_k8s_objs_from_yaml')
@@ -4001,7 +4057,7 @@ class TestKubernetes(base.TestCase):
         vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = [
             vnfc_resource_info_obj1
         ]
-        current_pod_num = 5
+        current_pod_num = 6
 
         log_name = "tacker.vnfm.infra_drivers.kubernetes.kubernetes_driver"
         with self.assertLogs(logger=log_name, level=logging.ERROR) as cm:
@@ -4035,7 +4091,7 @@ class TestKubernetes(base.TestCase):
         vnf_instance_obj.instantiated_vnf_info.vnfc_resource_info = [
             vnfc_resource_info_obj1
         ]
-        current_pod_num = 4
+        current_pod_num = 5
 
         log_name = "tacker.vnfm.infra_drivers.kubernetes.kubernetes_driver"
         with self.assertLogs(logger=log_name, level=logging.ERROR) as cm:

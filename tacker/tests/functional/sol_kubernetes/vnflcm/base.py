@@ -193,7 +193,7 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
     @classmethod
     def _instantiate_vnf_instance_request(
             cls, flavour_id, vim_id=None, additional_param=None,
-            extra_param=None):
+            extra_param=None, inst_level_id=None):
         request_body = {"flavourId": flavour_id}
 
         if vim_id:
@@ -207,6 +207,9 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
 
         if additional_param:
             request_body["additionalParams"] = additional_param
+
+        if inst_level_id:
+            request_body["instantiationLevelId"] = inst_level_id
 
         return request_body
 

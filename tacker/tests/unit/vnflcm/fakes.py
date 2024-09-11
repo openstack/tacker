@@ -1371,7 +1371,7 @@ def vnfd_dict_cnf(vdu_num=1):
             "type": "tosca.policies.nfv.VduInitialDelta",
             "properties": {
                 "initial_delta": {
-                    "number_of_instances": 0}},
+                    "number_of_instances": 1}},
             "targets": [f"VDU{i}"]}})
         policies.append({f"vdu{i}_scaling_aspect_deltas": {
             "type": "tosca.policies.nfv.VduScalingAspectDeltas",
@@ -1386,9 +1386,9 @@ def vnfd_dict_cnf(vdu_num=1):
             "properties": {
                 "levels": {
                     "instantiation_level_1": {
-                        "number_of_instances": 0},
+                        "number_of_instances": 1},
                     "instantiation_level_2": {
-                        "number_of_instances": 2}}},
+                        "number_of_instances": 3}}},
             "targets": [f"VDU{i}"]}})
         levels["instantiation_level_1"]["scale_info"] = {
             f"vdu{i}_aspect": {"scale_level": 0}}
@@ -2520,3 +2520,18 @@ def get_test_data_policy_vnf_instantiated(action, success_status_code):
     })
 
     return test_data
+
+
+def fake_extract_policy_infos():
+    return {
+        'inst_level_dict': {
+            'instantiation_level_1': {'vdu1_aspect': 0},
+            'instantiation_level_2': {'vdu1_aspect': 2}
+        },
+        'aspect_delta_dict': {'vdu1_aspect': {'delta_1': 1}},
+        'aspect_id_dict': {'vdu1_aspect': 'delta_1'},
+        'aspect_vdu_dict': {'vdu1_aspect': ['VDU1']},
+        'vdu_delta_dict': {'VDU1': 1},
+        'aspect_max_level_dict': {'vdu1_aspect': 2},
+        'default_inst_level_id': 'instantiation_level_1'
+    }

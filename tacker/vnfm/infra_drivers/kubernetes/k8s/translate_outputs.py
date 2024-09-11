@@ -24,6 +24,7 @@ from kubernetes import client
 from oslo_config import cfg
 from oslo_log import log as logging
 from tacker.common import exceptions
+from tacker.vnfm.infra_drivers.kubernetes import utils as k8s_utils
 
 
 LOG = logging.getLogger(__name__)
@@ -155,7 +156,7 @@ class Transformer(object):
         return k8s_obj
 
     def _get_k8s_obj_from_file_content_dict(self, file_content_dict,
-                                            namespace=None):
+                                            namespace=None, scale_info=None):
         k8s_obj = {}
         kind = file_content_dict.get('kind', '')
         try:
@@ -174,11 +175,18 @@ class Transformer(object):
         k8s_obj['namespace'] = namespace
         if k8s_obj['object'].metadata:
             k8s_obj['object'].metadata.namespace = namespace
+            # get the replicas value from scale_info if needed
+            if kind in k8s_utils.scalable_kinds and scale_info:
+                for info in scale_info:
+                    if (info['resource_name'] ==
+                            k8s_obj['object'].metadata.name):
+                        k8s_obj['object'].spec.replicas = info['replicas']
+                        break
 
         return k8s_obj
 
     def get_k8s_objs_from_yaml(self, artifact_files, vnf_package_path,
-                               namespace=None):
+                               namespace=None, scale_info=None):
         k8s_objs = []
         for artifact_file in artifact_files:
             if ((urlparse(artifact_file).scheme == 'file') or
@@ -193,7 +201,7 @@ class Transformer(object):
             file_content_dicts = list(yaml.safe_load_all(file_content))
             for file_content_dict in file_content_dicts:
                 k8s_obj = self._get_k8s_obj_from_file_content_dict(
-                    file_content_dict, namespace)
+                    file_content_dict, namespace, scale_info)
                 k8s_objs.append(k8s_obj)
         return k8s_objs
 

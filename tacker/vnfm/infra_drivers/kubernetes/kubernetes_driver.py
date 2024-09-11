@@ -997,7 +997,6 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         """get information of scale target."""
         if not vdu_mapping:
             is_found = False
-            target_kinds = ["Deployment", "ReplicaSet", "StatefulSet"]
             for vnf_resource in vnf_resources:
                 # The resource that matches the following is the
                 # resource to be scaled:
@@ -1014,7 +1013,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                     if name == vdu_properties.get('name'):
                         _, kind = (vnf_resource.resource_type
                                    .split(COMMA_CHARACTER))
-                        if kind in target_kinds:
+                        if kind in k8s_utils.scalable_kinds:
                             is_found = True
                             break
                 if is_found:
@@ -1501,12 +1500,75 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
             vim_connection_info, vnf_resource):
         pass
 
+    def _get_scale_info(
+            self, context, vnf_instance, instantiate_vnf_req, vnf_dict):
+        # get policies information from vnfd
+        vnfd = vnflcm_utils._get_vnfd_dict(
+            context, vnf_instance.vnfd_id,
+            vnf_instance.instantiated_vnf_info.flavour_id)
+        tosca = tosca_template.ToscaTemplate(
+            parsed_params={}, a_file=False, yaml_dict_tpl=vnfd,
+            local_defs=toscautils.tosca_tmpl_local_defs())
+        extract_policy_info = vnflcm_utils.get_extract_policy_infos(tosca)
+        if not vnf_dict.get('scale_status'):
+            # scale_status is not stored when instantiate operation
+            vnf_dict['scale_status'] = []
+            if instantiate_vnf_req.instantiation_level_id:
+                inst_level_id = instantiate_vnf_req.instantiation_level_id
+            else:
+                inst_level_id = extract_policy_info['default_inst_level_id']
+            al_dict = extract_policy_info['inst_level_dict'].get(inst_level_id)
+            if al_dict:
+                vnf_dict['scale_status'] = [
+                    objects.ScaleInfo(
+                        aspect_id=aspect_id, scale_level=level_num)
+                    for aspect_id, level_num in al_dict.items()]
+
+        use_helm_flag = self._is_use_helm_flag(
+            instantiate_vnf_req.additional_params)
+        vdu_mapping = instantiate_vnf_req.additional_params.get('vdu_mapping')
+        scale_info = [scale_status.to_dict()
+                      for scale_status in vnf_dict['scale_status']]
+        # NOTE: add replicas and resource_name, and helmreleasename
+        #       as scale information like below:
+        # {
+        #    'aspect_id': 'vdu1_aspect',
+        #    'scale_level': 0,
+        #    'replicas': 1,
+        #    'resource_name': 'vdu1-xxx'  <- for using manifest
+        #    'helmreleasename': 'vdu1'    <- for using helmchart
+        # }
+        for info in scale_info:
+            # add replicas from vnfd by aspect_id and scale_level
+            info['replicas'] = vnflcm_utils.get_current_num_of_instances(
+                extract_policy_info, info['aspect_id'], info['scale_level'])
+            vdu_ids = extract_policy_info.get('aspect_vdu_dict').get(
+                info['aspect_id'])
+            if use_helm_flag:
+                # add helmreleasename to scale_info when using helm chart
+                vdu_map_value = vdu_mapping.get(vdu_ids[0])
+                info['helmreleasename'] = vdu_map_value.get('helmreleasename')
+            else:
+                # add resource_name to scale_info when using manifest
+                if vdu_mapping:
+                    vdu_map_value = vdu_mapping.get(vdu_ids[0])
+                    info['resource_name'] = vdu_map_value.get('name')
+                else:
+                    info['resource_name'] = (vnfd.get('topology_template', {})
+                                             .get('node_templates', {})
+                                             .get(vdu_ids[0], {})
+                                             .get('properties', {})
+                                             .get('name'))
+        return scale_info
+
     def _helm_install(self, context, vnf_instance, vim_connection_info,
-                      instantiate_vnf_req, vnf_package_path, transformer):
+                      instantiate_vnf_req, vnf_package_path, transformer,
+                      scale_info):
         additional_params = instantiate_vnf_req.additional_params
         namespace = vnf_instance.vnf_metadata['namespace']
         helm_inst_param_list = additional_params.get(
             'using_helm_install_param')
+        replica_values = additional_params.get('helm_replica_values')
         ips, username, password = self._get_helm_info(vim_connection_info)
         vnf_resources = []
         k8s_objs = []
@@ -1515,7 +1577,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
             helmclient = helm_client.HelmClient(ip, username, password)
             for inst_params in helm_inst_param_list:
                 release_name = inst_params.get('helmreleasename')
-                parameters = inst_params.get('helmparameter')
+                parameters = inst_params.get('helmparameter', [])
                 if self._is_exthelmchart(inst_params):
                     # prepare using external helm chart
                     chart_name = inst_params.get('helmchartname')
@@ -1536,6 +1598,12 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                     chart_name = "-".join(chart_file_name.split("-")[:-1])
                     install_chart_name = os.path.join(dst_dir, chart_name)
                 if ip_idx == 0:
+                    if scale_info:
+                        parameters.extend([
+                            f"{replica_values.get(info.get('aspect_id'))}="
+                            f"{info.get('replicas')}"
+                            for info in scale_info
+                            if info['helmreleasename'] == release_name])
                     # execute `helm install` command
                     helmclient.install(release_name, install_chart_name,
                                        namespace, parameters)
@@ -1573,13 +1641,17 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         transformer = translate_outputs.Transformer(
             None, None, None, k8s_client_dict)
         deployment_dict_list = list()
+        # get scale information from stored scale_status and vnfd
+        # to set initial/restored replicas of scalable k8s resource.
+        scale_info = self._get_scale_info(
+            context, vnf_instance, instantiate_vnf_req, vnfd_dict)
         if use_helm_flag:
             k8s_objs = self._helm_install(
                 context, vnf_instance, vim_connection_info,
-                instantiate_vnf_req, vnf_package_path, transformer)
+                instantiate_vnf_req, vnf_package_path, transformer, scale_info)
         else:
             k8s_objs = transformer.get_k8s_objs_from_yaml(
-                target_k8s_files, vnf_package_path, namespace)
+                target_k8s_files, vnf_package_path, namespace, scale_info)
             k8s_objs = transformer.deploy_k8s(k8s_objs)
         vnfd_dict['current_error_point'] = EP.POST_VIM_CONTROL
         k8s_objs = self.create_wait_k8s(
@@ -1980,9 +2052,8 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
             k8s_resources = list(map(jsonutils.loads,
                                  set(map(jsonutils.dumps, k8s_resources))))
             # get replicas of scalable resources for checking number of pod
-            scalable_kinds = ["Deployment", "ReplicaSet", "StatefulSet"]
             for k8s_resource in k8s_resources:
-                if k8s_resource.get('kind') in scalable_kinds:
+                if k8s_resource['kind'] in k8s_utils.scalable_kinds:
                     scale_info = self._call_read_scale_api(
                         app_v1_api_client=app_v1_api_client,
                         namespace=k8s_resource.get('namespace'),
@@ -2018,8 +2089,8 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
                     # kinds, by comparing the actual number of pods with the
                     # replicas, it can wait until the pod deletion is complete
                     # and store correct information to vnfcResourceInfo.
-                    if k8s_resource.get('kind') in scalable_kinds and \
-                            k8s_resource.get('replicas') != len(tmp_pods_info):
+                    if (k8s_resource['kind'] in k8s_utils.scalable_kinds and
+                            k8s_resource['replicas'] != len(tmp_pods_info)):
                         LOG.warning("Unmatch number of pod. (kind: %(kind)s,"
                             " name: %(name)s, replicas: %(replicas)s,"
                             " actual_pod_num: %(actual_pod_num)s)", {

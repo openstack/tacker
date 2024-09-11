@@ -405,3 +405,8 @@ class TenantMatchFailure(TackerException):
 
 class FailedToGetCryptKey(TackerException):
     message = _('Failed to get crypt key.')
+
+
+class InvalidPoliciesDefinition(TackerException):
+    message = _('Cannot retrieve the %(param)s parameter from policies '
+                'definition in VNFD.')

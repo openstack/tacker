@@ -340,6 +340,7 @@ class TestKubernetesHelm(base.TestCase):
                f"{expect_relname}' in vdu_mapping")
         self.assertEqual(msg, exc.format_message())
 
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
     @mock.patch.object(objects.VnfResource, 'create')
     @mock.patch.object(paramiko.Transport, 'close')
     @mock.patch.object(paramiko.SFTPClient, 'put')
@@ -350,7 +351,7 @@ class TestKubernetesHelm(base.TestCase):
     def test_instantiate_vnf_using_helmchart(
             self, mock_read_namespaced_deployment, mock_command,
             mock_connect, mock_from_transport, mock_put, mock_close,
-            mock_vnf_resource_create):
+            mock_vnf_resource_create, mock_vnfd_dict):
         vnf_instance = fd_utils.get_vnf_instance_object()
         vim_connection_info = fakes.fake_vim_connection_info_with_extra()
         deployment_obj = fakes.fake_v1_deployment_for_helm()
@@ -362,6 +363,7 @@ class TestKubernetesHelm(base.TestCase):
         base_hot_dict = None
         vnf_package_path = self.package_path
         mock_command.side_effect = fakes.execute_cmd_helm_client
+        mock_vnfd_dict.return_value = vnflcm_fakes.vnfd_dict_cnf()
         result = self.kubernetes.instantiate_vnf(
             self.context, vnf_instance, vnfd_dict, vim_connection_info,
             instantiate_vnf_req, grant_response, vnf_package_path,
@@ -373,6 +375,7 @@ class TestKubernetesHelm(base.TestCase):
             "'status': 'Create_complete'}")
         self.assertEqual(mock_read_namespaced_deployment.call_count, 1)
 
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
     @mock.patch.object(objects.VnfResource, 'create')
     @mock.patch.object(paramiko.Transport, 'close')
     @mock.patch.object(paramiko.SFTPClient, 'put')
@@ -383,7 +386,7 @@ class TestKubernetesHelm(base.TestCase):
     def test_instantiate_vnf_using_helmchart_with_namespace(
             self, mock_read_namespaced_deployment, mock_command,
             mock_connect, mock_from_transport, mock_put, mock_close,
-            mock_vnf_resource_create):
+            mock_vnf_resource_create, mock_vnfd_dict):
         vnf_instance = fd_utils.get_vnf_instance_object()
         vnf_instance.vnf_metadata['namespace'] = 'dummy_namespace'
         vim_connection_info = fakes.fake_vim_connection_info_with_extra()
@@ -396,6 +399,7 @@ class TestKubernetesHelm(base.TestCase):
         base_hot_dict = None
         vnf_package_path = self.package_path
         mock_command.side_effect = fakes.execute_cmd_helm_client
+        mock_vnfd_dict.return_value = vnflcm_fakes.vnfd_dict_cnf()
         result = self.kubernetes.instantiate_vnf(
             self.context, vnf_instance, vnfd_dict, vim_connection_info,
             instantiate_vnf_req, grant_response, vnf_package_path,
@@ -407,6 +411,7 @@ class TestKubernetesHelm(base.TestCase):
             "'status': 'Create_complete'}")
         self.assertEqual(mock_read_namespaced_deployment.call_count, 1)
 
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
     @mock.patch.object(objects.VnfResource, 'create')
     @mock.patch.object(paramiko.Transport, 'close')
     @mock.patch.object(paramiko.SFTPClient, 'put')
@@ -417,7 +422,7 @@ class TestKubernetesHelm(base.TestCase):
     def test_instantiate_vnf_using_helmchart_multiple_ips(
             self, mock_read_namespaced_deployment, mock_command,
             mock_connect, mock_from_transport, mock_put, mock_close,
-            mock_vnf_resource_create):
+            mock_vnf_resource_create, mock_vnfd_dict):
         vnf_instance = fd_utils.get_vnf_instance_object()
         vim_connection_info = fakes.fake_vim_connection_info_with_extra(
             multi_ip=True)
@@ -430,6 +435,7 @@ class TestKubernetesHelm(base.TestCase):
         base_hot_dict = None
         vnf_package_path = self.package_path
         mock_command.side_effect = fakes.execute_cmd_helm_client
+        mock_vnfd_dict.return_value = vnflcm_fakes.vnfd_dict_cnf()
         result = self.kubernetes.instantiate_vnf(
             self.context, vnf_instance, vnfd_dict, vim_connection_info,
             instantiate_vnf_req, grant_response, vnf_package_path,
@@ -441,6 +447,7 @@ class TestKubernetesHelm(base.TestCase):
             "'status': 'Create_complete'}")
         self.assertEqual(mock_read_namespaced_deployment.call_count, 1)
 
+    @mock.patch('tacker.vnflcm.utils._get_vnfd_dict')
     @mock.patch.object(paramiko.Transport, 'close')
     @mock.patch.object(paramiko.SFTPClient, 'put')
     @mock.patch.object(paramiko.SFTPClient, 'from_transport')
@@ -448,7 +455,8 @@ class TestKubernetesHelm(base.TestCase):
     @mock.patch.object(helm_client.HelmClient, '_execute_command')
     def test_instantiate_vnf_using_helmchart_put_helmchart_fail(
             self, mock_command,
-            mock_connect, mock_from_transport, mock_put, mock_close):
+            mock_connect, mock_from_transport, mock_put, mock_close,
+            mock_vnfd_dict):
         vnf_instance = fd_utils.get_vnf_instance_object()
         vim_connection_info = fakes.fake_vim_connection_info_with_extra()
         vnfd_dict = fakes.fake_vnf_dict()
@@ -459,6 +467,7 @@ class TestKubernetesHelm(base.TestCase):
         vnf_package_path = self.package_path
         mock_command.side_effect = fakes.execute_cmd_helm_client
         mock_from_transport.side_effect = paramiko.SSHException()
+        mock_vnfd_dict.return_value = vnflcm_fakes.vnfd_dict_cnf()
         self.assertRaises(paramiko.SSHException,
             self.kubernetes.instantiate_vnf,
             self.context, vnf_instance, vnfd_dict, vim_connection_info,

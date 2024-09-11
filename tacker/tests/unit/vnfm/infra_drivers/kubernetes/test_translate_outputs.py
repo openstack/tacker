@@ -60,8 +60,14 @@ class TestTransformer(base.TestCase):
         self.assertEqual(new_k8s_objs[0]['status'], 'Creating')
 
     def test_deployment(self):
+        scale_info = [{
+            'aspect_id': 'dummy_aspect_id',
+            'scale_level': 0,
+            'replicas': 1,
+            'resource_name': 'curry-probe-test001'
+        }]
         k8s_objs = self.transfromer.get_k8s_objs_from_yaml(
-            ['deployment.yaml'], self.yaml_path, '')
+            ['deployment.yaml'], self.yaml_path, '', scale_info=scale_info)
         k8s_obj = k8s_objs[0].get('object')
         self.assertIsNotNone(k8s_obj)
         self.assertEqual(k8s_objs[0].get('namespace'), '')
@@ -489,8 +495,14 @@ class TestTransformer(base.TestCase):
         self.assertEqual(k8s_obj.value, 1000000)
 
     def test_replica_set(self):
+        scale_info = [{
+            'aspect_id': 'dummy_aspect_id',
+            'scale_level': 1,
+            'replicas': 11,
+            'resource_name': 'curry-replicaset'
+        }]
         k8s_objs = self.transfromer.get_k8s_objs_from_yaml(
-            ['replica-set.yaml'], self.yaml_path, ''
+            ['replica-set.yaml'], self.yaml_path, '', scale_info=scale_info
         )
         k8s_obj = k8s_objs[0].get('object')
         self.assertIsNotNone(k8s_obj)
@@ -609,8 +621,14 @@ class TestTransformer(base.TestCase):
         self.assertEqual(k8s_obj.api_version, 'v1')
 
     def test_stateful_set(self):
+        scale_info = [{
+            'aspect_id': 'dummy_aspect_id',
+            'scale_level': 2,
+            'replicas': 5,
+            'resource_name': 'web'
+        }]
         k8s_objs = self.transfromer.get_k8s_objs_from_yaml(
-            ['stateful-set.yaml'], self.yaml_path, ''
+            ['stateful-set.yaml'], self.yaml_path, '', scale_info=scale_info
         )
         k8s_obj = k8s_objs[0].get('object')
         self.assertIsNotNone(k8s_obj)

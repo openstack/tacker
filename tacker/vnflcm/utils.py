@@ -1293,6 +1293,35 @@ def get_target_vdu_def_dict(extract_policy_infos, aspect_id, tosca):
     return vdu_def_dict
 
 
+def get_current_num_of_instances(extract_policy_infos,
+                                 aspect_id, scale_level):
+    delta_id = extract_policy_infos['aspect_id_dict'].get(aspect_id)
+    if delta_id is None:
+        raise exceptions.InvalidPoliciesDefinition(
+            param='step_deltas id in ScalingAspects')
+
+    # Get delta_num.
+    delta_num = extract_policy_infos['aspect_delta_dict'].get(
+        aspect_id, {}).get(delta_id)
+    if delta_num is None:
+        raise exceptions.InvalidPoliciesDefinition(
+            param='delta num in VduScalingAspectDeltas')
+
+    # Get initial_delta.
+    vdus = extract_policy_infos['aspect_vdu_dict'].get(aspect_id)
+    initial_delta = None
+    if vdus:
+        # NOTE: The current tacker implementation allows one target vdu
+        #       per aspect_id, so get the first vdu_id here.
+        initial_delta = extract_policy_infos['vdu_delta_dict'].get(vdus[0])
+
+    if initial_delta is None:
+        raise exceptions.InvalidPoliciesDefinition(
+            param='initial_delta num in VduInitialDelta')
+    # Calculate current number_of_instances.
+    return initial_delta + delta_num * scale_level
+
+
 def _get_changed_ext_connectivity(
         old_vnf_instance=None, new_vnf_instance=None):
 

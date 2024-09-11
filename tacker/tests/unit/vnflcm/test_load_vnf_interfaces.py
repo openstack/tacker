@@ -139,7 +139,6 @@ class MgmtVnfLcmDriverTest(db_base.SqlTestCase):
                    'tenant': uuidsentinel.tenant_id}
         self.vim_client.get_vim.return_value = vim_obj
 
-    @mock.patch('tacker.vnflcm.utils.get_default_scale_status')
     @mock.patch('tacker.vnflcm.utils._make_final_vnf_dict')
     @mock.patch.object(VnfLcmDriver, '_init_mgmt_driver_hash')
     @mock.patch.object(TackerManager, 'get_service_plugins',
@@ -150,7 +149,7 @@ class MgmtVnfLcmDriverTest(db_base.SqlTestCase):
     def test_instantiate_vnf(self, mock_vnf_instance_save,
                              mock_vnf_package_vnfd, mock_create,
                              mock_get_service_plugins, mock_init_hash,
-                             mock_final_vnf_dict, mock_default_status):
+                             mock_final_vnf_dict):
         mock_init_hash.return_value = {
             "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
                            "b18d663b127100eb72b19eecd7ed51"
@@ -163,7 +162,6 @@ class MgmtVnfLcmDriverTest(db_base.SqlTestCase):
             objects.InstantiateVnfRequest.obj_from_primitive(
                 instantiate_vnf_req_dict, self.context)
         vnf_instance_obj = fakes.return_vnf_instance()
-        mock_default_status.return_value = None
 
         fake_csar = os.path.join(self.temp_dir, vnf_package_id)
         cfg.CONF.set_override('vnf_package_csar_path', self.temp_dir,
@@ -259,7 +257,6 @@ class MgmtVnfLcmDriverTest(db_base.SqlTestCase):
                           instantiate_vnf_req_obj)
         shutil.rmtree(fake_csar)
 
-    @mock.patch('tacker.vnflcm.utils.get_default_scale_status')
     @mock.patch('tacker.vnflcm.utils._make_final_vnf_dict')
     @mock.patch.object(VnfLcmDriver, '_init_mgmt_driver_hash')
     @mock.patch.object(TackerManager, 'get_service_plugins',
@@ -270,7 +267,7 @@ class MgmtVnfLcmDriverTest(db_base.SqlTestCase):
     def test_instantiate_multi(self, mock_vnf_instance_save,
                              mock_vnf_package_vnfd, mock_create,
                              mock_get_service_plugins, mock_init_hash,
-                             mock_final_vnf_dict, mock_default_status):
+                             mock_final_vnf_dict):
         mock_init_hash.return_value = {
             "vnflcm_noop": "10edbecaa6df7e782c610ef4cc5e57"
                            "e2b0405869a559e2f4cb40e6b11e367547"
@@ -283,7 +280,6 @@ class MgmtVnfLcmDriverTest(db_base.SqlTestCase):
             objects.InstantiateVnfRequest.obj_from_primitive(
                 instantiate_vnf_req_dict, self.context)
         vnf_instance_obj = fakes.return_vnf_instance()
-        mock_default_status.return_value = None
 
         fake_csar = os.path.join(self.temp_dir, vnf_package_id)
         cfg.CONF.set_override('vnf_package_csar_path', self.temp_dir,
@@ -301,7 +297,6 @@ class MgmtVnfLcmDriverTest(db_base.SqlTestCase):
         self.assertEqual(6, self._vnf_manager.invoke.call_count)
         shutil.rmtree(fake_csar)
 
-    @mock.patch('tacker.vnflcm.utils.get_default_scale_status')
     @mock.patch('tacker.vnflcm.utils._make_final_vnf_dict')
     @mock.patch.object(VnfLcmDriver, '_init_mgmt_driver_hash')
     @mock.patch.object(TackerManager, 'get_service_plugins',
@@ -312,7 +307,7 @@ class MgmtVnfLcmDriverTest(db_base.SqlTestCase):
     def test_instantiate_multi_invalid(self, mock_vnf_instance_save,
                              mock_vnf_package_vnfd, mock_create,
                              mock_get_service_plugins, mock_init_hash,
-                             mock_final_vnf_dict, mock_default_status):
+                             mock_final_vnf_dict):
         mock_init_hash.return_value = {
             "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
                            "b18d663b127100eb72b19eecd7ed51"
@@ -325,7 +320,6 @@ class MgmtVnfLcmDriverTest(db_base.SqlTestCase):
             objects.InstantiateVnfRequest.obj_from_primitive(
                 instantiate_vnf_req_dict, self.context)
         vnf_instance_obj = fakes.return_vnf_instance()
-        mock_default_status.return_value = None
 
         fake_csar = os.path.join(self.temp_dir, vnf_package_id)
         cfg.CONF.set_override('vnf_package_csar_path', self.temp_dir,
