@@ -15,10 +15,16 @@
 
 import fixtures
 
-from tacker.common import config
+from oslo_db import options as db_options
+
+import tacker.conf
 from tacker.db import api as db_api
 from tacker.db import model_base
 from tacker.tests.unit import base
+
+
+CONF = tacker.conf.CONF
+db_options.set_defaults(CONF, connection='sqlite://')
 
 
 class SqlFixture(fixtures.Fixture):
@@ -46,6 +52,5 @@ class SqlFixture(fixtures.Fixture):
 class SqlTestCase(base.TestCase):
 
     def setUp(self):
-        config.set_db_defaults()
         super(SqlTestCase, self).setUp()
         self.useFixture(SqlFixture())

@@ -36,7 +36,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         # ModifyVNF specific image create.
         for image in images:
             specific_image_name = image.name + '2'
-            image_data = {
+            image_props = {
                 "min_disk": image.min_disk,
                 "min_ram": image.min_ram,
                 "disk_format": image.disk_format,
@@ -55,7 +55,8 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
                 with tempfile.TemporaryFile('w+b') as f:
                     for content in body:
                         f.write(content)
-                    cls._create_glance_image(image_data, f.read())
+                    f.seek(0)
+                    cls._create_glance_image(image_props, f)
             except Exception as e:
                 print("Fail, Modify-VNF specific image create.", e, flush=True)
                 cls.is_setup_error = True

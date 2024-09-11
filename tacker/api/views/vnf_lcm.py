@@ -204,10 +204,7 @@ class ViewBuilder(base.BaseViewBuilder):
 
     def _basic_subscription_info(self, vnf_lcm_subscription, filter=None):
         def key_exists(obj, key):
-            # NOTE(ueha): Check `row.LegacyRow` type for back compatibility
-            #             of oslo.db<15.0.0 environment.
-            if (isinstance(obj, LccnSubscriptionRequest) or
-                    isinstance(obj, row.LegacyRow)):
+            if isinstance(obj, LccnSubscriptionRequest):
                 return key in vnf_lcm_subscription
             elif isinstance(obj, row.Row):
                 return key in vnf_lcm_subscription._mapping

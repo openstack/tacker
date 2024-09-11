@@ -384,11 +384,11 @@ class BaseVnfLcmTest(base.BaseTackerTest):
         return image
 
     @classmethod
-    def _create_glance_image(cls, image_data, file_url, glance_client=None):
+    def _create_glance_image(cls, image_props, image_data, glance_client=None):
         if glance_client is None:
             glance_client = cls.glance_client
-        image = glance_client.images.create(**image_data)
-        glance_client.images.upload(image.id, file_url)
+        image = glance_client.images.create(**image_props)
+        glance_client.images.upload(image.id, image_data)
 
         return image.id
 
