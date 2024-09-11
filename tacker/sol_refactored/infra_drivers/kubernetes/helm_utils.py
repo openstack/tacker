@@ -23,6 +23,7 @@ from tacker.sol_refactored.common import exceptions as sol_ex
 LOG = logging.getLogger(__name__)
 
 HELM_INSTALL_TIMEOUT = "120s"
+RELEASE_NOT_FOUND_MSG = 'Error: release: not found'
 
 
 class HelmClient():
@@ -51,7 +52,13 @@ class HelmClient():
         helm_command = ["helm", "status", release_name, "--namespace",
                         namespace]
         result = self._execute_command(helm_command, False)
-        return result.returncode == 0
+
+        if result.returncode == 0:
+            return True
+        elif RELEASE_NOT_FOUND_MSG in result.stderr:
+            return False
+        else:
+            raise sol_ex.HelmOperationFailed(sol_detail=str(result))
 
     def install(self, release_name, chart_name, namespace, parameters):
         # execute helm install command
