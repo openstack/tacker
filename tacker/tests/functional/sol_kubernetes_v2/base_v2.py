@@ -85,6 +85,12 @@ class BaseVnfLcmKubernetesV2Test(base_v2.BaseTackerTestV2):
                                           mgmt_driver=mgmt_driver)
 
     @classmethod
+    def upload_vnf_package(cls, zip_file_path, nfvo=False, user_data={}):
+
+        return super().upload_vnf_package(zip_file_path, nfvo=nfvo,
+                                        user_data=user_data)
+
+    @classmethod
     def get_controller_tacker_ip(cls):
         cur_dir = os.path.dirname(__file__)
         script_path = os.path.join(

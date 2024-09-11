@@ -21,19 +21,16 @@ import tempfile
 from oslo_utils import uuidutils
 
 from tacker.tests.functional.sol_kubernetes_v2 import paramgen
-from tacker.tests.functional.sol_v2_common import utils
+from tacker.tests.functional.sol_v2_common import utils as common_utils
+from tacker.tests import utils
 
 
 zip_file_name = os.path.basename(os.path.abspath(".")) + '.zip'
 tmp_dir = tempfile.mkdtemp()
 vnfd_id = uuidutils.generate_uuid()
+mgmt_driver_path = utils.mgmt_drivers("container_update_mgmt_v2.py")
 
-# samples/tests/functional/sol_kubernetes_v2/{package_name}
-cur_dir = os.path.dirname(__file__)
-mgmt_driver_path = os.path.join(
-    cur_dir, '../../../../../tacker/sol_refactored',
-    'mgmt_drivers/container_update_mgmt_v2.py')
-utils.make_zip(".", tmp_dir, vnfd_id, mgmt_driver=mgmt_driver_path)
+common_utils.make_zip(".", tmp_dir, vnfd_id, mgmt_driver=mgmt_driver_path)
 
 shutil.move(os.path.join(tmp_dir, zip_file_name), ".")
 shutil.rmtree(tmp_dir)

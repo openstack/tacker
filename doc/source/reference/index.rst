@@ -25,3 +25,4 @@ Tools
    :maxdepth: 1
 
    vim_config
+   gen_vnf_pkg

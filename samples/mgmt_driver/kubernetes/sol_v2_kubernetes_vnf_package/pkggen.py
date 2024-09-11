@@ -18,6 +18,8 @@ import os
 import shutil
 import tempfile
 
+from tacker.tests import utils
+
 
 # NOTE: This package is a sample for vnflcm v2 API to deploy kubernetes cluster
 # with cilium CNI using the management driver.
@@ -42,9 +44,7 @@ shutil.copytree(os.path.join(".", "contents"), tmp_contents)
 
 # add userdata script
 # tacker/tests/sol_refactored/infra_drivers/openstack/userdata_standard.py
-userdata_dir = "../../../../../tacker/sol_refactored/infra_drivers/openstack/"
-userdata_file = "userdata_standard.py"
-userdata_path = os.path.abspath(userdata_dir + userdata_file)
+userdata_path = utils.userdata("userdata_standard.py")
 # mkdir UserData/ and copy userdata_path into it
 file_path = os.path.join(tmp_contents, "UserData")
 os.makedirs(file_path)

@@ -168,6 +168,43 @@ class BaseTackerTestV2(base.BaseTestCase):
 
         return pkg_id, vnfd_id
 
+    @classmethod
+    def upload_vnf_package(cls, zip_file_path, nfvo=False, user_data={}):
+        if nfvo:
+            return zip_file_path
+
+        path = "/vnfpkgm/v1/vnf_packages"
+        req_body = {'userDefinedData': user_data}
+        resp, body = cls.tacker_client.do_request(
+            path, "POST", expected_status=[201], body=req_body)
+
+        pkg_id = body['id']
+
+        with open(zip_file_path, 'rb') as fp:
+            path = f"/vnfpkgm/v1/vnf_packages/{pkg_id}/package_content"
+            resp, body = cls.tacker_client.do_request(
+                path, "PUT", body=fp, content_type='application/zip',
+                expected_status=[202])
+
+        # wait for onboard
+        timeout = VNF_PACKAGE_UPLOAD_TIMEOUT
+        start_time = int(time.time())
+        path = f"/vnfpkgm/v1/vnf_packages/{pkg_id}"
+        while True:
+            resp, body = cls.tacker_client.do_request(
+                path, "GET", expected_status=[200])
+            if body['onboardingState'] == "ONBOARDED":
+                break
+
+            if int(time.time()) - start_time > timeout:
+                raise Exception("Failed to onboard vnf package")
+
+            time.sleep(RETRY_WAIT_TIME)
+
+        shutil.rmtree(zip_file_path.rsplit('/', 1)[0])
+
+        return pkg_id
+
     def get_vnf_package(self, pkg_id):
         path = f"/vnfpkgm/v1/vnf_packages/{pkg_id}"
         resp, body = self.tacker_client.do_request(path, "GET")
