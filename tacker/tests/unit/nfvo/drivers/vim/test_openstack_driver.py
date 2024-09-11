@@ -31,25 +31,7 @@ OPTS = [cfg.StrOpt('user_domain_id',
                    help='User Domain Id'),
         cfg.StrOpt('project_domain_id',
                    default='default',
-                   help='Project Domain Id'),
-        cfg.StrOpt('password',
-                   default='default',
-                   help='User Password'),
-        cfg.StrOpt('username',
-                   default='default',
-                   help='User Name'),
-        cfg.StrOpt('user_domain_name',
-                   default='Default',
-                   help='Use Domain Name'),
-        cfg.StrOpt('project_name',
-                   default='default',
-                   help='Project Name'),
-        cfg.StrOpt('project_domain_name',
-                   default='Default',
-                   help='Project Domain Name'),
-        cfg.StrOpt('auth_url',
-                   default='http://localhost/identity/v3',
-                   help='Keystone endpoint')]
+                   help='Project Domain Id')]
 
 cfg.CONF.register_opts(OPTS, 'keystone_authtoken')
 CONF = cfg.CONF
