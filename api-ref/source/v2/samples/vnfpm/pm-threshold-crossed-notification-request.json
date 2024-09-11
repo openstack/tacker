@@ -1,0 +1,19 @@
+{
+    "id": "0aa6500e-cdee-41f7-aadd-af80f7622ebc",
+    "notificationType": "ThresholdCrossedNotification",
+    "timeStamp": "2023-12-06T09:08:06Z",
+    "thresholdId": "135db472-4f7b-4d55-abaf-27a3ab4d7ba1",
+    "crossingDirection": "DOWN",
+    "objectType": "Vnf",
+    "objectInstanceId": "c21fd71b-2866-45f6-89d0-70c458a5c32e",
+    "performanceMetric": "VCpuUsageMeanVnf.c21fd71b-2866-45f6-89d0-70c458a5c32e",
+    "performanceValue": "0.0004428400000000465",
+    "_links": {
+        "objectInstance": {
+            "href": "http://127.0.0.1:9890/vnflcm/v2/vnf_instances/c21fd71b-2866-45f6-89d0-70c458a5c32e"
+        },
+        "threshold": {
+            "href": "http://127.0.0.1:9890/vnfpm/v2/thresholds/135db472-4f7b-4d55-abaf-27a3ab4d7ba1"
+        }
+    }
+}

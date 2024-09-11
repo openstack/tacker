@@ -1,0 +1,19 @@
+{
+    "id": "29de3afc-0547-4f43-b921-1d6ceaf16bd4",
+    "notificationType": "PerformanceInformationAvailableNotification",
+    "timeStamp": "2023-11-20T14:25:04Z",
+    "pmJobId": "84b227dc-5ed0-411a-aff6-c830528eaec5",
+    "objectType": "Vnf",
+    "objectInstanceId": "a0205e7c-fdeb-4f6c-b266-962246e32626",
+    "_links": {
+        "objectInstance": {
+            "href": "http://127.0.0.1:9890/vnflcm/v2/vnf_instances/a0205e7c-fdeb-4f6c-b266-962246e32626"
+        },
+        "pmJob": {
+            "href": "http://127.0.0.1:9890/vnfpm/v2/pm_jobs/84b227dc-5ed0-411a-aff6-c830528eaec5"
+        },
+        "performanceReport": {
+            "href": "http://127.0.0.1:9890/vnfpm/v2/pm_jobs/84b227dc-5ed0-411a-aff6-c830528eaec5/reports/eab93857-eb72-49ce-9173-628a3f00ba2d"
+        }
+    }
+}

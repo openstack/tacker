@@ -704,3 +704,131 @@ Request Parameters
 .. rest_parameters:: parameters_vnfpm.yaml
 
   - thresholdId: vnf_pm_threshold_id
+
+
+==========================================================================
+Virtualized Network Function Performance Management Notification Interface
+==========================================================================
+
+This interface is notification about VNF performance management.
+
+This interface is a notification that is sent to the endpoint configured as
+the callbackUri when a performance management job or performance management
+threshold is created, when an event occurs that indicates a threshold crossing
+or the availability of performance information for a PM job.
+The detail of this interface is described in SOL002 v3.3.1 clause 6.
+
+PerformanceInformationAvailableNotification
+===========================================
+
+.. rest_method::  POST < callbackUri (provided by API consumer) >
+
+The POST method delivers a notification about performance information
+availability from Tacker to the API consumer.
+
+When an event occurs indicating the availability of performance information
+for a PM job, Tacker sends this notification to the endpoint configured in the
+callbackUri of the "Create a PM job (v2)" API.
+
+Response Codes
+--------------
+
+Tacker expects a "204 No Content" response from the endpoint of the API consumer.
+If any other response code is returned, it will be treated as an error.
+
+.. rest_status_code:: success status.yaml
+
+  - 204: notification
+
+Request Parameters
+------------------
+
+.. rest_parameters:: parameters_vnfpm.yaml
+
+  - id: notification_id
+  - notificationType: notification_performance_information_available_notification_type
+  - timeStamp: notification_time_stamp
+  - pmJobId: notification_performance_information_available_pmjob_id
+  - objectType: notification_object_type
+  - objectInstanceId: notification_object_instance_id
+  - subObjectInstanceIds: notification_performance_information_available_sub_object_instance_ids
+  - _links: notification_links
+  - objectInstance: notification_object_instance
+  - pmJob : notification_performance_information_available_pmjob
+  - performanceReport : notification_performance_information_available_performance_report
+
+Request Example
+---------------
+
+.. literalinclude:: samples/vnfpm/pm-performance-information-available-notification-request.json
+   :language: javascript
+
+ThresholdCrossedNotification
+============================
+
+.. rest_method::  POST < callbackUri (provided by API consumer) >
+
+The POST method delivers a notification about threshold crossing from Tacker
+to the API consumer.
+
+When a performance threshold is crossing for a VNF configured to be monitored
+by VNF performance management threshold, Tacker sends this notification to the
+endpoint configured in the callbackUri of the "Create a PM threshold (v2)" API.
+
+Response Codes
+--------------
+
+Tacker expects a "204 No Content" response from the endpoint of the API consumer.
+If any other response code is returned, it will be treated as an error.
+
+.. rest_status_code:: success status.yaml
+
+  - 204: notification
+
+Request Parameters
+------------------
+
+.. rest_parameters:: parameters_vnfpm.yaml
+
+  - id: notification_id
+  - notificationType: notification_threshold_crossed_notification_type
+  - timeStamp: notification_time_stamp
+  - thresholdId: notification_threshold_crossed_threshold_id
+  - crossingDirection: notification_threshold_crossed_crossing_direction
+  - objectType: notification_object_type
+  - objectInstanceId: notification_object_instance_id
+  - subObjectInstanceId: notification_sub_object_instance_id
+  - performanceMetric: notification_threshold_crossed_performance_metric
+  - performanceValue: notification_threshold_crossed_performance_value
+  - context: notification_threshold_crossed_context
+  - _links: notification_links
+  - objectInstance: notification_object_instance
+  - threshold: notification_threshold_crossed_threshold
+
+Request Example
+---------------
+
+.. literalinclude:: samples/vnfpm/pm-threshold-crossed-notification-request.json
+   :language: javascript
+
+Test the notification endpoint (VNF PM)
+=======================================
+
+.. rest_method::  GET < callbackUri (provided by API consumer) >
+
+The GET method test the notification endpoint.
+
+When a PM job is created using the "Create a PM job (v2)" API or a PM threshold
+is created using the "Create a PM threshold (v2)" API,
+Tacker sends this notification to the endpoint configured with callbackUri to
+confirm communication.
+
+Response Codes
+--------------
+
+Tacker expects a "204 No Content" response from the endpoint of the API consumer.
+If any other response code is returned, it will be treated as an error.
+
+.. rest_status_code:: success status.yaml
+
+  - 204: notification

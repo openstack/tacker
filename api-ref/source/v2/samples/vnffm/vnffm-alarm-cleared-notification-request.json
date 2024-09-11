@@ -1,0 +1,16 @@
+{
+    "id": "0ab777dc-b3a0-42d6-85c1-e5f80711b988",
+    "notificationType": "AlarmClearedNotification",
+    "subscriptionId": "0155c914-8573-463c-a97a-aef5a3ca9c72",
+    "timeStamp": "2023-12-08T13:16:30Z",
+    "alarmId": "de8e74e8-1845-40dd-892c-cb7a67c26f9f",
+    "alarmClearedTime": "2023-12-08T13:16:30Z",
+    "_links": {
+        "subscription": {
+            "href": "http://127.0.0.1:9890/vnffm/v1/subscriptions/0155c914-8573-463c-a97a-aef5a3ca9c72"
+        },
+        "alarm": {
+            "href": "http://127.0.0.1:9890/vnffm/v1/alarms/de8e74e8-1845-40dd-892c-cb7a67c26f9f"
+        }
+    }
+}

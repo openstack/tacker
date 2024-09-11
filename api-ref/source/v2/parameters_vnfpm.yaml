@@ -132,6 +132,135 @@ links_self:
   in: body
   required: true
   type: object
+notification_id:
+  description: |
+    Identifier of this notification.
+  in: body
+  required: true
+  type: string
+notification_links:
+  description: |
+    Links to resources related to this notification.
+  in: body
+  required: true
+  type: object
+notification_object_instance:
+  description: |
+    Link to the resource representing the measured object instance to which
+    the notified change applies. Shall be present if the measured object
+    instance information is accessible as a resource.
+  in: body
+  required: false
+  type: object
+notification_object_instance_id:
+  description: |
+    Identifier of the measured object instance.
+  in: body
+  required: true
+  type: string
+notification_object_type:
+  description: |
+    Type of the measured object.
+  in: body
+  required: true
+  type: string
+notification_performance_information_available_notification_type:
+  description: |
+    Discriminator for the different notification types. Set to
+    "PerformanceInformationAvailableNotification" for this notification type.
+  in: body
+  required: true
+  type: string
+notification_performance_information_available_performance_report:
+  description: |
+    Link from which the available performance information of data type
+    "PerformanceReport" can be obtained.
+  in: body
+  required: true
+  type: object
+notification_performance_information_available_pmjob:
+  description: |
+    Link to the resource that represents the PM job for which performance
+    information is available.
+  in: body
+  required: true
+  type: object
+notification_performance_information_available_pmjob_id:
+  description: |
+    Identifier of the PM job for which performance information is available.
+  in: body
+  required: true
+  type: string
+notification_performance_information_available_sub_object_instance_ids:
+  description: |
+    Identifiers of the sub-object instances of the measured object instance
+    for which the measurements have been taken.
+  in: body
+  required: false
+  type: array
+notification_sub_object_instance_id:
+  description: |
+    Identifier of the sub-object of the measured object to which the
+    measurement applies.
+  in: body
+  required: false
+  type: string
+notification_threshold_crossed_context:
+  description: |
+    Measurement context information related to the measured value.
+  in: body
+  required: false
+  type: string
+notification_threshold_crossed_crossing_direction:
+  description: |
+    An indication of whether the threshold was crossed in upward or
+    downward direction.
+  in: body
+  required: true
+  type: string
+notification_threshold_crossed_notification_type:
+  description: |
+    Discriminator for the different notification types.
+    Set to "ThresholdCrossedNotification" for this notification type.
+  in: body
+  required: true
+  type: string
+notification_threshold_crossed_performance_metric:
+  description: |
+    Performance metric associated with the threshold.
+  in: body
+  required: true
+  type: string
+notification_threshold_crossed_performance_value:
+  description: |
+    Value of the metric that resulted in threshold crossing.
+  in: body
+  required: true
+  type: string
+notification_threshold_crossed_threshold:
+  description: |
+    Link to the resource that represents the threshold that was crossed.
+  in: body
+  required: true
+  type: object
+notification_threshold_crossed_threshold_id:
+  description: |
+    Identifier of the threshold which has been crossed.
+  in: body
+  required: true
+  type: string
+notification_time_stamp:
+  description: |
+    Date and time of the generation of the notification.
+  in: body
+  required: true
+  type: string
+notification_type:
+  description: |
+    Discriminator for the different notification types.
+  in: body
+  required: true
+  type: string
 params_oauth2_client_cert_certificate_ref:
   description: |
     Fingerprint of the client certificate. The hash function
