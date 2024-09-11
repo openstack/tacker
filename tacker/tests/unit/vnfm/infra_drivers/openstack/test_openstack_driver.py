@@ -2564,7 +2564,7 @@ class TestOpenStack(base.FixturedTestCase):
             id='c2947d8a-2c67-4e8f-ad6f-c0889b351c17',
             vnf_instance_id=uuidsentinel.vnf_instance_id,
             affinity_or_anti_affinity='ANTI_AFFINITY',
-            scope='ZONE',
+            scope='NFVI_NODE',
             server_group_name='my_compute_placement_policy',
             resource=test_res)
         placement_obj_list = [placemnt]
@@ -2588,6 +2588,8 @@ class TestOpenStack(base.FixturedTestCase):
             vim_connection_info,
             del_list)
         self.assertEqual(1, len(vnf_info['placement_constraint_list']))
+        self.assertEqual('NFVI_NODE',
+            vnf_info['placement_constraint_list'][0].scope)
 
     @mock.patch.object(hc.HeatClient, "resource_get_list")
     def test_get_grant_resource_scale_in(self, mock_list):

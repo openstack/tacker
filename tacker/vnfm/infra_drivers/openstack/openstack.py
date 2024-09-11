@@ -2239,7 +2239,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                     placement.affinity_or_anti_affinity
                 placement_constraint = objects.PlacementConstraint(
                     affinity_or_anti_affinity=affinity_or_anti_affinity,
-                    scope='ZONE',
+                    scope=placement.scope,
                     resource=addRsc,
                     fallback_best_effort=True)
                 placement_constraint_list.append(placement_constraint)
