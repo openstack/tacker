@@ -2071,7 +2071,10 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
                 self._build_instantiated_vnf_info(context,
                             vnf_instance,
                             instantiate_vnf_req=instantiate_vnf)
-                vim_id = instantiate_vnf.vim_connection_info[0].vim_id
+                if instantiate_vnf.vim_connection_info:
+                    vim_id = instantiate_vnf.vim_connection_info[0].vim_id
+                else:
+                    vim_id = vnflcm_utils._get_vim(context, None)['vim_id']
                 self._update_vnf_attributes(context, vnf_instance, vnf_dict,
                                             constants.PENDING_STATUSES,
                                             constants.ACTIVE, vim_id=vim_id)
@@ -2162,8 +2165,15 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
 
             vnf_dict['current_error_point'] = EP.NOTIFY_COMPLETED
 
+            # Register the default VIM in the same as when create
+            default_vim = vnflcm_utils._get_vim(context, None)
+            vim_conn = objects.VimConnectionInfo(
+                id=uuidutils.generate_uuid(), vim_id=default_vim.get('vim_id'),
+                vim_type=default_vim.get('vim_type'), access_info={},
+                interface_info={}, extra=default_vim.get('extra', {}))
+
             self.vnflcm_driver._vnf_instance_update(context, vnf_instance,
-                vim_connection_info=[], task_state=None,
+                vim_connection_info=[vim_conn], task_state=None,
                 instantiation_state=fields.VnfInstanceState.NOT_INSTANTIATED)
             vnf_instance.instantiated_vnf_info.reinitialize()
 

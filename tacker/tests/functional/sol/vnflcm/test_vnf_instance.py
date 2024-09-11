@@ -730,6 +730,41 @@ class VnfLcmTest(base.BaseTackerTest):
 
         self._delete_vnf_instance(vnf_instance['id'])
 
+    def test_instantiate_vnf_without_vim_connection_info(self):
+        """Test instantiation API without vimConnectionInfo"""
+
+        # Create vnf instance
+        vnf_instance_name = (
+            f'vnf_without_vimConnectionInfo-{uuidutils.generate_uuid()}')
+        vnf_instance_description = 'vnf without vimConnectionInfo'
+        resp, vnf_instance = self._create_vnf_instance(self.vnfd_id_1,
+            vnf_instance_name=vnf_instance_name,
+            vnf_instance_description=vnf_instance_description)
+
+        self.assertIsNotNone(vnf_instance['id'])
+        self.assertEqual(201, resp.status_code)
+
+        request_body = self._instantiate_vnf_request('simple', vim_id=None)
+
+        self._instantiate_vnf_instance(vnf_instance['id'], request_body)
+
+        vnf_instance = self._show_vnf_instance(vnf_instance['id'])
+        vdu_count = len(vnf_instance['instantiatedVnfInfo']
+            ['vnfcResourceInfo'])
+        self.assertEqual(1, vdu_count)
+        self.assertEqual(self.vim_id, vnf_instance['instantiatedVnfInfo']
+            ['vnfcResourceInfo'][0]['computeResource']['vimConnectionId'])
+
+        # Terminate vnf gracefully with graceful timeout set to 60
+        terminate_req_body = {
+            'terminationType': fields.VnfInstanceTerminationType.GRACEFUL,
+            'gracefulTerminationTimeout': 60
+        }
+
+        self._terminate_vnf_instance(vnf_instance['id'], terminate_req_body)
+
+        self._delete_vnf_instance(vnf_instance['id'])
+
     def test_instantiate_vnf_with_instantiation_level(self):
         """Test instantiation and heal API with instantiation level
 
