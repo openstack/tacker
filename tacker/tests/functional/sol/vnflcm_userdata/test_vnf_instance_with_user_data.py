@@ -325,7 +325,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         self.assertEqual(404, resp.status_code)
 
     def test_vnfdid_filter_in_subscription(self):
-        """Test notification when virtual storage absent in VNFD.
+        """Test notification when filter exists in subscription.
 
             In this test case, we do following steps.
                 - Create VNF package.
@@ -2062,7 +2062,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         self.assertEqual(204, resp.status_code)
 
     def test_retry_chgextconn(self):
-        """Test retry operation for instantiation.
+        """Test retry operation for change ext conn.
 
         In this test case, we do following steps.
             - Create subscription.

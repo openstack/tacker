@@ -197,7 +197,7 @@ class VnfLcmTerraformTest(base_v2.BaseVnfLcmTerraformV2Test):
         self.check_package_usage(self.basic_pkg, state='NOT_IN_USE')
 
     def test_change_vnfpkg_rollback(self):
-        """Test basic LCM operations
+        """Test rollback operation for change current vnf package
 
         * About LCM operations:
           This test includes the following operations.
@@ -334,7 +334,7 @@ class VnfLcmTerraformTest(base_v2.BaseVnfLcmTerraformV2Test):
         self.check_package_usage(self.basic_pkg, state='NOT_IN_USE')
 
     def test_instantiate_rollback(self):
-        """Test rollback operation for instantiation.
+        """Test rollback operation for instantiation
 
         * About LCM operations:
           This test includes the following operations.

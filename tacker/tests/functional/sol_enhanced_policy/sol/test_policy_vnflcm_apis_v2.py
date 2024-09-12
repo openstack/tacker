@@ -13,7 +13,6 @@
 
 import os
 import time
-import unittest
 import yaml
 
 from oslo_utils import uuidutils
@@ -77,7 +76,7 @@ class VnflcmAPIsV2VNFBase(CommonVnfLcmTest, BaseEnhancedPolicyTest):
         # for update vnf test
         update_vnf_path = base_utils.test_sample(
             "functional/sol_v2_common/update_vnf")
-        # for change ext conn
+        # for change current vnf package
         change_vnfpkg_from_image_to_image_path_2 = base_utils.test_sample(
             "functional/sol_v2_common/test_change_vnf_pkg_with_new_image")
 
@@ -813,11 +812,6 @@ class VnflcmAPIsV2VNFInstantiateWithoutArea(VnflcmAPIsV2VNFBase):
 
     @classmethod
     def setUpClass(cls):
-
-        # TODO(yasufum): Skip this class until the failure is fixed.
-        unittest.SkipTest(
-            "Cancel because setUpClass is failed and test is timeouted "
-            "for unknown failure while creating vnfpackages.")
 
         super().setUpClass()
 
