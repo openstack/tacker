@@ -54,7 +54,7 @@
   "vimConnectionInfo": [
     {
       "id": "vim-uuid",
-      "vimType": "ETSINFV.OPENSTACK_KEYSTONE.v_2",
+      "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_2",
       "vimConnectionId": "dummy-vimid",
       "interfaceInfo": {
         "key1": "value1",

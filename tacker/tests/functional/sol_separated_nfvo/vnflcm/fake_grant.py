@@ -46,7 +46,7 @@ class Grant:
 
         return [{
             "id": uuidsentinel.vim_connection_id,
-            "vimType": "ETSINFV.OPENSTACK_KEYSTONE.v_2",
+            "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_2",
             "interfaceInfo": {
                 "endpoint": "http://127.0.0.1/identity"
             },

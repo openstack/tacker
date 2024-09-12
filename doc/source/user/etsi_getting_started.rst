@@ -706,7 +706,7 @@ Instantiate VNF
      |                             |     {                                                                                                                |
      |                             |         "id": "e24f9796-a8e9-4cb0-85ce-5920dcddafa1",                                                                |
      |                             |         "vimId": "662e5f4f-3b16-4ca6-b560-28b62dd0e13b",                                                             |
-     |                             |         "vimType": "ETSINFV.OPENSTACK_KEYSTONE.v_2",                                                                 |
+     |                             |         "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_2",                                                                 |
      |                             |         "interfaceInfo": {},                                                                                         |
      |                             |         "accessInfo": {},                                                                                            |
      |                             |         "extra": {}                                                                                                  |

@@ -63,7 +63,7 @@ INSTANTIATION_BODY = {
         {
             'id': None,
             'vimId': None,
-            'vimType': 'ETSINFV.OPENSTACK_KEYSTONE.v_2'
+            'vimType': 'ETSINFV.OPENSTACK_KEYSTONE.V_2'
         }
     ]
 }

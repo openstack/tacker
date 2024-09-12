@@ -476,7 +476,7 @@ def get_change_ext_conn_request():
         vim_connection_info = [{
             "id": uuidsentinel.vim_connection_id,
             "vim_id": uuidsentinel.vim_id,
-            "vim_type": "ETSINFV.OPENSTACK_KEYSTONE.v_2",
+            "vim_type": "ETSINFV.OPENSTACK_KEYSTONE.V_2",
             "interface_info": {
                 "endpoint": "endpoint_value"},
             "access_info": {

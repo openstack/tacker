@@ -455,7 +455,7 @@ An example of a param file with optional parameters:
       {
         "id": "e24f9796-a8e9-4cb0-85ce-5920dcddafa1",
         "vimId": "8a0fd79d-e224-4c27-85f5-ee79c6e0d870",
-        "vimType": "ETSINFV.OPENSTACK_KEYSTONE.v_2"
+        "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_2"
       }
     ],
     "localizationLanguage": "ja",

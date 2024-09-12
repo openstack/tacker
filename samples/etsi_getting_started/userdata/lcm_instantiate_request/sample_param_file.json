@@ -33,7 +33,7 @@
     {
       "id": "e24f9796-a8e9-4cb0-85ce-5920dcddafa1",
       "vimId": "${vim_uuid}",
-      "vimType": "ETSINFV.OPENSTACK_KEYSTONE.v_2"
+      "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_2"
     }
   ],
   "additionalParams": {

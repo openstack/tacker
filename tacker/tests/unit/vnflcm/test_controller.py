@@ -1196,7 +1196,7 @@ class TestController(base.TestCase):
         vim_info = {
             "id": "7d24979f-491e-4fa3-8da1-4a374fe28d55",
             "vim_id": None,
-            "vim_type": "ETSINFV.OPENSTACK_KEYSTONE.v_2",
+            "vim_type": "ETSINFV.OPENSTACK_KEYSTONE.V_2",
             "interface_info": {"endpoint": "http://127.0.0.1/identity"},
             "access_info": {
                 "username": "nfv_user",

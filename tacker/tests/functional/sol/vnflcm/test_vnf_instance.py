@@ -251,7 +251,7 @@ class VnfLcmTest(base.BaseTackerTest):
             request_body["vimConnectionInfo"] = [
                 {"id": uuidutils.generate_uuid(),
                  "vimId": vim_id,
-                 "vimType": "ETSINFV.OPENSTACK_KEYSTONE.v_2"}]
+                 "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_2"}]
 
         return request_body
 
@@ -464,7 +464,7 @@ class VnfLcmTest(base.BaseTackerTest):
             request_body["vimConnectionInfo"] = [
                 {"id": uuidutils.generate_uuid(),
                  "vimId": vim_id,
-                 "vimType": "ETSINFV.OPENSTACK_KEYSTONE.v_2"}]
+                 "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_2"}]
 
         return request_body
 

@@ -133,7 +133,7 @@ class VnflcmAPIsV1Test(VnflcmAPIsV1Base):
             request_body["vimConnectionInfo"] = [
                 {"id": uuidutils.generate_uuid(),
                  "vimId": vim_id,
-                 "vimType": "ETSINFV.OPENSTACK_KEYSTONE.v_2"}]
+                 "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_2"}]
 
         return request_body
 
@@ -175,7 +175,7 @@ class VnflcmAPIsV1Test(VnflcmAPIsV1Base):
             username, inst_id, request_body, expected_status_code)
 
     def _change_ext_conn_vnf_request(self, vim_id=None, ext_vl=None,
-                                    vim_type="ETSINFV.OPENSTACK_KEYSTONE.v_2"):
+                                    vim_type="ETSINFV.OPENSTACK_KEYSTONE.V_2"):
         request_body = {}
         if ext_vl:
             request_body["extVirtualLinks"] = ext_vl

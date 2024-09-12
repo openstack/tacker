@@ -555,7 +555,7 @@ Result:
   |                             |     {                                                                                                                |
   |                             |         "id": "79a97d01-e5f3-4eaa-b2bc-8f513ecb8a56",                                                                |
   |                             |         "vimId": null,                                                                                               |
-  |                             |         "vimType": "ETSINFV.OPENSTACK_KEYSTONE.v_2",                                                                 |
+  |                             |         "vimType": "ETSINFV.OPENSTACK_KEYSTONE.V_2",                                                                 |
   |                             |         "interfaceInfo": {                                                                                           |
   |                             |             "endpoint": "http://127.0.0.1/identity"                                                                  |
   |                             |         },                                                                                                           |
