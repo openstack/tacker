@@ -701,9 +701,11 @@ def str_to_bytes(value):
 
 def str_to_bool(value):
     """Convert string to Bool"""
-    if value == 'True':
+    if isinstance(value, bool):
+        return value
+    elif value in ("True", "true"):
         return True
-    if value == 'False':
+    elif value in ("False", "false"):
         return False
     msg = _('Can\'t convert "{}" to Bool'.format(value))
     raise ValueError(msg)

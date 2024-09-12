@@ -129,3 +129,23 @@ class TestValidateUrl(testtools.TestCase):
         # mandatory parameter.
         result = utils.is_valid_url("https://10.10.10.10")
         self.assertFalse(result)
+
+
+class TestConvertStringToBool(testtools.TestCase):
+    def test_do_not_convert(self):
+        result = utils.str_to_bool(True)
+        self.assertTrue(result)
+        result = utils.str_to_bool(False)
+        self.assertFalse(result)
+
+    def test_convert_str_to_false(self):
+        result = utils.str_to_bool("false")
+        self.assertFalse(result)
+        result = utils.str_to_bool("False")
+        self.assertFalse(result)
+
+    def test_convert_str_to_true(self):
+        result = utils.str_to_bool("true")
+        self.assertTrue(result)
+        result = utils.str_to_bool("True")
+        self.assertTrue(result)
