@@ -25,8 +25,8 @@ Tacker Admin Guide
 
    Tacker Configuration and Policy: :doc:`/configuration/index`
 
-OAuth2.0
---------
+OAuth 2.0
+---------
 
 .. toctree::
    :maxdepth: 1
