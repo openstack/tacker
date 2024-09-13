@@ -151,6 +151,14 @@ FaultNotification AutoHealing
 
    fault_notification
 
+Kubernetes cluster deploy
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. toctree::
+   :maxdepth: 1
+
+   mgmt_driver_deploy_k8s_with_cilium_cni
+
 
 Prometheus Plugin
 ^^^^^^^^^^^^^^^^^
