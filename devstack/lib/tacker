@@ -438,7 +438,7 @@ function tacker_setup_default_vim_resources {
     echo "Create NFV VIM project $DEFAULT_VIM_PROJECT_NAME ..."
     get_or_create_project $DEFAULT_VIM_PROJECT_NAME
     echo "Create NFV VIM user $DEFAULT_VIM_USER ..."
-    get_or_create_user $DEFAULT_VIM_USER $DEFAULT_VIM_PASSWORD
+    get_or_create_user $DEFAULT_VIM_USER $DEFAULT_VIM_PASSWORD default
     get_or_add_user_project_role admin $DEFAULT_VIM_USER $DEFAULT_VIM_PROJECT_NAME
     # get_or_add_user_project_role advsvc $DEFAULT_VIM_USER $DEFAULT_VIM_PROJECT_NAME
 
@@ -451,9 +451,9 @@ function tacker_setup_default_vim_resources {
 
     echo "Set up target openstack vim resources ..."
     openstack --os-cloud=devstack-admin quota set \
-              --class --instances -1 --cores -1 --ram -1 default
+              --default --instances -1 --cores -1 --ram -1 default
     openstack --os-cloud=devstack-admin \
-              quota set --ports -1 $DEFAULT_VIM_PROJECT_NAME
+              quota set --ports -1 $DEFAULT_VIM_PROJECT_NAME --force
 
     openstack --os-region-name $REGION_NAME --os-project-name $DEFAULT_VIM_PROJECT_NAME \
               --os-user-domain-id default --os-username $DEFAULT_VIM_USER \
