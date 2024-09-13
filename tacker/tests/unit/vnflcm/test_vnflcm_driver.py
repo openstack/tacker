@@ -273,6 +273,45 @@ class TestVnflcmDriver(db_base.SqlTestCase):
             vnf_lcm_opoccs, body_data, vnfd_pkg_data, vnfd_id)
         self.assertEqual(1, self._vnf_manager.invoke.call_count)
 
+    @mock.patch.object(VnfLcmDriver, "_init_mgmt_driver_hash")
+    @mock.patch("tacker.vnflcm.utils._get_vnf_package_path")
+    @mock.patch.object(objects.vim_connection.VimConnectionInfo,
+        "obj_from_primitive")
+    @mock.patch.object(objects.vnf_instance.VnfInstance, "get_by_id")
+    def test_modify_vnf_in_not_instantiated(self, mock_get_by_id,
+            mock_vim, mock_get_vnf_package_path, mock_init_hash):
+        vim_connection_info = vim_connection.VimConnectionInfo(
+            vim_type="kubernetes")
+        mock_vim.return_value = vim_connection_info
+        vnf_instance = fakes.return_vnf_instance(
+            fields.VnfInstanceState.NOT_INSTANTIATED)
+        mock_get_by_id.return_value = vnf_instance
+        mock_get_vnf_package_path.return_value = "test_path"
+        mock_init_hash.return_value = {
+            "vnflcm_noop": "ffea638bfdbde3fb01f191bbe75b031859"
+                           "b18d663b127100eb72b19eecd7ed51"
+        }
+        vnf_lcm_opoccs = {
+            "vnf_instance_id": "c5d64d28-c868-4348-8a96-1a6976ce465f",
+            "operationParams": {
+                "metadata": {
+                    "configmap_secret_paths": [
+                        "Files/kubernetes/configmap_2.yaml",
+                        "Files/kubernetes/secret_2.yaml"
+                    ]
+                }
+            }
+        }
+        body_data = {}
+        vnfd_pkg_data = {}
+        vnfd_id = "122cbedf-0b50-4706-aad1-7106d590c0a7"
+        self._mock_vnf_manager()
+        driver = vnflcm_driver.VnfLcmDriver()
+        driver.modify_vnf(self.context, vnf_lcm_opoccs,
+                          body_data, vnfd_pkg_data, vnfd_id)
+
+        self.assertEqual(0, self._vnf_manager.invoke.call_count)
+
     @mock.patch('tacker.vnflcm.utils._make_final_vnf_dict')
     @mock.patch.object(VnfLcmDriver,
                        '_init_mgmt_driver_hash')

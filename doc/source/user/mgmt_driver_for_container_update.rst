@@ -582,9 +582,12 @@ as follows:
 
 .. note::
 
-    If you want to update ConfigMap and Secret, not only need to update
+  * If you want to update ConfigMap and Secret, not only need to update
     their yaml, but also need to specify the updated yaml file path in
     the metadata field of the request input parameter.
+
+  * The ``configmap_secret_paths`` specified in metadata is not stored in the
+    VnfInstance DB.
 
 
 Here is an example of updating CNF:

@@ -998,6 +998,11 @@ class VnfLcmController(wsgi.Controller):
             context.can(vnf_lcm_policies.VNFLCM % 'update_vnf',
                     target={'project_id': vnf_instance.tenant_id})
 
+        if (vnf_instance.instantiation_state == 'NOT_INSTANTIATED'
+                and 'vimConnectionInfo' in body):
+            msg = 'vimConnectionInfo cannot be modified in NOT_INSTANTIATED.'
+            return self._make_problem_detail(msg, 400, title='Bad Request')
+
         # get body
         body_data = {}
         body_data['vnf_instance_name'] = body.get('vnfInstanceName')
@@ -1006,6 +1011,8 @@ class VnfLcmController(wsgi.Controller):
         body_data['vnfd_id'] = body.get('vnfdId')
         if (body.get('vnfdId') is None and body.get('vnfPkgId')):
             body_data['vnf_pkg_id'] = body.get('vnfPkgId')
+        body_data['metadata'] = body.get('metadata')
+        body_data['vim_connection_info'] = body.get('vimConnectionInfo')
 
         # According to the ETSI NFV SOL document,
         # there is no API request/response
