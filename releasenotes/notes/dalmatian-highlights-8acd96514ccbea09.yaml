@@ -1,0 +1,108 @@
+---
+prelude: >
+  This release is for improving maintainability and
+  contains mainly bug fixes, revising documents and some performance
+  improvements.
+
+deprecations:
+  - Complete to drop dependency for SQLAlchemy1.x and move to 2.0.
+
+fixes:
+  - |
+    Fix `bug 2078012`_ for removing the case of infinite loop when checking
+    the enhanced policy.
+
+    .. _bug 2078012: https://bugs.launchpad.net/tacker/+bug/2078012
+
+  - |
+    Fix `bug 2069386`_ for modifying VNF instance in v1 APIs.
+
+    .. _bug 2069386: https://bugs.launchpad.net/tacker/+bug/2069386
+
+  - |
+    Fix `bug 2069388`_ for the issue of v1 grant-request setting incorrect.
+
+    .. _bug 2069388: https://bugs.launchpad.net/tacker/+bug/2069388
+
+  - |
+    Fix `bug 2069549`_, in which an error is occurred if `cert_verify` is
+    given as other than string, by supporting boolean values in addition
+    to string.
+
+    .. _bug 2069549: https://bugs.launchpad.net/tacker/+bug/2069549
+
+  - |
+    Fix `bug 2071399`_ to enable NovaClient to use TLS verification.
+
+    .. _bug 2071399: https://bugs.launchpad.net/tacker/+bug/2071399
+
+  - |
+    Fix `bug 2069396`_ to remove the glance image on v1 rollback.
+
+    .. _bug 2069396: https://bugs.launchpad.net/tacker/+bug/2069396
+
+  - |
+    Fix `bug 2069389`_ for the issue of healing after scale out in the v1.
+
+    .. _bug 2069389: https://bugs.launchpad.net/tacker/+bug/2069389
+
+  - |
+    Fix `bug 2077355`_ for tox debug not work for invalid config register.
+
+    .. _bug 2077355: https://bugs.launchpad.net/tacker/+bug/2077355
+
+  - |
+    Fix `bug 2064974`_ for the issue caused if multiple PMJobs are reported.
+
+    .. _bug 2064974: https://bugs.launchpad.net/tacker/+bug/2064974
+
+  - |
+    Fix `bug 2069387`_ for the issue of vimConnectionInfo in v1 instantiate.
+
+    .. _bug 2069387: https://bugs.launchpad.net/tacker/+bug/2069387
+
+  - |
+    Fix `bug 2069392`_ for the issue of the paging of v1 vnflcm list.
+
+    .. _bug 2069392: https://bugs.launchpad.net/tacker/+bug/2069392
+
+  - |
+    Fix `bug 2069589`_ for the issue that scale is not in the links of v1.
+
+    .. _bug 2069589: https://bugs.launchpad.net/tacker/+bug/2069589
+
+  - |
+    Fix `bug 2069800`_ for invalid vim type for ETSI's definition.
+
+    .. _bug 2069800: https://bugs.launchpad.net/tacker/+bug/2069800
+
+  - |
+    Fix `bug 2075282`_ for the issue of v1 vnflcm when state is ROLLED_BACK.
+
+    .. _bug 2075282: https://bugs.launchpad.net/tacker/+bug/2075282
+
+  - |
+    Fix `bug 2078288`_ for Kubernetes service resource check in v2 API.
+
+    .. _bug 2078288: https://bugs.launchpad.net/tacker/+bug/2078288
+
+other:
+  - Create a VNF Package Generation Tool for helping users to deploy.
+
+  - Make auto scale and heal effective.
+
+  - Performance enhancement of v2 list APIs.
+
+  - Add docs for deploying kubernetes cluster with Cilium.
+
+  - Update usage of external OAuth server admin docs.
+
+  - Update using OAuth 2.0 mTLS for Tacker document.
+
+  - Add VNFLCM with v2 Tacker CLI Reference document
+
+  - Keep new RBAC disable by default as one of the task of community's goal.
+
+  - |
+    Revise functional tests for tiny update for such as wrong comments,
+    function names or so.
