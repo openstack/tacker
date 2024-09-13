@@ -129,6 +129,10 @@ class PolicyCheckError(TackerException):
     message = _("Failed to check policy %(policy)s because %(reason)s")
 
 
+class PolicyTargetCheckError(Forbidden):
+    message = _("Failed to check policy about target because %(reason)s")
+
+
 class InUse(TackerException):
     message = _("The resource is in use")
 

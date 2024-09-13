@@ -228,11 +228,36 @@ class BaseVnfPackageAPIsTest(BaseTackerTest, BaseEnhancedPolicyTest):
         # step 29 PKG-Delete, Resource Group B / User Group all
         self._step_pkg_delete('user_all', pkg_b, 204)
 
+    def _test_vnf_package_apis_enhanced_policy_special_role(self, csar_name):
+        # step 1 PKG-Create, Resource Group A / User Group A
+        pkg_a = self._step_pkg_create('user_a')
+
+        # step 2 PKG-Upload-content, Vendor Special Role / User Group A
+        self._step_pkg_upload_content(
+            'user_a', pkg_a, csar_name, 'all', 403)
+
+        # step 3 PKG-Upload-content, Vendor Special Role / User Group all
+        self._step_pkg_upload_content(
+            'user_all', pkg_a, csar_name, 'all', 202)
+
+        # step 4 PKG-Update, Vendor Special Role / User Group A
+        self._step_pkg_update('user_a', pkg_a, 403)
+
+        # step 5 PKG-Update, Vendor Special Role / User Group all
+        self._step_pkg_update('user_all', pkg_a, 200)
+
+        # step 6 PKG-Delete, Vendor Special Role / User Group all
+        self._step_pkg_delete('user_all', pkg_a, 204)
+
 
 class VnfPackageAPIsTest(BaseVnfPackageAPIsTest):
 
     def test_vnf_package_apis_enhanced_policy_vnf(self):
         self._test_vnf_package_apis_enhanced_policy('test_enhanced_policy')
+
+    def test_vnf_package_apis_enhanced_policy_vnf_special_role(self):
+        self._test_vnf_package_apis_enhanced_policy_special_role(
+            'test_enhanced_policy')
 
 
 class CnfPackageAPIsTest(BaseVnfPackageAPIsTest):

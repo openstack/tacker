@@ -77,7 +77,7 @@ def init(conf=cfg.CONF, policy_file=None, suppress_deprecation_warnings=False):
         _ENFORCER.load_rules()
 
 
-def _pre_enhanced_policy_check(target, credentials):
+def _pre_enhanced_policy_check(target, credentials, target_chk=True):
     """Preprocesses target and credentials for enhanced tacker policy.
 
     This method does the following things:
@@ -105,14 +105,28 @@ def _pre_enhanced_policy_check(target, credentials):
             'vendor': ['*', 'company_A'],
             'tenant: ['*', 'default']
         }
-    2) Convert special value `all` to the corresponding attribute value in
+
+    2) Check whether using special role(ex: `all`) in target
+    As not assume using such in the further procedure, this method return here
+    in case check is NG.
+    However, once a object with the special role set as an attribute has been
+    registered, this check will prevent access to that object.
+    Therefore, for only user who has credentials with admin role or special
+    role(ex: `Tenant_all`) this check is skipped.
+
+    3) Convert special value `all` to the corresponding attribute value in
     target.
 
     :param target: a dictionary of the attributes of the object
         being accessed.
     :param credentials: The information about the user performing the action.
+    :param target_chk: boolean
+        True: execute check of 2)
+        False: skip check of 2)
     :return tgt: The preprocessed target is returned.
     :return user_attrs: The preprocessed credentials is returned.
+    :raises tacker.common.exceptions.PolicyTargetCheckError
+        if check of 2) is NG
     """
     if not cfg.CONF.oslo_policy.enhanced_tacker_policy:
         return target, credentials
@@ -124,6 +138,7 @@ def _pre_enhanced_policy_check(target, credentials):
 
     LOG.debug(f'target: {target}')
 
+    special_roles = {'area': r'all@\w+', 'vendor': 'all', 'tenant': 'all'}
     convert_map = {
         'area_': 'area',
         'vendor_': 'vendor',
@@ -134,7 +149,7 @@ def _pre_enhanced_policy_check(target, credentials):
         'vendor': ['*'],
         'tenant': ['*']
     }
-    # Convert special roles to enhanced policy attributes in credentials.
+    # 1) Convert special roles to enhanced policy attributes in credentials.
     for role in credentials.get('roles'):
         role = role.lower()
         for prefix, key in convert_map.items():
@@ -143,9 +158,33 @@ def _pre_enhanced_policy_check(target, credentials):
                 if attr:
                     user_attrs[key].append(attr)
 
+    # 2) Check whether using special role(ex: `all`) in target,
+    if target_chk and not credentials.get('is_admin', False):
+        for k, v in tgt.items():
+            if (k in special_roles and
+                    re.match(special_roles[k], v)):
+                chk_all = False
+                # Not NG in case credentials has special role
+                for uv in user_attrs[k]:
+                    if re.match(special_roles[k], uv):
+                        # In case 'area':
+                        # OK case1 : credential is all@all and
+                        #   target is all@region_A
+                        # OK case2 : credential is all@region_A and
+                        #   target is all@region_A
+                        # NG case  : credential is all@region_A and
+                        #   target is all@region_B
+                        if k == 'area' and uv != 'all@all' and uv != v.lower():
+                            continue
+                        chk_all = True
+                if not chk_all:
+                    msg = f'`{v}` of {k} in target is special role'
+                    LOG.error(msg)
+                    raise exceptions.PolicyTargetCheckError(reason=msg)
+
     common_keys = user_attrs.keys() & tgt.keys()
 
-    # Convert special value `all` to the corresponding attribute value in
+    # 3) Convert special value `all` to the corresponding attribute value in
     # target.
     for key in common_keys:
         tgt[key] = tgt[key].lower()
@@ -153,10 +192,11 @@ def _pre_enhanced_policy_check(target, credentials):
         if tgt.get(key) == '*':
             continue
         to_remove = []
+        orig_attrs = copy.deepcopy(attrs)
         if 'area' == key:
             if not is_valid_area(tgt.get(key)):
                 continue
-            for attr in attrs:
+            for attr in orig_attrs:
                 if not is_valid_area(attr):
                     continue
                 if 'all@all' == attr:
@@ -183,7 +223,7 @@ def _pre_enhanced_policy_check(target, credentials):
                     #       'all@region_A' -> to be removed.
 
         else:
-            for attr in attrs:
+            for attr in orig_attrs:
                 if 'all' == attr:
                     # example:
                     #   target = {'vendor': 'company_A'}
@@ -217,9 +257,16 @@ def authorize(context, action, target, do_raise=True, exc=None):
     # readable way.
     if context.system_scope:
         credentials['system'] = context.system_scope
-    target, credentials = _pre_enhanced_policy_check(target, credentials)
     if not exc:
         exc = exceptions.PolicyNotAuthorized
+
+    try:
+        target, credentials = _pre_enhanced_policy_check(target, credentials)
+    except exceptions.PolicyTargetCheckError:
+        LOG.error('Policy check for %(action)s failed with target check '
+              '%(target)s', {'action': action, 'target': target})
+        raise exc(action=action)
+
     try:
         result = _ENFORCER.authorize(action, target, credentials,
                                      do_raise=do_raise, exc=exc, action=action)
@@ -554,7 +601,12 @@ def check(context, action, target, plugin=None, might_not_exist=False,
             target.update({'area': area})
     if 'tenant_id' in target:
         target['project_id'] = target['tenant_id']
-    target, credentials = _pre_enhanced_policy_check(target, credentials)
+    try:
+        target, credentials = _pre_enhanced_policy_check(target, credentials)
+    except exceptions.PolicyTargetCheckError:
+        LOG.error('Policy check for %(action)s failed with target check '
+              '%(target)s', {'action': action, 'target': target})
+        return False
 
     result = _ENFORCER.enforce(match_rule,
                                target,
@@ -602,8 +654,21 @@ def enforce(context, action, target, plugin=None, pluralized=None,
             target.update({'area': area})
     if 'tenant_id' in target:
         target['project_id'] = target['tenant_id']
-    target, credentials = _pre_enhanced_policy_check(target, credentials)
 
+    # About target_chk:
+    # Set target_chk=False, as not execute target check.
+    # The reason is that matching with the behavior of other APIs
+    # that pass through the 'authorize' method.
+    # ex:
+    #   1 openstack vim register with area set special role
+    #     (this method is passed through, for policy check)
+    #     -> target_chk=True, policy check `NG`
+    #   2 instantiate with request parameter area set special role
+    #     (`authorize` method is passed through, for policy check)
+    #     -> target_chk=True, policy check `OK`
+    #   -> There is a difference in the behavior of 1 and 2
+    target, credentials = _pre_enhanced_policy_check(
+        target, credentials, target_chk=False)
     try:
         result = _ENFORCER.enforce(rule, target, credentials, action=action,
                                    do_raise=True, exc=exc)

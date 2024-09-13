@@ -124,6 +124,8 @@ CONF = config.CONF
 
 def get_test_data_policy_instantiate():
     rules = {POLICY_NAME.format('instantiate'): "vendor:%(vendor)s"}
+    rules_admin = {POLICY_NAME.format('instantiate'):
+                   "(vendor:%(vendor)s or role:admin)"}
     test_data = [
         # 'expected_status_code': http_client.ACCEPTED
         {
@@ -136,6 +138,18 @@ def get_test_data_policy_instantiate():
             'vnf_instance_updates': {'vnfProvider': 'provider_A'},
             'rules': rules,
             'roles': ['VENDOR_all'],
+            'expected_status_code': http_client.ACCEPTED
+        },
+        {
+            'vnf_instance_updates': {'vnfProvider': 'all'},
+            'rules': rules,
+            'roles': ['VENDOR_all'],
+            'expected_status_code': http_client.ACCEPTED
+        },
+        {
+            'vnf_instance_updates': {'vnfProvider': 'all'},
+            'rules': rules_admin,
+            'roles': ['admin'],
             'expected_status_code': http_client.ACCEPTED
         },
         # 'expected_status_code': http_client.FORBIDDEN
@@ -151,6 +165,12 @@ def get_test_data_policy_instantiate():
             'roles': ['VENDOR_provider_B'],
             'expected_status_code': http_client.FORBIDDEN
         },
+        {
+            'vnf_instance_updates': {'vnfProvider': 'all'},
+            'rules': rules,
+            'roles': ['VENDOR_provider_A'],
+            'expected_status_code': http_client.FORBIDDEN
+        },
     ]
     return test_data
 
@@ -162,6 +182,20 @@ def get_test_data_policy_vnf_instantiated(action, success_status_code):
         vimType='openstack',
         access_info={"key1": 'value1', "key2": 'value2'},
         extra={'area': 'area_A@region_A'}
+    )
+    vim_connection_info_area_all_region_a = objects.VimConnectionInfo(
+        id='f8c35bd0-4d67-4436-9f11-14b8a84c92aa',
+        vimId='f8c35bd0-4d67-4436-9f11-14b8a84c92aa',
+        vimType='openstack',
+        access_info={"key1": 'value1', "key2": 'value2'},
+        extra={'area': 'all@region_A'}  # special role
+    )
+    vim_connection_info_area_all_region_all = objects.VimConnectionInfo(
+        id='f8c35bd0-4d67-4436-9f11-14b8a84c92aa',
+        vimId='f8c35bd0-4d67-4436-9f11-14b8a84c92aa',
+        vimType='openstack',
+        access_info={"key1": 'value1', "key2": 'value2'},
+        extra={'area': 'all@all'}  # special role
     )
     vim_connection_info_without_area = objects.VimConnectionInfo(
         id='f8c35bd0-4d67-4436-9f11-14b8a84c92aa',
@@ -177,10 +211,23 @@ def get_test_data_policy_vnf_instantiated(action, success_status_code):
         'vnfProvider': 'provider_A',
         'vimConnectionInfo': {'vim1': vim_connection_info_without_area}
     }
+    vnf_instance_updates_area_all_region_a = {
+        'vnfProvider': 'provider_A',
+        'vimConnectionInfo': {'vim1': vim_connection_info_area_all_region_a}
+    }
+    vnf_instance_updates_area_all_region_all = {
+        'vnfProvider': 'provider_A',
+        'vimConnectionInfo': {'vim1': vim_connection_info_area_all_region_all}
+    }
     rule_area_vendor_tenant = {
         POLICY_NAME.format(action):
             "area:%(area)s and vendor:%(vendor)s and "
             "tenant:%(tenant)s"
+    }
+    rule_area_vendor_tenant_admin = {
+        POLICY_NAME.format(action):
+            "area:%(area)s and vendor:%(vendor)s and "
+            "tenant:%(tenant)s or role:admin"
     }
     rule_vendor = {
         POLICY_NAME.format(action): "vendor:%(vendor)s"
@@ -224,6 +271,62 @@ def get_test_data_policy_vnf_instantiated(action, success_status_code):
                 'AREA_area_A@region_A',
                 'VENDOR_provider_A',
                 'TENANT_tenant_A'
+            ],
+            'expected_status_code': success_status_code
+        },
+        {
+            'vnf_instance_updates': vnf_instance_updates_area_all_region_a,
+            'tenant': 'tenant_A',
+            'rules': rule_area_vendor_tenant,
+            'roles': [
+                'AREA_all@region_A',
+                'VENDOR_provider_A',
+                'TENANT_tenant_A'
+            ],
+            'expected_status_code': success_status_code
+        },
+        {
+            'vnf_instance_updates': vnf_instance_updates_area_all_region_a,
+            'tenant': 'tenant_A',
+            'rules': rule_area_vendor_tenant,
+            'roles': [
+                'AREA_all@all',
+                'VENDOR_provider_A',
+                'TENANT_tenant_A'
+            ],
+            'expected_status_code': success_status_code
+        },
+        {
+            'vnf_instance_updates': vnf_instance_updates_area_all_region_all,
+            'tenant': 'tenant_A',
+            'rules': rule_area_vendor_tenant,
+            'roles': [
+                'AREA_all@all',
+                'VENDOR_provider_A',
+                'TENANT_tenant_A'
+            ],
+            'expected_status_code': success_status_code
+        },
+        {
+            'vnf_instance_updates': vnf_instance_updates_area_all_region_all,
+            'tenant': 'tenant_A',
+            'rules': rule_area_vendor_tenant_admin,
+            'roles': [
+                'AREA_all@region_A',
+                'VENDOR_provider_A',
+                'TENANT_tenant_A',
+                'admin'
+            ],
+            'expected_status_code': success_status_code
+        },
+        {
+            'vnf_instance_updates': vnf_instance_updates,
+            'tenant': 'all',  # special role
+            'rules': rule_area_vendor_tenant,
+            'roles': [
+                'AREA_area_A@region_A',
+                'VENDOR_provider_A',
+                'TENANT_all'
             ],
             'expected_status_code': success_status_code
         },
@@ -395,7 +498,40 @@ def get_test_data_policy_vnf_instantiated(action, success_status_code):
                 'VENDOR_provider_B',
             ],
             'expected_status_code': http_client.FORBIDDEN
-        }
+        },
+        {
+            'vnf_instance_updates': vnf_instance_updates_area_all_region_all,
+            'tenant': 'tenant_A',
+            'rules': rule_area_vendor_tenant,
+            'roles': [
+                'AREA_all@region_A',
+                'VENDOR_provider_A',
+                'TENANT_tenant_A'
+            ],
+            'expected_status_code': http_client.FORBIDDEN
+        },
+        {
+            'vnf_instance_updates': vnf_instance_updates_area_all_region_a,
+            'tenant': 'tenant_A',
+            'rules': rule_area_vendor_tenant,
+            'roles': [
+                'AREA_all@region_B',
+                'VENDOR_provider_A',
+                'TENANT_tenant_A'
+            ],
+            'expected_status_code': http_client.FORBIDDEN
+        },
+        {
+            'vnf_instance_updates': vnf_instance_updates,
+            'tenant': 'all',  # special role
+            'rules': rule_area_vendor_tenant,
+            'roles': [
+                'AREA_area_A@region_A',
+                'VENDOR_provider_A',
+                'TENANT_tenant_A'
+            ],
+            'expected_status_code': http_client.FORBIDDEN
+        },
     ]
     return test_data
 
@@ -416,6 +552,12 @@ def get_test_data_policy_delete():
             'roles': ['VENDOR_all'],
             'expected_status_code': http_client.NO_CONTENT
         },
+        {
+            'vnf_instance_updates': {'vnfProvider': 'all'},  # special role
+            'rules': rules,
+            'roles': ['VENDOR_all'],
+            'expected_status_code': http_client.NO_CONTENT
+        },
         # 'expected_status_code': http_client.FORBIDDEN
         {
             'vnf_instance_updates': {'vnfProvider': 'provider_A'},
@@ -425,6 +567,12 @@ def get_test_data_policy_delete():
         },
         {
             'vnf_instance_updates': {'vnfProvider': 'provider_A'},
+            'rules': rules,
+            'roles': ['VENDOR_provider_B'],
+            'expected_status_code': http_client.FORBIDDEN
+        },
+        {
+            'vnf_instance_updates': {'vnfProvider': 'all'},  # special role
             'rules': rules,
             'roles': ['VENDOR_provider_B'],
             'expected_status_code': http_client.FORBIDDEN
@@ -1995,6 +2143,8 @@ class TestVnflcmV2EnhancedPolicy(TestVnflcmV2):
         request = requests.Request()
         ctx = context.Context('fake', 'fake', roles=roles)
         ctx.api_version = api_version.APIVersion("2.0.0")
+        if 'admin' in roles:
+            ctx.is_admin = True
         request.context = ctx
         return request
 
