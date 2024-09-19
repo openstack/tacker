@@ -450,8 +450,10 @@ function tacker_setup_default_vim_resources {
     cat $VIM_CONFIG_FILE
 
     echo "Set up target openstack vim resources ..."
+    # TODO(tkajinam): Replace --class by --default when openstackclient in u-c
+    #                 is again bumped.
     openstack --os-cloud=devstack-admin quota set \
-              --default --instances -1 --cores -1 --ram -1 default
+              --class --instances -1 --cores -1 --ram -1 default
     openstack --os-cloud=devstack-admin \
               quota set --ports -1 $DEFAULT_VIM_PROJECT_NAME --force
 
