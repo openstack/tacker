@@ -16,12 +16,12 @@
 """Context: context for security/db session."""
 
 import copy
-import datetime
 
 from castellan.common.credentials import keystone_password
 from oslo_config import cfg
 from oslo_context import context as oslo_context
 from oslo_db.sqlalchemy import enginefacade
+from oslo_utils import timeutils
 
 from tacker.common import exceptions
 from tacker.common.ext_oauth2_auth import ExtOAuth2Auth
@@ -53,7 +53,7 @@ class ContextBase(oslo_context.RequestContext):
         self.user_name = user_name
 
         if not timestamp:
-            timestamp = datetime.datetime.utcnow()
+            timestamp = timeutils.utcnow()
         self.timestamp = timestamp
         # self.is_advsvc = is_advsvc
         # if self.is_advsvc is None:

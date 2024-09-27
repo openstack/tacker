@@ -14,9 +14,8 @@
 #    under the License.
 
 
-from datetime import datetime
-
 from oslo_log import log as logging
+from oslo_utils import timeutils
 from oslo_utils import uuidutils
 
 from tacker.sol_refactored.common import exceptions as sol_ex
@@ -71,7 +70,7 @@ def make_lcmocc_notif_data(subsc, lcmocc, endpoint):
         id=uuidutils.generate_uuid(),
         notificationType="VnfLcmOperationOccurrenceNotification",
         subscriptionId=subsc.id,
-        timeStamp=datetime.utcnow(),
+        timeStamp=timeutils.utcnow(),
         operationState=lcmocc.operationState,
         vnfInstanceId=lcmocc.vnfInstanceId,
         operation=lcmocc.operation,
@@ -609,13 +608,13 @@ def check_lcmocc_in_progress(context, inst_id):
 
 def update_lcmocc_status(lcmocc, op_state):
     lcmocc.operationState = op_state
-    lcmocc.stateEnteredTime = datetime.utcnow()
+    lcmocc.stateEnteredTime = timeutils.utcnow()
 
 
 def new_lcmocc(inst_id, operation, req_body,
                op_state=fields.LcmOperationStateType.STARTING,
                auto_invocation=False):
-    now = datetime.utcnow()
+    now = timeutils.utcnow()
     lcmocc = objects.VnfLcmOpOccV2(
         id=uuidutils.generate_uuid(),
         operationState=op_state,

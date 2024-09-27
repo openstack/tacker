@@ -13,13 +13,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 import copy
-from datetime import datetime
 import ddt
 from http import client as http_client
 import requests
 from unittest import mock
 
 from oslo_policy import policy as oslo_policy
+from oslo_utils import timeutils
 from oslo_utils import uuidutils
 
 from tacker.common.exceptions import PolicyNotAuthorized
@@ -830,8 +830,8 @@ class TestVnflcmV2(db_base.SqlTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=op_state,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.INSTANTIATE,
             isAutomaticInvocation=False,
@@ -1447,8 +1447,8 @@ class TestVnflcmV2(db_base.SqlTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.FAILED_TEMP,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId='inst-1',
             operation=fields.LcmOperationType.INSTANTIATE,
             isAutomaticInvocation=False,
@@ -1471,8 +1471,8 @@ class TestVnflcmV2(db_base.SqlTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.FAILED_TEMP,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId='inst-1',
             operation=fields.LcmOperationType.HEAL,
             isAutomaticInvocation=False,
@@ -1512,8 +1512,8 @@ class TestVnflcmV2(db_base.SqlTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.FAILED_TEMP,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId='inst-1',
             operation=fields.LcmOperationType.INSTANTIATE,
             isAutomaticInvocation=False,
@@ -1536,8 +1536,8 @@ class TestVnflcmV2(db_base.SqlTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.FAILED_TEMP,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId='inst-1',
             operation=fields.LcmOperationType.HEAL,
             isAutomaticInvocation=False,
@@ -2064,8 +2064,8 @@ class TestVnflcmV2EnhancedPolicy(TestVnflcmV2):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=op_state,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.INSTANTIATE,
             isAutomaticInvocation=False,

@@ -13,9 +13,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from datetime import datetime
-
 from oslo_log import log as logging
+from oslo_utils import timeutils
 from oslo_utils import uuidutils
 
 from tacker.sol_refactored.common import exceptions as sol_ex
@@ -61,7 +60,7 @@ def make_alarm_notif_data(subsc, alarm, endpoint):
             id=uuidutils.generate_uuid(),
             notificationType="AlarmClearedNotification",
             subscriptionId=subsc.id,
-            timeStamp=datetime.utcnow(),
+            timeStamp=timeutils.utcnow(),
             alarmId=alarm.id,
             alarmClearedTime=alarm.alarmClearedTime,
             _links=objects.AlarmClearedNotificationV1_Links(
@@ -76,7 +75,7 @@ def make_alarm_notif_data(subsc, alarm, endpoint):
             id=uuidutils.generate_uuid(),
             notificationType="AlarmNotification",
             subscriptionId=subsc.id,
-            timeStamp=datetime.utcnow(),
+            timeStamp=timeutils.utcnow(),
             alarm=alarm,
             _links=objects.AlarmNotificationV1_Links(
                 subscription=objects.NotificationLink(

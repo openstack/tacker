@@ -18,7 +18,9 @@ import datetime
 import iso8601
 import sys
 
+from oslo_utils import timeutils
 from oslo_utils import uuidutils
+
 from tacker.common import exceptions
 from tacker import context
 from tacker.db.db_sqlalchemy import api
@@ -893,8 +895,8 @@ class TestDbMigrationToV2(SqlTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=op_state,
-            stateEnteredTime=datetime.datetime.utcnow(),
-            startTime=datetime.datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields_v2.LcmOperationType.INSTANTIATE,
             isAutomaticInvocation=False,
@@ -906,8 +908,8 @@ class TestDbMigrationToV2(SqlTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=op_state,
-            stateEnteredTime=datetime.datetime.utcnow(),
-            startTime=datetime.datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields_v2.LcmOperationType.INSTANTIATE,
             isAutomaticInvocation=False,

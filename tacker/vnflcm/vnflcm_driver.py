@@ -15,7 +15,6 @@
 
 import ast
 import copy
-from datetime import datetime
 import functools
 import hashlib
 import inspect
@@ -106,7 +105,7 @@ def revert_to_error_scale(function):
                                                  detail=str(ex))
 
                 try:
-                    timestamp = datetime.utcnow()
+                    timestamp = timeutils.utcnow()
                     vnf_lcm_op_occ = vnf_info['vnf_lcm_op_occ']
                     vnf_lcm_op_occ.operation_state = 'FAILED_TEMP'
                     vnf_lcm_op_occ.state_entered_time = timestamp
@@ -241,7 +240,7 @@ def revert_to_error_rollback(function):
                                                  detail=str(ex))
 
                 try:
-                    timestamp = datetime.utcnow()
+                    timestamp = timeutils.utcnow()
                     vnf_lcm_op_occ = vnf_info['vnf_lcm_op_occ']
                     vnf_lcm_op_occ.operation_state = 'FAILED_TEMP'
                     vnf_lcm_op_occ.state_entered_time = timestamp
@@ -1342,7 +1341,7 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
     def scale_vnf(self, context, vnf_info, vnf_instance, scale_vnf_request):
         LOG.info("Request received for scale vnf '%s'", vnf_instance.id)
 
-        timestamp = datetime.utcnow()
+        timestamp = timeutils.utcnow()
         vnf_lcm_op_occ = vnf_info['vnf_lcm_op_occ']
 
         vnf_lcm_op_occ.operation_state = 'PROCESSING'
@@ -1810,7 +1809,7 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
 
         vnf_lcm_op_occs.error_point = EP.VNF_CONFIG_START
 
-        timestamp = datetime.utcnow()
+        timestamp = timeutils.utcnow()
         vnf_lcm_op_occs.operation_state = 'ROLLED_BACK'
         vnf_lcm_op_occs.state_entered_time = timestamp
         vnf_lcm_op_occs.resource_changes = resource_changes
@@ -1844,7 +1843,7 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                     vnf_info['after_scale_level'] = scale.scale_level
                     break
 
-        timestamp = datetime.utcnow()
+        timestamp = timeutils.utcnow()
 
         vnf_lcm_op_occs.operation_state = 'ROLLING_BACK'
         vnf_lcm_op_occs.state_entered_time = timestamp

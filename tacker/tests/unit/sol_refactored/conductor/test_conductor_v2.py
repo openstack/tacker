@@ -13,12 +13,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from datetime import datetime
 from unittest import mock
 
 import ddt
 from kubernetes import client
 from oslo_log import log as logging
+from oslo_utils import timeutils
 from oslo_utils import uuidutils
 from tooz.drivers import file
 
@@ -66,8 +66,8 @@ class TestConductorV2(db_base.SqlTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=op_state,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.INSTANTIATE,
             isAutomaticInvocation=False,
@@ -99,8 +99,8 @@ class TestConductorV2(db_base.SqlTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=op_state,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.CHANGE_VNFPKG,
             isAutomaticInvocation=False,
@@ -555,8 +555,8 @@ class TestConductorV2(db_base.SqlTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=op_state,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.SCALE,
             isAutomaticInvocation=False,

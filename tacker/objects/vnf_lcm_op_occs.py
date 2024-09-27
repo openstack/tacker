@@ -10,8 +10,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from datetime import datetime
-
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
 from oslo_utils import timeutils
@@ -67,7 +65,7 @@ def _vnf_lcm_op_occ_update(context, values):
     update = {'operation_state': values.operation_state,
               'state_entered_time': values.state_entered_time,
               'error_point': values.error_point,
-              'updated_at': datetime.utcnow()}
+              'updated_at': timeutils.utcnow()}
     LOG.debug('values %s', values)
     if 'resource_changes' in values:
         if values.resource_changes:

@@ -267,7 +267,7 @@ def grant_error_common(function):
                 try:
                     vnf_lcm_op_occs = objects.VnfLcmOpOcc.get_by_id(
                         context, vnf_lcm_op_occ_id)
-                    timestamp = datetime.datetime.utcnow()
+                    timestamp = timeutils.utcnow()
                     vnf_lcm_op_occs.operation_state = 'ROLLED_BACK'
                     vnf_lcm_op_occs.state_entered_time = timestamp
                     vnf_lcm_op_occs.save()
@@ -927,7 +927,7 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
         csar zip files and vnf packages files from the extracted path.
         """
 
-        time_duration = datetime.datetime.utcnow() - datetime.timedelta(
+        time_duration = timeutils.utcnow() - datetime.timedelta(
             seconds=CONF.vnf_package_delete_interval)
         filters = {'field': 'deleted_at', 'model': 'VnfPackage',
                    'value': time_duration,
@@ -1893,8 +1893,7 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
                     notification['links']['subscription']['href'] = \
                         CONF.vnf_lcm.endpoint_url + \
                         "/vnflcm/v1/subscriptions/" + line.id
-                notification['timeStamp'] = datetime.datetime.utcnow(
-                ).isoformat()
+                notification['timeStamp'] = timeutils.utcnow().isoformat()
                 try:
                     self.__set_auth_subscription(line)
 

@@ -1402,7 +1402,7 @@ class VnfLcmController(wsgi.Controller):
 
         if vnf_info['before_error_point'] == fields.ErrorPoint.INITIAL:
             vnf_lcm_op_occs_id = uuidutils.generate_uuid()
-            timestamp = datetime.datetime.utcnow()
+            timestamp = timeutils.utcnow()
             operation_params = {
                 'type': scale_vnf_request.type,
                 'aspect_id': scale_vnf_request.aspect_id,
@@ -1760,7 +1760,7 @@ class VnfLcmController(wsgi.Controller):
 
             vnf_lcm_op_occs.operation_state = "FAILED"
             vnf_lcm_op_occs.state_entered_time = \
-                datetime.datetime.utcnow().isoformat()
+                timeutils.utcnow().isoformat()
             vnf_lcm_op_occs.updated_at = vnf_lcm_op_occs.state_entered_time
 
             error_details = objects.ProblemDetails(
