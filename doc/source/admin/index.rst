@@ -25,15 +25,23 @@ Tacker Admin Guide
 
    Tacker Configuration and Policy: :doc:`/configuration/index`
 
+TLS
+---
+
+.. toctree::
+   :maxdepth: 1
+
+   configure_tls
+
 OAuth 2.0
 ---------
 
 .. toctree::
    :maxdepth: 1
 
-   oauth2_usage_guide
-   oauth2_mtls_usage_guide
+   keystone_oauth2_usage_guide
    external_oauth2_usage_guide
+   oauth2_client_usage_guide
 
 OpenID
 ------
