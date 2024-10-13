@@ -425,13 +425,10 @@
       - openstack/heat
       - openstack/horizon
       - openstack/keystone
-      - openstack/kuryr-kubernetes
       - openstack/neutron
       - openstack/nova
-      - openstack/octavia
       - openstack/placement
       - openstack/python-barbicanclient
-      - openstack/python-octaviaclient
       - openstack/python-tackerclient
       - openstack/tacker
       - openstack/tacker-horizon
@@ -441,7 +438,6 @@
           barbican: https://opendev.org/openstack/barbican
           heat: https://opendev.org/openstack/heat
           neutron: https://opendev.org/openstack/neutron
-          octavia: https://opendev.org/openstack/octavia
         devstack_services:
           base: false
           c-api: true
@@ -463,11 +459,6 @@
           n-novnc: true
           n-sch: true
           neutron: true
-          o-api: true
-          o-cw: true
-          o-hk: true
-          o-hm: true
-          octavia: true
           placement-api: true
           placement-client: true
           ovn-controller: true
@@ -506,18 +497,15 @@
         devstack_local_conf: {}
         devstack_plugins:
           devstack-plugin-container: https://opendev.org/openstack/devstack-plugin-container
-          kuryr-kubernetes: https://opendev.org/openstack/kuryr-kubernetes
         devstack_services:
           etcd3: false
-          kubernetes-master: true
-          kuryr-daemon: true
-          kuryr-kubernetes: true
-          octavia: false
           ovn-controller: true
           ovn-northd: true
           ovs-vswitchd: true
           ovsdb-server: true
           q-ovn-metadata-agent: true
+          container: true
+          k8s-master: true
         tox_install_siblings: false
     group-vars:
       subnode:
@@ -527,21 +515,10 @@
           IS_ZUUL_FT: True
           K8S_API_SERVER_IP: "{{ hostvars['controller-k8s']['nodepool']['private_ipv4'] }}"
           KEYSTONE_SERVICE_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
-          KURYR_FORCE_IMAGE_BUILD: true
-          KURYR_K8S_API_PORT: 6443
-          KURYR_K8S_API_URL: "https://{{ hostvars['controller-k8s']['nodepool']['private_ipv4'] }}:${KURYR_K8S_API_PORT}"
-          KURYR_K8S_CONTAINERIZED_DEPLOYMENT: false
-          KURYR_NEUTRON_DEFAULT_SUBNETPOOL_ID: shared-default-subnetpool-v4
-          # NOTES:
-          # - In Bobcat cycle, Kubernetes version is updated to 1.26.
-          #   https://blueprints.launchpad.net/tacker/+spec/update-k8s-helm-prometheus
-          KURYR_KUBERNETES_VERSION: 1.26.8
           CONTAINER_ENGINE: crio
-          CRIO_VERSION: 1.26
+          K8S_VERSION: "1.30.5"
+          CRIO_VERSION: "1.30.5"
           MYSQL_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
-          OCTAVIA_AMP_IMAGE_FILE: "/tmp/test-only-amphora-x64-haproxy-ubuntu-bionic.qcow2"
-          OCTAVIA_AMP_IMAGE_NAME: "test-only-amphora-x64-haproxy-ubuntu-bionic"
-          OCTAVIA_AMP_IMAGE_SIZE: 3
           OVS_BRIDGE_MAPPINGS: public:br-ex,mgmtphysnet0:br-infra
           PHYSICAL_NETWORK: mgmtphysnet0
           TACKER_HOST: "{{ hostvars['controller-tacker']['nodepool']['private_ipv4'] }}"
@@ -551,6 +528,7 @@
           Q_ML2_PLUGIN_MECHANISM_DRIVERS: ovn,logger
           # TODO(ueha): Remove this workarround if the Zuul jobs succeed with GLOBAL_VENV=true
           GLOBAL_VENV: false
+          K8S_TOKEN: "9agf12.zsu5uh2m4pzt3qba"
         devstack_services:
           dstat: false
           horizon: false
@@ -576,9 +554,6 @@
         KEYSTONE_SERVICE_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
         L2_AGENT_EXTENSIONS: qos
         MYSQL_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
-        OCTAVIA_AMP_IMAGE_FILE: "/tmp/test-only-amphora-x64-haproxy-ubuntu-bionic.qcow2"
-        OCTAVIA_AMP_IMAGE_NAME: "test-only-amphora-x64-haproxy-ubuntu-bionic"
-        OCTAVIA_AMP_IMAGE_SIZE: 3
         OVS_BRIDGE_MAPPINGS: public:br-ex,mgmtphysnet0:br-infra
         PHYSICAL_NETWORK: mgmtphysnet0
         Q_SERVICE_PLUGIN_CLASSES: ovn-router,neutron.services.qos.qos_plugin.QoSPlugin,qos
@@ -596,15 +571,9 @@
           $NEUTRON_DHCP_CONF:
             DEFAULT:
               enable_isolated_metadata: True
-          $OCTAVIA_CONF:
-            controller_worker:
-              amp_active_retries: 9999
-      kuryr_k8s_api_url: "https://{{ hostvars['controller-k8s']['nodepool']['private_ipv4'] }}:6443"
+      k8s_api_url: "https://{{ hostvars['controller-k8s']['nodepool']['private_ipv4'] }}:6443"
       k8s_ssl_verify: true
-      # NOTES:
-      # - In Bobcat cycle, Helm version is updated to 3.11.
-      #   https://blueprints.launchpad.net/tacker/+spec/update-k8s-helm-prometheus
-      helm_version: "3.11.3"
+      helm_version: "3.15.4"
       test_matrix_configs: [neutron]
       zuul_work_dir: src/opendev.org/openstack/tacker
       zuul_copy_output:

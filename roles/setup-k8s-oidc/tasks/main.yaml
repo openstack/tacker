@@ -89,11 +89,14 @@
     ignore_errors: yes
 
   - name: Wait for k8s apiserver to restart
-    wait_for:
-      host: "{{ hostvars['controller-k8s']['nodepool']['private_ipv4'] }}"
-      port: 6443
-      delay: 30
-      timeout: 180
+    command: >
+      kubectl get pods -n kube-system -l component=kube-apiserver -o jsonpath='{.items[0].status.phase}'
+    register: kube_apiserver_status
+    until: kube_apiserver_status.stdout == "Running"
+    delay: 30
+    timeout: 180
+    become: yes
+    become_user: stack
     ignore_errors: yes
 
   - name: Create clusterrolebinding on k8s server

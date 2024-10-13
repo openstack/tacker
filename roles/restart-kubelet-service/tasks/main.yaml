@@ -1,0 +1,23 @@
+- block:
+  # NOTE: When create a k8s environment with devstack-plugin-container and
+  # deploy a Pod, the following error occured - `network: failed to set bridge
+  # addr: "cni0" already has an IP address different from 10.x.x.x` and
+  # the Pod fails to be deployed. As a fix, delete the related interface and
+  # restart service.
+  - name: k8s interface down
+    shell: ip link set cni0 down && ip link set flannel.1 down
+    become: yes
+
+  - name: k8s interface delete
+    shell: ip link delete cni0 && ip link delete flannel.1
+    become: yes
+
+  - name: kubelet service restart
+    service:
+      name: kubelet
+      state: restarted
+    become: yes
+
+  when:
+    - inventory_hostname == 'controller-k8s'
+    - k8s_api_url is defined

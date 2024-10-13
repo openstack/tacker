@@ -3,6 +3,7 @@
     - ensure-db-cli-installed
     - setup-k8s-nodes
     - orchestrate-devstack
+    - restart-kubelet-service
     - modify-heat-policy
     - setup-k8s-oidc
     - setup-default-vim

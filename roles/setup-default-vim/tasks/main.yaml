@@ -94,6 +94,9 @@
       kubectl get {{ admin_secret_name.stdout }} -n kube-system -o jsonpath="{.data.token}"
       | base64 -d
     register: admin_token
+    until: admin_token.stdout != ""
+    retries: 10
+    delay: 5
     become: yes
     become_user: stack
 
@@ -115,7 +118,7 @@
 
   when:
     - inventory_hostname == 'controller-k8s'
-    - kuryr_k8s_api_url is defined
+    - k8s_api_url is defined
 
 - block:
   - name: Copy tools/test-setup-k8s-vim.sh
@@ -182,7 +185,7 @@
     replace:
        path: "{{ item }}"
        regexp: "https://127.0.0.1:6443"
-       replace: "{{ kuryr_k8s_api_url }}"
+       replace: "{{ k8s_api_url }}"
     with_items:
        - "{{ zuul_work_dir }}/samples/tests/etc/samples/local-k8s-vim.yaml"
        - "{{ zuul_work_dir }}/samples/tests/etc/samples/local-k8s-vim-helm.yaml"
@@ -193,7 +196,7 @@
     replace:
        path: "{{ item }}"
        regexp: "https://127.0.0.1:6443"
-       replace: "{{ kuryr_k8s_api_url }}"
+       replace: "{{ k8s_api_url }}"
     with_items:
        - "{{ zuul_work_dir }}/samples/tests/etc/samples/local-k8s-vim-oidc.yaml"
     when:
@@ -283,7 +286,7 @@
 
   when:
     - inventory_hostname == 'controller-tacker'
-    - kuryr_k8s_api_url is defined
+    - k8s_api_url is defined
 
 - block:
   - name: Copy tools/test-setup-mgmt.sh
@@ -329,4 +332,4 @@
 
   when:
     - inventory_hostname == 'controller-tacker'
-    - kuryr_k8s_api_url is defined
+    - k8s_api_url is defined
