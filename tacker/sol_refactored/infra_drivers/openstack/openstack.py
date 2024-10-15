@@ -14,6 +14,7 @@
 #    under the License.
 
 
+import copy
 import json
 import os
 import pickle
@@ -631,7 +632,8 @@ class Openstack(object):
         if not script:
             return
 
-        for vdu_param in req.additionalParams['vdu_params']:
+        vdu_params = copy.deepcopy(req.additionalParams['vdu_params'])
+        for vdu_param in vdu_params:
             if vnfc.vduId == vdu_param['vdu_id']:
                 break
         if is_rollback:
