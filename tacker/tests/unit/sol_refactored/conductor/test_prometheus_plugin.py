@@ -173,8 +173,8 @@ class TestPrometheusPlugin(db_base.SqlTestCase):
         timer.add_vnfc_info_id('1')
         timer.add_vnfc_info_id('3')
         # Since the timeout period of `VnfmAutoHealTimer` is set to 1 second,
-        # it is also necessary to wait for 1 second before asserting.
-        time.sleep(1)
+        # it is also necessary to wait for 2 second before asserting.
+        time.sleep(2)
         self.assertEqual(self.timer_test[0], 'id')
         self.assertEqual(self.timer_test[1], ['1', '3'])
 
@@ -184,8 +184,8 @@ class TestPrometheusPlugin(db_base.SqlTestCase):
         timer.add_vnfc_info_id('5')
         timer.cancel()
         # Since the timeout period of `VnfmAutoHealTimer` is set to 1 second,
-        # it is also necessary to wait for 1 second before asserting.
-        time.sleep(1)
+        # it is also necessary to wait for 2 second before asserting.
+        time.sleep(2)
         self.assertIsNone(self.timer_test[0])
         self.assertIsNone(self.timer_test[1])
 
