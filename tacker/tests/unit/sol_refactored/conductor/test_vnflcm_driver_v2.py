@@ -13,13 +13,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 import copy
-from datetime import datetime
 import os
 import pickle
 import subprocess
 from unittest import mock
 
 from kubernetes import client
+from oslo_utils import timeutils
 from oslo_utils import uuidutils
 
 from tacker import context
@@ -851,8 +851,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.STARTING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.INSTANTIATE,
             isAutomaticInvocation=False,
@@ -943,8 +943,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.STARTING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.TERMINATE,
             isAutomaticInvocation=False,
@@ -1038,8 +1038,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.STARTING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.SCALE,
             isAutomaticInvocation=False,
@@ -1328,8 +1328,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.PROCESSING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             operation=fields.LcmOperationType.MODIFY_INFO,
             isAutomaticInvocation=False,
             isCancelPending=False,
@@ -1458,8 +1458,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.PROCESSING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             operation=fields.LcmOperationType.MODIFY_INFO,
             isAutomaticInvocation=False,
             isCancelPending=False,
@@ -1534,8 +1534,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.STARTING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.CHANGE_EXT_CONN,
             isAutomaticInvocation=False,
@@ -1634,8 +1634,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.STARTING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.HEAL,
             isAutomaticInvocation=False,
@@ -1939,8 +1939,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.PROCESSING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.CHANGE_VNFPKG,
             isAutomaticInvocation=False,
@@ -2024,8 +2024,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.STARTING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.INSTANTIATE,
             isAutomaticInvocation=False,
@@ -2089,8 +2089,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.STARTING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.TERMINATE,
             isAutomaticInvocation=False,
@@ -2170,8 +2170,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.STARTING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.CHANGE_VNFPKG,
             isAutomaticInvocation=False,
@@ -2201,8 +2201,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.STARTING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.CHANGE_VNFPKG,
             isAutomaticInvocation=False,
@@ -2234,8 +2234,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.STARTING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.INSTANTIATE,
             isAutomaticInvocation=False,
@@ -2274,8 +2274,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.STARTING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.INSTANTIATE,
             isAutomaticInvocation=False,
@@ -2302,8 +2302,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.STARTING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.TERMINATE,
             isAutomaticInvocation=False,
@@ -2328,8 +2328,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.STARTING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.MODIFY_INFO,
             isAutomaticInvocation=False,
@@ -2364,8 +2364,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.STARTING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.INSTANTIATE,
             isAutomaticInvocation=False,
@@ -2379,8 +2379,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.STARTING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.TERMINATE,
             isAutomaticInvocation=False,
@@ -2398,8 +2398,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.STARTING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.SCALE,
             isAutomaticInvocation=False,
@@ -2532,8 +2532,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.STARTING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.INSTANTIATE,
             isAutomaticInvocation=False,
@@ -2572,8 +2572,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.STARTING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.INSTANTIATE,
             isAutomaticInvocation=False,
@@ -2610,8 +2610,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.STARTING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.INSTANTIATE,
             isAutomaticInvocation=False,
@@ -2646,8 +2646,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.STARTING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.INSTANTIATE,
             isAutomaticInvocation=False,
@@ -2675,8 +2675,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.STARTING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.INSTANTIATE,
             isAutomaticInvocation=False,
@@ -2703,8 +2703,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.STARTING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.INSTANTIATE,
             isAutomaticInvocation=False,
@@ -2738,8 +2738,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.STARTING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.INSTANTIATE,
             isAutomaticInvocation=False,
@@ -2766,8 +2766,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.STARTING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.INSTANTIATE,
             isAutomaticInvocation=False,
@@ -2805,8 +2805,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.STARTING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.TERMINATE,
             isAutomaticInvocation=False,
@@ -2838,8 +2838,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.STARTING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.TERMINATE,
             isAutomaticInvocation=False,
@@ -2867,8 +2867,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.STARTING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.TERMINATE,
             isAutomaticInvocation=False,
@@ -2937,8 +2937,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.STARTING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.SCALE,
             isAutomaticInvocation=False,
@@ -2964,8 +2964,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.STARTING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.SCALE,
             isAutomaticInvocation=False,
@@ -3004,8 +3004,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.STARTING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.SCALE,
             isAutomaticInvocation=False,
@@ -3021,8 +3021,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.STARTING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.SCALE,
             isAutomaticInvocation=False,
@@ -3051,8 +3051,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.STARTING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.SCALE,
             isAutomaticInvocation=False,
@@ -3090,8 +3090,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.STARTING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.HEAL,
             isAutomaticInvocation=False,
@@ -3117,8 +3117,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.STARTING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.HEAL,
             isAutomaticInvocation=False,
@@ -3157,8 +3157,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.STARTING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.CHANGE_EXT_CONN,
             isAutomaticInvocation=False,
@@ -3187,8 +3187,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.STARTING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.CHANGE_EXT_CONN,
             isAutomaticInvocation=False,
@@ -3271,8 +3271,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.STARTING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.CHANGE_VNFPKG,
             isAutomaticInvocation=False,
@@ -3368,8 +3368,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.STARTING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.CHANGE_EXT_CONN,
             isAutomaticInvocation=False,
@@ -3426,8 +3426,8 @@ class TestVnfLcmDriverV2(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.STARTING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.CHANGE_VNFPKG,
             isAutomaticInvocation=False,

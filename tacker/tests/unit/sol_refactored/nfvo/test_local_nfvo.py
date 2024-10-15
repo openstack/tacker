@@ -12,10 +12,10 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-from datetime import datetime
 import os
 from unittest import mock
 
+from oslo_utils import timeutils
 from oslo_utils import uuidutils
 
 from tacker import context
@@ -696,8 +696,8 @@ class TestLocalNfvo(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.PROCESSING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.TERMINATE,
             isAutomaticInvocation=False,
@@ -724,8 +724,8 @@ class TestLocalNfvo(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.PROCESSING,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.CHANGE_VNFPKG,
             isAutomaticInvocation=False,
@@ -759,8 +759,8 @@ class TestLocalNfvo(base.BaseTestCase):
             # required fields
             id=uuidutils.generate_uuid(),
             operationState=fields.LcmOperationStateType.ROLLED_BACK,
-            stateEnteredTime=datetime.utcnow(),
-            startTime=datetime.utcnow(),
+            stateEnteredTime=timeutils.utcnow(),
+            startTime=timeutils.utcnow(),
             vnfInstanceId=inst.id,
             operation=fields.LcmOperationType.INSTANTIATE,
             isAutomaticInvocation=False,
