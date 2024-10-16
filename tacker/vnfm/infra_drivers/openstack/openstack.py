@@ -52,6 +52,7 @@ from tacker.vnfm.infra_drivers.openstack import update_template as ut
 from tacker.vnfm.infra_drivers import scale_driver
 from tacker.vnfm.lcm_user_data.constants import USER_DATA_TIMEOUT
 from tacker.vnfm.lcm_user_data import utils as user_data_utils
+from toscaparser import tosca_template
 
 
 eventlet.monkey_patch(time=True)
@@ -251,17 +252,34 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                 raise vnfm.LCMUserDataFailed(reason=error_reason)
 
             if scale_dict:
-                scale_status_list = []
-                for name, value in scale_group_dict['scaleGroupDict'].items():
-                    key_name = name + '_desired_capacity'
-                    if base_hot_dict.get('parameters') and \
-                       base_hot_dict['parameters'].get(key_name):
-                        hot_param_dict[key_name] = value['default']
-                    scale_status = objects.ScaleInfo(
-                        aspect_id=name,
-                        scale_level=value['initialLevel'])
-                    scale_status_list.append(scale_status)
-                vnf['scale_status'] = scale_status_list
+                if vnf.get('scale_status'):
+                    # When instantiate by SOL003 heal after scale out,
+                    # calculate `desired_capacity` using `scale_level`
+                    # in scale_status
+                    for name, value in (
+                            scale_group_dict['scaleGroupDict'].items()):
+                        for scale in vnf.get('scale_status'):
+                            if (scale['aspect_id'] == name and
+                                name in base_hot_dict.get('resources') and
+                                (base_hot_dict['resources'][name]
+                                 .get('properties').get('desired_capacity'))):
+                                dc = (value['initialNum'] +
+                                    value['num'] * scale['scale_level'])
+                                (base_hot_dict['resources'][name]['properties']
+                                 ['desired_capacity']) = dc
+                else:
+                    scale_status_list = []
+                    for name, value in (
+                            scale_group_dict['scaleGroupDict'].items()):
+                        key_name = name + '_desired_capacity'
+                        if base_hot_dict.get('parameters') and \
+                           base_hot_dict['parameters'].get(key_name):
+                            hot_param_dict[key_name] = value['default']
+                        scale_status = objects.ScaleInfo(
+                            aspect_id=name,
+                            scale_level=value['initialLevel'])
+                        scale_status_list.append(scale_status)
+                    vnf['scale_status'] = scale_status_list
             if vnf.get('grant'):
                 base_hot_dict, nested_hot_dict, hot_param_dict = \
                     self._setup_hot_for_grant_resources(vnf, vnf_instance,
@@ -306,6 +324,30 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
 
         elif user_data_path is None and user_data_class is None:
             LOG.info('Execute heat-translator and create heat-stack.')
+
+            if not vnf.get('scale_status'):
+                # scale_status is not stored when instantiate operation
+                vnfd = vnflcm_utils.get_vnfd_dict(context,
+                    vnf_instance.vnfd_id, inst_req_info.flavour_id)
+                tosca = tosca_template.ToscaTemplate(
+                    parsed_params={}, a_file=False, yaml_dict_tpl=vnfd,
+                    local_defs=tosca_utils.tosca_tmpl_local_defs())
+                extract_policy_infos = (
+                    vnflcm_utils.get_extract_policy_infos(tosca))
+                vnf['scale_status'] = []
+                if inst_req_info.instantiation_level_id:
+                    inst_level_id = inst_req_info.instantiation_level_id
+                else:
+                    inst_level_id = (
+                        extract_policy_infos['default_inst_level_id'])
+                al_dict = (extract_policy_infos['inst_level_dict'].
+                    get(inst_level_id))
+                if al_dict:
+                    vnf['scale_status'] = [
+                        objects.ScaleInfo(
+                            aspect_id=aspect_id, scale_level=level_num)
+                        for aspect_id, level_num in al_dict.items()]
+
             tth = translate_template.TOSCAToHOT(vnf, heatclient,
                                                 inst_req_info, grant_info)
             tth.generate_hot()
@@ -1779,8 +1821,8 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                                     vim_connection_info.id
                                 resource.resource_id =\
                                     rsc_info.physical_resource_id
-                                resource.vim_level_resource_type = '\
-                                    OS::Nova::Server'
+                                resource.vim_level_resource_type = (
+                                    'OS::Nova::Server')
                                 vnfc_resource_info.compute_resource = resource
                                 vnfc_resource_info.metadata.update(
                                     {"stack_id":
@@ -1794,6 +1836,11 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                                         storage_dict[vol['id']] = \
                                             vnfc_resource_info.id
                                 vnfc_rscs.append(vnfc_resource_info)
+                                vnfc = objects.VnfcInfo(
+                                    id=uuidutils.generate_uuid(),
+                                    vdu_id=rsc.resource_name,
+                                    vnfc_state=fields.VnfcState.STARTED)
+                                inst_vnf_info.vnfc_info.append(vnfc)
                 if len(vnfc_rscs) == 0:
                     continue
 
@@ -1901,8 +1948,8 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                                 resource.vim_connection_id =\
                                     vim_connection_info.id
                                 resource.resource_id = rsc.physical_resource_id
-                                resource.vim_level_resource_type = '\
-                                    OS::Cinder::Volume'
+                                resource.vim_level_resource_type = (
+                                    'OS::Cinder::Volume')
                                 virtual_storage_resource_info.\
                                     storage_resource = resource
                                 inst_vnf_info.virtual_storage_resource_info.\
@@ -1932,10 +1979,15 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                     after_port_list.append(rsc.physical_resource_id)
             LOG.debug("after_st_list %s", after_st_list)
             del_index = []
+            del_vdu_id = {}
             for index, vnfc in enumerate(
                     vnf_instance.instantiated_vnf_info.vnfc_resource_info):
                 if vnfc.compute_resource.resource_id not in after_vnfcs_list:
                     del_index.append(index)
+                    if vnfc.vdu_id in del_vdu_id:
+                        del_vdu_id[vnfc.vdu_id] += 1
+                    else:
+                        del_vdu_id[vnfc.vdu_id] = 1
             for ind in del_index[::-1]:
                 vnf_instance.instantiated_vnf_info.vnfc_resource_info.pop(ind)
 
@@ -1961,6 +2013,17 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                         del_index.append(index)
                 for ind in del_index[::-1]:
                     vl.vnf_link_ports.pop(ind)
+
+            del_index = []
+            # delete vnfc_info from earliest registerd
+            for index, vnfci in enumerate(
+                    vnf_instance.instantiated_vnf_info.vnfc_info):
+                for vdu_id in del_vdu_id:
+                    if vnfci.vdu_id == vdu_id and del_vdu_id[vdu_id] > 0:
+                        del_index.append(index)
+                        del_vdu_id[vdu_id] -= 1
+            for ind in del_index[::-1]:
+                vnf_instance.instantiated_vnf_info.vnfc_info.pop(ind)
 
     @log.log
     def scale_in_reverse(self, context, plugin, auth_attr, vnf_info,

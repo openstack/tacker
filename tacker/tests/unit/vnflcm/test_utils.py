@@ -14,9 +14,11 @@
 # limitations under the License.
 
 import os
+import shutil
 
 import ddt
 from oslo_config import cfg
+import yaml
 
 from tacker.common import exceptions
 from tacker.objects import fields
@@ -24,6 +26,7 @@ from tacker.objects.instantiate_vnf_req import InstantiateVnfRequest
 from tacker.objects.vim_connection import VimConnectionInfo
 from tacker.tests.unit import base
 from tacker.tests.unit.vnflcm import fakes
+from tacker.tests import utils
 from tacker.tests import uuidsentinel
 from tacker.vnflcm import utils as vnflcm_utils
 
@@ -140,3 +143,72 @@ class VnfLcmUtilsTestCase(base.TestCase):
                           'VduInitialDelta parameter from policies '
                           'definition in VNFD.')
         self.assertEqual(expected_error, str(error))
+
+    def test_convert_desired_capacity_scale_status_none(self):
+        vnfd_dict = fakes.get_vnfd_dict_for_convert_desired_capacity()
+
+        etsi_common_file_path = utils.test_etc_sample('etsi/nfv',
+            'common/Definitions/etsi_nfv_sol001_common_types.yaml')
+        etsi_vnfd_file_path = utils.test_etc_sample('etsi/nfv',
+            'common/Definitions/etsi_nfv_sol001_vnfd_types.yaml')
+        helloworld_path = utils.test_etc_sample('etsi/nfv',
+            'common_artifact/Definitions/helloworld3_types.yaml')
+
+        etsi_common_file_path_tmp = os.path.join(
+            os.path.dirname(__file__), 'etsi_nfv_sol001_common_types.yaml')
+        types_file_path_tmp = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), 'types.yaml'))
+
+        shutil.copy(etsi_common_file_path, etsi_common_file_path_tmp)
+        self.addCleanup(os.remove, etsi_common_file_path_tmp)
+        shutil.copy(helloworld_path, types_file_path_tmp)
+        self.addCleanup(os.remove, types_file_path_tmp)
+
+        with open(types_file_path_tmp) as f:
+            data = yaml.safe_load(f)
+            data['imports'] = [etsi_common_file_path, etsi_vnfd_file_path]
+        with open(types_file_path_tmp, 'w', encoding='utf-8') as f:
+            yaml.dump(data, f)
+
+        vnfd_dict['imports'] = [etsi_common_file_path, etsi_vnfd_file_path,
+                                types_file_path_tmp]
+
+        desired_capacity = vnflcm_utils._convert_desired_capacity(
+            'instantiation_level_1', vnfd_dict, 'VDU1')
+        self.assertEqual(desired_capacity, 1)
+
+    def test_convert_desired_capacity_scale_status_specified(self):
+        vnfd_dict = fakes.get_vnfd_dict_for_convert_desired_capacity()
+
+        etsi_common_file_path = utils.test_etc_sample('etsi/nfv',
+            'common/Definitions/etsi_nfv_sol001_common_types.yaml')
+        etsi_vnfd_file_path = utils.test_etc_sample('etsi/nfv',
+            'common/Definitions/etsi_nfv_sol001_vnfd_types.yaml')
+        helloworld_path = utils.test_etc_sample('etsi/nfv',
+            'common_artifact/Definitions/helloworld3_types.yaml')
+
+        etsi_common_file_path_tmp = os.path.join(
+            os.path.dirname(__file__), 'etsi_nfv_sol001_common_types.yaml')
+        types_file_path_tmp = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), 'types.yaml'))
+
+        shutil.copy(etsi_common_file_path, etsi_common_file_path_tmp)
+        self.addCleanup(os.remove, etsi_common_file_path_tmp)
+        shutil.copy(helloworld_path, types_file_path_tmp)
+        self.addCleanup(os.remove, types_file_path_tmp)
+
+        with open(types_file_path_tmp) as f:
+            data = yaml.safe_load(f)
+            data['imports'] = [etsi_common_file_path, etsi_vnfd_file_path]
+        with open(types_file_path_tmp, 'w', encoding='utf-8') as f:
+            yaml.dump(data, f)
+
+        vnfd_dict['imports'] = [etsi_common_file_path, etsi_vnfd_file_path,
+                                types_file_path_tmp]
+
+        scale_status = [{'aspect_id': 'VDU1_scale', 'scale_level': 1}]
+
+        desired_capacity = vnflcm_utils._convert_desired_capacity(
+            'instantiation_level_1', vnfd_dict, 'VDU1',
+            scale_status=scale_status)
+        self.assertEqual(desired_capacity, 2)
