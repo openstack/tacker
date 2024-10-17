@@ -26,6 +26,7 @@ from tacker.objects import fields
 from tacker.tests.functional import base
 from tacker.tests.functional.common.fake_server import FakeServerManager
 from tacker.tests.functional.common import logging_utils
+from tacker.tests.functional.sol.vnflcm import fake_vnflcm
 from tacker.tests import utils
 from tacker.vnfm.infra_drivers.openstack import constants as infra_cnst
 
@@ -188,7 +189,7 @@ def _list_vnf_package(tacker_client, **kwargs):
 
 def _create_instantiate_vnf_request_body(flavour_id,
         instantiation_level_id=None, vim_id=None, ext_vl=None,
-        add_params=None):
+        ext_managed_vl=None, add_params=None):
     request_body = {"flavourId": flavour_id}
 
     if instantiation_level_id:
@@ -196,6 +197,9 @@ def _create_instantiate_vnf_request_body(flavour_id,
 
     if ext_vl:
         request_body["extVirtualLinks"] = ext_vl
+
+    if ext_managed_vl:
+        request_body["extManagedVirtualLinks"] = ext_managed_vl
 
     if vim_id:
         request_body["vimConnectionInfo"] = [
@@ -218,6 +222,7 @@ class BaseVnfLcmTest(base.BaseTackerTest):
     # can set it false. For example, BaseVnfLcmMultiTenantTest which
     # create their own servers for two different tenants.
     prepare_fake_server = True
+    prepare_network = True
 
     @classmethod
     def setUpClass(cls):
@@ -258,14 +263,16 @@ class BaseVnfLcmTest(base.BaseTackerTest):
         self.vim = self.get_vim(vim_list, 'VIM0')
         if not self.vim:
             assert False, "vim_list is Empty: Default VIM is missing"
-        result = self._create_network_settings()
-        self.ext_networks = result.get('ext_networks')
-        self.ext_vl = result.get('ext_vl')
-        self.ext_mngd_networks = result.get('ext_mngd_networks')
-        self.ext_link_ports = result.get('ext_link_ports')
-        self.ext_subnets = result.get('ext_subnets')
-        self.changed_ext_networks = result.get('changed_ext_networks')
-        self.changed_ext_subnets = result.get('changed_ext_subnets')
+
+        if self.prepare_network:
+            result = self._create_network_settings()
+            self.ext_networks = result.get('ext_networks')
+            self.ext_vl = result.get('ext_vl')
+            self.ext_mngd_networks = result.get('ext_mngd_networks')
+            self.ext_link_ports = result.get('ext_link_ports')
+            self.ext_subnets = result.get('ext_subnets')
+            self.changed_ext_networks = result.get('changed_ext_networks')
+            self.changed_ext_subnets = result.get('changed_ext_subnets')
 
     @classmethod
     def _prepare_start_fake_server(cls, fake_server,
@@ -401,10 +408,10 @@ class BaseVnfLcmTest(base.BaseTackerTest):
             resource_details = self._get_heat_resource(stack_id,
                     resource_name,
                     h_client)
-            image = self._get_image_id_from_resource_attributes(
+            image = self._get_image_from_resource_attributes(
                 resource_details)
             if image:
-                image_id_list.append(image.id)
+                image_id_list.append(image['id'])
 
         return image_id_list
 
@@ -479,7 +486,8 @@ class BaseVnfLcmTest(base.BaseTackerTest):
     def _create_vnf_instance_from_body(self, request_body, http_client=None):
         if http_client is None:
             http_client = self.http_client
-        request_body['vnfInstanceName'] = self._testMethodName
+        if not request_body.get('vnfInstanceName'):
+            request_body['vnfInstanceName'] = self._testMethodName
         resp, response_body = http_client.do_request(
             self.base_vnf_instances_url,
             "POST",
@@ -488,18 +496,30 @@ class BaseVnfLcmTest(base.BaseTackerTest):
         return resp, response_body
 
     def _delete_vnf_instance(self, id, http_client=None):
+        timeout = VNF_TERMINATE_TIMEOUT
         if http_client is None:
             http_client = self.http_client
         url = os.path.join(self.base_vnf_instances_url, id)
-        resp, body = http_client.do_request(url, "DELETE")
+        start_time = int(time.time())
+        while True:
+            resp, body = self.http_client.do_request(url, "DELETE")
+            if resp.status_code in (204, 404):
+                break
+
+            if ((int(time.time()) - start_time) > timeout):
+                error = "Failed to delete vnf instance %s"
+                self.fail(error % id)
 
         return resp, body
 
-    def _show_vnf_instance(self, id, http_client=None):
+    def _show_vnf_instance(self, id, http_client=None, expected_result=None):
         if http_client is None:
             http_client = self.http_client
         show_url = os.path.join(self.base_vnf_instances_url, id)
         resp, vnf_instance = http_client.do_request(show_url, "GET")
+
+        if expected_result:
+            self.assertDictSupersetOf(expected_result, vnf_instance)
 
         return resp, vnf_instance
 
@@ -510,27 +530,6 @@ class BaseVnfLcmTest(base.BaseTackerTest):
             self.base_vnf_instances_url, "GET", **kwargs)
 
         return resp, vnf_instances
-
-    def _wait_vnf_instance(self, id,
-            http_client=None,
-            instantiation_state=fields.VnfInstanceState.INSTANTIATED,
-            timeout=VNF_INSTANTIATE_TIMEOUT):
-        if http_client is None:
-            http_client = self.http_client
-        start_time = int(time.time())
-        while True:
-            resp, body = self._show_vnf_instance(id, http_client)
-            if body['instantiationState'] == instantiation_state:
-                break
-
-            if ((int(time.time()) - start_time) > timeout):
-                error = ("Vnf instance %(id)s status is %(current)s, "
-                         "expected status should be %(expected)s")
-                self.fail(error % {"id": id,
-                    "current": body['instantiationState'],
-                    "expected": instantiation_state})
-
-            time.sleep(5)
 
     def _instantiate_vnf_instance(self, id, request_body, http_client=None):
         if http_client is None:
@@ -643,29 +642,7 @@ class BaseVnfLcmTest(base.BaseTackerTest):
 
         return resp, response_body
 
-    def _wait_terminate_vnf_instance(self, id, timeout=None, http_client=None):
-        if http_client is None:
-            http_client = self.http_client
-        start_time = int(time.time())
-
-        self._wait_vnf_instance(id,
-            http_client,
-            instantiation_state=fields.VnfInstanceState.NOT_INSTANTIATED,
-            timeout=timeout)
-
-        # If gracefulTerminationTimeout is set, check whether vnf
-        # instantiation_state is set to NOT_INSTANTIATED after
-        # gracefulTerminationTimeout seconds.
-        if timeout and int(time.time()) - start_time < timeout:
-            self.fail("Vnf is terminated before graceful termination"
-                      "timeout period")
-        else:
-            return
-
-        # wait for status completion
-        time.sleep(VNF_DELETE_COMPLETION_WAIT)
-
-    def _get_heat_stack(self, vnf_instance_id, h_client=None,
+    def _get_heat_stack(self, vnf_instance, h_client=None,
             prefix_id='vnflcm_'):
         if h_client is None:
             h_client = self.h_client
@@ -674,16 +651,16 @@ class BaseVnfLcmTest(base.BaseTackerTest):
         except Exception:
             return None
 
-        target_stack_name = prefix_id + vnf_instance_id
-        target_stakcs = list(
+        target_stack_name = prefix_id + vnf_instance['id']
+        target_stacks = list(
             filter(
                 lambda x: x.stack_name == target_stack_name,
                 stacks))
 
-        if len(target_stakcs) == 0:
+        if len(target_stacks) == 0:
             return None
 
-        return target_stakcs[0]
+        return target_stacks[0]
 
     def _delete_heat_stack(self, stack_id, h_client=None):
         if h_client is None:
@@ -748,6 +725,53 @@ class BaseVnfLcmTest(base.BaseTackerTest):
 
         return resource
 
+    def _get_fixed_ips(self, vnf_instance, request_body):
+        res_name = None
+        for extvirlink in request_body['extVirtualLinks']:
+            if 'extCps' not in extvirlink:
+                continue
+            for extcps in extvirlink['extCps']:
+                if 'cpdId' in extcps:
+                    if res_name is None:
+                        res_name = list()
+                    res_name.append(extcps['cpdId'])
+                    break
+        if res_name is None:
+            return []
+
+        stack = self._get_heat_stack(vnf_instance)
+        stack_id = stack.id
+
+        stack_resource = self._get_heat_resource_list(stack_id, nested_depth=2)
+
+        releations = dict()
+        for elmt in stack_resource:
+            if elmt.resource_type != 'OS::Neutron::Port':
+                continue
+            if elmt.resource_name not in res_name:
+                continue
+            parent = getattr(elmt, 'parent_resource', None)
+            releations[parent] = elmt.resource_name
+
+        details = list()
+        for (parent_name, resource_name) in releations.items():
+            for elmt in stack_resource:
+                if parent_name is None:
+                    detail_stack = self._get_heat_resource(
+                        stack_id, resource_name)
+                elif parent_name != elmt.resource_name:
+                    continue
+                else:
+                    detail_stack = self._get_heat_resource(
+                        elmt.physical_resource_id, resource_name)
+                details.append(detail_stack)
+
+        ans_list = list()
+        for detail in details:
+            ans_list.append(detail.attributes['fixed_ips'])
+
+        return ans_list
+
     def _get_heat_stack_template(self, stack_id, nested_depth=0,
             h_client=None):
         if h_client is None:
@@ -759,13 +783,13 @@ class BaseVnfLcmTest(base.BaseTackerTest):
 
         return template
 
-    def _get_image_id_from_resource_attributes(self, stack_resource_details):
+    def _get_image_from_resource_attributes(self, stack_resource_details):
         if stack_resource_details is None:
             return None
         if not hasattr(stack_resource_details, 'attributes'):
             return None
 
-        return stack_resource_details.attributes.get('image', {}).get('id')
+        return stack_resource_details.attributes.get('image', {})
 
     def _get_vnfc_instance_id_list(
             self,
@@ -849,12 +873,12 @@ class BaseVnfLcmTest(base.BaseTackerTest):
 
     def assert_heat_stack_status(
             self,
-            vnf_instance_id,
+            vnf_instance,
             h_client=None,
             expected_stack_status=infra_cnst.STACK_CREATE_COMPLETE):
         if h_client is None:
             h_client = self.h_client
-        stack = self._get_heat_stack(vnf_instance_id, h_client)
+        stack = self._get_heat_stack(vnf_instance, h_client)
         self.assertEqual(
             expected_stack_status,
             stack.stack_status)
@@ -863,7 +887,7 @@ class BaseVnfLcmTest(base.BaseTackerTest):
             self,
             vnf_instance,
             h_client=None,
-            expected_glance_image=None,
+            expected_glance_image_status=None,
             expected_resource_status=None):
 
         if h_client is None:
@@ -873,12 +897,13 @@ class BaseVnfLcmTest(base.BaseTackerTest):
             resource_details = self._get_heat_resource(stack_id,
                     resource_name,
                     h_client)
-            image = self._get_image_id_from_resource_attributes(
-                resource_details)
+            image = self._get_image_from_resource_attributes(resource_details)
             if image:
-                self.assertEqual(expected_glance_image, image.status)
+                image_detail = self._get_glance_image(image['id'])
+                self.assertEqual(expected_glance_image_status,
+                                 image_detail['status'])
 
-        stack = self._get_heat_stack(vnf_instance['id'], h_client)
+        stack = self._get_heat_stack(vnf_instance, h_client)
         resources = self._get_heat_resource_list(stack.id,
                 nested_depth=2, h_client=h_client)
         self.assertIsNotNone(resources)
@@ -889,7 +914,7 @@ class BaseVnfLcmTest(base.BaseTackerTest):
                 resource.resource_status)
 
             # FT-checkpoint: Glance-image
-            if expected_glance_image:
+            if expected_glance_image_status:
                 assert_glance_image(stack.id, resource.resource_name,
                         h_client)
 
@@ -966,26 +991,6 @@ class BaseVnfLcmTest(base.BaseTackerTest):
 
             time.sleep(RETRY_WAIT_TIME)
 
-    def _wait_stack_update(self, vnf_instance_id, expected_status,
-            h_client=None):
-        if h_client is None:
-            h_client = self.h_client
-        timeout = VNF_HEAL_TIMEOUT
-        start_time = int(time.time())
-        while True:
-            stack = self._get_heat_stack(vnf_instance_id, h_client)
-            if stack.stack_status == expected_status:
-                break
-
-            if ((int(time.time()) - start_time) > timeout):
-                error = ("Stack %(id)s status is %(current)s, expected status "
-                        "should be %(expected)s")
-                self.fail(error % {"vnf_instance_name": vnf_instance_id,
-                    "current": stack.status,
-                    "expected": expected_status})
-
-            time.sleep(RETRY_WAIT_TIME)
-
     def assert_create_vnf(self, resp, vnf_instance,
             fake_server_manager=None):
         if fake_server_manager is None:
@@ -1047,12 +1052,13 @@ class BaseVnfLcmTest(base.BaseTackerTest):
         resp, vnf_instance = self._show_vnf_instance(vnf_instance_id,
                 http_client)
         self.assert_vnf_state(vnf_instance)
+        self.assert_instantiation_state(vnf_instance)
 
-        self.assert_heat_stack_status(vnf_instance['id'], h_client)
+        self.assert_heat_stack_status(vnf_instance, h_client)
         self.assert_heat_resource_status(
             vnf_instance,
             h_client,
-            expected_glance_image='active',
+            expected_glance_image_status='active',
             expected_resource_status='CREATE_COMPLETE')
 
         # FT-checkpoint: Notification
@@ -1099,7 +1105,7 @@ class BaseVnfLcmTest(base.BaseTackerTest):
         self.assert_instantiation_state(vnf_instance)
 
         self.assert_heat_stack_status(
-            vnf_instance['id'],
+            vnf_instance,
             h_client,
             expected_stack_status=expected_stack_status)
 
@@ -1158,7 +1164,7 @@ class BaseVnfLcmTest(base.BaseTackerTest):
             fields.VnfInstanceState.NOT_INSTANTIATED)
 
         # FT-checkpoint: Heat stack status.
-        stack = self._get_heat_stack(vnf_instance_id, h_client)
+        stack = self._get_heat_stack(vnf_instance, h_client)
         self.assertIsNone(stack)
 
         self.assert_heat_resource_status_is_none(
@@ -1225,7 +1231,7 @@ class BaseVnfLcmTest(base.BaseTackerTest):
             self.assertIsNotNone(status.get('scaleLevel'))
 
         self.assert_heat_stack_status(
-            vnf_instance['id'],
+            vnf_instance,
             h_client,
             expected_stack_status=expected_stack_status)
 
@@ -1254,6 +1260,61 @@ class BaseVnfLcmTest(base.BaseTackerTest):
 
         if expected_show_res:
             self._assert_show_res(vnf_instance, expected_show_res)
+
+    def assert_change_ext_conn_vnf(
+            self,
+            resp,
+            request_body,
+            vnf_instance_id,
+            before_fixed_ips=None,
+            http_client=None,
+            h_client=None,
+            fake_server_manager=None):
+        if http_client is None:
+            http_client = self.http_client
+        if h_client is None:
+            h_client = self.h_client
+        if fake_server_manager is None:
+            fake_server_manager = FAKE_SERVER_MANAGER
+
+        self.assertEqual(202, resp.status_code)
+
+        resp, vnf_instance = self._show_vnf_instance(vnf_instance_id,
+                http_client)
+        self.assert_vnf_state(vnf_instance)
+        self.assert_instantiation_state(vnf_instance)
+
+        self.assert_heat_stack_status(
+            vnf_instance,
+            h_client,
+            expected_stack_status='UPDATE_COMPLETE')
+
+        if before_fixed_ips:
+            after_fixed_ips = self._get_fixed_ips(vnf_instance, request_body)
+            self.assertNotEqual(before_fixed_ips, after_fixed_ips)
+
+        # FT-checkpoint: Notification
+        callback_url = os.path.join(
+            MOCK_NOTIFY_CALLBACK_URL,
+            self._testMethodName)
+        notify_mock_responses = self._filter_notify_history(callback_url,
+            vnf_instance_id, fake_server_manager=fake_server_manager)
+
+        self.assertEqual(3, len(notify_mock_responses))
+        self.assert_notification_mock_response(
+            notify_mock_responses[0],
+            'VnfLcmOperationOccurrenceNotification',
+            'STARTING')
+
+        self.assert_notification_mock_response(
+            notify_mock_responses[1],
+            'VnfLcmOperationOccurrenceNotification',
+            'PROCESSING')
+
+        self.assert_notification_mock_response(
+            notify_mock_responses[2],
+            'VnfLcmOperationOccurrenceNotification',
+            'COMPLETED')
 
     def assert_rollback_vnf(self, resp, vnf_instance_id,
             fake_server_manager=None):
@@ -1346,10 +1407,11 @@ class BaseVnfLcmTest(base.BaseTackerTest):
         self.assert_vnf_state(vnf_instance)
         self.assert_instantiation_state(vnf_instance)
 
-        self.assert_heat_stack_status(
-            vnf_instance['id'],
-            h_client,
-            expected_stack_status=expected_stack_status)
+        if expected_stack_status:
+            self.assert_heat_stack_status(
+                vnf_instance,
+                h_client,
+                expected_stack_status=expected_stack_status)
 
         # FT-checkpoint: Notification
         callback_url = os.path.join(
@@ -1486,6 +1548,27 @@ class BaseVnfLcmTest(base.BaseTackerTest):
         self.assertIsNotNone(_links.get('self'))
         self.assertIsNotNone(_links.get('self').get('href'))
 
+    def register_subscription(self):
+        callback_url = os.path.join(MOCK_NOTIFY_CALLBACK_URL,
+            self._testMethodName)
+        request_body = fake_vnflcm.Subscription.make_create_request_body(
+            'http://localhost:{}{}'.format(
+                FAKE_SERVER_MANAGER.SERVER_PORT,
+                callback_url))
+        resp, response_body = self._register_subscription(request_body)
+        self.assertEqual(201, resp.status_code)
+        self.assert_http_header_location_for_subscription(resp.headers)
+        self.assert_notification_get(callback_url)
+        subscription_id = response_body.get('id')
+
+        return subscription_id
+
+    def assert_subscription_deletion(self, sub_id):
+        resp, _ = self._delete_subscription(sub_id)
+        self.assertEqual(204, resp.status_code)
+        resp, _ = self._show_subscription(sub_id)
+        self.assertEqual(404, resp.status_code)
+
     def _filter_notify_history(self, callback_url, vnf_instance_id,
             fake_server_manager=None):
         if fake_server_manager is None:
@@ -1498,13 +1581,13 @@ class BaseVnfLcmTest(base.BaseTackerTest):
             h for h in notify_histories
             if h.request_body.get('vnfInstanceId') == vnf_instance_id]
 
-    def _get_heat_stack_show(self, vnf_instance_id, resource_name=None,
+    def _get_heat_stack_show(self, vnf_instance, resource_name=None,
             h_client=None):
         """Retrieve image name of the resource from stack"""
         if h_client is None:
             h_client = self.h_client
         try:
-            stack = self._get_heat_stack(vnf_instance_id, h_client)
+            stack = self._get_heat_stack(vnf_instance, h_client)
             stack_info = h_client.stacks.get(stack.id)
             stack_dict = stack_info.to_dict()
             resource_dict = json.loads(stack_dict['parameters']['nfv'])
