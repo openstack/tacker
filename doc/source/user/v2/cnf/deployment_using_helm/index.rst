@@ -1168,7 +1168,7 @@ we can append ``-A`` to the command line.
   NAMESPACE     NAME                                       READY   UP-TO-DATE   AVAILABLE   AGE
   default       vdu1-vnff082149ac20f43dfbc711fde035a1197   1/1     1            1           6m42s
   default       vdu2-vnff082149ac20f43dfbc711fde035a1197   1/1     1            1           6m42s
-  kube-system   kuryr-controller                           1/1     1            1           31d
+  kube-system   coredns                                    2/2     2            2           28h
 
 
 .. note::
