@@ -21,6 +21,7 @@ import shutil
 import subprocess
 import sys
 import textwrap
+import yaml
 import zipfile
 
 from tacker.tests.functional.sol_kubernetes_v2 import paramgen as k8s_paramgen
@@ -49,6 +50,13 @@ REQ_NWS = [
         {"net": "net1", "subnets": ["subnet1"]},
         {"net": "net_mgmt", "subnets": []}]
 
+# Dummy params for default value.
+OS_AUTH_URL = "http://localhost/identity/v3"
+K8S_AUTH_URL = "https://127.0.0.1:6443"
+K8S_BEARER_TOKEN = "your_k8s_cluster_bearer_token"
+K8S_SSL_CA_CERT = "k8s_ssl_ca_cert"
+
+
 def get_args():
     """Return parsed args of argparse"""
 
@@ -67,6 +75,20 @@ def get_args():
                         type=str, metavar='VIM_TYPE',
                         choices=list(VIM_TYPES)+[s.lower() for s in VIM_TYPES],
                         required=True)
+
+    parser.add_argument('-c', '--vim-config',
+                        help='Path of VIM config file for specifying the VIM',
+                        type=str, metavar='VIM_CONF')
+
+    parser.add_argument('--vim-id',
+                        help='VIM ID (Only for OpenStack and overwritten'
+                             'by `--vim-config`)',
+                        type=str, metavar='VIM_ID')
+
+    parser.add_argument('--vim-name',
+                        help='Name of VIM (Only for OpenStack and overwritten'
+                             'by `--vim-config`)',
+                        type=str, metavar='VIM_NAME')
 
     return parser.parse_args()
 
@@ -89,6 +111,14 @@ def ask_overwrite(dst_dir):
             elif line in no:
                 return False
     return True
+
+
+def print_result(zip_fn, req_files, zip_path):
+    print(f"VNF package: {zip_fn}")
+    print("Request files: {}".format(", ".join(req_files)))
+    print("Contents of the VNF package:")
+    with zipfile.ZipFile(zip_path) as zf:
+        zf.printdir()
 
 
 def req_nw_names():
@@ -132,7 +162,61 @@ def has_all_req_networks():
     return True
 
 
+def get_vim_config(fpath):
+    """Get VIM info from a config file"""
+
+    if fpath is not None:
+        # Used for k8s VIM
+        c_begin = "-----BEGIN CERTIFICATE-----"
+        c_end = "-----END CERTIFICATE-----"
+
+        with open(fpath) as f:
+            y = yaml.safe_load(f)
+
+        # Need to terminate each line with a new line char
+        if ("ssl_ca_cert" in y.keys()) and (y["ssl_ca_cert"] is not None):
+            y["ssl_ca_cert"] = y["ssl_ca_cert"].replace(
+                    c_begin, "").replace(c_end, "")
+            y["ssl_ca_cert"] = y["ssl_ca_cert"].replace(" ", "\n")
+            y["ssl_ca_cert"] = "{}{}{}".format(
+                    c_begin, y["ssl_ca_cert"], c_end)
+        return y
+    return {}
+
+
+def get_vim_info(vim_name=None, vim_id=None):
+    """Get VIM info from its ID or name
+
+    Only used for OpenStack VIM. Get the info from `openstack vim show`
+    command.
+    """
+
+    cmd_vim_show = ["openstack", "vim", "show", "-f", "json"]
+    if vim_id is not None:
+        cmd_vim_show.append(vim_id)
+    elif vim_name is not None:
+        cmd_vim_show.append(vim_name)
+    else:
+        return {}
+    return json.loads(
+        subprocess.run(cmd_vim_show, capture_output=True).stdout)
+
+
+def has_unsupported_args(args):
+    # TODO(yasufum): show which arg isn't supported.
+    flg = False
+    if args.type == VIM_OPENSTACK or args.type == VIM_OPENSTACK.lower():
+        pass
+    # '--vim-id' and '--vim-name' aren't supported for the two types.
+    elif (args.type == VIM_KUBERNETES or args.type == VIM_KUBERNETES.lower()
+            or args.type == VIM_HELM or args.type == VIM_HELM.lower()):
+        if (args.vim_id is not None) or (args.vim_name is not None):
+            flg = True
+    return flg
+
+
 def main():
+
     args = get_args()
 
     if has_all_req_networks() is False:
@@ -142,6 +226,10 @@ def main():
         exit()
 
     if args.type == VIM_OPENSTACK or args.type == VIM_OPENSTACK.lower():
+        if has_unsupported_args(args):
+            print("WARN: Some option VIM config isn't supported for"
+                  "this VIM type. So, default values are used instead.")
+
         if ask_overwrite(STANDARD_OUTPUT) is not True:
             print("Skip to generate package.")
             exit()
@@ -151,7 +239,7 @@ def main():
         zip_fn = zip_src.rsplit('/', 1)[1]
         zip_dst = f"{STANDARD_OUTPUT}/{zip_fn}"
 
-        print(f"Generating zip file: {STANDARD_OUTPUT}/{zip_fn} ...")
+        print(f"Generating package and request files in '{STANDARD_OUTPUT}/' ...")
 
         shutil.move(os.path.abspath(zip_src), os.path.abspath(zip_dst))
         shutil.rmtree(zip_src.rsplit('/', 1)[0])
@@ -160,15 +248,43 @@ def main():
         net_ids = utils.get_network_ids(nets)
         subnet_ids = utils.get_subnet_ids(subnets)
 
+        vim_info = {}
+        if args.vim_config is not None:
+            vim_info = get_vim_config(args.vim_config)
+            if (args.vim_name is not None) or (args.vim_id is not None):
+                vim_info["id"] = get_vim_info(args.vim_name, args.vim_id)["id"]
+
+        elif (args.vim_name is not None) or (args.vim_id is not None):
+            vim_info = get_vim_info(args.vim_name, args.vim_id)
+
+        if (vim_info is not None) and ("auth_url" in vim_info):
+            os_auth_url = vim_info["auth_url"]
+        elif "OS_AUTH_URL" in os.environ:
+            os_auth_url = os.environ["OS_AUTH_URL"]
+        else:
+            os_auth_url = OS_AUTH_URL
+
+        def _instantiate_req():
+            "Update VIM info from paramgen script for your env"
+
+            res = paramgen.sample3_instantiate(net_ids, subnet_ids, os_auth_url)
+            vim1 = res["vimConnectionInfo"]["vim1"]
+
+            if vim_info is not None and "id" in vim_info.keys():
+                vim1["vimId"] = vim_info["id"]
+            vim1["vimType"] = VIM_OPENSTACK
+            return res
+
         req_files = {
             "create_req": paramgen.sample3_create(vnfd_id),
             "terminate_req": paramgen.sample3_terminate(),
-            "instantiate_req": paramgen.sample3_instantiate(
-                    net_ids, subnet_ids, "http://localhost/identity/v3"),
+            "instantiate_req": _instantiate_req(),
             "scale_out_req": paramgen.sample3_scale_out(),
             "scale_in_req": paramgen.sample3_scale_in(),
+            # TODO(yasufum): support replacing vnfcInstanceId
             "heal_req": paramgen.sample3_heal(),
             "change_ext_conn_req": paramgen.sample3_change_ext_conn(net_ids),
+            # TODO(yasufum): support replacing vnfdId
             "update_req": paramgen.sample3_update_vnf_vnfd_id("replace real vnfd id")
             }
 
@@ -176,10 +292,13 @@ def main():
             with open(f"{STANDARD_OUTPUT}/{fn}", "w") as f:
                 f.write(json.dumps(req_files[fn], indent=2))
 
-        with zipfile.ZipFile(zip_dst) as zf:
-            zf.printdir()
+        print_result(zip_fn, req_files.keys(), zip_dst)
 
     elif args.type == VIM_KUBERNETES or args.type == VIM_KUBERNETES.lower():
+        if has_unsupported_args(args):
+            print("WARN: Some option VIM config isn't supported for"
+                  "this VIM type. So, default values are used instead.")
+
         if ask_overwrite(K8S_OUTPUT) is not True:
             print("Skip to generate package.")
             exit()
@@ -189,17 +308,20 @@ def main():
         zip_fn = zip_src.rsplit('/', 1)[1]
         zip_dst = f"{K8S_OUTPUT}/{zip_fn}"
 
-        print(f"Generating zip file: {K8S_OUTPUT}/{zip_fn} ...")
+        print(f"Generating package and request files in '{K8S_OUTPUT}/' ...")
 
         shutil.move(os.path.abspath(zip_src), os.path.abspath(zip_dst))
         shutil.rmtree(zip_src.rsplit('/', 1)[0])
 
-
-        # TODO(yasufum) Enable to change auth_url, bearer_token and ssl_ca_cert
-        # to your own k8s cluster's info
-        auth_url = "https://127.0.0.1:6443"
-        bearer_token = "your_k8s_cluster_bearer_token"
-        ssl_ca_cert = "k8s_ssl_ca_cert"
+        vim_info = get_vim_config(args.vim_config)
+        if vim_info:
+            auth_url = vim_info["auth_url"]
+            bearer_token = vim_info["bearer_token"]
+            ssl_ca_cert = vim_info["ssl_ca_cert"]
+        else:  # Use dummy values instead.
+            auth_url = K8S_AUTH_URL
+            bearer_token = K8S_BEARER_TOKEN
+            ssl_ca_cert = K8S_SSL_CA_CERT
 
         req_files = {
             "create_req": k8s_paramgen.test_instantiate_cnf_resources_create(vnfd_id),
@@ -208,6 +330,7 @@ def main():
             "max_sample_terminate": k8s_paramgen.max_sample_terminate(),
             "max_sample_scale_out": k8s_paramgen.max_sample_scale_out(),
             "max_sample_scale_in": k8s_paramgen.max_sample_scale_in(),
+            # TODO(yasufum): support replacing vnfcInstanceId
             "max_sample_heal": k8s_paramgen.max_sample_heal(["replace real vnfc ids"])
             }
 
@@ -215,10 +338,13 @@ def main():
             with open(f"{K8S_OUTPUT}/{fn}", "w", encoding='utf-8') as f:
                 f.write(json.dumps(req_files[fn], indent=2))
 
-        with zipfile.ZipFile(zip_dst) as zf:
-            zf.printdir()
+        print_result(zip_fn, req_files.keys(), zip_dst)
 
     elif args.type == VIM_HELM or args.type == VIM_HELM.lower():
+        if has_unsupported_args(args):
+            print("WARN: Some option VIM config isn't supported for"
+                  "this VIM type. So, default values are used instead.")
+
         if ask_overwrite(HELM_OUTPUT) is not True:
             print("Skip to generate package.")
             exit()
@@ -228,16 +354,20 @@ def main():
         zip_fn = zip_src.rsplit('/', 1)[1]
         zip_dst = f"{HELM_OUTPUT}/{zip_fn}"
 
-        print(f"Generating zip file: {HELM_OUTPUT}/{zip_fn} ...")
+        print(f"Generating package and request files into '{HELM_OUTPUT}/' ...")
 
         shutil.move(os.path.abspath(zip_src), os.path.abspath(zip_dst))
         shutil.rmtree(zip_src.rsplit('/', 1)[0])
 
-        # TODO(yasufum) Enable to change auth_url, bearer_token and ssl_ca_cert
-        # to your own k8s cluster's info
-        auth_url = "https://127.0.0.1:6443"
-        bearer_token = "your_k8s_cluster_bearer_token"
-        ssl_ca_cert = "k8s_ssl_ca_cert"
+        vim_info = get_vim_config(args.vim_config)
+        if vim_info:
+            auth_url = vim_info["auth_url"]
+            bearer_token = vim_info["bearer_token"]
+            ssl_ca_cert = vim_info["ssl_ca_cert"]
+        else:  # Use dummy values instead.
+            auth_url = K8S_AUTH_URL
+            bearer_token = K8S_BEARER_TOKEN
+            ssl_ca_cert = K8S_SSL_CA_CERT
 
         req_files = {
             "create_req": k8s_paramgen.test_helm_instantiate_create(vnfd_id),
@@ -246,14 +376,14 @@ def main():
             "helm_terminate_req": k8s_paramgen.helm_terminate(),
             "helm_scale_out": k8s_paramgen.helm_scale_out(),
             "helm_scale_in": k8s_paramgen.helm_scale_in(),
+            # TODO(yasufum): support replacing vnfcInstanceId
             "helm_heal": k8s_paramgen.helm_heal(["replace real vnfc ids"])
             }
         for fn in req_files.keys():
             with open(f"{HELM_OUTPUT}/{fn}", "w", encoding='utf-8') as f:
                 f.write(json.dumps(req_files[fn], indent=2))
 
-        with zipfile.ZipFile(zip_dst) as zf:
-            zf.printdir()
+        print_result(zip_fn, req_files.keys(), zip_dst)
 
 
 # NOTE(yasufum): Do not examine if __file__ is '__main__' for considering
