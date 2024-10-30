@@ -38,9 +38,8 @@ down_revision = 'f958f58e5daa'
 def _migrate_data(table, column_name):
     meta = sa.MetaData()
     conn = op.get_bind()
-    engine = conn.engine
-    meta.create_all(bind=engine)
-    t = sa.Table(table, meta, autoload_with=engine)
+    meta.create_all(bind=conn)
+    t = sa.Table(table, meta, autoload_with=conn)
 
     for r in conn.execute(t.select()):
         stmt = t.update().where(t.c.id == r.id).values(
