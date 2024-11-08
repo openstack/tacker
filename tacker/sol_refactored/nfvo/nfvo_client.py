@@ -22,6 +22,7 @@ import zipfile
 from oslo_log import log as logging
 
 from tacker.sol_refactored.common import config
+from tacker.sol_refactored.common import coordinate
 from tacker.sol_refactored.common import fm_alarm_utils as alarm_utils
 from tacker.sol_refactored.common import fm_subscription_utils as fm_utils
 from tacker.sol_refactored.common import http_client
@@ -124,6 +125,7 @@ class NfvoClient(object):
         LOG.debug("grant response: %s", grant_res.to_dict())
         return grant_res
 
+    @coordinate.lock_resources('{vnfd_id}', blocking=True)
     def get_vnfd(self, context, vnfd_id, all_contents=False):
         if self.is_local:
             return self.nfvo.get_vnfd(context, vnfd_id)

@@ -69,7 +69,7 @@ def lock_vnf_instance(inst_arg, delay=False):
     return operation_lock
 
 
-def lock_resources(res_arg, delay=False):
+def lock_resources(res_arg, blocking=False):
 
     def operation_lock(func):
         @functools.wraps(func)
@@ -84,7 +84,8 @@ def lock_resources(res_arg, delay=False):
             res_id = res_arg.format(**call_args)
             lock = coord.get_lock(res_id)
 
-            blocking = False if not delay else 10
+            # NOTE: blocking can be integer and it means timeout period.
+            # if blocking is True, wait until lock is released.
             # NOTE: 'with lock' is not used since it can't handle
             # lock failed exception well.
             if not lock.acquire(blocking=blocking):
