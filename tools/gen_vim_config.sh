@@ -23,6 +23,9 @@ VIMC_DEFAULT_PROJ=admin
 VIMC_DEFAULT_OS_DOMAIN=Default
 VIMC_DEFAULT_TYPE=openstack
 VIMC_DEFAULT_OUTPUT=vim_config.yaml
+VIMC_DEFAULT_K8S_HELM_INFO_IP=127.0.0.1
+VIMC_DEFAULT_K8S_HELM_INFO_USER=helm_user
+VIMC_DEFAULT_K8S_HELM_INFO_PASS=helm_password
 
 #######################################
 # Find token from first entry of secrets.
@@ -44,9 +47,8 @@ metadata:
 type: kubernetes.io/service-account-token
 EOF
 
-    local _secret=$(kubectl get secret -o jsonpath="{.items[0].metadata.name}")
-    echo $(kubectl get secret ${_secret} -o jsonpath="{.data.token}" |
-        base64 --decode)
+    echo $(kubectl get secret default-token-k8svim -o \
+        jsonpath="{.data.token}" | base64 --decode)
 }
 
 #######################################
@@ -58,8 +60,9 @@ function k8s_endpoints() {
     local _attr="'kubeadm.kubernetes.io/kube-apiserver.advertise-address.endpoint'"
     _attr=${_attr//\./\\.}
     local _ep=$(kubectl get pods -A -o \
-        jsonpath="{.items[0].metadata.annotations[$_attr]}")
-    echo "https://${_ep}"
+        jsonpath="{.items[*].metadata.annotations[$_attr]}")
+    local _ep_array=($_ep)
+    echo "https://${_ep_array[0]}"
 }
 
 #######################################
@@ -68,9 +71,8 @@ function k8s_endpoints() {
 #   Contents of CA sert retrieved from kubectl.
 #######################################
 function k8s_ssl_ca_cert() {
-    local _secret=$(kubectl get secret -o jsonpath="{.items[0].metadata.name}")
-    echo $(kubectl get secrets $_secret -o jsonpath="{.data.ca\.crt}" |
-        base64 --decode)
+    echo $(kubectl get secrets default-token-k8svim -o \
+        jsonpath="{.data.ca\.crt}" | base64 --decode)
 }
 
 #######################################
@@ -112,6 +114,10 @@ EOF
 # Globals:
 #   VIMC_K8S_USE_CERT
 #   VIMC_K8S_USE_HELM
+#   VIMC_K8S_HELM_INFO
+#   VIMC_K8S_HELM_INFO_IP
+#   VIMC_K8S_HELM_INFO_USER
+#   VIMC_K8S_HELM_INFO_PASS
 #   VIMC_OUTPUT
 #   VIMC_ENDPOINT
 #   VIMC_K8S_TOKEN
@@ -128,7 +134,10 @@ function setup_k8s_config() {
 
     # Delimiter used temporarily for replacing blanks.
     local _delim=":"
+
     local _extra=""
+    local _indent1="    "
+    local _indent2="${_indent1}${_indent1}"
 
     if "${VIMC_K8S_USE_CERT}"; then
         local _k8s_cert=`k8s_ssl_ca_cert`
@@ -143,7 +152,15 @@ function setup_k8s_config() {
     fi
 
     if "${VIMC_K8S_USE_HELM}"; then
-        _extra="extra:"$'\n'"    use_helm: true"
+        _extra="extra:"$'\n'"${_indent1}use_helm: true"
+    fi
+
+    if "${VIMC_K8S_HELM_INFO}"; then
+        VIMC_K8S_HELM_INFO_IP=`echo ${VIMC_K8S_HELM_INFO_IP} | sed -e "s/,/\"\\n${_indent2}- \"/g"`
+        _extra="extra:"$'\n'"${_indent1}helm_info:"$'\n'""
+        _extra="${_extra}${_indent2}masternode_ip:"$'\n'"${_indent2}- \"${VIMC_K8S_HELM_INFO_IP}\""$'\n'""
+        _extra="${_extra}${_indent2}masternode_username: \"${VIMC_K8S_HELM_INFO_USER}\""$'\n'""
+        _extra="${_extra}${_indent2}masternode_password: \"${VIMC_K8S_HELM_INFO_PASS}\""
     fi
 
     cat << EOF > ${VIMC_OUTPUT}
@@ -163,11 +180,16 @@ EOF
 #######################################
 function show_help() {
     cat << EOS
-Generate config file for registering Kubernetes VIM
+Generate config file for registering VIM
 
 usage:
   $(basename $0) [-t VIM_TYPE] [-o OUTPUT_FILE] [-e ENDPOINT]
-      [-p PROJCT_NAME] [-u USER_NAME] [--token TOKEN] [-c] [-h]
+      [-p PROJECT_NAME] [--os-user USER_NAME] [--os-password PASSWORD]
+      [--os-project-domain PROJECT_DOMAIN] [--os-user-domain USER_DOMAIN]
+      [--os-disable-cert-verify] [--k8s-token TOKEN] [--k8s-use-cert]
+      [--k8s-helm-info] [--k8s-helm-info-ip K8S_MASTER_NODE_IP]
+      [--k8s-helm-info-user HELM_USER] [--k8s-helm-info-pass HELM_PASSWORD]
+      [--k8s-use-helm] [-h]
 
 options:
   All of options are optional.
@@ -177,8 +199,9 @@ options:
       type of VIM.
         * 'openstack' or 'os' for OpenStack
         * 'kubernetes' or 'k8s' for Kubernetes
+      default value is '${VIMC_DEFAULT_TYPE}'.
     -o|--output OUTPUT_FILE
-      name of output file, default is '${VIMC_DEFAULT_OUTPUT}'.
+      name of output file, default value is '${VIMC_DEFAULT_OUTPUT}'.
     -e|--endpoint ENDPOINT
       endpoint consists of url and port, such as 'https://127.0.0.1:6443'.
     -p|--project PROJECT_NAME
@@ -192,7 +215,7 @@ options:
       name of OpenStack user, value of 'OS_USERNAME' is used by default.
     --os-password PASSWORD
       password of OpenStack user, value of 'OS_PASSWORD' is used by default.
-    --os-project-domain PROJ_DOMAIN
+    --os-project-domain PROJECT_DOMAIN
       name of project domain, value of 'OS_PROJECT_DOMAIN_ID' is used by
       default.
     --os-user-domain USER_DOMAIN
@@ -206,8 +229,19 @@ options:
       bearer token.
     --k8s-use-cert
       use SSL CA cert.
+    --k8s-helm-info
+      configure VIM to use helm for v1 Tacker.
+    --k8s-helm-info-ip K8S_MASTER_NODE_IP
+      k8s master node IPs, such as '192.168.56.10,192.168.56.11'.
+      can be used if --k8s-helm-info is specified, default value is '${VIMC_DEFAULT_K8S_HELM_INFO_IP}'.
+    --k8s-helm-info-user HELM_USER
+      user to login through ssh to execute the CLI command of Helm.
+      can be used if --k8s-helm-info is specified, default value is '${VIMC_DEFAULT_K8S_HELM_INFO_USER}'.
+    --k8s-helm-info-pass HELM_PASSWORD
+      password of the user specified by --k8s-helm-info-user.
+      can be used if --k8s-helm-info is specified, default value is '${VIMC_DEFAULT_K8S_HELM_INFO_PASS}'.
     --k8s-use-helm
-      configure VIM to use helm for deploying CNFs.
+      configure VIM to use helm for v2 Tacker.
 EOS
 }
 
@@ -277,6 +311,9 @@ function k8s_main() {
 #   VIMC_DEFAULT_TYPE
 #   VIMC_DEFAULT_OUTPUT
 #   VIMC_DEFAULT_PROJ
+#   VIMC_DEFAULT_K8S_HELM_INFO_IP
+#   VIMC_DEFAULT_K8S_HELM_INFO_USER
+#   VIMC_DEFAULT_K8S_HELM_INFO_PASS
 #   VIMC_TYPE
 #   VIMC_OUTPUT
 #   VIMC_ENDPOINT
@@ -289,12 +326,19 @@ function k8s_main() {
 #   VIMC_K8S_TOKEN
 #   VIMC_K8S_USE_CERT
 #   VIMC_K8S_USE_HELM
+#   VIMC_K8S_HELM_INFO
+#   VIMC_K8S_HELM_INFO_IP
+#   VIMC_K8S_HELM_INFO_USER
+#   VIMC_K8S_HELM_INFO_PASS
 #######################################
 function cleanup() {
     OPTIND=${PREV_OPTIND}
     VIMC_DEFAULT_TYPE=
     VIMC_DEFAULT_OUTPUT=
     VIMC_DEFAULT_PROJ=
+    VIMC_DEFAULT_K8S_HELM_INFO_IP=
+    VIMC_DEFAULT_K8S_HELM_INFO_USER=
+    VIMC_DEFAULT_K8S_HELM_INFO_PASS=
     VIMC_TYPE=
     VIMC_OUTPUT=
     VIMC_ENDPOINT=
@@ -307,6 +351,10 @@ function cleanup() {
     VIMC_K8S_TOKEN=
     VIMC_K8S_USE_CERT=
     VIMC_K8S_USE_HELM=
+    VIMC_K8S_HELM_INFO=
+    VIMC_K8S_HELM_INFO_IP=
+    VIMC_K8S_HELM_INFO_USER=
+    VIMC_K8S_HELM_INFO_PASS=
 }
 
 #######################################
@@ -379,6 +427,18 @@ while getopts t:o:e:p:ch-: opt; do
         --k8s-use-cert)
             VIMC_K8S_USE_CERT=true;
             ;;
+        --k8s-helm-info)
+            VIMC_K8S_HELM_INFO=true;
+            ;;
+        --k8s-helm-info-ip)
+            VIMC_K8S_HELM_INFO_IP=${optarg};
+            ;;
+        --k8s-helm-info-user)
+            VIMC_K8S_HELM_INFO_USER=${optarg};
+            ;;
+        --k8s-helm-info-pass)
+            VIMC_K8S_HELM_INFO_PASS=${optarg};
+            ;;
         --k8s-use-helm)
             VIMC_K8S_USE_HELM=true;
             ;;
@@ -400,6 +460,10 @@ VIMC_PROJ=${VIMC_PROJ:-${VIMC_DEFAULT_PROJ}}
 VIMC_OS_CERT_VERIFY=${VIMC_OS_CERT_VERIFY:-true}
 VIMC_K8S_USE_CERT=${VIMC_K8S_USE_CERT:-false}
 VIMC_K8S_USE_HELM=${VIMC_K8S_USE_HELM:-false}
+VIMC_K8S_HELM_INFO=${VIMC_K8S_HELM_INFO:-false}
+VIMC_K8S_HELM_INFO_IP=${VIMC_K8S_HELM_INFO_IP:-${VIMC_DEFAULT_K8S_HELM_INFO_IP}}
+VIMC_K8S_HELM_INFO_USER=${VIMC_K8S_HELM_INFO_USER:-${VIMC_DEFAULT_K8S_HELM_INFO_USER}}
+VIMC_K8S_HELM_INFO_PASS=${VIMC_K8S_HELM_INFO_PASS:-${VIMC_DEFAULT_K8S_HELM_INFO_PASS}}
 
 if [[ ${VIMC_TYPE} == "openstack" || ${VIMC_TYPE} == "os" ]]; then
     os_main

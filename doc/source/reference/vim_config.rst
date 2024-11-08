@@ -45,10 +45,11 @@ parameters. ``TACKER_ROOT`` is the root of tacker's repository on your server.
   $ bash TACKER_ROOT/tools/gen_vim_config.sh
   Config for OpenStack VIM 'vim_config.yaml' generated.
 
+
 This script is helpful to configure VIM, finds required parameters for
 the configuration from your environment.
 For OpenStack VIM, parameters are retrieved from environment variables of
-OpenStack. On the other hand, for Kubernets VIM, parameters are retrieved
+OpenStack. On the other hand, for Kubernetes VIM, parameters are retrieved
 via ``kubectl`` command.
 If you use Kubernetes VIM with default parameters, just add option
 ``-t k8s`` or ``-t kubernetes`` explicitly.
@@ -57,6 +58,7 @@ If you use Kubernetes VIM with default parameters, just add option
 
   $ bash TACKER_ROOT/tools/gen_vim_config.sh -t k8s
   Config for Kubernetes VIM 'vim_config.yaml' generated.
+
 
 Usage
 ^^^^^
@@ -75,11 +77,16 @@ are explained in next sections.
 .. code-block:: console
 
   $ bash tools/gen_vim_config.sh -h
-  Generate config file for registering Kubernetes VIM
+  Generate config file for registering VIM
 
   usage:
     gen_vim_config.sh [-t VIM_TYPE] [-o OUTPUT_FILE] [-e ENDPOINT]
-        [-p PROJCT_NAME] [-u USER_NAME] [--token TOKEN] [-c] [-h]
+        [-p PROJECT_NAME] [--os-user USER_NAME] [--os-password PASSWORD]
+        [--os-project-domain PROJECT_DOMAIN] [--os-user-domain USER_DOMAIN]
+        [--os-disable-cert-verify] [--k8s-token TOKEN] [--k8s-use-cert]
+        [--k8s-helm-info] [--k8s-helm-info-ip K8S_MASTER_NODE_IP]
+        [--k8s-helm-info-user HELM_USER] [--k8s-helm-info-pass HELM_PASSWORD]
+        [--k8s-use-helm] [-h]
 
   options:
     All of options are optional.
@@ -89,8 +96,9 @@ are explained in next sections.
         type of VIM.
           * 'openstack' or 'os' for OpenStack
           * 'kubernetes' or 'k8s' for Kubernetes
+        default value is 'openstack'.
       -o|--output OUTPUT_FILE
-        name of output file, default is 'vim_config.yaml'.
+        name of output file, default value is 'vim_config.yaml'.
       -e|--endpoint ENDPOINT
         endpoint consists of url and port, such as 'https://127.0.0.1:6443'.
       -p|--project PROJECT_NAME
@@ -104,7 +112,7 @@ are explained in next sections.
         name of OpenStack user, value of 'OS_USERNAME' is used by default.
       --os-password PASSWORD
         password of OpenStack user, value of 'OS_PASSWORD' is used by default.
-      --os-project-domain PROJ_DOMAIN
+      --os-project-domain PROJECT_DOMAIN
         name of project domain, value of 'OS_PROJECT_DOMAIN_ID' is used by
         default.
       --os-user-domain USER_DOMAIN
@@ -118,8 +126,19 @@ are explained in next sections.
         bearer token.
       --k8s-use-cert
         use SSL CA cert.
+      --k8s-helm-info
+        configure VIM to use helm for v1 Tacker.
+      --k8s-helm-info-ip K8S_MASTER_NODE_IP
+        k8s master node IPs, such as '192.168.56.10,192.168.56.11'.
+        can be used if --k8s-helm-info is specified, default value is '127.0.0.1'.
+      --k8s-helm-info-user HELM_USER
+        user to login through ssh to execute the CLI command of Helm.
+        can be used if --k8s-helm-info is specified, default value is 'helm_user'.
+      --k8s-helm-info-pass HELM_PASSWORD
+        password of the user specified by --k8s-helm-info-user.
+        can be used if --k8s-helm-info is specified, default value is 'helm_password'.
       --k8s-use-helm
-        configure VIM to use helm for deploying CNFs.
+        configure VIM to use helm for v2 Tacker.
 
 
 OpenStack
@@ -132,6 +151,7 @@ preparing the configuration file.
 
 .. literalinclude:: ../../../samples/vim/vim_config.yaml
     :language: yaml
+
 
 Auth URL
 ~~~~~~~~
@@ -199,6 +219,7 @@ Service Account Token.
   -----END CERTIFICATE-----"
   type: "kubernetes"
 
+
 2. Another example of Kubernetes VIM configuration with
 OpenID Connect Token. The OpenID Connect related parameters are described in
 :doc:`/admin/kubernetes_openid_token_auth_usage_guide`.
@@ -248,6 +269,7 @@ OpenID Connect Token. The OpenID Connect related parameters are described in
   roD1k8KeJlfvR/XcVTGFcgIdNLfKIdd99Xfi4gSaIKuw
   -----END CERTIFICATE-----"
   type: "kubernetes"
+
 
 Auth URL
 ~~~~~~~~
