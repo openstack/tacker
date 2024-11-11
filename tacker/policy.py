@@ -39,14 +39,11 @@ _ENFORCER = None
 ADMIN_CTX_POLICY = 'context_is_admin'
 
 # TODO(gmann): Remove setting the default value of config options:
-# - 'policy_file' once oslo_policy change their default value to what is
-# overridden here.
 # - 'enforce_scope', and 'enforce_new_defaults' once cinder is ready with the
 # new RBAC (oslo_policy enable them by default)
 DEFAULT_POLICY_FILE = 'policy.yaml'
 opts.set_defaults(
     cfg.CONF,
-    DEFAULT_POLICY_FILE,
     enforce_scope=False,
     enforce_new_defaults=False)
 
