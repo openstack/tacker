@@ -27,7 +27,7 @@ def _create_facade_lazily():
 
     if _FACADE is None:
         context_manager.configure(sqlite_fk=True, **cfg.CONF.database)
-        _FACADE = context_manager._factory.get_legacy_facade()
+        _FACADE = context_manager.writer
 
     return _FACADE
 
@@ -41,4 +41,5 @@ def get_engine():
 def get_session():
     """Helper method to grab session."""
     facade = _create_facade_lazily()
-    return facade.get_session()
+    sessionmaker = facade.get_sessionmaker()
+    return sessionmaker()
