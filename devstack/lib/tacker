@@ -41,7 +41,6 @@ GITBRANCH["tacker-horizon"]=${TACKERHORIZON_BRANCH:-master}
 GITDIR["tacker-horizon"]=$DEST/tacker-horizon
 
 TACKER_DIR=$DEST/tacker
-TACKER_AUTH_CACHE_DIR=${TACKER_AUTH_CACHE_DIR:-/var/cache/tacker}
 
 # Support entry points installation of console scripts
 if [[ -d $TACKER_DIR/bin/tacker-server ]]; then
@@ -78,13 +77,6 @@ GLANCE_DEFAULT_BACKEND=${GLANCE_DEFAULT_BACKEND:=file}
 
 # Functions
 # ---------
-# create_tacker_cache_dir() - Part of the _tacker_setup_keystone() process
-function create_tacker_cache_dir {
-    # Create cache dir
-    sudo install -d -o $STACK_USER $TACKER_AUTH_CACHE_DIR
-    rm -f $TACKER_AUTH_CACHE_DIR/*
-}
-
 # function install_db_client_mysql() - ensure mysql client is installed
 function install_db_client_mysql {
     if is_oraclelinux; then
@@ -193,7 +185,6 @@ function stop_tacker {
 # cleanup_tacker() - Remove residual data files, anything left over from previous
 # runs that a clean run would need to clean up
 function cleanup_tacker {
-    sudo rm -rf $TACKER_AUTH_CACHE_DIR
     sudo rm -rf $VNF_PACKAGE_CSAR_PATH
     sudo rm -rf $FILESYSTEM_STORE_DATA_DIR
 }
@@ -280,8 +271,7 @@ function _tacker_setup_keystone {
         iniset $conf_file $section auth_url $KEYSTONE_SERVICE_URI
     fi
 
-    create_tacker_cache_dir
-    configure_auth_token_middleware $conf_file $TACKER_ADMIN_USERNAME $TACKER_AUTH_CACHE_DIR $section
+    configure_keystone_authtoken_middleware $conf_file $TACKER_ADMIN_USERNAME $section
 }
 
 function tacker_horizon_install {
