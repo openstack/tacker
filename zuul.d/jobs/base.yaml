@@ -1,0 +1,338 @@
+- job:
+    name: tacker-ft-openstack-base
+    parent: devstack
+    description: |
+      Abstraction multinodes job for SOL devstack-based functional tests
+    nodeset: openstack-4-nodes-jammy
+    pre-run: playbooks/devstack/pre.yaml
+    run: playbooks/devstack/run.yaml
+    post-run: playbooks/devstack/post.yaml
+    roles:
+      - zuul: openstack-infra/devstack
+    timeout: 10800
+    required-projects:
+      - openstack/cinder
+      - openstack/glance
+      - openstack/keystone
+      - openstack/neutron
+      - openstack/nova
+      - openstack/placement
+      - openstack/aodh
+      - openstack/horizon
+      - openstack/barbican
+      - openstack/heat
+      - openstack/networking-sfc
+      - openstack/python-barbicanclient
+      - openstack/python-tackerclient
+      - openstack/tacker
+      - openstack/tacker-horizon
+    vars:
+      devstack_localrc:
+        CELLSV2_SETUP: singleconductor
+        PHYSICAL_NETWORK: mgmtphysnet0
+        OVS_BRIDGE_MAPPINGS: public:br-ex,mgmtphysnet0:br-infra
+        DATABASE_TYPE: mysql
+        KEYSTONE_SERVICE_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
+        MYSQL_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
+        GNOCCHI_SERVICE_HOST: "{{ hostvars['controller-tacker']['nodepool']['private_ipv4'] }}"
+        Q_SERVICE_PLUGIN_CLASSES: ovn-router,networking_sfc.services.flowclassifier.plugin.FlowClassifierPlugin,neutron.services.qos.qos_plugin.QoSPlugin,qos
+        L2_AGENT_EXTENSIONS: qos
+        DEVSTACK_PARALLEL: True
+        OVN_L3_CREATE_PUBLIC_NETWORK: true
+        OVN_DBS_LOG_LEVEL: dbg
+        Q_ML2_PLUGIN_MECHANISM_DRIVERS: ovn,logger
+      test_matrix_configs: [neutron]
+      zuul_work_dir: src/opendev.org/openstack/tacker
+    host-vars:
+      controller:
+        devstack_local_conf:
+          post-config:
+            # NOTE: workaround for Heat timeout due to communication
+            # problem between nova and neutron.
+            $NEUTRON_CONF:
+              DEFAULT:
+                client_socket_timeout: 60
+            $NEUTRON_DHCP_CONF:
+              DEFAULT:
+                enable_isolated_metadata: True
+            # NOTE: workaround for Cinder image volume cache problem.
+            # https://bugs.launchpad.net/cinder/+bug/1953704
+            $CINDER_CONF:
+              lvmdriver-1:
+                image_volume_cache_enabled: False
+        devstack_plugins:
+          heat: https://opendev.org/openstack/heat
+          networking-sfc: https://opendev.org/openstack/networking-sfc
+          aodh: https://opendev.org/openstack/aodh
+          barbican: https://opendev.org/openstack/barbican
+        devstack_services:
+          # Core services enabled for this branch.
+          # This list replaces the test-matrix.
+          # Shared services
+          mysql: true
+          rabbit: true
+          tls-proxy: false
+          # Keystone services
+          key: true
+          # Glance services
+          g-api: true
+          # Nova services
+          n-api: true
+          n-api-meta: true
+          n-cond: true
+          n-cpu: false
+          n-novnc: true
+          n-sch: true
+          placement-api: true
+          # OVN services
+          ovn-controller: true
+          ovn-northd: true
+          ovs-vswitchd: true
+          ovsdb-server: true
+          # Neutron services
+          q-svc: true
+          q-qos: true
+          q-ovn-metadata-agent: true
+          # Cinder services
+          c-api: true
+          c-sch: true
+          c-vol: true
+          cinder: true
+          # Services we don't need.
+          # This section is not really needed, it's for readability.
+          horizon: false
+          tempest: false
+          swift: false
+          s-account: false
+          s-container: false
+          s-object: false
+          s-proxy: false
+          c-bak: false
+        tox_install_siblings: false
+      controller-tacker:
+        devstack_plugins:
+          tacker: https://opendev.org/openstack/tacker
+        devstack_services:
+          # OVN services
+          ovn-controller: true
+          ovs-vswitchd: true
+          ovsdb-server: true
+          # Neutron services
+          q-ovn-metadata-agent: true
+          # Tacker services
+          tacker: true
+          tacker-conductor: true
+    group-vars:
+      compute:
+        # Since a VirtualInterfaceCreateException occurs during a test,
+        # the setting of network-vif-plugged is changed by the reference of
+        # the following URL.
+        #   https://bugs.launchpad.net/heat/+bug/1694371
+        devstack_local_conf:
+          post-config:
+            $NOVA_CONF:
+              DEFAULT:
+                vif_plugging_is_fatal: False
+      subnode:
+        devstack_localrc:
+          CELLSV2_SETUP: singleconductor
+          PHYSICAL_NETWORK: mgmtphysnet0
+          OVS_BRIDGE_MAPPINGS: public:br-ex,mgmtphysnet0:br-infra
+          DATABASE_TYPE: mysql
+          KEYSTONE_SERVICE_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
+          MYSQL_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
+          GNOCCHI_SERVICE_HOST: "{{ hostvars['controller-tacker']['nodepool']['private_ipv4'] }}"
+          TACKER_HOST: "{{ hostvars['controller-tacker']['nodepool']['private_ipv4'] }}"
+          TACKER_MODE: standalone
+          IS_ZUUL_FT: True
+          Q_SERVICE_PLUGIN_CLASSES: "qos,\
+            networking_sfc.services.flowclassifier.plugin.FlowClassifierPlugin,\
+            neutron.services.qos.qos_plugin.QoSPlugin,\
+            ovn-router"
+          L2_AGENT_EXTENSIONS: qos
+          ENABLE_CHASSIS_AS_GW: false
+          Q_ML2_PLUGIN_MECHANISM_DRIVERS: ovn,logger
+        devstack_services:
+          # To override the parent job's definitions.
+          tls-proxy: false
+          # OVN services
+          ovn-controller: true
+          ovs-vswitchd: true
+          ovsdb-server: true
+          # Neutron services
+          q-ovn-metadata-agent: true
+
+- job:
+    name: tacker-ft-k8s-base
+    parent: devstack
+    description: |
+      Abstraction multinodes job for SOL devstack-based kubernetes functional
+      tests
+    nodeset: openstack-k8s-3-nodes-jammy
+    pre-run: playbooks/devstack/pre.yaml
+    run: playbooks/devstack/run.yaml
+    post-run: playbooks/devstack/post.yaml
+    roles:
+      - zuul: openstack-infra/devstack
+    timeout: 10800
+    required-projects:
+      - openstack/barbican
+      - openstack/cinder
+      - openstack/devstack-plugin-container
+      - openstack/glance
+      - openstack/heat
+      - openstack/horizon
+      - openstack/keystone
+      - openstack/neutron
+      - openstack/nova
+      - openstack/placement
+      - openstack/python-barbicanclient
+      - openstack/python-tackerclient
+      - openstack/tacker
+      - openstack/tacker-horizon
+    host-vars:
+      controller:
+        devstack_plugins:
+          barbican: https://opendev.org/openstack/barbican
+          heat: https://opendev.org/openstack/heat
+          neutron: https://opendev.org/openstack/neutron
+        devstack_services:
+          base: false
+          c-api: true
+          c-bak: false
+          c-sch: true
+          c-vol: true
+          cinder: true
+          coredns: false
+          etcd3: true
+          g-api: true
+          g-reg: true
+          horizon: false
+          key: true
+          mysql: true
+          n-api-meta: true
+          n-api: true
+          n-cond: true
+          n-cpu: false
+          n-novnc: true
+          n-sch: true
+          neutron: true
+          placement-api: true
+          placement-client: true
+          ovn-controller: true
+          ovn-northd: true
+          ovs-vswitchd: true
+          ovsdb-server: true
+          q-qos: true
+          q-svc: true
+          q-ovn-metadata-agent: true
+          rabbit: true
+          s-account: false
+          s-container: false
+          s-object: false
+          s-proxy: false
+          swift: false
+          tempest: false
+          tls-proxy: false
+        tox_install_siblings: false
+      controller-tacker:
+        devstack_local_conf:
+          post-config:
+            $TACKER_CONF:
+              kubernetes_vim:
+                stack_retries: 120
+        devstack_services:
+          ovn-controller: true
+          ovn-northd: true
+          ovs-vswitchd: true
+          ovsdb-server: true
+          q-ovn-metadata-agent: true
+          tacker: true
+          tacker-conductor: true
+        devstack_plugins:
+          tacker: https://opendev.org/openstack/tacker
+      controller-k8s:
+        devstack_local_conf: {}
+        devstack_plugins:
+          devstack-plugin-container: https://opendev.org/openstack/devstack-plugin-container
+        devstack_services:
+          etcd3: false
+          ovn-controller: true
+          ovn-northd: true
+          ovs-vswitchd: true
+          ovsdb-server: true
+          q-ovn-metadata-agent: true
+          container: true
+          k8s-master: true
+        tox_install_siblings: false
+    group-vars:
+      subnode:
+        devstack_localrc:
+          CELLSV2_SETUP: singleconductor
+          DATABASE_TYPE: mysql
+          IS_ZUUL_FT: True
+          K8S_API_SERVER_IP: "{{ hostvars['controller-k8s']['nodepool']['private_ipv4'] }}"
+          KEYSTONE_SERVICE_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
+          CONTAINER_ENGINE: crio
+          K8S_VERSION: "1.30.5"
+          CRIO_VERSION: "1.30.5"
+          MYSQL_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
+          OVS_BRIDGE_MAPPINGS: public:br-ex,mgmtphysnet0:br-infra
+          PHYSICAL_NETWORK: mgmtphysnet0
+          TACKER_HOST: "{{ hostvars['controller-tacker']['nodepool']['private_ipv4'] }}"
+          TACKER_MODE: standalone
+          USE_PYTHON3: true
+          ENABLE_CHASSIS_AS_GW: false
+          Q_ML2_PLUGIN_MECHANISM_DRIVERS: ovn,logger
+          # TODO(ueha): Remove this workarround if the Zuul jobs succeed with GLOBAL_VENV=true
+          GLOBAL_VENV: false
+          K8S_TOKEN: "9agf12.zsu5uh2m4pzt3qba"
+        devstack_services:
+          dstat: false
+          horizon: false
+          n-api-meta: false
+          n-api: false
+          n-cauth: false
+          n-cond: false
+          n-cpu: true
+          n-novnc: false
+          n-obj: false
+          n-sch: false
+          ovn-controller: true
+          ovs-vswitchd: true
+          ovsdb-server: true
+          q-ovn-metadata-agent: true
+          tls-proxy: false
+    vars:
+      devstack_localrc:
+        CELLSV2_SETUP: singleconductor
+        DATABASE_TYPE: mysql
+        ETCD_USE_RAMDISK: true
+        IS_ZUUL_FT: True
+        KEYSTONE_SERVICE_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
+        L2_AGENT_EXTENSIONS: qos
+        MYSQL_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
+        OVS_BRIDGE_MAPPINGS: public:br-ex,mgmtphysnet0:br-infra
+        PHYSICAL_NETWORK: mgmtphysnet0
+        Q_SERVICE_PLUGIN_CLASSES: ovn-router,neutron.services.qos.qos_plugin.QoSPlugin,qos
+        TACKER_HOST: "{{ hostvars['controller-tacker']['nodepool']['private_ipv4'] }}"
+        TACKER_MODE: standalone
+        USE_PYTHON3: true
+        DEVSTACK_PARALLEL: True
+        OVN_L3_CREATE_PUBLIC_NETWORK: true
+        OVN_DBS_LOG_LEVEL: dbg
+        Q_ML2_PLUGIN_MECHANISM_DRIVERS: ovn,logger
+        # TODO(ueha): Remove this workarround if the Zuul jobs succeed with GLOBAL_VENV=true
+        GLOBAL_VENV: false
+      devstack_local_conf:
+        post-config:
+          $NEUTRON_DHCP_CONF:
+            DEFAULT:
+              enable_isolated_metadata: True
+      k8s_api_url: "https://{{ hostvars['controller-k8s']['nodepool']['private_ipv4'] }}:6443"
+      k8s_ssl_verify: true
+      helm_version: "3.15.4"
+      test_matrix_configs: [neutron]
+      zuul_work_dir: src/opendev.org/openstack/tacker
+      zuul_copy_output:
+        '{{ devstack_log_dir }}/kubernetes': 'logs'

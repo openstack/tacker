@@ -173,7 +173,7 @@ To change the version execute the below steps:
 
 1. Open ``<tacker_route_directory>/tacker/tox.ini`` file in any editor.
 
-2. Under [testenv:dsvm-compliance-sol-api] section in **commands_pre** while
+2. Under [testenv:ft-v1-compliance-sol] section in **commands_pre** while
    doing checkout of api-tests mention desired TST's code version.
 
    .. code-block:: console
@@ -217,14 +217,14 @@ Execution of testcase
 
   .. code-block:: console
 
-     tox -e dsvm-compliance-sol-api
+     tox -e ft-v1-compliance-sol
 
 * Or from tacker directory, specific testcases can be executed using
   the following command:
 
   .. code-block:: console
 
-     tox -e dsvm-compliance-sol-api tacker.tests.compliance.xxx.yyy.<testcase>
+     tox -e ft-v1-compliance-sol tacker.tests.compliance.xxx.yyy.<testcase>
 
 
 How to proceed when the test fails
@@ -237,7 +237,7 @@ How to proceed when the test fails
 
   .. code-block:: console
 
-     tacker/.tox/dsvm-compliance-sol-api/log/SOL003/VNFLifecycleManagement-API
+     tacker/.tox/ft-v1-compliance-sol/log/SOL003/VNFLifecycleManagement-API
      /VNFInstances/GET_information_about_multiple_VNF_instances
 
 * Compliance test may also get failed due to code problem at

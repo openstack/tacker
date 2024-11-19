@@ -1,0 +1,55 @@
+- nodeset:
+    name: openstack-4-nodes-jammy
+    nodes:
+      - name: controller
+        label: ubuntu-jammy
+      - name: controller-tacker
+        label: ubuntu-jammy
+      - name: compute1
+        label: ubuntu-jammy
+      - name: compute2
+        label: ubuntu-jammy
+    groups:
+      # Nodes running the compute service
+      - name: compute
+        nodes:
+          - compute1
+          - compute2
+      # Nodes that are not the controller
+      - name: subnode
+        nodes:
+          - controller-tacker
+          - compute1
+          - compute2
+      # Switch node for multinode networking setup
+      - name: switch
+        nodes:
+          - controller
+      # Peer nodes for multinode networking setup
+      - name: peers
+        nodes:
+          - controller-tacker
+          - compute1
+          - compute2
+
+- nodeset:
+    name: openstack-k8s-3-nodes-jammy
+    nodes:
+      - name: controller
+        label: ubuntu-jammy
+      - name: controller-tacker
+        label: ubuntu-jammy
+      - name: controller-k8s
+        label: ubuntu-jammy
+    groups:
+      - name: subnode
+        nodes:
+          - controller-tacker
+          - controller-k8s
+      - name: switch
+        nodes:
+          - controller
+      - name: peers
+        nodes:
+          - controller-tacker
+          - controller-k8s

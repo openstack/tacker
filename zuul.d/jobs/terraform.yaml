@@ -1,0 +1,17 @@
+- job:
+    name: tacker-ft-v2-terraform
+    parent: tacker-ft-openstack-base
+    description: |
+      V2 Terraform functional tests
+    attempts: 1
+    host-vars:
+      controller-tacker:
+        tox_envlist: ft-v2-terraform
+        devstack_local_conf:
+          post-config:
+            $TACKER_CONF:
+              v2_vnfm:
+                tf_file_dir: /tmp/tacker/terraform
+    vars:
+      terraform_setup: true
+    voting: false
