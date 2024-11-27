@@ -116,9 +116,14 @@ def get_k8s_reses_from_json_files(target_k8s_files, vnfd, k8s_api_client,
     return k8s_reses, namespace
 
 
-def list_namespaced_pods(k8s_api_client, namespace):
+def list_namespaced_pods(k8s_api_client, namespace, isall=False):
     k8s_client = client.CoreV1Api(api_client=k8s_api_client)
-    return k8s_client.list_namespaced_pod(namespace=namespace).items
+    all_pods = k8s_client.list_namespaced_pod(namespace=namespace).items
+    if isall:
+        return all_pods
+
+    # return 'Running' pods only, if isall == False
+    return [pod for pod in all_pods if pod.status.phase == 'Running']
 
 
 class AuthContextManager:

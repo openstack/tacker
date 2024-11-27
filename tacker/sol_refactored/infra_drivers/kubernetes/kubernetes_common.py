@@ -60,7 +60,7 @@ class KubernetesCommon(object):
 
         # check running Pod
         all_pods = kubernetes_utils.list_namespaced_pods(
-            k8s_api_client, namespace)
+            k8s_api_client, namespace, isall=True)
         current_pods_name = [pod.metadata.name for pod in all_pods]
 
         old_pods_names = set()

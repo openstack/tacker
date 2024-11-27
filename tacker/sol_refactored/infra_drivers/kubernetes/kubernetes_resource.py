@@ -395,8 +395,7 @@ class DaemonSet(NamespacedResource):
         replicas = daemonset_info.status.desired_number_scheduled
 
         for pod_info in pods_info:
-            if (pod_info.status.phase != 'Running' or
-                    pod_info.metadata.name in old_pods_names):
+            if pod_info.metadata.name in old_pods_names:
                 return False
 
         return len(pods_info) == replicas
@@ -416,8 +415,7 @@ class Deployment(NamespacedResource):
         replicas = deployment_info.spec.replicas
 
         for pod_info in pods_info:
-            if (pod_info.status.phase != 'Running' or
-                    pod_info.metadata.name in old_pods_names):
+            if pod_info.metadata.name in old_pods_names:
                 return False
 
         return len(pods_info) == replicas
@@ -435,10 +433,8 @@ class ReplicaSet(NamespacedResource):
     def is_update(self, pods_info, old_pods_names):
         replicaset_info = self.read()
         replicas = replicaset_info.spec.replicas
-
         for pod_info in pods_info:
-            if (pod_info.status.phase != 'Running' or
-                    pod_info.metadata.name in old_pods_names):
+            if pod_info.metadata.name in old_pods_names:
                 return False
 
         return len(pods_info) == replicas
@@ -522,7 +518,12 @@ class StatefulSet(NamespacedResource):
         replicas = statefulset_info.spec.replicas
 
         for pod_info in pods_info:
-            if pod_info.status.phase != 'Running':
+            # NOTE: Pods created with StatefulSet will have the same name
+            # when recreated. As the Pod is still in a "Running" state
+            # immediately after deletion, StatefulSet uses the
+            # "metadata.deletion_timestamp" to determine whether the update
+            # has been completed.
+            if pod_info.metadata.deletion_timestamp is not None:
                 return False
 
         return len(pods_info) == replicas

@@ -302,7 +302,7 @@ class ContainerUpdateMgmtDriver(kubernetes.Kubernetes):
             k8s_config_obj.replace()
 
         pods = kubernetes_utils.list_namespaced_pods(
-            k8s_api_client, namespace=namespace)
+            k8s_api_client, namespace=namespace, isall=True)
         old_pods_names = set()
         for k8s_pod_obj in k8s_pod_objs:
             # Call the replace API
