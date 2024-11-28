@@ -48,7 +48,7 @@ class VnfPmThresholdTest(base_v2.BaseVnfLcmKubernetesV2Test):
             response_headers={"Content-Type": "text/plain"})
 
     def test_pm_threshold_autoscaling_min(self):
-        """Test PM Threshold operations with omitting except for required attributes
+        """Test PM Threshold operations with omitting except for required attr
 
         * About attributes:
           Omit except for required attributes.

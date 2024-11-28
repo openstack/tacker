@@ -455,7 +455,9 @@ class TestAttributes(base.BaseTestCase):
 
         # Valid - abbreviated ipv4 address
         cidr = "10/24"
-        msg = validator(cidr, None)
+        # Note: It is necessary to specify "expand_partial=True" for "10/24"
+        # from netaddr 1.3.0.
+        msg = validator(cidr, None, True)
         self.assertIsNone(msg)
 
         # Invalid - IPv4 missing mask

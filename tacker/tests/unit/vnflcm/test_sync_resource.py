@@ -61,8 +61,8 @@ class TestSyncVnfPackage(base.TestCase):
             mock_glance_store):
 
         # glance_store mock Settings
-        mock_glance_store.return_value = 'location', 0, 'checksum',\
-                                         'multihash', 'loc_meta'
+        mock_glance_store.return_value = (
+            'location', 0, 'checksum', 'multihash', 'loc_meta')
 
         updates = {'additionalArtifacts': [
             {
@@ -254,8 +254,8 @@ class TestSyncVnfPackage(base.TestCase):
             mock_glance_store):
 
         # glance_store mock Settings
-        mock_glance_store.return_value = 'location', 0, 'checksum',\
-                                         'multihash', 'loc_meta'
+        mock_glance_store.return_value = (
+            'location', 0, 'checksum', 'multihash', 'loc_meta')
 
         # vnf_package mock Settings
         mock_save_vnf_package.side_effect = Exception
@@ -291,8 +291,8 @@ class TestSyncVnfPackage(base.TestCase):
             mock_glance_store):
 
         # glance_store mock Settings
-        mock_glance_store.return_value = 'location', 0, 'checksum',\
-                                         'multihash', 'loc_meta'
+        mock_glance_store.return_value = (
+            'location', 0, 'checksum', 'multihash', 'loc_meta')
         mock_upload_vnf_package_content.side_effect = Exception
 
         # SyncVnfPackage.create_package
@@ -327,8 +327,8 @@ class TestSyncVnfPackage(base.TestCase):
             mock_glance_store):
 
         # glance_store mock Settings
-        mock_glance_store.return_value = 'location', 0, 'checksum',\
-                                         'multihash', 'loc_meta'
+        mock_glance_store.return_value = (
+            'location', 0, 'checksum', 'multihash', 'loc_meta')
 
         # vnf_package_vnfd mock Settings
         mock_get_by_id.side_effect = Exception

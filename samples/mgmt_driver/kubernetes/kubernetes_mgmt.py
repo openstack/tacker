@@ -719,7 +719,7 @@ class KubernetesMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                 stderr = result[1]
                 unnecessary_msg = "WARNING! Using --password via the CLI"
                 err_info = (
-                    [line for line in stderr if not(unnecessary_msg in line)])
+                    [line for line in stderr if not (unnecessary_msg in line)])
                 err_msg = ("Failed to login Docker private registry. "
                     "ErrInfo:{}".format(err_info))
                 LOG.error(err_msg)

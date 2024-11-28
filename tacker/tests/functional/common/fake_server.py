@@ -45,7 +45,7 @@ def PrepareRequestHandler(manager):
             for objChkUrl in func_uri_list:
                 # Check which requested path is in our list.
                 LOG.debug('path for check:%s' % objChkUrl)
-                if(self.path.startswith(objChkUrl)):
+                if (self.path.startswith(objChkUrl)):
                     return True
             return False
 

@@ -516,7 +516,7 @@ class _AuthValidateManager:
 
 class AuthValidatorExecution(base.ConfigurableMiddleware):
 
-    @ webob.dec.wsgify
+    @webob.dec.wsgify
     def __call__(self, req):
         auth_validator_manager.auth_main(req, self.application)
         return self.application

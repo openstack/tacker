@@ -94,7 +94,7 @@ def _make_vnf_lcm_op_occs_list(context, op_occ_list,
 
     op_occ_list.objects = []
     for db_op_occ in db_op_occ_list:
-        if(db_op_occ['changed_info'] and
+        if (db_op_occ['changed_info'] and
                 isinstance(db_op_occ['changed_info'], str)):
             db_op_occ['changed_info'] = jsonutils.loads(
                 db_op_occ['changed_info'])

@@ -230,8 +230,8 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
                                          mock_prepare):
         mock_prepare.return_value = self.cctxt_mock
         address_information = "http://test.zip"
-        mock_store.return_value = 'location', 0, 'checksum',\
-                                  'multihash', 'loc_meta'
+        mock_store.return_value = (
+            'location', 0, 'checksum', 'multihash', 'loc_meta')
         self.conductor.upload_vnf_package_from_uri(self.context,
                                                    self.vnf_package,
                                                    address_information,

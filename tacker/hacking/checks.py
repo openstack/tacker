@@ -37,11 +37,11 @@ log_translation = re.compile(
 
 
 @core.flake8ext
-def validate_log_translations(physical_line, logical_line, filename):
+def validate_log_translations(logical_line, filename):
     # Translations are not required in the test directory
     if "tacker/tests" in filename:
         return
-    if pycodestyle.noqa(physical_line):
+    if pycodestyle.noqa(logical_line):
         return
     msg = "N320: Log messages require translations!"
     if log_translation.match(logical_line):

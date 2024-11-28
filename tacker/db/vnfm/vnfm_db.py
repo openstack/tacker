@@ -273,7 +273,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
                              "is not permitted. Please contact your "
                              "Administrator.")
             raise vnfm.VNFDeleteFailed(reason=error_reason)
-        if(vnf_db.status in [constants.PENDING_UPDATE,
+        if (vnf_db.status in [constants.PENDING_UPDATE,
                              constants.PENDING_HEAL]):
             raise vnfm.VNFInUse(vnf_id=vnf_id)
         return True

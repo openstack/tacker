@@ -735,8 +735,8 @@ class TestController(base.TestCase):
         vnf_package_obj = objects.VnfPackage(**vnf_package_dict)
         mock_vnf_by_id.return_value = vnf_package_obj
         mock_vnf_pack_save.return_value = vnf_package_obj
-        mock_glance_store.return_value = 'location', 0, 'checksum',\
-                                         'multihash', 'loc_meta'
+        mock_glance_store.return_value = (
+            'location', 0, 'checksum', 'multihash', 'loc_meta')
         req.headers['Content-Type'] = 'application/zip'
         req.method = 'PUT'
         req.body = jsonutils.dump_as_bytes({'dummy': {'val': 'foo'}})

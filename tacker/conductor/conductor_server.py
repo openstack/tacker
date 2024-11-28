@@ -912,9 +912,9 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
 
         except Exception as ex:
             # with excutils.save_and_reraise_exception():
-            error_msg = "Failed to add additional vnf info to vnf {}. Details -\
-                 {}".format(
-                vnf_instance.id, str(ex))
+            error_msg = (
+                "Failed to add additional vnf info to vnf {}. Details - {}".
+                format(vnf_instance.id, str(ex)))
             LOG.error("_add_additional_vnf_info error {}".format(error_msg))
             raise exceptions.TackerException(message=error_msg)
 
@@ -1784,7 +1784,7 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
                         'href': self._get_vnf_lcm_op_occs_href(
                             vnf_lcm_op_occs_id)}}}
 
-            if(operation_state == fields.LcmOccsOperationState.COMPLETED or
+            if (operation_state == fields.LcmOccsOperationState.COMPLETED or
                operation_state == fields.LcmOccsOperationState.FAILED_TEMP or
                operation_state == fields.LcmOccsOperationState.FAILED):
                 affected_resources = vnflcm_utils._get_affected_resources(

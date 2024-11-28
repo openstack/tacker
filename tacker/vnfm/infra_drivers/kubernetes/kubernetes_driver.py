@@ -1250,13 +1250,13 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         if not additional_params:
             return False
         use_helm = additional_params.get('use_helm')
-        if type(use_helm) == str:
+        if isinstance(use_helm, str):
             return use_helm.lower() == 'true'
         return bool(use_helm)
 
     def _is_exthelmchart(self, helm_install_params):
         exthelmchart = helm_install_params.get('exthelmchart')
-        if type(exthelmchart) == str:
+        if isinstance(exthelmchart, str):
             return exthelmchart.lower() == 'true'
         return bool(exthelmchart)
 

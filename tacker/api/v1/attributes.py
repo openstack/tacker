@@ -291,10 +291,11 @@ def _validate_ip_address_or_none(data, valid_values=None):
     return _validate_ip_address(data, valid_values)
 
 
-def _validate_subnet(data, valid_values=None):
+def _validate_subnet(data, valid_values=None, expand_partial_value=False):
     msg = None
     try:
-        net = netaddr.IPNetwork(_validate_no_whitespace(data))
+        net = netaddr.IPNetwork(_validate_no_whitespace(data),
+                                expand_partial=expand_partial_value)
         if '/' not in data:
             msg = _("'%(data)s' isn't a recognized IP subnet cidr,"
                     " '%(cidr)s' is recommended") % {"data": data,
@@ -308,7 +309,8 @@ def _validate_subnet(data, valid_values=None):
     return msg
 
 
-def _validate_subnet_list(data, valid_values=None):
+def _validate_subnet_list(data, valid_values=None,
+                          expand_partial_value=False):
     if not isinstance(data, list):
         msg = _("'%s' is not a list") % data
         LOG.debug(msg)
@@ -320,15 +322,16 @@ def _validate_subnet_list(data, valid_values=None):
         return msg
 
     for item in data:
-        msg = _validate_subnet(item)
+        msg = _validate_subnet(item, valid_values, expand_partial_value)
         if msg:
             return msg
 
 
-def _validate_subnet_or_none(data, valid_values=None):
+def _validate_subnet_or_none(data, valid_values=None,
+                             expand_partial_value=False):
     if data is None:
         return
-    return _validate_subnet(data, valid_values)
+    return _validate_subnet(data, valid_values, expand_partial_value)
 
 
 def _validate_regex(data, valid_values=None):

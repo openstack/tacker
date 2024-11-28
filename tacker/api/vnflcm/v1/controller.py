@@ -553,7 +553,7 @@ class VnfLcmController(wsgi.Controller):
 
         except nfvo.VimDefaultNotDefined as exc:
             raise webob.exc.HTTPBadRequest(explanation=str(exc))
-        except(sqlexc.SQLAlchemyError, Exception) as exc:
+        except (sqlexc.SQLAlchemyError, Exception) as exc:
             raise webob.exc.HTTPInternalServerError(
                 explanation=str(exc))
         except webob.exc.HTTPNotFound as e:
