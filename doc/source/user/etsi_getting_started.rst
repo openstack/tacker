@@ -23,7 +23,7 @@ Summary
 
 This lecture enables you to:
 
--  create & delete a sample VNF on the OpenStack with Tacker v1 API
+- create & delete a sample VNF on the OpenStack with Tacker v1 API
 
 .. note::
 
@@ -553,14 +553,15 @@ Instantiate VNF
 
    Required parameter:
 
-   -  flavourID
+   - flavourId
 
    Optional parametes:
 
-   -  instantiationLevelId
-   -  extVirtualLinks
-   -  extManagedVirtualLinks
-   -  vimConnectionInfo
+   - instantiationLevelId
+   - extVirtualLinks
+   - extManagedVirtualLinks
+   - vimConnectionInfo
+   - additionalParams
 
    .. note::
 

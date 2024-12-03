@@ -42,7 +42,7 @@ The `VNFD_ID` should be replaced with the VNFD ID in VNF Package.
 
 .. code-block:: console
 
-  $ openstack vnflcm --os-tacker-api-version 2 create VNFD_ID
+  $ openstack vnflcm create VNFD_ID --os-tacker-api-version 2
 
 
 Result:
@@ -77,7 +77,7 @@ Help:
 
 .. code-block:: console
 
-  $ openstack vnflcm --os-tacker-api-version 2 create --help
+  $ openstack vnflcm create --os-tacker-api-version 2 --help
   usage: openstack vnflcm create [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN]
                                  [--noindent] [--prefix PREFIX] [--max-width <integer>]
                                  [--fit-width] [--print-empty] [--name <vnf-instance-name>]
@@ -136,8 +136,8 @@ that will be used to instantiate VNF, respectively.
 
 .. code-block:: console
 
-  $ openstack vnflcm --os-tacker-api-version 2 instantiate VNF_INSTANCE_ID \
-    SAMPLE_PARAM_FILE.json
+  $ openstack vnflcm instantiate VNF_INSTANCE_ID SAMPLE_PARAM_FILE.json \
+    --os-tacker-api-version 2
 
 
 Result:
@@ -151,7 +151,7 @@ Help:
 
 .. code-block:: console
 
-  $ openstack vnflcm --os-tacker-api-version 2 instantiate --help
+  $ openstack vnflcm instantiate --os-tacker-api-version 2 --help
   usage: openstack vnflcm instantiate [-h] <vnf-instance> <param-file>
 
   Instantiate a VNF Instance
@@ -172,7 +172,7 @@ Help:
 
 .. code-block:: console
 
-  $ openstack vnflcm --os-tacker-api-version 2 list
+  $ openstack vnflcm list --os-tacker-api-version 2
 
 
 Result:
@@ -190,7 +190,7 @@ Help:
 
 .. code-block:: console
 
-  $ openstack vnflcm --os-tacker-api-version 2 list --help
+  $ openstack vnflcm list --os-tacker-api-version 2 --help
   usage: openstack vnflcm list [-h] [-f {csv,json,table,value,yaml}] [-c COLUMN]
                                [--quote {all,minimal,none,nonnumeric}] [--noindent]
                                [--max-width <integer>] [--fit-width] [--print-empty]
@@ -239,7 +239,7 @@ The `VNF_INSTANCE_ID` should be replaced with the ID of VNF instance.
 
 .. code-block:: console
 
-  $ openstack vnflcm --os-tacker-api-version 2 show VNF_INSTANCE_ID
+  $ openstack vnflcm show VNF_INSTANCE_ID --os-tacker-api-version 2
 
 
 Result:
@@ -373,7 +373,7 @@ Help:
 
 .. code-block:: console
 
-  $ openstack vnflcm --os-tacker-api-version 2 show --help
+  $ openstack vnflcm show --os-tacker-api-version 2 --help
   usage: openstack vnflcm show [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN]
                                [--noindent] [--prefix PREFIX] [--max-width <integer>]
                                [--fit-width] [--print-empty]
@@ -423,7 +423,7 @@ The `VNF_INSTANCE_ID` should be replaced with the ID of VNF instance.
 
 .. code-block:: console
 
-  $ openstack vnflcm --os-tacker-api-version 2 terminate VNF_INSTANCE_ID
+  $ openstack vnflcm terminate VNF_INSTANCE_ID --os-tacker-api-version 2
 
 
 Result:
@@ -437,7 +437,7 @@ Help:
 
 .. code-block:: console
 
-  $ openstack vnflcm --os-tacker-api-version 2 terminate --help
+  $ openstack vnflcm terminate --os-tacker-api-version 2 --help
   usage: openstack vnflcm terminate [-h] [--termination-type <termination-type>]
                                     [--graceful-termination-timeout <graceful-termination-timeout>]
                                     [--D]
@@ -469,7 +469,7 @@ The `VNF_INSTANCE_ID` should be replaced with the ID of VNF instance.
 
 .. code-block:: console
 
-  $ openstack vnflcm --os-tacker-api-version 2 delete VNF_INSTANCE_ID
+  $ openstack vnflcm delete VNF_INSTANCE_ID --os-tacker-api-version 2
 
 
 Result:
@@ -483,7 +483,7 @@ Help:
 
 .. code-block:: console
 
-  $ openstack vnflcm --os-tacker-api-version 2 delete --help
+  $ openstack vnflcm delete --os-tacker-api-version 2 --help
   usage: openstack vnflcm delete [-h] <vnf-instance> [<vnf-instance> ...]
 
   Delete VNF Instance(s)
@@ -505,7 +505,7 @@ The `VNF_INSTANCE_ID` should be replaced with the ID of VNF instance.
 
 .. code-block:: console
 
-  $ openstack vnflcm --os-tacker-api-version 2 heal VNF_INSTANCE_ID
+  $ openstack vnflcm heal VNF_INSTANCE_ID --os-tacker-api-version 2
 
 
 .. note::
@@ -526,7 +526,7 @@ Help:
 
 .. code-block:: console
 
-  $ openstack vnflcm --os-tacker-api-version 2 heal --help
+  $ openstack vnflcm heal --os-tacker-api-version 2 --help
   usage: openstack vnflcm heal [-h] [--cause CAUSE]
                                [--vnfc-instance <vnfc-instance-id> [<vnfc-instance-id> ...]]
                                [--additional-param-file <additional-param-file>]
@@ -559,7 +559,8 @@ that will be used to update VNF, respectively.
 
 .. code-block:: console
 
-  $ openstack vnflcm --os-tacker-api-version 2 update VNF_INSTANCE_ID --I SAMPLE_PARAM_FILE.json
+  $ openstack vnflcm update VNF_INSTANCE_ID --I SAMPLE_PARAM_FILE.json \
+    --os-tacker-api-version 2
 
 
 Result:
@@ -573,7 +574,7 @@ Help:
 
 .. code-block:: console
 
-  $ openstack vnflcm --os-tacker-api-version 2 update --help
+  $ openstack vnflcm update --os-tacker-api-version 2 --help
   usage: openstack vnflcm update [-h] [--I <param-file>] <vnf-instance>
 
   Update VNF Instance
@@ -599,8 +600,8 @@ See 'How to Identify ASPECT_ID' in :doc:`/user/v2/vnf/scale/index` for details.
 
 .. code-block:: console
 
-  $ openstack vnflcm --os-tacker-api-version 2 scale --type SCALE_OUT --aspect-id WORKER_INSTANCE \
-    VNF_INSTANCE_ID
+  $ openstack vnflcm scale --type SCALE_OUT --aspect-id WORKER_INSTANCE \
+    VNF_INSTANCE_ID --os-tacker-api-version 2
 
 
 Result:
@@ -614,7 +615,7 @@ Help:
 
 .. code-block:: console
 
-  $ openstack vnflcm --os-tacker-api-version 2 scale --help
+  $ openstack vnflcm scale --os-tacker-api-version 2 --help
   usage: openstack vnflcm scale [-h] [--number-of-steps <number-of-steps>]
                                 [--additional-param-file <additional-param-file>] --type
                                 <type> --aspect-id <aspect-id>
@@ -657,8 +658,8 @@ that will be used to change external VNF connectivity, respectively.
 
 .. code-block:: console
 
-  $ openstack vnflcm --os-tacker-api-version 2 change-ext-conn VNF_INSTANCE_ID \
-    SAMPLE_PARAM_FILE.json
+  $ openstack vnflcm change-ext-conn VNF_INSTANCE_ID SAMPLE_PARAM_FILE.json \
+    --os-tacker-api-version 2
 
 
 Result:
@@ -672,7 +673,7 @@ Help:
 
 .. code-block:: console
 
-  $ openstack vnflcm --os-tacker-api-version 2 change-ext-conn --help
+  $ openstack vnflcm change-ext-conn --os-tacker-api-version 2 --help
   usage: openstack vnflcm change-ext-conn [-h] <vnf-instance> <param-file>
 
   Change External VNF Connectivity
@@ -703,8 +704,8 @@ to change VNF Package of VNF instance, respectively.
 
 .. code-block:: console
 
-  $ openstack vnflcm --os-tacker-api-version 2 change-vnfpkg VNF_INSTANCE_ID \
-    SAMPLE_PARAM_FILE.json
+  $ openstack vnflcm change-vnfpkg VNF_INSTANCE_ID SAMPLE_PARAM_FILE.json \
+    --os-tacker-api-version 2
 
 
 Result:
@@ -718,7 +719,7 @@ Help:
 
 .. code-block:: console
 
-  $ openstack vnflcm --os-tacker-api-version 2 change-vnfpkg --help
+  $ openstack vnflcm change-vnfpkg --os-tacker-api-version 2 --help
   usage: openstack vnflcm change-vnfpkg [-h] <vnf-instance> <param-file>
 
   Change Current VNF Package
@@ -742,7 +743,7 @@ lifecycle management operation temporary failed.
 
 .. code-block:: console
 
-  $ openstack vnflcm --os-tacker-api-version 2 op rollback VNF_LCM_OP_OCC_ID
+  $ openstack vnflcm op rollback VNF_LCM_OP_OCC_ID --os-tacker-api-version 2
 
 
 Result:
@@ -756,7 +757,7 @@ Help:
 
 .. code-block:: console
 
-  $ openstack vnflcm --os-tacker-api-version 2 op rollback --help
+  $ openstack vnflcm op rollback --os-tacker-api-version 2 --help
   usage: openstack vnflcm op rollback [-h] <vnf-lcm-op-occ-id>
 
   positional arguments:
@@ -777,7 +778,7 @@ lifecycle management operation temporary failed.
 
 .. code-block:: console
 
-  $ openstack vnflcm --os-tacker-api-version 2 op retry VNF_LCM_OP_OCC_ID
+  $ openstack vnflcm op retry VNF_LCM_OP_OCC_ID --os-tacker-api-version 2
 
 
 Result:
@@ -791,7 +792,7 @@ Help:
 
 .. code-block:: console
 
-  $ openstack vnflcm --os-tacker-api-version 2 op retry --help
+  $ openstack vnflcm op retry --os-tacker-api-version 2 --help
   usage: openstack vnflcm op retry [-h] <vnf-lcm-op-occ-id>
 
   Retry VNF Instance
@@ -814,7 +815,7 @@ lifecycle management operation temporary failed.
 
 .. code-block:: console
 
-  $ openstack vnflcm --os-tacker-api-version 2 op fail VNF_LCM_OP_OCC_ID
+  $ openstack vnflcm op fail VNF_LCM_OP_OCC_ID --os-tacker-api-version 2
 
 
 Result:
@@ -865,7 +866,7 @@ Help:
 
 .. code-block:: console
 
-  $ openstack vnflcm --os-tacker-api-version 2 op fail --help
+  $ openstack vnflcm op fail --os-tacker-api-version 2 --help
   usage: openstack vnflcm op fail [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN]
                                   [--noindent] [--prefix PREFIX] [--max-width <integer>]
                                   [--fit-width] [--print-empty]
@@ -913,7 +914,7 @@ Help:
 
 .. code-block:: console
 
-  $ openstack vnflcm --os-tacker-api-version 2 op list
+  $ openstack vnflcm op list --os-tacker-api-version 2
 
 
 Result:
@@ -931,7 +932,7 @@ Help:
 
 .. code-block:: console
 
-  $ openstack vnflcm --os-tacker-api-version 2 op list --help
+  $ openstack vnflcm op list --os-tacker-api-version 2 --help
   usage: openstack vnflcm op list [-h] [-f {csv,json,table,value,yaml}] [-c COLUMN]
                                   [--quote {all,minimal,none,nonnumeric}] [--noindent]
                                   [--max-width <integer>] [--fit-width] [--print-empty]
@@ -989,7 +990,7 @@ lifecycle management operation.
 
 .. code-block:: console
 
-  $ openstack vnflcm --os-tacker-api-version 2 op show VNF_LCM_OP_OCC_ID
+  $ openstack vnflcm op show VNF_LCM_OP_OCC_ID --os-tacker-api-version 2
 
 
 Result:
@@ -1075,7 +1076,7 @@ Help:
 
 .. code-block:: console
 
-  $ openstack vnflcm --os-tacker-api-version 2 op show --help
+  $ openstack vnflcm op show --os-tacker-api-version 2 --help
   usage: openstack vnflcm op show [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN]
                                   [--noindent] [--prefix PREFIX] [--max-width <integer>]
                                   [--fit-width] [--print-empty]
@@ -1126,7 +1127,7 @@ json file that will be used to create Lccn subscription.
 
 .. code-block:: console
 
-  $ openstack vnflcm --os-tacker-api-version 2 subsc create SAMPLE_PARAM_FILE.json
+  $ openstack vnflcm subsc create SAMPLE_PARAM_FILE.json --os-tacker-api-version 2
 
 
 Result:
@@ -1277,7 +1278,7 @@ Help:
 
 .. code-block:: console
 
-  $ openstack vnflcm --os-tacker-api-version 2 subsc create --help
+  $ openstack vnflcm subsc create --os-tacker-api-version 2 --help
   usage: openstack vnflcm subsc create [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN]
                                        [--noindent] [--prefix PREFIX] [--max-width <integer>]
                                        [--fit-width] [--print-empty]
@@ -1324,7 +1325,7 @@ Help:
 
 .. code-block:: console
 
-  $ openstack vnflcm --os-tacker-api-version 2 subsc list
+  $ openstack vnflcm subsc list --os-tacker-api-version 2
 
 
 Result:
@@ -1342,7 +1343,7 @@ Help:
 
 .. code-block:: console
 
-  $ openstack vnflcm --os-tacker-api-version 2 subsc list --help
+  $ openstack vnflcm subsc list --os-tacker-api-version 2 --help
   usage: openstack vnflcm subsc list [-h] [-f {csv,json,table,value,yaml}] [-c COLUMN]
                                      [--quote {all,minimal,none,nonnumeric}] [--noindent]
                                      [--max-width <integer>] [--fit-width] [--print-empty]
@@ -1394,7 +1395,7 @@ The `LCCN_SUBSCRIPTION_ID` should be replaced with the ID of Lccn subscription.
 
 .. code-block:: console
 
-  $ openstack vnflcm --os-tacker-api-version 2 subsc show LCCN_SUBSCRIPTION_ID
+  $ openstack vnflcm subsc show LCCN_SUBSCRIPTION_ID --os-tacker-api-version 2
 
 
 Result:
@@ -1545,7 +1546,7 @@ Help:
 
 .. code-block:: console
 
-  $ openstack vnflcm --os-tacker-api-version 2 subsc show --help
+  $ openstack vnflcm subsc show --os-tacker-api-version 2 --help
   usage: openstack vnflcm subsc show [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN]
                                      [--noindent] [--prefix PREFIX] [--max-width <integer>]
                                      [--fit-width] [--print-empty]
@@ -1595,7 +1596,7 @@ The `LCCN_SUBSCRIPTION_ID` should be replaced with the ID of Lccn subscription.
 
 .. code-block:: console
 
-  $ openstack vnflcm --os-tacker-api-version 2 delete LCCN_SUBSCRIPTION_ID
+  $ openstack vnflcm subsc delete LCCN_SUBSCRIPTION_ID --os-tacker-api-version 2
 
 
 Result:
@@ -1609,7 +1610,7 @@ Help:
 
 .. code-block:: console
 
-  $ openstack vnflcm --os-tacker-api-version 2 subsc delete --help
+  $ openstack vnflcm subsc delete --os-tacker-api-version 2 --help
   usage: openstack vnflcm subsc delete [-h] <subscription-id> [<subscription-id> ...]
 
   Delete Lccn Subscription(s)

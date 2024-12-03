@@ -108,7 +108,7 @@ Create a vim and verify it works:
    | is_default     | False                                                   |
    | name           | vim-test                                                |
    | placement_attr | {"regions": ["RegionOne"]}                              |
-   | status         | REACHABLE                                               |
+   | status         | ACTIVE                                                  |
    | tenant_id      | 28a525feaf5e4d05b4ab9f7090837964                        |
    | type           | openstack                                               |
    | updated_at     |                                                         |

@@ -11,6 +11,10 @@ in Tacker v1 API using Kubernetes VIM.
   See :doc:`/user/v2/cnf/deployment/index` for Tacker v2 API.
 
 
+See :doc:`/user/architecture` for information about supported versions
+of Kubernetes.
+
+
 Overview
 --------
 
@@ -1140,18 +1144,6 @@ VNF instance deletion is successful.
 
   $ openstack vnflcm show 30d7c432-8ad3-4b05-81df-c5c7f340c62b
   Can not find requested vnf instance: 30d7c432-8ad3-4b05-81df-c5c7f340c62b
-
-
-Supported versions
-------------------
-
-Tacker Antelope release
-
-- Kubernetes: 1.25
-
-Tacker Bobcat release
-
-- Kubernetes: 1.26
 
 
 .. _kubernetes_api_resource: https://opendev.org/openstack/tacker/src/branch/master/tacker/tests/unit/vnfm/infra_drivers/kubernetes/kubernetes_api_resource

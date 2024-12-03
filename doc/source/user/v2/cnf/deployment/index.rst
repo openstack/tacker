@@ -13,6 +13,10 @@ in Tacker v2 API using Kubernetes VIM.
   * `test_instantiate_cnf_resources for 2023.2 Bobcat`_
 
 
+See :doc:`/user/architecture` for information about supported versions
+of Kubernetes.
+
+
 Overview
 --------
 
@@ -233,11 +237,11 @@ Prepare VNF Package
 -------------------
 
 As an example, you can create a VNF Package as follow.
+In this document, ``TACKER_ROOT`` is the root of tacker's repository on
+the server.
 
 .. code-block:: console
 
-  $ python3 -m pip install TACKER_ROOT
-  $ export PYTHONPATH=TACKER_ROOT
   $ cd TACKER_ROOT/samples/tests/functional/sol_kubernetes_v2/test_instantiate_cnf_resources
   $ python3 pkggen.py
   $ ll
@@ -250,12 +254,27 @@ As an example, you can create a VNF Package as follow.
 
 .. note::
 
-  In this document, ``TACKER_ROOT`` is the root of tacker's repository on
-  the server.
+  This tool requires some Tacker modules, so you need to run it in
+  an environment where Tacker is installed.
+  If you have installed Tacker in python virtual environment using devstack,
+  etc., please activate it as follows before using the tool.
+
+  .. code-block:: console
+
+    $ source /opt/stack/data/venv/bin/activate
+    (venv) $ python3 pkggen.py
 
 
 After you have done the above, you will have the sample VNF package
 `test_instantiate_cnf_resources.zip`.
+
+.. note::
+
+  If a file exists with the same name as the zip file being generated,
+  the tool will fail.
+  When running the tool again to generate a zip file,
+  please delete or rename the old zip file.
+
 
 You can also create a VNF Package manually by following the steps.
 
@@ -1010,18 +1029,6 @@ VNF instance deletion is successful.
 
   $ openstack vnflcm show VNF_INSTANCE_ID --os-tacker-api-version 2
   VnfInstance 431b94b5-d7ba-4d1c-aa26-ecec65d7ee53 not found.
-
-
-Supported versions
-------------------
-
-Tacker Antelope release
-
-- Kubernetes: 1.25
-
-Tacker Bobcat release
-
-- Kubernetes: 1.26
 
 
 .. _Kubernetes API resource: https://opendev.org/openstack/tacker/src/branch/master/tacker/tests/unit/vnfm/infra_drivers/kubernetes/kubernetes_api_resource

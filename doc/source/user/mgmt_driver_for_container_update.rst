@@ -98,12 +98,8 @@ How to Instantiate VNF for Updating
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You can use the sample VNF package below to instantiate VNF to be updated.
-
-.. note::
-
-  In this document, ``TACKER_ROOT`` is the root of tacker's repository on
-  the server.
-
+In this document, ``TACKER_ROOT`` is the root of tacker's repository on
+the server.
 
 .. code-block:: console
 

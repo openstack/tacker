@@ -21,6 +21,10 @@ using Helm in Tacker v2 API.
   * `test_helm_instantiate for 2023.2 Bobcat`_
 
 
+See :doc:`/user/architecture` for information about supported versions
+of Helm.
+
+
 Overview
 --------
 
@@ -1172,18 +1176,6 @@ we can append ``-A`` to the command line.
   If a value other than ``default`` is specified for the namespace
   during instantiate, the deployed resources will be instantiated
   in the corresponding namespace.
-
-
-Supported versions
-------------------
-
-Tacker Antelope release
-
-- Helm: 3.10
-
-Tacker Bobcat release
-
-- Helm: 3.11
 
 
 .. _test_helm_instantiate for 2023.2 Bobcat:

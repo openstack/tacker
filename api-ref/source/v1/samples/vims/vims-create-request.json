@@ -1,7 +1,7 @@
 {
     "vim": {
         "type": "openstack",
-        "auth_url": "http://192.168.42.131/identity",
+        "auth_url": "http://192.168.56.10/identity",
         "auth_cred": {
             "username": "nfv_user",
             "user_domain_name": "Default",
@@ -12,8 +12,8 @@
             "name": "nfv",
             "project_domain_name": "Default"
         },
-        "name": "VIM1",
-        "description": "Additional site",
-        "is_default": false
+        "name": "VIM0",
+        "description": "",
+        "is_default": true
     }
 }

@@ -56,7 +56,7 @@ in tokens. Token scopes represent the layer of authorization. Policy
 
 .. note::
 
-     The ``scope_type`` of each policy is hardcoded  to ``project`` scoped
+     The ``scope_type`` of each policy is hardcoded to ``project`` scoped
      and is not overridable via the policy file.
 
 Tacker policies have implemented the scope concept by defining the

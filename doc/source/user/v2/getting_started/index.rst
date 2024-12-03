@@ -7,7 +7,7 @@ Summary
 
 This lecture enables you to:
 
--  create & delete a sample VNF on the OpenStack with Tacker v2 API
+- create & delete a sample VNF on the OpenStack with Tacker v2 API
 
 Following two types of VNF deployment supported by Tacker are introduced in
 this lecture.
@@ -514,7 +514,7 @@ Instantiate VNF
 
    Required parameter:
 
-   - flavourID
+   - flavourId
 
    Optional parameters:
 

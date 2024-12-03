@@ -39,7 +39,7 @@ The diagram below shows an overview of the VNF scaling.
 
 .. note::
 
-  Scale-in operation  deletes VNF from the last registered VM.
+  Scale-in operation deletes VNF from the last registered VM.
 
 
 Prerequisites
