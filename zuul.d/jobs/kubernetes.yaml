@@ -1,0 +1,77 @@
+- job:
+    name: tacker-ft-v2-k8s
+    parent: tacker-ft-k8s-base
+    description: |
+      V2 Kubernetes functional tests
+    host-vars:
+      controller-tacker:
+        devstack_local_conf:
+          post-config:
+            $TACKER_CONF:
+              v2_vnfm:
+                kubernetes_vim_rsc_wait_timeout: 800
+              prometheus_plugin:
+                fault_management: true
+                performance_management: true
+                auto_scaling: true
+                auto_healing: true
+                test_rule_with_promtool: true
+        tox_envlist: ft-v2-k8s
+    vars:
+      prometheus_setup: true
+
+- job:
+    name: tacker-ft-k8s-oidc-auth
+    parent: tacker-ft-v2-k8s
+    description: |
+      V1 Kubernetes functional tests for OIDC Auth
+    host-vars:
+      controller-tacker:
+        tox_envlist: ft-k8s-oidc-auth
+    vars:
+      keycloak_host: "{{ hostvars['controller-k8s']['nodepool']['private_ipv4'] }}"
+      keycloak_http_port: 8080
+      keycloak_https_port: 8443
+    voting: false
+
+- job:
+    name: tacker-ft-k8s-enhanced-policy-sol
+    parent: tacker-ft-v2-k8s
+    description: |
+      Enhanced policy Kubernetes functional tests
+    host-vars:
+      controller-tacker:
+        tox_envlist: ft-k8s-enhanced-policy-sol
+        devstack_local_conf:
+          post-config:
+            $TACKER_CONF:
+              oslo_policy:
+                enhanced_tacker_policy: True
+    vars:
+      config_enhanced_policy: true
+    voting: false
+
+- job:
+    name: tacker-ft-v1-k8s
+    parent: tacker-ft-k8s-base
+    description: |
+      V1 Kubernetes functional tests
+    host-vars:
+      controller-tacker:
+        devstack_local_conf:
+          post-config:
+            $TACKER_CONF:
+              database:
+                max_pool_size: 0
+        tox_envlist: ft-v1-k8s
+
+- job:
+    name: tacker-ft-v1-k8s-multi-tenant
+    parent: tacker-ft-k8s-base
+    description: |
+      V1 Kubernetes functional tests for multi tenant
+    host-vars:
+      controller-tacker:
+        tox_envlist: ft-v1-k8s-multi-tenant
+    vars:
+      setup_multi_tenant: true

@@ -1,0 +1,396 @@
+- job:
+    name: tacker-ft-v2-df-userdata-basic-max
+    parent: tacker-ft-openstack-base
+    description: |
+      V2 DefaultUserData functional tests for max pattern
+    host-vars:
+      controller-tacker:
+        tox_envlist: ft-v2-df-userdata-basic-max
+
+- job:
+    name: tacker-ft-v2-df-userdata-basic-min
+    parent: tacker-ft-openstack-base
+    description: |
+      V2 DefaultUserData functional tests for min pattern
+    host-vars:
+      controller-tacker:
+        tox_envlist: ft-v2-df-userdata-basic-min
+
+- job:
+    name: tacker-ft-v2-df-userdata-update
+    parent: tacker-ft-openstack-base
+    description: |
+      V2 DefaultUserData functional tests for Modify
+    host-vars:
+      controller-tacker:
+        tox_envlist: ft-v2-df-userdata-update
+
+- job:
+    name: tacker-ft-v2-df-userdata-scale
+    parent: tacker-ft-openstack-base
+    description: |
+      V2 DefaultUserData functional tests for Scale
+    host-vars:
+      controller-tacker:
+        tox_envlist: ft-v2-df-userdata-scale
+
+- job:
+    name: tacker-ft-v2-df-userdata-ccvp
+    parent: tacker-ft-openstack-base
+    description: |
+      V2 DefaultUserData functional tests for Change Current VNF Package
+    host-vars:
+      controller-tacker:
+        tox_envlist: ft-v2-df-userdata-ccvp
+
+- job:
+    name: tacker-ft-v2-df-userdata-err-handling
+    parent: tacker-ft-openstack-base
+    description: |
+      V2 DefaultUserData functional tests for Error Handling
+    host-vars:
+      controller-tacker:
+        tox_envlist: ft-v2-df-userdata-err-handling
+
+- job:
+    name: tacker-ft-v2-st-userdata-basic
+    parent: tacker-ft-openstack-base
+    description: |
+      V2 StandardUserData functional tests
+    host-vars:
+      controller-tacker:
+        tox_envlist: ft-v2-st-userdata-basic
+
+- job:
+    name: tacker-ft-v2-st-userdata-basic-max
+    parent: tacker-ft-openstack-base
+    description: |
+      V2 StandardUserData functional tests for max pattern
+    host-vars:
+      controller-tacker:
+        devstack_local_conf:
+          post-config:
+            $TACKER_CONF:
+              v2_vnfm:
+                # Notes: The List API will return 'Link' Header in response
+                # body only if page_size is not 0. This job will check 'Link'
+                # Header, so these page_size parameters are set to 1.
+                vnf_instance_page_size: 1
+                lcm_op_occ_page_size: 1
+        tox_envlist: ft-v2-st-userdata-basic-max
+
+- job:
+    name: tacker-ft-v2-st-userdata-basic-min
+    parent: tacker-ft-openstack-base
+    description: |
+      V2 StandardUserData functional tests for min pattern
+    host-vars:
+      controller-tacker:
+        tox_envlist: ft-v2-st-userdata-basic-min
+
+- job:
+    name: tacker-ft-v2-st-userdata-ccvp
+    parent: tacker-ft-openstack-base
+    description: |
+      V2 StandardUserData functional tests for Change Current VNF Package
+    host-vars:
+      controller-tacker:
+        tox_envlist: ft-v2-st-userdata-ccvp
+
+- job:
+    name: tacker-ft-v2-st-userdata-various-lcm
+    parent: tacker-ft-openstack-base
+    description: |
+      V2 StandardUserData functional tests for various LCM
+    host-vars:
+      controller-tacker:
+        tox_envlist: ft-v2-st-userdata-various-lcm
+
+- job:
+    name: tacker-ft-v2-st-userdata-err-handling
+    parent: tacker-ft-openstack-base
+    description: |
+      V2 StandardUserData functional tests for Error Handling
+    host-vars:
+      controller-tacker:
+        devstack_local_conf:
+          post-config:
+            $TACKER_CONF:
+              v2_vnfm:
+                # Notes: The List API will return 'Link' Header in response
+                # body only if page_size is not 0. This job will check 'Link'
+                # Header, so these page_size parameters are set to 1.
+                vnf_instance_page_size: 1
+                lcm_op_occ_page_size: 1
+        tox_envlist: ft-v2-st-userdata-err-handling
+
+- job:
+    name: tacker-ft-v2-prometheus
+    parent: tacker-ft-openstack-base
+    description: |
+      V2 functional tests with Prometheus
+    host-vars:
+      controller-tacker:
+        devstack_local_conf:
+          post-config:
+            $TACKER_CONF:
+              prometheus_plugin:
+                auto_scaling: true
+                auto_healing: true
+        tox_envlist: ft-v2-prometheus
+    voting: false
+
+- job:
+    name: tacker-ft-v2-df-userdata-encrypt-cred-barbican
+    parent: tacker-ft-openstack-base
+    description: |
+      V2 DefaultUserData functional tests
+      with Barbican managed encrypt credentials
+    host-vars:
+      controller-tacker:
+        devstack_local_conf:
+          post-config:
+            $TACKER_CONF:
+              DEFAULT:
+                use_credential_encryption: true
+                keymanager_type: "barbican"
+              v2_nfvo:
+                use_external_nfvo: true
+                endpoint: https://localhost:9990
+                token_endpoint: https://localhost:9990/token
+                client_id: 229ec984de7547b2b662e968961af5a4
+                client_password: devstack
+                nfvo_ca_cert_file: /etc/https_server/ssl/ca.crt
+                nfvo_verify_cert: true
+                use_client_secret_basic: true
+        tox_envlist: ft-v2-df-userdata-encrypt-cred-barbican
+    vars:
+      https_setup: true
+    voting: false
+
+- job:
+    name: tacker-ft-v2-df-userdata-encrypt-cred-local
+    parent: tacker-ft-openstack-base
+    description: |
+      V2 DefaultUserData functional tests
+      with locally managed encrypt credentials
+    host-vars:
+      controller-tacker:
+        devstack_local_conf:
+          post-config:
+            $TACKER_CONF:
+              DEFAULT:
+                use_credential_encryption: true
+                keymanager_type: "local"
+                crypt_key_dir: "/etc/tacker/crypt/fernet_keys"
+              v2_nfvo:
+                use_external_nfvo: true
+                endpoint: https://localhost:9990
+                token_endpoint: https://localhost:9990/token
+                client_id: 229ec984de7547b2b662e968961af5a4
+                client_password: devstack
+                nfvo_ca_cert_file: /etc/https_server/ssl/ca.crt
+                nfvo_verify_cert: true
+                use_client_secret_basic: true
+        tox_envlist: ft-v2-df-userdata-encrypt-cred-local
+    vars:
+      https_setup: true
+    voting: false
+
+- job:
+    name: tacker-ft-v2-df-userdata-https
+    parent: tacker-ft-openstack-base
+    description: |
+      V2 DefaultUserData functional tests with https request
+    host-vars:
+      controller-tacker:
+        devstack_local_conf:
+          post-config:
+            $TACKER_CONF:
+              v2_vnfm:
+                notification_verify_cert: true
+                notification_ca_cert_file: /etc/https_server/ssl/ca.crt
+                use_oauth2_mtls_for_heat: false
+                heat_verify_cert: true
+                heat_ca_cert_file: /etc/https_server/ssl/ca.crt
+              prometheus_plugin:
+                fault_management: true
+                performance_management: true
+                auto_scaling: true
+                performance_management_package: tacker.sol_refactored.common.monitoring_plugin_base
+                performance_management_class: MonitoringPluginStub
+              v2_nfvo:
+                use_external_nfvo: true
+                endpoint: https://localhost:9990
+                token_endpoint: https://localhost:9990/token
+                client_id: 229ec984de7547b2b662e968961af5a4
+                client_password: devstack
+                nfvo_verify_cert: true
+                nfvo_ca_cert_file: /etc/https_server/ssl/ca.crt
+                use_client_secret_basic: true
+        tox_envlist: ft-v2-df-userdata-https
+    vars:
+      https_setup: true
+    voting: false
+
+- job:
+    name: tacker-ft-v2-df-userdata-notification
+    parent: tacker-ft-openstack-base
+    description: |
+      V2 DefaultUserData functional tests for Notification
+    host-vars:
+      controller-tacker:
+        devstack_local_conf:
+          post-config:
+            $TACKER_CONF:
+              server_notification:
+                server_notification: true
+        tox_envlist: ft-v2-df-userdata-notification
+    voting: false
+
+- job:
+    name: tacker-ft-v2-df-userdata-separated-nfvo
+    parent: tacker-ft-openstack-base
+    description: |
+      V2 DefaultUserData functional tests with separated V2 NFVO
+    host-vars:
+      controller-tacker:
+        devstack_local_conf:
+          post-config:
+            $TACKER_CONF:
+              v2_nfvo:
+                use_external_nfvo: True
+                endpoint: http://127.0.0.1:9990
+                token_endpoint: http://127.0.0.1:9990/token
+                client_id: 229ec984de7547b2b662e968961af5a4
+                client_password: devstack
+                use_client_secret_basic: True
+        tox_envlist: ft-v2-df-userdata-separated-nfvo
+    voting: false
+
+- job:
+    name: tacker-ft-v2-st-userdata-az-retry
+    parent: tacker-ft-openstack-base
+    description: |
+      V2 StandardUserData functional tests for retry of AZ selection
+    host-vars:
+      controller-tacker:
+        devstack_local_conf:
+          post-config:
+            $TACKER_CONF:
+              v2_nfvo:
+                test_grant_zone_list: az-1
+              v2_vnfm:
+                placement_fallback_best_effort: true
+                enable_rollback_stack: true
+        devstack_services:
+          n-cpu: true
+          placement-client: true
+        tox_envlist: ft-v2-st-userdata-az-retry
+    vars:
+      setup_multi_az: true
+      controller_tacker_hostname: "{{ hostvars['controller-tacker']['ansible_hostname'] }}"
+    voting: false
+
+- job:
+    name: tacker-ft-enhanced-policy-sol
+    parent: tacker-ft-openstack-base
+    description: |
+      Enhanced policy functional tests
+    host-vars:
+      controller-tacker:
+        tox_envlist: ft-enhanced-policy-sol
+        devstack_local_conf:
+          post-config:
+            $TACKER_CONF:
+              oslo_policy:
+                enhanced_tacker_policy: True
+    vars:
+      config_enhanced_policy: true
+    voting: false
+
+- job:
+    name: tacker-ft-legacy-vim
+    parent: tacker-ft-openstack-base
+    description: |
+      Legacy functional tests for VIM
+    host-vars:
+      controller-tacker:
+        tox_envlist: ft-legacy-vim
+
+- job:
+    name: tacker-ft-v1-vnfpkgm
+    parent: tacker-ft-openstack-base
+    description: |
+      V1 VNF Package Management functional tests
+    host-vars:
+      controller-tacker:
+        tox_envlist: ft-v1-vnfpkgm
+
+- job:
+    name: tacker-ft-v1-tosca-vnflcm
+    parent: tacker-ft-openstack-base
+    description: |
+      V1 TOSCA functional tests
+    host-vars:
+      controller-tacker:
+        devstack_local_conf:
+          post-config:
+            $TACKER_CONF:
+              database:
+                max_pool_size: 0
+        tox_envlist: ft-v1-tosca-vnflcm
+
+- job:
+    name: tacker-ft-v1-userdata-vnflcm
+    parent: tacker-ft-openstack-base
+    description: |
+      V1 UserData functional tests
+    host-vars:
+      controller-tacker:
+        devstack_local_conf:
+          post-config:
+            $TACKER_CONF:
+              database:
+                max_pool_size: 0
+        tox_envlist: ft-v1-userdata-vnflcm
+
+- job:
+    name: tacker-ft-v1-userdata-multi-tenant
+    parent: tacker-ft-openstack-base
+    description: |
+      V1 UserData functional tests for multi tenant
+    host-vars:
+      controller-tacker:
+        tox_envlist: ft-v1-userdata-multi-tenant
+    vars:
+      setup_multi_tenant: true
+
+- job:
+    name: tacker-ft-v1-userdata-separated-nfvo
+    parent: tacker-ft-openstack-base
+    description: |
+      V1 UserData functional tests with separated NFVO
+    host-vars:
+      controller-tacker:
+        devstack_local_conf:
+          post-config:
+            $TACKER_CONF:
+              connect_vnf_packages:
+                base_url: http://127.0.0.1:9990/vnfpkgm/v1/vnf_packages
+                pipeline: package_content,vnfd,artifacts
+              connect_grant:
+                base_url: http://127.0.0.1:9990/grant/v1/grants
+              openstack_vim:
+                stack_retries: 120
+        tox_envlist: ft-v1-userdata-separated-nfvo
+
+- job:
+    name: tacker-ft-v1-compliance-sol
+    parent: tacker-ft-openstack-base
+    description: |
+      V1 SOL compliance tests
+    host-vars:
+      controller-tacker:
+        tox_envlist: ft-v1-compliance-sol
+    voting: false

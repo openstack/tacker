@@ -22,11 +22,11 @@ from tacker.tests import utils
 
 
 @ddt.ddt
-class ChangeVnfPkgVnfLcmTest(test_vnflcm_basic_common.CommonVnfLcmTest):
+class VnfLcmCcvpTest(test_vnflcm_basic_common.CommonVnfLcmTest):
 
     @classmethod
     def setUpClass(cls):
-        super(ChangeVnfPkgVnfLcmTest, cls).setUpClass()
+        super(VnfLcmCcvpTest, cls).setUpClass()
 
         image_path = utils.test_etc_sample("etsi/nfv/common/Files/images",
             "cirros-0.5.2-x86_64-disk.img")
@@ -57,7 +57,7 @@ class ChangeVnfPkgVnfLcmTest(test_vnflcm_basic_common.CommonVnfLcmTest):
 
     @classmethod
     def tearDownClass(cls):
-        super(ChangeVnfPkgVnfLcmTest, cls).tearDownClass()
+        super(VnfLcmCcvpTest, cls).tearDownClass()
 
         cls.delete_vnf_package(cls.old_pkg)
         cls.delete_vnf_package(cls.new_image_pkg)
@@ -65,7 +65,7 @@ class ChangeVnfPkgVnfLcmTest(test_vnflcm_basic_common.CommonVnfLcmTest):
         cls.delete_vnf_package(cls.failed_pkg)
 
     def setUp(self):
-        super(ChangeVnfPkgVnfLcmTest, self).setUp()
+        super(VnfLcmCcvpTest, self).setUp()
 
     def test_change_vnfpkg_from_image_to_image(self):
         self.change_vnfpkg_from_image_to_image_common_test()
