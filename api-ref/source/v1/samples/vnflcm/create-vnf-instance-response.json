@@ -1,19 +1,20 @@
 {
-  "id": "1502ef16-8f4a-41f3-8c77-5a0eeee9c8d7",
-  "vnfInstanceName": "Instance name",
-  "vnfInstanceDescription": "Instance description",
-  "vnfdId": "b1bb0ce7-ebca-4fa7-95ed-4840d70a1177",
-  "vnfProvider": "Company name",
-  "vnfProductName": "Sample VNF",
-  "vnfSoftwareVersion": "1.0",
-  "vnfdVersion": "1.0",
+  "id": "cda383ea-8341-4731-93c7-19db4b5ce1b5",
   "instantiationState": "NOT_INSTANTIATED",
+  "vnfInstanceDescription": "Instance description",
+  "vnfInstanceName": "Instance name",
+  "vnfPkgId": "5ac73423-f102-4574-911e-578dad9fa8fe",
+  "vnfProductName": "Sample VNF",
+  "vnfProvider": "Company",
+  "vnfSoftwareVersion": "1.0",
+  "vnfdId": "b1bb0ce7-ebca-4fa7-95ed-4840d70a1177",
+  "vnfdVersion": "1.0",
   "_links": {
-    "self": {
-      "href": "http://sample1.com/vnflcm/v1/vnf_instances/1502ef16-8f4a-41f3-8c77-5a0eeee9c8d7"
-    },
     "instantiate": {
-      "href": "http://sample1.com/vnflcm/v1/vnf_instances/1502ef16-8f4a-41f3-8c77-5a0eeee9c8d7/instantiate"
+      "href": "http://localhost:9890/vnflcm/v1/vnf_instances/cda383ea-8341-4731-93c7-19db4b5ce1b5/instantiate"
+    },
+    "self": {
+      "href": "http://localhost:9890/vnflcm/v1/vnf_instances/cda383ea-8341-4731-93c7-19db4b5ce1b5"
     }
   }
 }

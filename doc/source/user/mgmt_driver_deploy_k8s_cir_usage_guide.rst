@@ -232,12 +232,12 @@ Create VNF with VNFD ID:
     |                          | }                                                                                           |
     | VNF Instance Description | None                                                                                        |
     | VNF Instance Name        | vnf-f93ed99c-e2f2-4f18-8377-37a171ea344f                                                    |
+    | VNF Package ID           | f352d10f-74c2-4d37-b41c-bfcdc73e9d09                                                        |
     | VNF Product Name         | Sample Private registry VNF                                                                 |
     | VNF Provider             | Company                                                                                     |
     | VNF Software Version     | 1.0                                                                                         |
     | VNFD ID                  | c1bb0ce7-ebca-4fa7-95ed-4840d70a118f                                                        |
     | VNFD Version             | 1.0                                                                                         |
-    | vnfPkgId                 |                                                                                             |
     +--------------------------+---------------------------------------------------------------------------------------------+
 
 Instantiate VNF with VNF ID:
@@ -378,12 +378,12 @@ Check instantiation state:
     |                          | ]                                                                                               |
     | VNF Instance Description | None                                                                                            |
     | VNF Instance Name        | vnf-f93ed99c-e2f2-4f18-8377-37a171ea344f                                                        |
+    | VNF Package ID           | f352d10f-74c2-4d37-b41c-bfcdc73e9d09                                                            |
     | VNF Product Name         | Sample Private registry VNF                                                                     |
     | VNF Provider             | Company                                                                                         |
     | VNF Software Version     | 1.0                                                                                             |
     | VNFD ID                  | c1bb0ce7-ebca-4fa7-95ed-4840d70a118f                                                            |
     | VNFD Version             | 1.0                                                                                             |
-    | vnfPkgId                 |                                                                                                 |
     +--------------------------+-------------------------------------------------------------------------------------------------+
 
 3. Heal Docker Private Registry VNF
@@ -464,7 +464,7 @@ Following is a sample of healing request body for SOL002:
     The ``vnfcResourceInfo.id`` is vnfcInstanceId.
 
 2. Execute Heal Operations
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 1. Heal Docker Private Registry VNF (Specify VNFC)
 ..................................................

@@ -798,12 +798,12 @@ After the command is executed, the generated ID is ``VNF instance ID``.
    | VNF Configurable Properties |                                                                                                                  |
    | VNF Instance Description    |                                                                                                                  |
    | VNF Instance Name           | vnf-30d7c432-8ad3-4b05-81df-c5c7f340c62b                                                                         |
+   | VNF Package ID              | 094c8abf-b5c8-45a1-9332-3952a710c65c                                                                             |
    | VNF Product Name            | Sample VNF                                                                                                       |
    | VNF Provider                | Company                                                                                                          |
    | VNF Software Version        | 1.0                                                                                                              |
    | VNFD ID                     | b1bb0ce7-ebca-4fa7-95ed-4840d70a1177                                                                             |
    | VNFD Version                | 1.0                                                                                                              |
-   | vnfPkgId                    |                                                                                                                  |
    +-----------------------------+------------------------------------------------------------------------------------------------------------------+
 
 
@@ -1028,13 +1028,13 @@ successful.
    | VNF Configurable Properties |                                                                                                                      |
    | VNF Instance Description    |                                                                                                                      |
    | VNF Instance Name           | vnf-30d7c432-8ad3-4b05-81df-c5c7f340c62b                                                                             |
+   | VNF Package ID              | 094c8abf-b5c8-45a1-9332-3952a710c65c                                                                                 |
    | VNF Product Name            | Sample VNF                                                                                                           |
    | VNF Provider                | Company                                                                                                              |
    | VNF Software Version        | 1.0                                                                                                                  |
    | VNFD ID                     | b1bb0ce7-ebca-4fa7-95ed-4840d70a1177                                                                                 |
    | VNFD Version                | 1.0                                                                                                                  |
    | metadata                    | namespace=default, tenant=default                                                                                    |
-   | vnfPkgId                    |                                                                                                                      |
    +-----------------------------+----------------------------------------------------------------------------------------------------------------------+
 
 

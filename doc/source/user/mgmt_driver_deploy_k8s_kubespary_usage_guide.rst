@@ -507,12 +507,12 @@ Execute the following CLI command to instantiate the VNF instance.
     |                          | }                                                                                           |
     | VNF Instance Description | None                                                                                        |
     | VNF Instance Name        | vnf-4cdc110f-b21e-4b79-b3f5-252ee5937a36                                                    |
+    | VNF Package ID           | 2ed0d70f-cb42-4535-91e9-2a87362180ef                                                        |
     | VNF Product Name         | Sample VNF                                                                                  |
     | VNF Provider             | Company                                                                                     |
     | VNF Software Version     | 1.0                                                                                         |
     | VNFD ID                  | b1db0ce7-ebca-2fb7-95ed-4840d70a1163                                                        |
     | VNFD Version             | 1.0                                                                                         |
-    | vnfPkgId                 |                                                                                             |
     +--------------------------+---------------------------------------------------------------------------------------------+
     $ openstack vnflcm instantiate 4cdc110f-b21e-4b79-b3f5-252ee5937a36 ./simple_kubernetes_param_file.json
     Instantiate request for VNF Instance 4cdc110f-b21e-4b79-b3f5-252ee5937a36 has been accepted.
@@ -828,12 +828,12 @@ Execute the following CLI command to instantiate the VNF instance.
     |                          | ]                                                                                                |
     | VNF Instance Description | None                                                                                             |
     | VNF Instance Name        | vnf-4cdc110f-b21e-4b79-b3f5-252ee5937a36                                                         |
+    | VNF Package ID           | 2ed0d70f-cb42-4535-91e9-2a87362180ef                                                             |
     | VNF Product Name         | Sample VNF                                                                                       |
     | VNF Provider             | Company                                                                                          |
     | VNF Software Version     | 1.0                                                                                              |
     | VNFD ID                  | b1db0ce7-ebca-2fb7-95ed-4840d70a1163                                                             |
     | VNFD Version             | 1.0                                                                                              |
-    | vnfPkgId                 |                                                                                                  |
     +--------------------------+--------------------------------------------------------------------------------------------------+
 
 Scale Kubernetes Worker Nodes
@@ -1482,12 +1482,12 @@ Create VNF with VNFD ID:
     |                          | }                                                                                           |
     | VNF Instance Description | None                                                                                        |
     | VNF Instance Name        | vnf-342a083d-caec-4b44-8881-733fa7cd1754                                                    |
+    | VNF Package ID           | 39b5942e-41b5-4cf5-8619-ade0cd86d755                                                        |
     | VNF Product Name         | Sample VNF                                                                                  |
     | VNF Provider             | Company                                                                                     |
     | VNF Software Version     | 1.0                                                                                         |
     | VNFD ID                  | babb0ce7-ebca-4fa7-95ed-4840d70a1177                                                        |
     | VNFD Version             | 1.0                                                                                         |
-    | vnfPkgId                 |                                                                                             |
     +--------------------------+---------------------------------------------------------------------------------------------+
 
 Instantiate VNF with VNF ID:
@@ -1573,12 +1573,12 @@ Check instantiation state:
     |                          | ]                                                                                               |
     | VNF Instance Description | None                                                                                            |
     | VNF Instance Name        | vnf-342a083d-caec-4b44-8881-733fa7cd1754                                                        |
+    | VNF Package ID           | 39b5942e-41b5-4cf5-8619-ade0cd86d755                                                            |
     | VNF Product Name         | Sample VNF                                                                                      |
     | VNF Provider             | Company                                                                                         |
     | VNF Software Version     | 1.0                                                                                             |
     | VNFD ID                  | babb0ce7-ebca-4fa7-95ed-4840d70a1177                                                            |
     | VNFD Version             | 1.0                                                                                             |
-    | vnfPkgId                 |                                                                                                 |
     +--------------------------+-------------------------------------------------------------------------------------------------+
 
 To confirm the NodePort has set to Load Balancer, you should login

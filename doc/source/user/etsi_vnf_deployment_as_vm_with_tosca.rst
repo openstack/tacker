@@ -296,12 +296,12 @@ Result:
    | VNF Configurable Properties |                                                                                                                  |
    | VNF Instance Description    |                                                                                                                  |
    | VNF Instance Name           | vnf-810d8c9b-e467-4b06-9265-ac9dce015fce                                                                         |
+   | VNF Package ID              | 156f1c4f-bfe2-492b-a079-a1bad32c0c3d                                                                             |
    | VNF Product Name            | Sample VNF                                                                                                       |
    | VNF Provider                | Company                                                                                                          |
    | VNF Software Version        | 1.0                                                                                                              |
    | VNFD ID                     | b1bb0ce7-ebca-4fa7-95ed-4840d70a1177                                                                             |
    | VNFD Version                | 1.0                                                                                                              |
-   | vnfPkgId                    |                                                                                                                  |
    +-----------------------------+------------------------------------------------------------------------------------------------------------------+
 
 

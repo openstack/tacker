@@ -152,12 +152,12 @@ Here is an example of creating VNF :
   | VNF Configurable Properties |                                                                                                                  |
   | VNF Instance Description    |                                                                                                                  |
   | VNF Instance Name           | vnf-e9d7c08e-72ed-4c64-bc91-78cd82163969                                                                         |
+  | VNF Package ID              | 094c8abf-b5c8-45a1-9332-3952a710c65c                                                                             |
   | VNF Product Name            | Sample VNF                                                                                                       |
   | VNF Provider                | Company                                                                                                          |
   | VNF Software Version        | 1.0                                                                                                              |
   | VNFD ID                     | b1bb0ce7-ebca-4fa7-95ed-4840d70a1177                                                                             |
   | VNFD Version                | 1.0                                                                                                              |
-  | vnfPkgId                    |                                                                                                                  |
   +-----------------------------+------------------------------------------------------------------------------------------------------------------+
 
 

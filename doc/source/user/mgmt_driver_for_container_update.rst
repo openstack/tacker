@@ -95,7 +95,7 @@ for the procedure of preparation from "Prepare Kubernetes VIM" to
 
 
 How to Instantiate VNF for Updating
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You can use the sample VNF package below to instantiate VNF to be updated.
 
@@ -201,12 +201,12 @@ Here is an example of creating VNF :
   | VNF Configurable Properties |                                                                                                                  |
   | VNF Instance Description    |                                                                                                                  |
   | VNF Instance Name           | vnf-beaf9797-ccf5-41f7-a546-0ff675475e5a                                                                         |
+  | VNF Package ID              | d2e2689f-0850-47b6-bfed-0d8f1612601a                                                                             |
   | VNF Product Name            | Sample VNF                                                                                                       |
   | VNF Provider                | Company                                                                                                          |
   | VNF Software Version        | 1.0                                                                                                              |
   | VNFD ID                     | b1bb0ce7-ebca-4fa7-95ed-4840d70a7774                                                                             |
   | VNFD Version                | 1.0                                                                                                              |
-  | vnfPkgId                    |                                                                                                                  |
   +-----------------------------+------------------------------------------------------------------------------------------------------------------+
 
 
@@ -258,7 +258,7 @@ after the command above is executed.
 
 
 CNF Updating Procedure
------------------------
+----------------------
 
 As mentioned in `Prerequisites`_, the VNF must be instantiated before
 performing updating.
