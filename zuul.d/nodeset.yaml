@@ -33,6 +33,40 @@
           - compute2
 
 - nodeset:
+    name: openstack-4-nodes-noble
+    nodes:
+      - name: controller
+        label: ubuntu-noble
+      - name: controller-tacker
+        label: ubuntu-noble
+      - name: compute1
+        label: ubuntu-noble
+      - name: compute2
+        label: ubuntu-noble
+    groups:
+      # Nodes running the compute service
+      - name: compute
+        nodes:
+          - compute1
+          - compute2
+      # Nodes that are not the controller
+      - name: subnode
+        nodes:
+          - controller-tacker
+          - compute1
+          - compute2
+      # Switch node for multinode networking setup
+      - name: switch
+        nodes:
+          - controller
+      # Peer nodes for multinode networking setup
+      - name: peers
+        nodes:
+          - controller-tacker
+          - compute1
+          - compute2
+
+- nodeset:
     name: openstack-k8s-3-nodes-jammy
     nodes:
       - name: controller
