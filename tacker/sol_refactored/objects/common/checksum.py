@@ -1,4 +1,4 @@
-# Copyright (C) 2021 Nippon Telegraph and Telephone Corporation
+# Copyright (C) 2024 Fujitsu
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -17,16 +17,15 @@ from tacker.sol_refactored.objects import base
 from tacker.sol_refactored.objects import fields
 
 
-# NFV-SOL 003
-# - v3.3.1 5.5.3.20 (API version: 2.0.0)
+# NFV-SOL 013
+# - v3.3.1 7.1.7
 @base.TackerObjectRegistry.register
-class VnfStateSnapshotInfoV2(base.TackerObject, base.TackerObjectDictCompat):
+class Checksum(base.TackerObject, base.TackerObjectDictCompat):
 
     # Version 1.0: Initial version
     VERSION = '1.0'
 
     fields = {
-        'checksum': fields.ObjectField('Checksum', nullable=False),
-        'isEncrypted': fields.BooleanField(nullable=False),
-        'metadata': fields.KeyValuePairsField(nullable=True),
+        'algorithm': fields.StringField(nullable=False),
+        'hash': fields.StringField(nullable=False)
     }

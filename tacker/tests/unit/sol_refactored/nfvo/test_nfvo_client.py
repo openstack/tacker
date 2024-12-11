@@ -45,8 +45,14 @@ _vnfpkg_body_example = {
     "vnfdVersion": "1.0",
     "onboardingState": "ONBOARDED",
     "operationalState": "ENABLED",
-    "usageState": "NOT_IN_USE"
+    "usageState": "NOT_IN_USE",
+    "checksum": {"algorithm": "SHA-512", "hash": "test"},
+    "softwareImages": [{"id": "test", "name": "cirros-0.6.2",
+        "checksum": {"algorithm": "sha-512", "hash": "test"}}],
+    "additionalArtifacts": [{"checksum": {"algorithm": "sha-512",
+        "hash": "test"}, "isEncrypted": True}]
 }
+
 _grant_res = {
     'id': 'b94d05c9-eb45-4855-9132-20e1d3e7cecf',
     'vnfInstanceId': '2d004394-d0f0-406d-845a-2b148f91039a',

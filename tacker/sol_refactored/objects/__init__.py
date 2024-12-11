@@ -28,6 +28,7 @@ def register_all():
     # function in order for it to be registered by services that may
     # need to receive it via RPC.
     objects_root = 'tacker.sol_refactored.objects'
+    __import__(objects_root + '.common.checksum')
     __import__(objects_root + '.common.cp_protocol_data')
     __import__(objects_root + '.common.crypt_key')
     __import__(objects_root + '.common.ext_link_port_data')

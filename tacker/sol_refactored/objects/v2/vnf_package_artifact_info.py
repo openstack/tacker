@@ -28,7 +28,7 @@ class VnfPackageArtifactInfoV2(base.TackerObject, base.TackerObjectDictCompat):
     fields = {
         'artifactPath': fields.StringField(nullable=True),
         'artifactURI': fields.UriField(nullable=True),
-        'checksum': fields.ChecksumField(nullable=False),
+        'checksum': fields.ObjectField('Checksum', nullable=False),
         'isEncrypted': fields.BooleanField(nullable=False),
         'nonManoArtifactSetId': fields.StringField(nullable=True),
         'artifactClassification': fields.EnumField(

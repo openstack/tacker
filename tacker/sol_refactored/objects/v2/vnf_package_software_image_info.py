@@ -31,7 +31,7 @@ class VnfPackageSoftwareImageInfoV2(base.TackerObject,
         'name': fields.StringField(nullable=False),
         'provider': fields.StringField(nullable=False),
         'version': fields.VersionField(nullable=False),
-        'checksum': fields.ChecksumField(nullable=False),
+        'checksum': fields.ObjectField('Checksum', nullable=False),
         'isEncrypted': fields.BooleanField(nullable=False),
         'containerFormat': fields.EnumField(
             valid_values=[

@@ -1809,6 +1809,17 @@ class CommonVnfLcmTest(base_v2.BaseSolV2Test):
         if is_nfvo:
             self._register_vnf_package_mock_response(
                 new_image_vnfd_id, new_image_zip_path)
+            # Overwrite "Individual VNF package" response with checksum
+            self.set_server_callback(
+                'GET',
+                os.path.join('/vnfpkgm/v2/onboarded_vnf_packages',
+                    new_image_vnfd_id),
+                status_code=200,
+                response_headers={"Content-Type": "application/json"},
+                response_body=(fake_vnfpkgm_v2.VnfPackage.
+                    make_get_vnf_pkg_info_resp_with_checksum(
+                        new_image_vnfd_id))
+            )
             g_image_id_1, g_image_id_2 = self.glance_create_image(
                 instantiate_req.get("vimConnectionInfo").get("vim1"),
                 image_path, sw_data, inst_id, num_vdu=2)
