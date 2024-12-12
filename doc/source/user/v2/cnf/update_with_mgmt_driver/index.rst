@@ -815,7 +815,7 @@ The resources information after update:
     deployment2-vdu6-86579d6868   1         1         1       131m   nginx        nginx                 app=webserver,pod-template-hash=86579d6868
     vdu1-update-5d87858fc6        1         1         1       37m    nginx        cirros                app=webserver,pod-template-hash=5d87858fc6
     vdu1-update-6fcf66b5dd        0         0         0       131m   nginx        nginx                 app=webserver,pod-template-hash=6fcf66b5dd
-    vdu2-update                   1         1         1       131m   nginx        celebdor/kuryr-demo   app=webserver
+    vdu2-update                   1         1         1       131m   nginx        nginx                 app=webserver
 
     $ kubectl describe pod vdu2-update-tk7qp
     Name:             vdu2-update-tk7qp
@@ -824,8 +824,8 @@ The resources information after update:
     Containers:
       nginx:
         Container ID:   cri-o://05f13a7b7d171e2d68bcbceefbce0537b851bd0f0f7de60fba0d9500349d6f4d
-        Image:          celebdor/kuryr-demo
-        Image ID:       docker.io/celebdor/kuryr-demo@sha256:74102005010b28a4518e08215df992a46b27ffc8b50836f29d8f9c0d7c9d4135
+        Image:          nginx
+        Image ID:       docker.io/library/nginx@sha256:86e53c4c16a6a276b204b0fd3a8143d86547c967dc8258b3d47c3a21bb68d3c6
     ...
     Volumes:
       cm-volume:

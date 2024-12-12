@@ -335,9 +335,9 @@ The following is a simple example of ``deployment`` resource.
            ports:
            - containerPort: 80
              protocol: TCP
-         - image: celebdor/kuryr-demo
+         - image: nginx
            imagePullPolicy: IfNotPresent
-           name: kuryr-demo-readiness-probe
+           name: nginx-readiness-probe
            ports:
            - containerPort: 8080
              protocol: TCP

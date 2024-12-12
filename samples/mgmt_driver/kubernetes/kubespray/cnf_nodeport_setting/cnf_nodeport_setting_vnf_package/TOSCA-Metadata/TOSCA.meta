@@ -6,7 +6,7 @@ Entry-Definitions: Definitions/helloworld3_top.vnfd.yaml
 Name: Files/kubernetes/deployment.yaml
 Content-Type: application/yaml
 Algorithm: SHA-256
-Hash: 3e87eebb432c3ff59f54d6dddd12a7adff3b8d7b1e272d5b5de3df5ae9aec4d4
+Hash: 0cd2f3d0c41cf5e59849c2a8fbb7c14b563d72d115c89e71d0201b715b6fc306
 
 Name: Files/kubernetes/service_with_nodeport.yaml
 Content-Type: application/yaml

@@ -247,7 +247,7 @@ def fake_replicaset_container_config_changed():
                                     )
                                 )
                             ],
-                            image='celebdor/kuryr-demo',
+                            image='nginx',
                             image_pull_policy='IfNotPresent',
                             name='nginx',
                             ports=[
@@ -301,7 +301,7 @@ def fake_replicaset_volume_config_changed():
                 spec=client.V1PodSpec(
                     containers=[
                         client.V1Container(
-                            image='celebdor/kuryr-demo',
+                            image='nginx',
                             image_pull_policy='IfNotPresent',
                             name='nginx',
                             ports=[
@@ -372,7 +372,7 @@ def fake_replicaset_image_changed():
                 spec=client.V1PodSpec(
                     containers=[
                         client.V1Container(
-                            image='celebdor/kuryr-demo-old',
+                            image='nginx-old',
                             image_pull_policy='IfNotPresent',
                             name='nginx',
                             ports=[

@@ -19,7 +19,7 @@ spec:
       - command: ["sh", "-c"]
         args:
         - echo CURRY
-        image: celebdor/kuryr-demo
+        image: nginx
         name: curryjob
       restartPolicy: OnFailure
 status: {}

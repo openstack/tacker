@@ -21,8 +21,8 @@ spec:
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 80
-      - name: kuryr-demo
-        image: celebdor/kuryr-demo
+      - name: nginx-2
+        image: nginx
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8080

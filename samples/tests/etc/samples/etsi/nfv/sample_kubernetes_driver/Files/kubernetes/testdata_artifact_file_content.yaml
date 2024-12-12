@@ -7,7 +7,7 @@ metadata:
     role: my-curry
 spec:
   containers:
-  - image: celebdor/kuryr-demo
+  - image: nginx
     imagePullPolicy: IfNotPresent
     name: local
     ports:
