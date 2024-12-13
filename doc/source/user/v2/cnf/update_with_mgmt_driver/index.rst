@@ -87,11 +87,11 @@ How to Instantiate VNF for Updating
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You can use the sample VNF package below to instantiate VNF to be updated.
+In this document, ``TACKER_ROOT`` is the root of tacker's repository on
+the server.
 
 .. code-block:: console
 
-  $ python3 -m pip install TACKER_ROOT
-  $ export PYTHONPATH=TACKER_ROOT
   $ cd TACKER_ROOT/samples/tests/functional/sol_kubernetes_v2/test_cnf_container_update_before
   $ vi pkggen.py
   ...
@@ -108,12 +108,27 @@ You can use the sample VNF package below to instantiate VNF to be updated.
 
 .. note::
 
-  In this document, ``TACKER_ROOT`` is the root of tacker's repository on
-  the server.
+  This tool requires some Tacker modules, so you need to run it in
+  an environment where Tacker is installed.
+  If you have installed Tacker in python virtual environment using devstack,
+  etc., please activate it as follows before using the tool.
+
+  .. code-block:: console
+
+    $ source /opt/stack/data/venv/bin/activate
+    (venv) $ python3 pkggen.py
 
 
 After you have done the above, you will have the sample VNF package
 `test_cnf_container_update_before.zip`.
+
+.. note::
+
+  If a file exists with the same name as the zip file being generated,
+  the tool will fail.
+  When running the tool again to generate a zip file,
+  please delete or rename the old zip file.
+
 
 After creating a VNF package with :command:`openstack vnf package create`,
 When the Onboarding State is CREATED, the Operational

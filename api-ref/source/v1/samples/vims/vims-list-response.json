@@ -1,37 +1,38 @@
 {
     "vims": [
         {
-            "status": "REACHABLE",
-            "description": "",
-            "tenant_id": "a5346a4d3c464b4f8776ee2f4bfb86af",
-            "created_at": "2018-06-17 16:26:52",
-            "vim_project": {
-                "name": "nfv",
-                "project_domain_name": "Default"
+            "auth_cred": {
+                "auth_url": "http://192.168.56.10/identity/v3",
+                "cert_verify": "False",
+                "key_type": "barbican_key",
+                "password": "***",
+                "project_domain_name": "Default",
+                "project_id": null,
+                "project_name": "nfv",
+                "secret_uuid": "***",
+                "user_domain_name": "Default",
+                "username": "nfv_user"
             },
-            "updated_at": "2018-06-18 03:45:49",
+            "auth_url": "http://192.168.56.10/identity/v3",
+            "created_at": "2024-12-03 05:19:49",
+            "description": "",
+            "extra": {},
+            "id": "fd8a3ac0-8e61-4740-a021-8fa35d833635",
             "is_default": true,
-            "auth_url": "http://192.168.42.131/identity/v3",
+            "name": "VIM0",
             "placement_attr": {
                 "regions": [
                     "RegionOne"
                 ]
             },
-            "auth_cred": {
-                "username": "nfv_user",
-                "password": "***",
-                "project_name": "nfv",
-                "cert_verify": "True",
-                "user_domain_name": "Default",
-                "auth_url": "http://192.168.42.131/identity/v3",
-                "project_id": null,
-                "key_type": "barbican_key",
-                "secret_uuid": "***",
-                "project_domain_name": "Default"
-            },
+            "status": "ACTIVE",
+            "tenant_id": "875c2bf1627b4b22a7f3c8c0cae5efda",
             "type": "openstack",
-            "id": "cb7ac02e-1445-48c2-a3cb-4fcddd49fce5",
-            "name": "VIM0"
+            "updated_at": null,
+            "vim_project": {
+                "name": "nfv",
+                "project_domain_name": "Default"
+            }
         }
     ]
 }

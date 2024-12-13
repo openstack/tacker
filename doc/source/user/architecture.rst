@@ -103,6 +103,23 @@ Change current VNF package complies with `ETSI NFV-SOL002 3.6.1`_.
   supported by Tacker Horizon.
 
 
+Supported versions:
+
+[2024.1 Caracal / 2024.2 Dalmatian]
+
+* **Kubernetes 1.26** - is supported from 2023.2 Bobcat to 2024.2 Dalmatian.
+* **Helm 3.11** - is supported from 2023.2 Bobcat to 2024.2 Dalmatian.
+* **Prometheus 2.45** - is supported from 2023.2 Bobcat onwards.
+* **Alertmanager 0.26** - is supported from 2023.2 Bobcat onwards.
+
+[2025.1 Epoxy]
+
+* **Kubernetes 1.30** - is supported from 2025.1 Epoxy onwards.
+* **Helm 3.15** - is supported from 2025.1 Epoxy onwards.
+* **Prometheus 2.45** - is supported from 2023.2 Bobcat onwards.
+* **Alertmanager 0.26** - is supported from 2023.2 Bobcat onwards.
+
+
 Tacker Service
 --------------
 

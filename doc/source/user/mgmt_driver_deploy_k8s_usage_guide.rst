@@ -264,7 +264,7 @@ cli command:
 
   .. code-block:: console
 
-    $ auth='--os-username nfv_user --os-project-name nfv --os-password devstack  --os-auth-url http://127.0.0.1/identity --os-project-domain-name Default --os-user-domain-name Default'
+    $ auth='--os-username nfv_user --os-project-name nfv --os-password devstack --os-auth-url http://127.0.0.1/identity --os-project-domain-name Default --os-user-domain-name Default'
     $ nfv_project_id=`openstack project list $auth | grep -w '| nfv' | awk '{print $2}'`
     $ default_id=`openstack security group list $auth | grep -w 'default' | grep $nfv_project_id | awk '{print $2}'`
 

@@ -400,7 +400,7 @@ It deploys VMs and Kubernetes resources on the same network.
          |                |     ]                                         |
          |                | }                                             |
          | project_id     | 8cd3cc798ae14227a84f7b50c5ef984a              |
-         | status         | PENDING                                       |
+         | status         | ACTIVE                                        |
          | type           | kubernetes                                    |
          | updated_at     | None                                          |
          | vim_project    | {                                             |
@@ -423,11 +423,11 @@ It deploys VMs and Kubernetes resources on the same network.
 
    .. code-block:: console
 
-         +--------------------------------------+----------------+----------------------------------+------------+------------+-----------+
-         | ID                                   | Name           | Tenant_id                        | Type       | Is Default | Status    |
-         +--------------------------------------+----------------+----------------------------------+------------+------------+-----------+
-         | 884ec305-c8ca-47ef-8cba-fafceabeda30 | vim-kubernetes | 8cd3cc798ae14227a84f7b50c5ef984a | kubernetes | False      | REACHABLE |
-         +--------------------------------------+----------------+----------------------------------+------------+------------+-----------+
+         +--------------------------------------+----------------+----------------------------------+------------+------------+--------+
+         | ID                                   | Name           | Tenant_id                        | Type       | Is Default | Status |
+         +--------------------------------------+----------------+----------------------------------+------------+------------+--------+
+         | 884ec305-c8ca-47ef-8cba-fafceabeda30 | vim-kubernetes | 8cd3cc798ae14227a84f7b50c5ef984a | kubernetes | False      | ACTIVE |
+         +--------------------------------------+----------------+----------------------------------+------------+------------+--------+
 
    You can update those VIM information with :command:`openstack vim set`:
 

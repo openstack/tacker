@@ -152,7 +152,7 @@ Help:
 
 .. code-block:: console
 
-  $ openstack vnffm alarm show --os-tacker-api-version 2  --help
+  $ openstack vnffm alarm show --os-tacker-api-version 2 --help
   usage: openstack vnffm alarm show [-h] [-f {json,shell,table,value,yaml}] [-c COLUMN]
                                     [--noindent] [--prefix PREFIX] [--max-width <integer>]
                                     [--fit-width] [--print-empty]

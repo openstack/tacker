@@ -8,6 +8,10 @@ Prometheus Plugin Use Case Guide
   using Prometheus 2.45 and Alertmanager 0.26.
 
 
+See :doc:`/user/architecture` for information about supported versions
+of Prometheus and Alertmanager.
+
+
 Overview
 ~~~~~~~~
 
@@ -360,25 +364,6 @@ needs to activate sshd.
 - PasswordAuthentication setting should be "yes".
 - The directory indicated by "rule_files" setting of prometheus
   server config should be accessible by SSH.
-
-
-Supported versions
-------------------
-
-Tacker Zed release
-
-- Prometheus: 2.37
-- Alertmanager: 0.24
-
-Tacker Antelope release
-
-- Prometheus: 2.37
-- Alertmanager: 0.25
-
-Tacker Bobcat and Caracal release
-
-- Prometheus: 2.45
-- Alertmanager: 0.26
 
 
 Alert rule registration

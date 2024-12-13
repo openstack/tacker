@@ -237,7 +237,7 @@ Get a OpenID token from Keycloak:
 .. code-block:: console
 
    $ ID_TOKEN=$(curl -ks -X POST https://192.168.2.33:8443/realms/oidc/protocol/openid-connect/token \
-     -d grant_type=password -d scope=openid  -d username=end-user -d password=end-user \
+     -d grant_type=password -d scope=openid -d username=end-user -d password=end-user \
      -d client_id=tacker -d client_secret=A93HfOUpySm6BjPug9PJdJumjEGUJMhc | jq -r .id_token)
    $ echo $ID_TOKEN
 

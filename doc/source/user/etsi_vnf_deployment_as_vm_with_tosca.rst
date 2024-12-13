@@ -112,6 +112,8 @@ The VNF Package(sample_vnf_package_csar.zip) used below is prepared
 by referring to :doc:`/user/vnf-package`.
 
 As an example, you can create a VNF Package as follow.
+In this document, ``TACKER_ROOT`` is the root of tacker's repository on
+the server.
 
 .. code-block:: console
 
@@ -134,12 +136,6 @@ As an example, you can create a VNF Package as follow.
   drwxr-xr-x 3 stack stack     4096 Dec 21 03:53 Files/
   -rw-rw-r-- 1 stack stack 15761428 Dec 21 08:50 sample_vnf_package_csar.zip
   drwxr-xr-x 2 stack stack     4096 Dec 21 07:41 TOSCA-Metadata/
-
-
-.. note::
-
-  In this document, ``TACKER_ROOT`` is the root of tacker's repository on
-  the server.
 
 
 After you have done the above, you will have the sample VNF package

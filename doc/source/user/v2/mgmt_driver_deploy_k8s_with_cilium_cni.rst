@@ -23,8 +23,9 @@ with the following configuration.
 
 * simple: Deploy 1 MasterNode and 2 WorkerNodes. This flavor supports Scale
   and Heal for WorkerNode.
-* complex： Deploy 3 MasterNodes and 2 WorkerNodes. This flavor supports Heal
+* complex: Deploy 3 MasterNodes and 2 WorkerNodes. This flavor supports Heal
   for MasterNode, Scale and Heal for WorkerNode.
+
 
 Software version
 ----------------
@@ -143,7 +144,7 @@ Get default security group ID for nfv project
 
 .. code-block:: console
 
-  $ auth='--os-username nfv_user --os-project-name nfv --os-password devstack  --os-auth-url http://127.0.0.1/identity --os-project-domain-name Default --os-user-domain-name Default'
+  $ auth='--os-username nfv_user --os-project-name nfv --os-password devstack --os-auth-url http://127.0.0.1/identity --os-project-domain-name Default --os-user-domain-name Default'
   $ nfv_project_id=`openstack project list $auth | grep -w '| nfv' | awk '{print $2}'`
   $ default_id=`openstack security group list $auth | grep -w 'default' | grep $nfv_project_id | awk '{print $2}'`
 
@@ -245,6 +246,19 @@ The package will be created as sol_v2_kubernetes_vnf_package.zip.
 
   $ cd ~/tacker/samples/mgmt_driver/kubernetes/sol_v2_kubernetes_vnf_package
   $ python3 pkggen.py
+
+
+.. note::
+
+  This tool requires some Tacker modules, so you need to run it in
+  an environment where Tacker is installed.
+  If you have installed Tacker in python virtual environment using devstack,
+  etc., please activate it as follows before using the tool.
+
+  .. code-block:: console
+
+    $ source /opt/stack/data/venv/bin/activate
+    (venv) $ python3 pkggen.py
 
 
 Register VNF Package

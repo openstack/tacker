@@ -78,13 +78,12 @@ This tool support the following VIM Types:
 * ETSINFV.KUBERNETES.V_1
 * ETSINFV.HELM.V_3
 
-In this document, TACKER_ROOT is the root of tacker's repository.
+In this document, ``TACKER_ROOT`` is the root of tacker's repository on
+the server.
 
 .. code-block:: console
 
-  $ python3 -m pip install TAKCER_ROOT
-  $ export PYTHONPATH=TAKCER_ROOT
-  $ cd TAKCER_ROOT/tools
+  $ cd TACKER_ROOT/tools
   $ python3 gen_vnf_pkg.py -h
   usage: gen_vnf_pkg.py [-h] -t VIM_TYPE
 
@@ -97,6 +96,19 @@ In this document, TACKER_ROOT is the root of tacker's repository.
                             * ETSINFV.OPENSTACK_KEYSTONE.V_3
                             * ETSINFV.KUBERNETES.V_1
                             * ETSINFV.HELM.V_3
+
+
+.. note::
+
+  This tool requires some Tacker modules, so you need to run it in
+  an environment where Tacker is installed.
+  If you have installed Tacker in python virtual environment using devstack,
+  etc., please activate it as follows before using the tool.
+
+  .. code-block:: console
+
+    $ source ~/data/venv/bin/activate
+    (venv) $ python3 gen_vnf_pkg.py -h
 
 
 The output of this tool is as follows:
@@ -233,6 +245,14 @@ for each VIM Type under the output directory.
   helm_terminate_req  test_helm_instantiate.zip
 
 
+.. note::
+
+  If a file exists with the same name as the zip file being generated,
+  the tool will fail.
+  When running the tool again to generate a zip file,
+  please delete or rename the old zip file.
+
+
 For the following request files, ``endpoint``, ``ssl_ca_cert`` and
 ``bearer_token`` need to be changed by your own k8s cluster information.
 
@@ -251,7 +271,7 @@ For the following request files, ``endpoint``, ``ssl_ca_cert`` and
 
 
 You can also set your own k8s cluster information to ``auth_url``,
-``barere_token``, and ``ssl_ca_cert`` in gen_vnf_pkg.py before running this tool.
+``bearer_token``, and ``ssl_ca_cert`` in gen_vnf_pkg.py before running this tool.
 
 .. note::
 

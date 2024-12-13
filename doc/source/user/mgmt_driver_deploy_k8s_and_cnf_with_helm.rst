@@ -238,17 +238,17 @@ You can refer to the `Register Kubernetes VIM`_ section to register VIM.
 3. Confirm VIM status
 ~~~~~~~~~~~~~~~~~~~~~
 For the registered VIM information, confirm that the VIM exists and
-the Status is "REACHABLE".
+the Status is "ACTIVE".
 
 .. code-block:: console
 
     $ openstack vim list
-    +--------------------------------------+-----------------------------+----------------------------------+------------+------------+-------------+
-    | ID                                   | Name                        | Tenant_id                        | Type       | Is Default | Status      |
-    +--------------------------------------+-----------------------------+----------------------------------+------------+------------+-------------+
-    | 690edc6b-7581-48d8-9ac9-910c2c3d7c02 | kubernetes_vim_complex_helm | 7e757a0cfea940dab100216036212a65 | kubernetes | False      | REACHABLE   |
-    | 8343f55f-6bdf-4c5f-91c4-f6dd145c616d | VIM0                        | 7e757a0cfea940dab100216036212a65 | openstack  | True       | REACHABLE   |
-    +--------------------------------------+-----------------------------+----------------------------------+------------+------------+-------------+
+    +--------------------------------------+-----------------------------+----------------------------------+------------+------------+--------+
+    | ID                                   | Name                        | Tenant_id                        | Type       | Is Default | Status |
+    +--------------------------------------+-----------------------------+----------------------------------+------------+------------+--------+
+    | 690edc6b-7581-48d8-9ac9-910c2c3d7c02 | kubernetes_vim_complex_helm | 7e757a0cfea940dab100216036212a65 | kubernetes | False      | ACTIVE |
+    | 8343f55f-6bdf-4c5f-91c4-f6dd145c616d | VIM0                        | 7e757a0cfea940dab100216036212a65 | openstack  | True       | ACTIVE |
+    +--------------------------------------+-----------------------------+----------------------------------+------------+------------+--------+
 
 Prepare VNF Package
 ^^^^^^^^^^^^^^^^^^^
