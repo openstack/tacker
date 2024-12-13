@@ -1,6 +1,9 @@
 - job:
     name: tacker-ft-v2-terraform
     parent: tacker-ft-openstack-base
+    # TODO(gmann): As per the 2025.1 testing runtime, we need to run at least
+    # one job on Jammy. This job can be removed in the next cycle (2025.2)
+    nodeset: openstack-4-nodes-jammy
     description: |
       V2 Terraform functional tests
     attempts: 1
