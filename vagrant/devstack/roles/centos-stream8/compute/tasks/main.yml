@@ -1,6 +1,6 @@
 ---
-- include: basic_pkgs.yml
+- include_tasks: basic_pkgs.yml
   tags: basic_pkgs
 
-- include: devstack.yml
+- include_tasks: devstack.yml
   tags: devstack
