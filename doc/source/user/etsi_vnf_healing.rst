@@ -579,13 +579,13 @@ Result:
   | VNF Configurable Properties |                                                                                                                      |
   | VNF Instance Description    |                                                                                                                      |
   | VNF Instance Name           | vnf-c3f9c200-7f52-42c5-9c64-6032faa3faf8                                                                             |
+  | VNF Package ID              | c92757ec-1408-481a-91f7-7f3b2831eb28                                                                                 |
   | VNF Product Name            | Sample VNF                                                                                                           |
   | VNF Provider                | Company                                                                                                              |
   | VNF Software Version        | 1.0                                                                                                                  |
   | VNFD ID                     | b1bb0ce7-ebca-4fa7-95ed-4840d7000321                                                                                 |
   | VNFD Version                | 1.0                                                                                                                  |
   | metadata                    | tenant=nfv                                                                                                           |
-  | vnfPkgId                    |                                                                                                                      |
   +-----------------------------+----------------------------------------------------------------------------------------------------------------------+
 
 

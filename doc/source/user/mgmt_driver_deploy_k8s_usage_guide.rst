@@ -1028,12 +1028,12 @@ Execute the following CLI command to instantiate the VNF instance.
     |                          | }                                                                                           |
     | VNF Instance Description | None                                                                                        |
     | VNF Instance Name        | vnf-3f32428d-e8ce-4d6a-9be9-4c7f3a02ac72                                                    |
+    | VNF Package ID           | 03a8eb3e-a981-434e-a548-82d9b90161d7                                                        |
     | VNF Product Name         | Sample VNF                                                                                  |
     | VNF Provider             | Company                                                                                     |
     | VNF Software Version     | 1.0                                                                                         |
     | VNFD ID                  | b1db0ce7-ebca-1fb7-95ed-4840d70a1163                                                        |
     | VNFD Version             | 1.0                                                                                         |
-    | vnfPkgId                 |                                                                                             |
     +--------------------------+---------------------------------------------------------------------------------------------+
     $ openstack vnflcm instantiate 3f32428d-e8ce-4d6a-9be9-4c7f3a02ac72 ./simple_kubernetes_param_file.json
     Instantiate request for VNF Instance 3f32428d-e8ce-4d6a-9be9-4c7f3a02ac72 has been accepted.
@@ -1306,12 +1306,12 @@ Execute the following CLI command to instantiate the VNF instance.
     |                          | ]                                                                                               |
     | VNF Instance Description | None                                                                                            |
     | VNF Instance Name        | vnf-3f32428d-e8ce-4d6a-9be9-4c7f3a02ac72                                                        |
+    | VNF Package ID           | 03a8eb3e-a981-434e-a548-82d9b90161d7                                                            |
     | VNF Product Name         | Sample VNF                                                                                      |
     | VNF Provider             | Company                                                                                         |
     | VNF Software Version     | 1.0                                                                                             |
     | VNFD ID                  | b1db0ce7-ebca-1fb7-95ed-4840d70a1163                                                            |
     | VNFD Version             | 1.0                                                                                             |
-    | vnfPkgId                 |                                                                                                 |
     +--------------------------+-------------------------------------------------------------------------------------------------+
 
 2. Multi-master Nodes
@@ -1433,12 +1433,12 @@ So you just execute the following cli command on OpenStack Controller Node.
     |                          | }                                                                                           |
     | VNF Instance Description | None                                                                                        |
     | VNF Instance Name        | vnf-c5215213-af4b-4080-95ab-377920474e1a                                                    |
+    | VNF Package ID           | 03a8eb3e-a981-434e-a548-82d9b90161d7                                                        |
     | VNF Product Name         | Sample VNF                                                                                  |
     | VNF Provider             | Company                                                                                     |
     | VNF Software Version     | 1.0                                                                                         |
     | VNFD ID                  | b1db0ce7-ebca-1fb7-95ed-4840d70a1163                                                        |
     | VNFD Version             | 1.0                                                                                         |
-    | vnfPkgId                 |                                                                                             |
     +--------------------------+---------------------------------------------------------------------------------------------+
 
     $ openstack vnflcm instantiate c5215213-af4b-4080-95ab-377920474e1a ./complex_kubernetes_param_file.json
@@ -1786,12 +1786,12 @@ So you just execute the following cli command on OpenStack Controller Node.
     |                          | ]                                                                                               |
     | VNF Instance Description | None                                                                                            |
     | VNF Instance Name        | vnf-c5215213-af4b-4080-95ab-377920474e1a                                                        |
+    | VNF Package ID           | 03a8eb3e-a981-434e-a548-82d9b90161d7                                                            |
     | VNF Product Name         | Sample VNF                                                                                      |
     | VNF Provider             | Company                                                                                         |
     | VNF Software Version     | 1.0                                                                                             |
     | VNFD ID                  | b1db0ce7-ebca-1fb7-95ed-4840d70a1163                                                            |
     | VNFD Version             | 1.0                                                                                             |
-    | vnfPkgId                 |                                                                                                 |
     +--------------------------+-------------------------------------------------------------------------------------------------+
 
 Scale Kubernetes Worker Nodes

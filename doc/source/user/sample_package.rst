@@ -442,12 +442,12 @@ Result:
     |                          | }                                                                                                                |
     | VNF Instance Description | None                                                                                                             |
     | VNF Instance Name        | vnf-d57acd9a-34f1-4a2d-a8a0-7013270def45                                                                         |
+    | VNF Package ID           | 5413f0ee-23a7-438d-bc5d-4ea1eb19117e                                                                             |
     | VNF Product Name         | Node                                                                                                             |
     | VNF Provider             | Sample                                                                                                           |
     | VNF Software Version     | 10.1                                                                                                             |
     | VNFD ID                  | 9ed8bcf4-1e01-4d91-8cfb-57cd052e6a90                                                                             |
     | VNFD Version             | 1.0                                                                                                              |
-    | vnfPkgId                 |                                                                                                                  |
     +--------------------------+------------------------------------------------------------------------------------------------------------------+
 
 After that, execute the following CLI command and confirm that
@@ -713,12 +713,12 @@ Result:
     |                          | }                                                                                                                |
     | VNF Instance Description | None                                                                                                             |
     | VNF Instance Name        | vnf-1b71922e-3531-4cd1-8961-0feb38f6f82e                                                                         |
+    | VNF Package ID           | 5413f0ee-23a7-438d-bc5d-4ea1eb19117e                                                                             |
     | VNF Product Name         | Node                                                                                                             |
     | VNF Provider             | Sample                                                                                                           |
     | VNF Software Version     | 10.1                                                                                                             |
     | VNFD ID                  | 9ed8bcf4-1e01-4d91-8cfb-57cd052e6a90                                                                             |
     | VNFD Version             | 1.0                                                                                                              |
-    | vnfPkgId                 |                                                                                                                  |
     +--------------------------+------------------------------------------------------------------------------------------------------------------+
 
 After that, execute the following CLI command and confirm that

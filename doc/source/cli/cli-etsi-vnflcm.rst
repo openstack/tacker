@@ -69,12 +69,12 @@ Result:
   | VNF Configurable Properties |                                                                                                                  |
   | VNF Instance Description    |                                                                                                                  |
   | VNF Instance Name           | vnf-74c71ef9-b223-4a5f-9987-de476eab122f                                                                         |
+  | VNF Package ID              | 5ac73423-f102-4574-911e-578dad9fa8fe                                                                             |
   | VNF Product Name            | Sample VNF                                                                                                       |
   | VNF Provider                | Company                                                                                                          |
   | VNF Software Version        | 1.0                                                                                                              |
   | VNFD ID                     | b1bb0ce7-ebca-4fa7-95ed-4840d70a1177                                                                             |
   | VNFD Version                | 1.0                                                                                                              |
-  | vnfPkgId                    |                                                                                                                  |
   +-----------------------------+------------------------------------------------------------------------------------------------------------------+
 
 
@@ -349,13 +349,13 @@ Result:
   | VNF Configurable Properties |                                                                                                                      |
   | VNF Instance Description    |                                                                                                                      |
   | VNF Instance Name           | vnf-74c71ef9-b223-4a5f-9987-de476eab122f                                                                             |
+  | VNF Package ID              | 5ac73423-f102-4574-911e-578dad9fa8fe                                                                                 |
   | VNF Product Name            | Sample VNF                                                                                                           |
   | VNF Provider                | Company                                                                                                              |
   | VNF Software Version        | 1.0                                                                                                                  |
   | VNFD ID                     | b1bb0ce7-ebca-4fa7-95ed-4840d70a1177                                                                                 |
   | VNFD Version                | 1.0                                                                                                                  |
   | metadata                    | tenant=admin                                                                                                         |
-  | vnfPkgId                    |                                                                                                                      |
   +-----------------------------+----------------------------------------------------------------------------------------------------------------------+
 
 
