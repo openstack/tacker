@@ -111,6 +111,142 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
             - Instantiate VNF.
             - Get VNF informations.
             - Scale-Out VNF
+            - Scale-In(is_reverse) VNF
+            - Terminate VNF
+            - Delete VNF
+            - Delete subscription
+        """
+        # Create subscription and register it.
+        callback_url = os.path.join(vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
+            self._testMethodName)
+        request_body = fake_vnflcm.Subscription.make_create_request_body(
+            'http://localhost:{}{}'.format(
+                vnflcm_base.FAKE_SERVER_MANAGER.SERVER_PORT,
+                callback_url))
+        resp, response_body = self._register_subscription(request_body)
+        self.assertEqual(201, resp.status_code)
+        self.assert_http_header_location_for_subscription(resp.headers)
+        self.assert_notification_get(callback_url)
+        subscription_id = response_body.get('id')
+        self.addCleanup(
+            self._delete_subscription,
+            subscription_id)
+
+        # Pre Setting: Create vnf package.
+        sample_name = 'functional5'
+        csar_package_path = self._sample_path(sample_name)
+        tempname, _ = vnflcm_base._create_csar_with_unique_vnfd_id(
+            csar_package_path)
+        # upload vnf package
+        vnf_package_id, vnfd_id = vnflcm_base._create_and_upload_vnf_package(
+            self.tacker_client, user_defined_data={
+                "key": sample_name}, temp_csar_path=tempname)
+
+        # Post Setting: Reserve deleting vnf package.
+        self.addCleanup(vnflcm_base._delete_vnf_package, self.tacker_client,
+            vnf_package_id)
+
+        # Create vnf instance
+        resp, vnf_instance = self._create_vnf_instance_from_body(
+            fake_vnflcm.VnfInstances.make_create_request_body(vnfd_id))
+        vnf_instance_id = vnf_instance['id']
+        self._wait_lcm_done(vnf_instance_id=vnf_instance_id)
+        self.assert_create_vnf(resp, vnf_instance, vnf_package_id)
+        self.addCleanup(self._delete_vnf_instance, vnf_instance_id)
+
+        # Instantiate vnf instance
+        request_body = fake_vnflcm.VnfInstances.\
+            make_inst_request_body_include_num_dynamic(
+                self.vim['tenant_id'], self.ext_networks,
+                self.ext_mngd_networks, self.ext_link_ports, self.ext_subnets)
+        resp, _ = self._instantiate_vnf_instance(vnf_instance_id, request_body)
+        self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
+        expected_show_res = {
+            'len_vnfc_res_info': 2,  # = 1(VDU1) + 1(VDU2)
+            'len_storage_res_info': 1,  # = 1(VDU1)
+            'len_vnfc_info': 2  # = 1(VDU1) + 1(VDU2)
+        }
+        self.assert_instantiate_vnf(resp, vnf_instance_id, vnf_package_id,
+            expected_show_res=expected_show_res)
+
+        # Scale-out vnf instance
+        stack = self._get_heat_stack(vnf_instance_id)
+        pre_stack_resource_list = self._get_heat_resource_list(stack.id, 2)
+
+        request_body = fake_vnflcm.VnfInstances.make_scale_request_body(
+            'SCALE_OUT')
+        resp, _ = self._scale_vnf_instance(vnf_instance_id, request_body)
+        self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
+
+        post_stack_resource_list = self._get_heat_resource_list(stack.id, 2)
+        expected_show_res = {
+            'len_vnfc_res_info': 3,  # = 2(VDU1) + 1(VDU2)
+            'len_storage_res_info': 2,  # = 2(VDU1)
+            'len_vnfc_info': 3  # = 2(VDU1) + 1(VDU2)
+        }
+        self._assert_scale_vnf(resp, vnf_instance_id, vnf_package_id,
+            pre_stack_resource_list, post_stack_resource_list,
+            scale_type='SCALE_OUT', expected_stack_status='CREATE_COMPLETE',
+            expected_show_res=expected_show_res)
+
+        # Scale-in vnf instance
+        stack = self._get_heat_stack(vnf_instance_id)
+        pre_stack_resource_list = self._get_heat_resource_list(stack.id, 2)
+
+        request_body = (fake_vnflcm.VnfInstances
+                        .make_reverse_scale_request_body('SCALE_IN'))
+        resp, _ = self._scale_vnf_instance(vnf_instance_id, request_body)
+        self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
+
+        post_stack_resource_list = self._get_heat_resource_list(stack.id, 2)
+        expected_show_res = {
+            'len_vnfc_res_info': 2,  # = 1(VDU1) + 1(VDU2)
+            'len_storage_res_info': 1,  # = 1(VDU1)
+            'len_vnfc_info': 2  # = 1(VDU1) + 1(VDU2)
+        }
+        self._assert_scale_vnf(resp, vnf_instance_id, vnf_package_id,
+            pre_stack_resource_list, post_stack_resource_list,
+            scale_type='SCALE_IN', expected_stack_status='UPDATE_COMPLETE',
+            expected_show_res=expected_show_res)
+
+        # Terminate VNF
+        stack = self._get_heat_stack(vnf_instance_id)
+        resources_list = self._get_heat_resource_list(stack.id)
+        resource_name_list = [r.resource_name for r in resources_list]
+        glance_image_id_list = self._get_glance_image_list_from_stack_resource(
+            stack.id, resource_name_list)
+
+        terminate_req_body = fake_vnflcm.VnfInstances.make_term_request_body()
+        resp, _ = self._terminate_vnf_instance(
+            vnf_instance_id, terminate_req_body)
+        self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
+        self.assert_terminate_vnf(resp, vnf_instance_id, stack.id,
+            resource_name_list, glance_image_id_list, vnf_package_id)
+
+        # Delete VNF
+        resp, _ = self._delete_vnf_instance(vnf_instance_id)
+        self._wait_lcm_done(vnf_instance_id=vnf_instance_id)
+        self.assert_delete_vnf(resp, vnf_instance_id, vnf_package_id)
+
+        # Subscription delete
+        resp, response_body = self._delete_subscription(subscription_id)
+        self.assertEqual(204, resp.status_code)
+
+        resp, _ = self._show_subscription(subscription_id)
+        self.assertEqual(404, resp.status_code)
+
+    def test_inst_scaling_heal(self):
+        """Test basic life cycle operations with sample VNFD.
+
+        In this test case, we do following steps.
+            - Create subscription.
+            - Create VNF package.
+            - Upload VNF package.
+            - Create VNF instance.
+            - Instantiate VNF.
+            - Get VNF informations.
+            - Scale-Out VNF
+            - heal all VNF
             - Scale-In VNF
             - Terminate VNF
             - Delete VNF
@@ -161,39 +297,66 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
                 self.ext_mngd_networks, self.ext_link_ports, self.ext_subnets)
         resp, _ = self._instantiate_vnf_instance(vnf_instance_id, request_body)
         self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
-        self.assert_instantiate_vnf(resp, vnf_instance_id, vnf_package_id)
-
-        # Show vnf instance
-        resp, vnf_instance = self._show_vnf_instance(vnf_instance_id)
-        self.assertEqual(200, resp.status_code)
+        expected_show_res = {
+            'len_vnfc_res_info': 2,  # = 1(VDU1) + 1(VDU2)
+            'len_storage_res_info': 1,  # = 1(VDU1)
+            'len_vnfc_info': 2  # = 1(VDU1) + 1(VDU2)
+        }
+        self.assert_instantiate_vnf(resp, vnf_instance_id, vnf_package_id,
+            expected_show_res=expected_show_res)
 
         # Scale-out vnf instance
         stack = self._get_heat_stack(vnf_instance_id)
         pre_stack_resource_list = self._get_heat_resource_list(stack.id, 2)
-
         request_body = fake_vnflcm.VnfInstances.make_scale_request_body(
             'SCALE_OUT')
         resp, _ = self._scale_vnf_instance(vnf_instance_id, request_body)
         self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
-
         post_stack_resource_list = self._get_heat_resource_list(stack.id, 2)
+        expected_show_res = {
+            'len_vnfc_res_info': 3,  # = 2(VDU1) + 1(VDU2)
+            'len_storage_res_info': 2,  # = 2(VDU1)
+            'len_vnfc_info': 3  # = 2(VDU1) + 1(VDU2)
+        }
         self._assert_scale_vnf(resp, vnf_instance_id, vnf_package_id,
             pre_stack_resource_list, post_stack_resource_list,
-            scale_type='SCALE_OUT', expected_stack_status='CREATE_COMPLETE')
+            scale_type='SCALE_OUT', expected_stack_status='CREATE_COMPLETE',
+            expected_show_res=expected_show_res)
+
+        # Heal vnf (do not specify vnfc_instace_id)
+        # pre check heat status.
+        self.assert_heat_stack_status(vnf_instance_id)
+        # Heal
+        request_body = fake_vnflcm.VnfInstances.make_heal_request_body()
+        resp, _ = self._heal_vnf_instance(vnf_instance_id, request_body)
+        self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
+        expected_show_res = {
+            'len_vnfc_res_info': 3,  # = 2(VDU1) + 1(VDU2)
+            'len_storage_res_info': 2,  # = 2(VDU1)
+            'len_vnfc_info': 3  # = 2(VDU1) + 1(VDU2)
+        }
+        # post check heat status.
+        self.assert_heal_vnf(resp, vnf_instance_id, vnf_package_id,
+            expected_stack_status='CREATE_COMPLETE',
+            expected_show_res=expected_show_res)
 
         # Scale-in vnf instance
         stack = self._get_heat_stack(vnf_instance_id)
         pre_stack_resource_list = self._get_heat_resource_list(stack.id, 2)
-
         request_body = (fake_vnflcm.VnfInstances
-                        .make_reverse_scale_request_body('SCALE_IN'))
+                        .make_scale_request_body('SCALE_IN'))
         resp, _ = self._scale_vnf_instance(vnf_instance_id, request_body)
         self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
-
         post_stack_resource_list = self._get_heat_resource_list(stack.id, 2)
+        expected_show_res = {
+            'len_vnfc_res_info': 2,  # = 1(VDU1) + 1(VDU2)
+            'len_storage_res_info': 1,  # = 1(VDU1)
+            'len_vnfc_info': 2  # = 1(VDU1) + 1(VDU2)
+        }
         self._assert_scale_vnf(resp, vnf_instance_id, vnf_package_id,
             pre_stack_resource_list, post_stack_resource_list,
-            scale_type='SCALE_IN', expected_stack_status='UPDATE_COMPLETE')
+            scale_type='SCALE_IN', expected_stack_status='CREATE_COMPLETE',
+            expected_show_res=expected_show_res)
 
         # Terminate VNF
         stack = self._get_heat_stack(vnf_instance_id)
@@ -2186,25 +2349,20 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
             vnf_pkg_info,
             expected_usage_state=fields.PackageUsageStateType.NOT_IN_USE)
 
-    def assert_instantiate_vnf(
-            self,
-            resp,
-            vnf_instance_id,
-            vnf_pkg_id):
-        super().assert_instantiate_vnf(resp, vnf_instance_id)
+    def assert_instantiate_vnf(self, resp, vnf_instance_id, vnf_pkg_id,
+            expected_show_res=None):
+        super().assert_instantiate_vnf(resp, vnf_instance_id,
+                                       expected_show_res=expected_show_res)
 
         resp, vnf_pkg_info = vnflcm_base._show_vnf_package(
             self.tacker_client, vnf_pkg_id)
         self.assert_vnf_package_usage_state(vnf_pkg_info)
 
-    def assert_heal_vnf(
-            self,
-            resp,
-            vnf_instance_id,
-            vnf_pkg_id,
-            expected_stack_status='UPDATE_COMPLETE'):
-        super().assert_heal_vnf(
-            resp, vnf_instance_id, expected_stack_status=expected_stack_status)
+    def assert_heal_vnf(self, resp, vnf_instance_id, vnf_pkg_id,
+            expected_stack_status='UPDATE_COMPLETE', expected_show_res=None):
+        super().assert_heal_vnf(resp, vnf_instance_id,
+            expected_stack_status=expected_stack_status,
+            expected_show_res=expected_show_res)
 
         resp, vnf_pkg_info = vnflcm_base._show_vnf_package(
             self.tacker_client, vnf_pkg_id)
@@ -2235,20 +2393,13 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         resp, _ = self._show_subscription(sub_id)
         self.assertEqual(404, resp.status_code)
 
-    def _assert_scale_vnf(
-            self,
-            resp,
-            vnf_instance_id,
-            vnf_pkg_id,
-            pre_stack_resource_list,
-            post_stack_resource_list,
-            scale_type, expected_stack_status):
-        super().assert_scale_vnf(
-            resp,
-            vnf_instance_id,
-            pre_stack_resource_list,
-            post_stack_resource_list,
-            scale_type=scale_type, expected_stack_status=expected_stack_status)
+    def _assert_scale_vnf(self, resp, vnf_instance_id, vnf_pkg_id,
+            pre_stack_resource_list, post_stack_resource_list, scale_type,
+            expected_stack_status, expected_show_res=None):
+        super().assert_scale_vnf(resp, vnf_instance_id,
+            pre_stack_resource_list, post_stack_resource_list,
+            scale_type=scale_type, expected_stack_status=expected_stack_status,
+            expected_show_res=expected_show_res)
 
         resp, vnf_pkg_info = vnflcm_base._show_vnf_package(
             self.tacker_client, vnf_pkg_id)

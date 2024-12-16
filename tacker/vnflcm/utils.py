@@ -549,15 +549,16 @@ def _get_vim_connection_info_from_vnf_req(vnf_instance, instantiate_vnf_req):
 
 
 def _build_instantiated_vnf_info(vnfd_dict, instantiate_vnf_req,
-                                 vnf_instance, vim_id):
+                                 vnf_instance, vim_id, scale_status=None):
     inst_vnf_info = vnf_instance.instantiated_vnf_info
     inst_vnf_info.vnf_state = fields.VnfOperationalStateType.STARTED
 
     node_templates = vnfd_dict.get(
         'topology_template', {}).get('node_templates')
 
-    vnfc_resource_info, virtual_storage_resource_info = \
-        _get_vnfc_resource_info(vnfd_dict, instantiate_vnf_req, vim_id)
+    vnfc_resource_info, virtual_storage_resource_info = (
+        _get_vnfc_resource_info(
+            vnfd_dict, instantiate_vnf_req, vim_id, scale_status=scale_status))
 
     inst_vnf_info.vnfc_resource_info = vnfc_resource_info
 
@@ -599,7 +600,7 @@ def _update_instantiated_vnf_info(change_ext_conn_req, vnf_instance):
     vnf_instance.instantiated_vnf_info = inst_vnf_info
 
 
-def _get_compute_nodes(vnfd_dict, instantiate_vnf_req):
+def _get_compute_nodes(vnfd_dict, instantiate_vnf_req, scale_status=None):
     """Read the node templates and prepare VDU data in below format
 
     {
@@ -619,7 +620,8 @@ def _get_compute_nodes(vnfd_dict, instantiate_vnf_req):
             continue
 
         desired_capacity = _convert_desired_capacity(
-            instantiate_vnf_req.instantiation_level_id, vnfd_dict, key)
+            instantiate_vnf_req.instantiation_level_id, vnfd_dict, key,
+            scale_status=scale_status)
 
         cp_list = _get_cp_for_vdu(key, node_templates)
 
@@ -838,8 +840,10 @@ def _build_virtual_storage_info(virtual_storages):
         yield virtual_storage
 
 
-def _get_vnfc_resource_info(vnfd_dict, instantiate_vnf_req, vim_id):
-    vdu_resources = _get_compute_nodes(vnfd_dict, instantiate_vnf_req)
+def _get_vnfc_resource_info(vnfd_dict, instantiate_vnf_req, vim_id,
+                            scale_status=None):
+    vdu_resources = _get_compute_nodes(
+        vnfd_dict, instantiate_vnf_req, scale_status=scale_status)
     vnfc_resource_info_list = []
     virtual_storage_resource_info_list = []
 
@@ -1119,7 +1123,8 @@ def _build_ext_managed_virtual_link_info(instantiate_vnf_req, inst_vnf_info):
     return ext_managed_virtual_link_info
 
 
-def _convert_desired_capacity(inst_level_id, vnfd_dict, vdu):
+def _convert_desired_capacity(
+        inst_level_id, vnfd_dict, vdu, scale_status=None):
     aspect_delta_dict = {}
     aspect_vdu_dict = {}
     inst_level_dict = {}
@@ -1166,7 +1171,12 @@ def _convert_desired_capacity(inst_level_id, vnfd_dict, vdu):
             initial_delta = vdu_delta_dict.get(vdu)
 
         if initial_delta is not None:
-            desired_capacity = initial_delta + delta_num * level_num
+            scale_level = level_num
+            if scale_status is not None:
+                for scale in scale_status:
+                    if scale['aspect_id'] == aspect_id:
+                        scale_level = scale['scale_level']
+            desired_capacity = initial_delta + delta_num * scale_level
 
     return desired_capacity
 

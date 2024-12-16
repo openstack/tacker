@@ -721,6 +721,667 @@ def get_vnfd_dict(image_path=None):
     return vnfd_dict
 
 
+def get_vnfd_dict_for_convert_desired_capacity():
+    vnfd_dict = {
+        'imports': [
+            'etsi_nfv_sol001_common_types.yaml',
+            'etsi_nfv_sol001_vnfd_types.yaml',
+            'helloworld3_types.yaml'
+        ],
+        'description': 'Simple deployment flavour for Sample VNF',
+        'topology_template': {
+            'inputs': {
+                'descriptor_id': {
+                    'type': 'string'
+                },
+                'flavour_description': {
+                    'type': 'string'
+                },
+                'software_version': {
+                    'type': 'string'
+                },
+                'flavour_id': {
+                    'type': 'string'
+                },
+                'descriptor_version': {
+                    'type': 'string'
+                },
+                'provider': {
+                    'type': 'string'
+                },
+                'vnfm_info': {
+                    'entry_schema': {
+                        'type': 'string'
+                    },
+                    'type': 'list'
+                },
+                'product_name': {
+                    'type': 'string'
+                }
+            },
+            'node_templates': {
+                'VDU1': {
+                    'requirements': [
+                        {
+                            'virtual_storage': 'VirtualStorage'
+                        }
+                    ],
+                    'type': 'tosca.nodes.nfv.Vdu.Compute',
+                    'properties': {
+                        'vdu_profile': {
+                            'max_number_of_instances': 3,
+                            'min_number_of_instances': 1
+                        },
+                        'description': 'VDU1 compute node',
+                        'name': 'VDU1'
+                    },
+                    'capabilities': {
+                        'virtual_compute': {
+                            'properties': {
+                                'requested_additional_capabilities': {
+                                    'properties': {
+                                        'requested_additional_capability_name':
+                                            'm1.tiny',
+                                        'target_performance_parameters': {
+                                            'entry_schema': 'test'
+                                        },
+                                        'support_mandatory': 'true'
+                                    }
+                                },
+                                'virtual_cpu': {
+                                    'num_virtual_cpu': 1
+                                },
+                                'virtual_memory': {
+                                    'virtual_mem_size': '512 MB'
+                                },
+                                'virtual_local_storage': [
+                                    {
+                                        'size_of_storage': '3 GB'
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                },
+                'VirtualStorage': {
+                    'type': 'tosca.nodes.nfv.Vdu.VirtualBlockStorage',
+                    'properties': {
+                        'sw_image_data': {
+                            'name': 'cirros-0.5.2-x86_64-disk',
+                            'checksum': {
+                                'hash': 'fake hash',
+                                'algorithm': 'sha-256'
+                            },
+                            'min_ram': '256 MB',
+                            'disk_format': 'qcow2',
+                            'version': '0.5.2',
+                            'container_format': 'bare',
+                            'min_disk': '0 GB',
+                            'size': '12 GB'
+                        },
+                        'virtual_block_storage_data': {
+                            'size_of_storage': '1 GB',
+                            'rdma_enabled': 'true'
+                        }
+                    }
+                },
+                'VDU1_CP3': {
+                    'requirements': [
+                        {
+                            'virtual_binding': 'VDU1'
+                        },
+                        {
+                            'virtual_link': 'internalVL1'
+                        }
+                    ],
+                    'type': 'tosca.nodes.nfv.VduCp',
+                    'properties': {
+                        'layer_protocols': [
+                            'ipv4'
+                        ],
+                        'order': 2
+                    }
+                },
+                'VDU2_CP5': {
+                    'requirements': [
+                        {
+                            'virtual_binding': 'VDU2'
+                        },
+                        {
+                            'virtual_link': 'internalVL3'
+                        }
+                    ],
+                    'type': 'tosca.nodes.nfv.VduCp',
+                    'properties': {
+                        'layer_protocols': [
+                            'ipv4'
+                        ],
+                        'order': 4
+                    }
+                },
+                'VDU2_CP4': {
+                    'requirements': [
+                        {
+                            'virtual_binding': 'VDU2'
+                        },
+                        {
+                            'virtual_link': 'internalVL2'
+                        }
+                    ],
+                    'type': 'tosca.nodes.nfv.VduCp',
+                    'properties': {
+                        'layer_protocols': [
+                            'ipv4'
+                        ],
+                        'order': 3
+                    }
+                },
+                'VDU2_CP1': {
+                    'requirements': [
+                        {
+                            'virtual_binding': 'VDU2'
+                        }
+                    ],
+                    'type': 'tosca.nodes.nfv.VduCp',
+                    'properties': {
+                        'layer_protocols': [
+                            'ipv4'
+                        ],
+                        'order': 0
+                    }
+                },
+                'VDU2_CP3': {
+                    'requirements': [
+                        {
+                            'virtual_binding': 'VDU2'
+                        },
+                        {
+                            'virtual_link': 'internalVL1'
+                        }
+                    ],
+                    'type': 'tosca.nodes.nfv.VduCp',
+                    'properties': {
+                        'layer_protocols': [
+                            'ipv4'
+                        ],
+                        'order': 2
+                    }
+                },
+                'VDU2_CP2': {
+                    'requirements': [
+                        {
+                            'virtual_binding': 'VDU2'
+                        }
+                    ],
+                    'type': 'tosca.nodes.nfv.VduCp',
+                    'properties': {
+                        'layer_protocols': [
+                            'ipv4'
+                        ],
+                        'order': 1
+                    }
+                },
+                'internalVL1': {
+                    'type': 'tosca.nodes.nfv.VnfVirtualLink',
+                    'properties': {
+                        'connectivity_type': {
+                            'layer_protocols': [
+                                'ipv4'
+                            ]
+                        },
+                        'vl_profile': {
+                            'virtual_link_protocol_data': [
+                                {
+                                    'l3_protocol_data': {
+                                        'ip_version': 'ipv4',
+                                        'cidr': '33.33.0.0/24'
+                                    },
+                                    'associated_layer_protocol': 'ipv4'
+                                }
+                            ],
+                            'min_bitrate_requirements': {
+                                'leaf': 1048576,
+                                'root': 1048576
+                            },
+                            'max_bitrate_requirements': {
+                                'leaf': 1048576,
+                                'root': 1048576
+                            }
+                        },
+                        'description':
+                            'External Managed Virtual link in the VNF'
+                    }
+                },
+                'internalVL2': {
+                    'type': 'tosca.nodes.nfv.VnfVirtualLink',
+                    'properties': {
+                        'connectivity_type': {
+                            'layer_protocols': [
+                                'ipv4'
+                            ]
+                        },
+                        'vl_profile': {
+                            'virtual_link_protocol_data': [
+                                {
+                                    'l3_protocol_data': {
+                                        'ip_version': 'ipv4',
+                                        'cidr': '33.34.0.0/24'
+                                    },
+                                    'associated_layer_protocol': 'ipv4'
+                                }
+                            ],
+                            'min_bitrate_requirements': {
+                                'leaf': 1048576,
+                                'root': 1048576
+                            },
+                            'max_bitrate_requirements': {
+                                'leaf': 1048576,
+                                'root': 1048576
+                            }
+                        },
+                        'description':
+                            'External Managed Virtual link in the VNF'
+                    }
+                },
+                'VDU1_CP1': {
+                    'requirements': [
+                        {
+                            'virtual_binding': 'VDU1'
+                        }
+                    ],
+                    'type': 'tosca.nodes.nfv.VduCp',
+                    'properties': {
+                        'layer_protocols': [
+                            'ipv4'
+                        ],
+                        'order': 0
+                    }
+                },
+                'VDU1_CP2': {
+                    'requirements': [
+                        {
+                            'virtual_binding': 'VDU1'
+                        }
+                    ],
+                    'type': 'tosca.nodes.nfv.VduCp',
+                    'properties': {
+                        'layer_protocols': [
+                            'ipv4'
+                        ],
+                        'order': 1
+                    }
+                },
+                'VNF': {
+                    'interfaces': {
+                        'Vnflcm': {
+                            'instantiate': [],
+                            'modify_information_start': [],
+                            'modify_information_end': [],
+                            'terminate_start': [],
+                            'instantiate_start': [],
+                            'terminate': [],
+                            'instantiate_end': [],
+                            'terminate_end': [],
+                            'modify_information': []
+                        }
+                    },
+                    'type': 'company.provider.VNF',
+                    'properties': {
+                        'flavour_description': 'A simple flavour'
+                    }
+                },
+                'VDU2': {
+                    'type': 'tosca.nodes.nfv.Vdu.Compute',
+                    'properties': {
+                        'vdu_profile': {
+                            'max_number_of_instances': 1,
+                            'min_number_of_instances': 1
+                        },
+                        'description': 'VDU2 compute node',
+                        'sw_image_data': {
+                            'name': 'cirros-0.5.2-x86_64-disk',
+                            'checksum': {
+                                'hash': 'fake hash',
+                                'algorithm': 'sha-256'
+                            },
+                            'min_ram': '256 MB',
+                            'disk_format': 'qcow2',
+                            'version': '0.5.2',
+                            'container_format': 'bare',
+                            'min_disk': '0 GB',
+                            'size': '12 GB'
+                        },
+                        'name': 'VDU2'
+                    },
+                    'capabilities': {
+                        'virtual_compute': {
+                            'properties': {
+                                'requested_additional_capabilities': {
+                                    'properties': {
+                                        'requested_additional_capability_name':
+                                            'm1.tiny',
+                                        'target_performance_parameters': {
+                                            'entry_schema': 'test'
+                                        },
+                                        'support_mandatory': 'true'
+                                    }
+                                },
+                                'virtual_cpu': {
+                                    'num_virtual_cpu': 1
+                                },
+                                'virtual_memory': {
+                                    'virtual_mem_size': '512 MB'
+                                },
+                                'virtual_local_storage': [
+                                    {
+                                        'size_of_storage': '3 GB'
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                },
+                'VDU1_CP4': {
+                    'requirements': [
+                        {
+                            'virtual_binding': 'VDU1'
+                        },
+                        {
+                            'virtual_link': 'internalVL2'
+                        }
+                    ],
+                    'type': 'tosca.nodes.nfv.VduCp',
+                    'properties': {
+                        'layer_protocols': [
+                            'ipv4'
+                        ],
+                        'order': 3
+                    }
+                },
+                'VDU1_CP5': {
+                    'requirements': [
+                        {
+                            'virtual_binding': 'VDU1'
+                        },
+                        {
+                            'virtual_link': 'internalVL3'
+                        }
+                    ],
+                    'type': 'tosca.nodes.nfv.VduCp',
+                    'properties': {
+                        'layer_protocols': [
+                            'ipv4'
+                        ],
+                        'order': 4
+                    }
+                },
+                'internalVL3': {
+                    'type': 'tosca.nodes.nfv.VnfVirtualLink',
+                    'properties': {
+                        'connectivity_type': {
+                            'layer_protocols': [
+                                'ipv4'
+                            ]
+                        },
+                        'vl_profile': {
+                            'virtual_link_protocol_data': [
+                                {
+                                    'l3_protocol_data': {
+                                        'ip_version': 'ipv4',
+                                        'cidr': '33.35.0.0/24'
+                                    },
+                                    'associated_layer_protocol': 'ipv4'
+                                }
+                            ],
+                            'min_bitrate_requirements': {
+                                'leaf': 1048576,
+                                'root': 1048576
+                            },
+                            'max_bitrate_requirements': {
+                                'leaf': 1048576,
+                                'root': 1048576
+                            }
+                        },
+                        'description': 'Internal Virtual link in the VNF'
+                    }
+                }
+            },
+            'substitution_mappings': {
+                'node_type': 'company.provider.VNF',
+                'properties': {
+                    'flavour_id': 'simple'
+                }
+            },
+            'policies': [
+                {
+                    'scaling_aspects': {
+                        'type': 'tosca.policies.nfv.ScalingAspects',
+                        'properties': {
+                            'aspects': {
+                                'VDU1_scale': {
+                                    'max_scale_level': 2,
+                                    'description': 'VDU1 scaling aspect',
+                                    'name': 'VDU1_scale',
+                                    'step_deltas': [
+                                        'delta_1'
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    'VDU1_initial_delta': {
+                        'type': 'tosca.policies.nfv.VduInitialDelta',
+                        'properties': {
+                            'initial_delta': {
+                                'number_of_instances': 1
+                            }
+                        },
+                        'targets': [
+                            'VDU1'
+                        ]
+                    }
+                },
+                {
+                    'VDU2_initial_delta': {
+                        'type': 'tosca.policies.nfv.VduInitialDelta',
+                        'properties': {
+                            'initial_delta': {
+                                'number_of_instances': 1
+                            }
+                        },
+                        'targets': [
+                            'VDU2'
+                        ]
+                    }
+                },
+                {
+                    'VDU1_scaling_aspect_deltas': {
+                        'type': 'tosca.policies.nfv.VduScalingAspectDeltas',
+                        'properties': {
+                            'deltas': {
+                                'delta_1': {
+                                    'number_of_instances': 1
+                                }
+                            },
+                            'aspect': 'VDU1_scale'
+                        },
+                        'targets': [
+                            'VDU1'
+                        ]
+                    }
+                },
+                {
+                    'instantiation_levels': {
+                        'type': 'tosca.policies.nfv.InstantiationLevels',
+                        'properties': {
+                            'default_level': 'instantiation_level_1',
+                            'levels': {
+                                'instantiation_level_1': {
+                                    'scale_info': {
+                                        'VDU1_scale': {
+                                            'scale_level': 0
+                                        }
+                                    },
+                                    'description': 'Smallest size'
+                                },
+                                'instantiation_level_2': {
+                                    'scale_info': {
+                                        'VDU1_scale': {
+                                            'scale_level': 2
+                                        }
+                                    },
+                                    'description': 'Largest size'
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    'VDU1_instantiation_levels': {
+                        'type': 'tosca.policies.nfv.VduInstantiationLevels',
+                        'properties': {
+                            'levels': {
+                                'instantiation_level_1': {
+                                    'number_of_instances': 1
+                                },
+                                'instantiation_level_2': {
+                                    'number_of_instances': 3
+                                }
+                            }
+                        },
+                        'targets': [
+                            'VDU1'
+                        ]
+                    }
+                },
+                {
+                    'VDU2_instantiation_levels': {
+                        'type': 'tosca.policies.nfv.VduInstantiationLevels',
+                        'properties': {
+                            'levels': {
+                                'instantiation_level_1': {
+                                    'number_of_instances': 1
+                                },
+                                'instantiation_level_2': {
+                                    'number_of_instances': 1
+                                }
+                            }
+                        },
+                        'targets': [
+                            'VDU2'
+                        ]
+                    }
+                },
+                {
+                    'internalVL1_instantiation_levels': {
+                        'type':
+                            'tosca.policies.nfv.'
+                            'VirtualLinkInstantiationLevels',
+                        'properties': {
+                            'levels': {
+                                'instantiation_level_1': {
+                                    'bitrate_requirements': {
+                                        'leaf': 1048576,
+                                        'root': 1048576
+                                    }
+                                },
+                                'instantiation_level_2': {
+                                    'bitrate_requirements': {
+                                        'leaf': 1048576,
+                                        'root': 1048576
+                                    }
+                                }
+                            }
+                        },
+                        'targets': [
+                            'internalVL1'
+                        ]
+                    }
+                },
+                {
+                    'internalVL2_instantiation_levels': {
+                        'type':
+                            'tosca.policies.nfv.'
+                            'VirtualLinkInstantiationLevels',
+                        'properties': {
+                            'levels': {
+                                'instantiation_level_1': {
+                                    'bitrate_requirements': {
+                                        'leaf': 1048576,
+                                        'root': 1048576
+                                    }
+                                },
+                                'instantiation_level_2': {
+                                    'bitrate_requirements': {
+                                        'leaf': 1048576,
+                                        'root': 1048576
+                                    }
+                                }
+                            }
+                        },
+                        'targets': [
+                            'internalVL2'
+                        ]
+                    }
+                },
+                {
+                    'internalVL3_instantiation_levels': {
+                        'type':
+                            'tosca.policies.nfv.'
+                            'VirtualLinkInstantiationLevels',
+                        'properties': {
+                            'levels': {
+                                'instantiation_level_1': {
+                                    'bitrate_requirements': {
+                                        'leaf': 1048576,
+                                        'root': 1048576
+                                    }
+                                },
+                                'instantiation_level_2': {
+                                    'bitrate_requirements': {
+                                        'leaf': 1048576,
+                                        'root': 1048576
+                                    }
+                                }
+                            }
+                        },
+                        'targets': [
+                            'internalVL3'
+                        ]
+                    }
+                },
+                {
+                    'policy_antiaffinity_vdu1': {
+                        'type': 'tosca.policies.nfv.AntiAffinityRule',
+                        'properties': {
+                            'scope': 'zone'
+                        },
+                        'targets': [
+                            'VDU1'
+                        ]
+                    }
+                },
+                {
+                    'policy_antiaffinity_vdu2': {
+                        'type': 'tosca.policies.nfv.AntiAffinityRule',
+                        'properties': {
+                            'scope': 'zone'
+                        },
+                        'targets': [
+                            'VDU2'
+                        ]
+                    }
+                }
+            ]
+        },
+        'tosca_definitions_version': 'tosca_simple_yaml_1_2'
+    }
+
+    return vnfd_dict
+
+
 def get_dummy_vim_connection_info():
     return {'access_info': {
         'auth_url': 'fake/url',

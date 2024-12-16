@@ -897,7 +897,8 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
         else:
             vnflcm_utils._build_instantiated_vnf_info(
                 vnfd_dict, instantiate_vnf_request, vnf_instance,
-                vim_connection_info.vim_id)
+                vim_connection_info.vim_id,
+                scale_status=vnf_dict.get('scale_status', None))
 
         try:
             self._instantiate_vnf(context, vnf_instance, vnf_dict,

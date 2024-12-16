@@ -1034,13 +1034,8 @@ class BaseVnfLcmTest(base.BaseTackerTest):
             notify_mock_responses[0],
             'VnfIdentifierDeletionNotification')
 
-    def assert_instantiate_vnf(
-            self,
-            resp,
-            vnf_instance_id,
-            http_client=None,
-            h_client=None,
-            fake_server_manager=None):
+    def assert_instantiate_vnf(self, resp, vnf_instance_id, http_client=None,
+            h_client=None, fake_server_manager=None, expected_show_res=None):
         if http_client is None:
             http_client = self.http_client
         if h_client is None:
@@ -1083,14 +1078,12 @@ class BaseVnfLcmTest(base.BaseTackerTest):
             'VnfLcmOperationOccurrenceNotification',
             'COMPLETED')
 
-    def assert_heal_vnf(
-            self,
-            resp,
-            vnf_instance_id,
-            expected_stack_status='UPDATE_COMPLETE',
-            http_client=None,
-            h_client=None,
-            fake_server_manager=None):
+        if expected_show_res:
+            self._assert_show_res(vnf_instance, expected_show_res)
+
+    def assert_heal_vnf(self, resp, vnf_instance_id,
+            expected_stack_status='UPDATE_COMPLETE', http_client=None,
+            h_client=None, fake_server_manager=None, expected_show_res=None):
         if http_client is None:
             http_client = self.http_client
         if h_client is None:
@@ -1132,6 +1125,9 @@ class BaseVnfLcmTest(base.BaseTackerTest):
             notify_mock_responses[2],
             'VnfLcmOperationOccurrenceNotification',
             'COMPLETED')
+
+        if expected_show_res:
+            self._assert_show_res(vnf_instance, expected_show_res)
 
     def assert_terminate_vnf(
             self,
@@ -1195,17 +1191,10 @@ class BaseVnfLcmTest(base.BaseTackerTest):
             'VnfLcmOperationOccurrenceNotification',
             'COMPLETED')
 
-    def assert_scale_vnf(
-            self,
-            resp,
-            vnf_instance_id,
-            pre_stack_resource_list,
-            post_stack_resource_list,
-            scale_type='SCALE_OUT',
-            expected_stack_status='CREATE_COMPLETE',
-            http_client=None,
-            h_client=None,
-            fake_server_manager=None):
+    def assert_scale_vnf(self, resp, vnf_instance_id, pre_stack_resource_list,
+            post_stack_resource_list, scale_type='SCALE_OUT',
+            expected_stack_status='CREATE_COMPLETE', http_client=None,
+            h_client=None, fake_server_manager=None, expected_show_res=None):
         if http_client is None:
             http_client = self.http_client
         if h_client is None:
@@ -1262,6 +1251,9 @@ class BaseVnfLcmTest(base.BaseTackerTest):
             notify_mock_responses[2],
             'VnfLcmOperationOccurrenceNotification',
             'COMPLETED')
+
+        if expected_show_res:
+            self._assert_show_res(vnf_instance, expected_show_res)
 
     def assert_rollback_vnf(self, resp, vnf_instance_id,
             fake_server_manager=None):
@@ -1523,3 +1515,21 @@ class BaseVnfLcmTest(base.BaseTackerTest):
             return resource_dict
 
         return resource_dict['VDU'][resource_name]['image']
+
+    def _assert_show_res(self, vnf_instance, expected_show_res):
+        # Check result of show vnf instance
+        if expected_show_res['len_vnfc_res_info']:
+            vnfc_res_info = vnf_instance.get('instantiatedVnfInfo', {}).get(
+                'vnfcResourceInfo', [])
+            self.assertEqual(len(vnfc_res_info),
+                             expected_show_res['len_vnfc_res_info'])
+        if expected_show_res['len_storage_res_info']:
+            storage_res_info = vnf_instance.get('instantiatedVnfInfo', {}).get(
+                'virtualStorageResourceInfo', [])
+            self.assertEqual(len(storage_res_info),
+                             expected_show_res['len_storage_res_info'])
+        if expected_show_res['len_vnfc_info']:
+            vnfc_info = vnf_instance.get('instantiatedVnfInfo', {}).get(
+                'vnfcInfo', [])
+            self.assertEqual(len(vnfc_info),
+                             expected_show_res['len_vnfc_info'])
