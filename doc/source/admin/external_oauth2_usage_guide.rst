@@ -900,6 +900,103 @@ Using Tacker API
 When using an external OAuth 2.0 authorization server, the current version of
 OpenStack Command is not supported.
 
+Instead, you can use `tacker_cli.sh`_, a wrapper of ``curl``. For example, you
+can call ``v1.0/vims`` API as follows.
+
+.. code-block:: shell
+
+  $ export TACKER_AUTH_URL="http://$keycloak_host_name:$keycloak_http_port/realms/testrealm/protocol/openid-connect/token"
+  $ export TACKER_CLIENT_ID="tacker_api_proj"
+  $ export TACKER_CLIENT_SECRET="iIK6lARLzJgoQQyMyoymNYrGTDuR0733S"
+  $ export TACKER_AUTH_TYPE="client_secret_basic"
+  $ export TACKER_OAUTH2_SCOPE="tacker_scope"
+  $ export TACKER_URL=http://127.0.0.1:9890
+  $ ./tacker_cli.sh vim list
+
+  {"vims": [{"id": "a99189da-bf72-4af7-884c-36d157f00571",
+  "type": "openstack", "tenant_id": "2cc02f60acf34fdda7bc5e9af9a7032b",
+  "name": "openstack", "description": "", "placement_attr": {
+  "regions": ["RegionOne"]}, "is_default": true,
+  "created_at": "2024-11-07 02:04:46", "updated_at": "2024-11-07 02:10:18",
+  "extra": {}, "auth_url": "http://192.168.56.11/identity/v3",
+  "vim_project": {"name": "admin", "project_domain_name": "default"},
+  "auth_cred": {"username": "admin", "user_domain_name": "default",
+  "cert_verify": "True", "project_id": null, "project_name": "admin",
+  "project_domain_name": "default", "auth_url": "http://192.168.56.11/identity/v3",
+  "key_type": "barbican_key", "secret_uuid": "***", "password": "***"}, "status": "ACTIVE"}]}
+
+You can also find other subcommands corresponding to Tacker APIs.
+
+.. code-block:: shell
+
+  $ ./tacker_cli.sh -h
+
+  Usage: tacker_cli.sh <command> [<args>]
+
+  Options:
+    -h, --help      show this help message and exit
+    -v, --version   print version
+
+  Commands:
+    vim
+    vnfpkgm
+    vnflcm
+    vnffm
+    vnfpm
+
+``tacker_cli`` uses a similar authentication scheme as the OpenStack project
+CLIs, with the credential information as environment variables beginning with
+the prefix ``TACKER``. Full examples of each authentication method are provided
+below.
+
+.. code-block:: shell
+
+  # client_secret_basic
+  export TACKER_AUTH_URL="http://<keycloak_host>:<keycloak_port>/realms/testrealm/protocol/openid-connect/token"
+  export TACKER_CLIENT_ID="tacker_api_proj"
+  export TACKER_CLIENT_SECRET="<secret>"
+  export TACKER_AUTH_TYPE="client_secret_basic"
+  export TACKER_OAUTH2_SCOPE="tacker_scope"
+  export TACKER_URL=http://<tacker_host>:<tacker_port>
+
+  # client_secret_post
+  export TACKER_AUTH_URL="http://<keycloak_host>:<keycloak_port>/realms/testrealm/protocol/openid-connect/token"
+  export TACKER_CLIENT_ID="tacker_api_proj"
+  export TACKER_CLIENT_SECRET="<secret>"
+  export TACKER_AUTH_TYPE="client_secret_post"
+  export TACKER_OAUTH2_SCOPE="tacker_scope"
+  export TACKER_URL=http://<tacker_host>:<tacker_port>
+
+  # private_key_jwt
+  export TACKER_AUTH_URL="http://<keycloak_host>:<keycloak_port>/realms/testrealm/protocol/openid-connect/token"
+  export TACKER_CLIENT_ID="tacker_api_proj"
+  export TACKER_JWT_KEY="path/to/private_key.pem"
+  export TACKER_AUTH_TYPE="private_key_jwt"
+  export TACKER_OAUTH2_SCOPE="tacker_scope"
+  export TACKER_URL=http://<tacker_host>:<tacker_port>
+
+  # client_secret_jwt
+  export TACKER_AUTH_URL="http://<keycloak_host>:<keycloak_port>/realms/testrealm/protocol/openid-connect/token"
+  export TACKER_CLIENT_ID="tacker_api_proj"
+  export TACKER_CLIENT_SECRET="<secret>"
+  export TACKER_AUTH_TYPE="client_secret_jwt"
+  export TACKER_OAUTH2_SCOPE="tacker_scope"
+  export TACKER_URL=http://<tacker_host>:<tacker_port>
+
+  # tls_client_auth
+  export TACKER_AUTH_URL="https://<keycloak_host>:<keycloak_port>/realms/testrealm/protocol/openid-connect/token"
+  export TACKER_CLIENT_ID="tacker_api_proj"
+  export TACKER_AUTH_TYPE="tls_client_auth"
+  export TACKER_OAUTH2_SCOPE="tacker_scope"
+  export TACKER_CACERT="path/to/ca.pem"
+  export TACKER_CLIENT_CERT="path/to/client.pem"
+  export TACKER_CLIENT_KEY="path/to/client.key"
+  export TACKER_URL=https://<tacker_host>:<tacker_port>
+
+.. note::
+
+  Please note that this script only supports `the version 2 VNF LCM APIs`_.
+
 Cleaning Up
 -----------
 
@@ -922,3 +1019,5 @@ following command.
 .. _project details: https://docs.openstack.org/keystone/latest/admin/cli-manage-projects-users-and-roles.html
 .. _domain details: https://docs.openstack.org/security-guide/identity/domains.html
 .. _Mappers tab of Client scope page in the Keycloak dashboard: https://www.keycloak.org/docs/latest/server_admin/#protocol
+.. _tacker_cli.sh: https://opendev.org/openstack/tacker/src/branch/master/doc/tools/tacker_cli.sh
+.. _the version 2 VNF LCM APIs: https://docs.openstack.org/api-ref/nfv-orchestration/v2/vnflcm.html
