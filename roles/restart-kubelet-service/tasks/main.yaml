@@ -18,6 +18,20 @@
       state: restarted
     become: yes
 
+  - name: Get coredns name
+    shell: >
+      kubectl get pod -n kube-system --no-headers -o custom-columns=":metadata.name"
+      | grep coredns | tr -s '\n' ' '
+    register: coredns_name
+    become: yes
+    become_user: stack
+
+  - name: Restart coredns pod
+    shell: >
+      kubectl delete pod -n kube-system {{ coredns_name.stdout }}
+    become: yes
+    become_user: stack
+
   when:
     - inventory_hostname == 'controller-k8s'
     - k8s_api_url is defined

@@ -1064,7 +1064,7 @@ we can append ``-A`` to the command line.
    $ kubectl get deploy -A
    NAMESPACE     NAME                  READY   UP-TO-DATE   AVAILABLE   AGE
    default       curry-probe-test001   1/1     1            1           11m
-   kube-system   kuryr-controller      1/1     1            1           42d
+   kube-system   coredns               2/2     2            2           28h
 
 
 .. note::

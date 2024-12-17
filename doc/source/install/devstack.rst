@@ -119,7 +119,7 @@ So the first step of installing tacker is to clone Devstack and prepare your
       #. Openstack and Kubernetes as VIM.
 
          The difference between all-in-one mode with Kubernetes is
-         to deploy kuryr-kubernetes and octavia.
+         to deploy devstack-plugin-container.
 
          The example ``local.conf`` for all-in-one mode with Kubernetes is
          available at ``${TACKER_ROOT}/devstack/local.conf.kubernetes``
@@ -128,12 +128,29 @@ So the first step of installing tacker is to clone Devstack and prepare your
 
          .. literalinclude:: ../../../devstack/local.conf.kubernetes
              :language: ini
-             :emphasize-lines: 60-65
+             :emphasize-lines: 56-71
+
+
+         Run the following commands to reconfigure the CNI network for
+         devstack-plugin-container after running stack.sh.
+
+         .. code-block:: console
+
+             $ ip link set cni0 down && ip link set flannel.1 down
+             $ ip link delete cni0 && ip link delete flannel.1
+             $ systemctl restart kubelet
+             $ kubectl delete pod -n kube-system $(kubectl get pod -n kube-system --no-headers \
+             -o custom-columns=":metadata.name" | grep coredns | tr -s '\n' ' ')
 
          .. note::
 
-             The above local.conf.kubernetes does not work on CentOS8.
-             Because docker-ce is not supported on CentOS8.
+             This operation is required to build a Kubernetes cluster with
+             devstack-plugin-container.
+
+         .. note::
+
+             The above local.conf.kubernetes only works on Ubuntu.
+             Because Devstack-plugin-container only supports building Kubernetes clusters on Ubuntu.
 
    #. Standalone mode
 

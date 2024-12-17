@@ -51,31 +51,28 @@ enable_service n-cauth
 
 disable_service tempest
 
-# Enable kuryr-kubernetes, crio, octavia
-KUBERNETES_VIM=True
+# Enable devstack-plugin-container, crio
+
+# "KUBERNETES_VIM=True" is not available now. As kuryr-kubernetes project will
+# retire, the procedure when "KUBERNETES_VIM=True" will be changed to deploy
+# with not kuryr-kubernetes but devstack-plugin-container in future updates.
+# KUBERNETES_VIM=True
+
 # It is necessary to specify the patch version
 # because it is the version used when executing "apt-get install" command.
-KURYR_KUBERNETES_VERSION="1.26.8"
+K8S_VERSION="1.30.5"
+K8S_TOKEN="9agf12.zsu5uh2m4pzt3qba"
 CONTAINER_ENGINE="crio"
-# It is not necessary to specify the patch version
-# because it is the version used when adding the apt repository.
-CRIO_VERSION="1.26"
-enable_plugin kuryr-kubernetes https://opendev.org/openstack/kuryr-kubernetes master
-enable_plugin octavia https://opendev.org/openstack/octavia master
-enable_plugin devstack-plugin-container https://opendev.org/openstack/devstack-plugin-container master
-#KURYR_K8S_CLUSTER_IP_RANGE="10.0.0.0/24"
+CRIO_VERSION="1.30.5"
 
-enable_service kubernetes-master
-enable_service kuryr-kubernetes
-enable_service kuryr-daemon
+enable_plugin devstack-plugin-container https://opendev.org/openstack/devstack-plugin-container master
+
+enable_service k8s-master
+enable_service container
 
 [[post-config|/etc/neutron/dhcp_agent.ini]]
 [DEFAULT]
 enable_isolated_metadata = True
-
-[[post-config|$OCTAVIA_CONF]]
-[controller_worker]
-amp_active_retries=9999
 
 # NOTE: workaround for Cinder image volume cache problem.
 # https://bugs.launchpad.net/cinder/+bug/1953704

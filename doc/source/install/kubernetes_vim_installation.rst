@@ -19,28 +19,32 @@
 Kubernetes VIM Installation
 ===========================
 
-Tacker uses kuryr-kubernetes for deploying Kubernetes cluster and sets up
-native Neutron-based network among Kubernetes and OpenStack VIMs.
-It deploys VMs and Kubernetes resources on the same network.
+Tacker uses devstack-plugin-container to deploy a Kubernetes cluster.
 
 #. Edit ``local.conf`` for Kubernetes
 
-   Add following plugin configurations for kuryr-kubernetes.
+   Add following plugin configurations for devstack-plugin-container.
 
    .. code-block:: console
 
-     # Enable kuryr-kubernetes, crio, octavia
-     KUBERNETES_VIM=True
+     # Enable devstack-plugin-container, crio
+
+     # "KUBERNETES_VIM=True" is not available now. As kuryr-kubernetes project will
+     # retire, the procedure when "KUBERNETES_VIM=True" will be changed to deploy
+     # with not kuryr-kubernetes but devstack-plugin-container in future updates.
+     # KUBERNETES_VIM=True
+
      # It is necessary to specify the patch version
      # because it is the version used when executing "apt-get install" command.
-     KURYR_KUBERNETES_VERSION="1.26.8"
+     K8S_VERSION="1.30.5"
+     K8S_TOKEN="9agf12.zsu5uh2m4pzt3qba"
      CONTAINER_ENGINE="crio"
-     # It is not necessary to specify the patch version
-     # because it is the version used when adding the apt repository.
-     CRIO_VERSION="1.26"
-     enable_plugin kuryr-kubernetes https://opendev.org/openstack/kuryr-kubernetes master
-     enable_plugin octavia https://opendev.org/openstack/octavia master
+     CRIO_VERSION="1.30.5"
+
      enable_plugin devstack-plugin-container https://opendev.org/openstack/devstack-plugin-container master
+
+     enable_service k8s-master
+     enable_service container
 
    Public network is used to launch LoadBalancer for Services in Kubernetes.
    Setting public subnet is described in [#first]_.
@@ -82,6 +86,24 @@ It deploys VMs and Kubernetes resources on the same network.
    .. code-block:: console
 
          $ ./stack.sh
+
+#. Reconfiguring the CNI network for devstack-plugin-container
+
+   **Command:**
+
+   .. code-block:: console
+
+         $ ip link set cni0 down && ip link set flannel.1 down
+         $ ip link delete cni0 && ip link delete flannel.1
+         $ systemctl restart kubelet
+         $ kubectl delete pod -n kube-system $(kubectl get pod -n kube-system --no-headers \
+         -o custom-columns=":metadata.name" | grep coredns | tr -s '\n' ' ')
+
+   .. note::
+
+         This operation is required to build a Kubernetes cluster with
+         devstack-plugin-container, but will no longer be required for
+         user operations in a future update.
 
 #. Setup Kubernetes VIM configuration
 
@@ -287,38 +309,6 @@ It deploys VMs and Kubernetes resources on the same network.
          ``--cacert <path/to/ssl_ca_cert_file>`` option to use ssl_ca_cert
          in the verification of API server's SSL certificate.
 
-#. Check Kubernetes cluster installation
-
-   By default, after set ``KUBERNETES_VIM=True``, Devstack creates a
-   public network called net-k8s, and two extra ones for the Kubernetes
-   services and pods under the project k8s:
-
-   **Command:**
-
-   .. code-block:: console
-
-         $ openstack network list
-
-   **Result:**
-
-   .. code-block:: console
-
-         +--------------------------------------+-----------------+----------------------------------------------------------------------------+
-         | ID                                   | Name            | Subnets                                                                    |
-         +--------------------------------------+-----------------+----------------------------------------------------------------------------+
-         | 060b32dc-c720-432a-967c-e29d01c2734c | k8s-pod-net     | 792ad14d-42a6-4be0-a5f2-6cdb5395bcdc                                       |
-         | 49829476-b297-4d43-bd86-9d7e81bcaebe | k8s-service-net | fdcf3012-37cf-4bbf-9035-2f9bbb99c007                                       |
-         | 6a6d19a5-0ff2-4573-aa98-688b9976d3a5 | net_mgmt        | 2ae0e175-54d4-4a6d-b00c-1609bc205f5f                                       |
-         | 920520a7-7235-4a20-a4c4-b6955dffa90d | public          | 2e375eca-ad17-4f36-88a5-332a5e380323, 9d83c498-ba57-4615-b81c-578afd1d5020 |
-         | 9736903e-adb2-47dc-9a27-46302b4c4e56 | net1            | 843e24c1-3cc0-4d09-8e39-09a0471b6e0a                                       |
-         | ad5dd7dd-eb86-49de-937a-fbbd799c5ecf | net0            | 91ed8b41-f8d6-4ddd-9927-912bf7e342e9                                       |
-         | c827ecc6-0a13-415b-9954-e20984cb0a4f | lb-mgmt-net     | e33011da-bde3-4483-9e93-9e654b395be3                                       |
-         | dab05a83-cf70-4b93-9fc6-9252748ae46c | private         | cc06f27c-1504-401b-b976-895702dac9fa, ffd64f3f-907d-4629-8d63-d9295650a8a1 |
-         +--------------------------------------+-----------------+----------------------------------------------------------------------------+
-
-   To check Kubernetes cluster works well, please see some tests in
-   kuryr-kubernetes to get more information [#fourth]_.
-
 #. Register Kubernetes VIM
 
    In ``vim_config.yaml``, project_name is fixed as "default", that will use
@@ -463,4 +453,3 @@ References
 .. [#first] https://github.com/openstack-dev/devstack/blob/master/doc/source/networking.rst#shared-guest-interface
 .. [#second] https://docs.openstack.org/tacker/latest/install/devstack.html
 .. [#third] https://opendev.org/openstack/tacker/src/branch/master/devstack/local.conf.kubernetes
-.. [#fourth] https://docs.openstack.org/kuryr-kubernetes/latest/installation/testing_connectivity.html
