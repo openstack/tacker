@@ -35,7 +35,7 @@ class VnfPkgInfoV2(base.TackerObject, base.TackerObjectDictCompat):
         'vnfdVersion': fields.VersionField(nullable=True),
         'compatibleSpecificationVersions': fields.ListOfVersionsField(
             nullable=True),
-        'checksum': fields.ChecksumField(nullable=True),
+        'checksum': fields.ObjectField('Checksum', nullable=True),
         'packageSecurityOption': fields.EnumField(
             valid_values=[
                 'OPTION_1',

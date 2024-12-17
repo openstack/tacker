@@ -12,6 +12,7 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+import hashlib
 
 from oslo_utils import uuidutils
 
@@ -30,5 +31,27 @@ class VnfPackage:
             "onboardingState": "ONBOARDED",
             "operationalState": "ENABLED",
             "usageState": "NOT_IN_USE"
+        }
+        return data
+
+    @staticmethod
+    def make_get_vnf_pkg_info_resp_with_checksum(vnfdid):
+        data = {
+            "id": uuidutils.generate_uuid(),
+            "vnfdId": vnfdid,
+            "vnfProvider": "Company",
+            "vnfProductName": "Sample VNF",
+            "vnfSoftwareVersion": "1.0",
+            "vnfdVersion": "1.0",
+            "onboardingState": "ONBOARDED",
+            "operationalState": "ENABLED",
+            "usageState": "NOT_IN_USE",
+            "checksum":
+                {"algorithm": "SHA-512", "hash": hashlib.sha512().hexdigest()},
+            "softwareImages": [{"id": "test", "name": "cirros-0.6.2",
+                "checksum": {"algorithm": "sha-512",
+                             "hash": hashlib.sha512().hexdigest()}}],
+            "additionalArtifacts": [{"checksum": {"algorithm": "sha-512",
+                "hash": hashlib.sha512().hexdigest()}, "isEncrypted": True}]
         }
         return data

@@ -103,11 +103,3 @@ class Uri(ovoo_fields.String):
 
 class UriField(AutoTypedField):
     AUTO_TYPE = Uri()
-
-
-class Checksum(ovoo_fields.String):
-    pass
-
-
-class ChecksumField(AutoTypedField):
-    AUTO_TYPE = Checksum()
