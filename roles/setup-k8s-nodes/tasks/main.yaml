@@ -29,7 +29,6 @@
         - "docker.io"
         - "k8s.gcr.io"
         - "quay.io"
-        - "celebdor"
     become: yes
   when:
     - inventory_hostname == 'controller-k8s'

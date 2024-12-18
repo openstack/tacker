@@ -26,7 +26,7 @@ spec:
             configMapKeyRef:
               key: param1
               name: curry-test001
-        image: celebdor/kuryr-demo
+        image: nginx
         imagePullPolicy: IfNotPresent
         name: web-server
         ports:

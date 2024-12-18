@@ -332,7 +332,7 @@ Result:
   |                      |     {                                                                                                                                          |
   |                      |         "artifactPath": "Files/kubernetes/deployment.yaml",                                                                                    |
   |                      |         "checksum": {                                                                                                                          |
-  |                      |             "hash": "e23cc3433835cea32ce790b4823313dc6d0744dce02e27b1b339c87ee993b8c2",                                                        |
+  |                      |             "hash": "8115e59f56044a44f472964312f0f0770f465f5c734d70ea7061bdf0b5f28ca1",                                                        |
   |                      |             "algorithm": "SHA-256"                                                                                                             |
   |                      |         },                                                                                                                                     |
   |                      |         "metadata": {}                                                                                                                         |

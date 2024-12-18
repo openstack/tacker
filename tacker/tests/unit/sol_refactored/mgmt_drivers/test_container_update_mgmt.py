@@ -769,7 +769,7 @@ class TestContainerUpdate(base.TestCase):
                                    'cmKey1.txt', 'cm-data', 'password',
                                    'secret-data'),
             fakes.fake_replica_set('vdu2-update', 'nginx',
-                                   'celebdor/kuryr-demo', 'cmKey1.txt',
+                                   'nginx', 'cmKey1.txt',
                                    'cm-data', 'password', 'secret-data')
         ]
         mock_read_pod.side_effect = [

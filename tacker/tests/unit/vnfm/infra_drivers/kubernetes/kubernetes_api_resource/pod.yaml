@@ -11,7 +11,7 @@ metadata:
       uid: d9607e19-f88f-11e6-a518-42010a800195
 spec:
   containers:
-  - image: celebdor/kuryr-demo
+  - image: nginx
     imagePullPolicy: IfNotPresent
     name: web-server
     ports:

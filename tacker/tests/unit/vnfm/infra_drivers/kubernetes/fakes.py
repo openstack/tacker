@@ -78,7 +78,7 @@ def fake_k8s_obj():
                                     )
                                 )
                             ],
-                            image='celebdor/kuryr-demo',
+                            image='nginx',
                             image_pull_policy='IfNotPresent',
                             name='web-server',
                             ports=[

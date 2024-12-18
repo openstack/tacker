@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: nginx
-        image: celebdor/kuryr-demo
+        image: nginx
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 180

@@ -5,7 +5,7 @@ metadata:
   name: vdu1
 spec:
   containers:
-  - image: celebdor/kuryr-demo
+  - image: nginx
     imagePullPolicy: IfNotPresent
     name: web-server
     ports:
