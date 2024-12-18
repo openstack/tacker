@@ -26,3 +26,4 @@ Tools
 
    vim_config
    gen_vnf_pkg
+   script_ft_v1

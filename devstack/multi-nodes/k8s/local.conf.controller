@@ -1,0 +1,99 @@
+# Using k8s
+# local.conf.controller
+# NOTE: Items that are used in local.conf on Zuul but are not required
+#       locally have been commented out.
+[[local|localrc]]
+disable_all_services
+enable_service c-api
+#disable_service c-bak
+enable_service c-sch
+enable_service c-vol
+enable_service cinder
+#disable_service coredns
+enable_service etcd3
+enable_service g-api
+enable_service g-reg
+#disable_service horizon
+enable_service key
+enable_service mysql
+enable_service n-api
+enable_service n-api-meta
+enable_service n-cond
+#disable_service n-cpu
+enable_service n-novnc
+enable_service n-sch
+enable_service neutron
+enable_service ovn-controller
+enable_service ovn-northd
+enable_service ovs-vswitchd
+enable_service ovsdb-server
+enable_service placement-api
+enable_service placement-client
+enable_service q-ovn-metadata-agent
+enable_service q-qos
+enable_service q-svc
+enable_service rabbit
+#disable_service s-account
+#disable_service s-container
+#disable_service s-object
+#disable_service s-proxy
+#disable_service swift
+#disable_service tempest
+#disable_service tls-proxy
+ADMIN_PASSWORD="secretadmin"
+#CELLSV2_SETUP="singleconductor"
+DATABASE_PASSWORD="secretdatabase"
+#DATABASE_TYPE="mysql"
+DEBUG_LIBVIRT_COREDUMPS="True"
+#DEVSTACK_PARALLEL="True"
+ENABLE_SYSCTL_MEM_TUNING="True"
+ENABLE_SYSCTL_NET_TUNING="True"
+ENABLE_ZSWAP="True"
+#ERROR_ON_CLONE="True"
+ETCD_USE_RAMDISK="True"
+FIXED_RANGE="10.1.0.0/20"
+FLOATING_RANGE="192.168.56.0/24"
+GLOBAL_VENV="False"
+HOST_IP="192.168.56.21"
+IPV4_ADDRS_SAFE_TO_USE="10.1.0.0/20"
+#IS_ZUUL_FT="True"
+#KEYSTONE_SERVICE_HOST="10.209.133.219"
+L2_AGENT_EXTENSIONS="qos"
+LIBVIRT_TYPE="qemu"
+LOGFILE="/opt/stack/logs/devstacklog.txt"
+#LOG_COLOR="False"
+MYSQL_HOST="192.168.56.21"
+NETWORK_GATEWAY="10.1.0.1"
+NOVA_LIBVIRT_TB_CACHE_SIZE="128"
+NOVA_VNC_ENABLED="True"
+NOVNC_FROM_PACKAGE="True"
+OVN_DBS_LOG_LEVEL="dbg"
+OVN_L3_CREATE_PUBLIC_NETWORK="True"
+OVS_BRIDGE_MAPPINGS="public:br-ex,mgmtphysnet0:br-infra"
+PHYSICAL_NETWORK="mgmtphysnet0"
+PUBLIC_BRIDGE_MTU="1430"
+PUBLIC_NETWORK_GATEWAY="192.168.56.1"
+Q_ML2_PLUGIN_MECHANISM_DRIVERS="ovn,logger"
+Q_SERVICE_PLUGIN_CLASSES="ovn-router,neutron.services.qos.qos_plugin.QoSPlugin,qos"
+RABBIT_PASSWORD="secretrabbit"
+SERVICE_HOST="192.168.56.21"
+SERVICE_PASSWORD="secretservice"
+#SWIFT_HASH="1234123412341234"
+#SWIFT_REPLICAS="1"
+#SWIFT_START_ALL_SERVICES="False"
+#TACKER_HOST="10.208.192.130"
+#TACKER_MODE="standalone"
+USE_PYTHON3="True"
+#VERBOSE="True"
+VERBOSE_NO_TIMESTAMP="True"
+LIBS_FROM_GIT=barbican,cinder,devstack,devstack-plugin-container,glance,heat,horizon,keystone,neutron,nova,os-test-images,placement,python-barbicanclient,python-tackerclient,requirements,swift,tacker,tacker-horizon
+enable_plugin barbican https://opendev.org/openstack/barbican
+enable_plugin heat https://opendev.org/openstack/heat
+enable_plugin neutron https://opendev.org/openstack/neutron
+
+[[post-config|$NEUTRON_CONF]]
+[DEFAULT]
+global_physnet_mtu = 1430
+[[post-config|$NEUTRON_DHCP_CONF]]
+[DEFAULT]
+enable_isolated_metadata = True

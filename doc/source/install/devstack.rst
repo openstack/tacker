@@ -184,6 +184,14 @@ So the first step of installing tacker is to clone Devstack and prepare your
         :language: ini
 
 
+      .. note::
+
+        Standalone mode is used in Zuul environments that run FT.
+        For more information about FT, see
+        :doc:`/contributor/tacker_functional_test` or the local.conf
+        used in each Zuul environment.
+
+
 #. Execute installation script
 
    After saving the ``local.conf``, we can run ``stack.sh`` in the terminal
