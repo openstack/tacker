@@ -35,11 +35,10 @@ def _migrate_duplicate_vnf_package_vnfd_id(table):
 
     meta = sa.MetaData()
     conn = op.get_bind()
-    engine = conn.engine
-    meta.create_all(bind=engine)
-    t = sa.Table(table, meta, autoload_with=engine)
+    meta.create_all(bind=conn)
+    t = sa.Table(table, meta, autoload_with=conn)
 
-    session = sa.orm.Session(bind=engine)
+    session = sa.orm.Session(bind=conn)
     with session.begin():
         dup_vnfd_ids = session.query(t.c.vnfd_id).group_by(
             t.c.vnfd_id).having(sa.func.count() > 1).all()

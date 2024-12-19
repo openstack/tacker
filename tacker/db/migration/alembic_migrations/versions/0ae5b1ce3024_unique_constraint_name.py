@@ -35,11 +35,10 @@ def _migrate_duplicate_names(table):
 
     meta = sa.MetaData()
     conn = op.get_bind()
-    engine = conn.engine
-    meta.create_all(bind=engine)
-    t = sa.Table(table, meta, autoload_with=engine)
+    meta.create_all(bind=conn)
+    t = sa.Table(table, meta, autoload_with=conn)
 
-    session = sa.orm.Session(bind=engine)
+    session = sa.orm.Session(bind=conn)
     #with session.begin(subtransactions=True):
     with session.begin():
         dup_names = session.query(t.c.name).group_by(
