@@ -50,6 +50,10 @@ if is_service_enabled tacker; then
             echo_summary "Setup default VIM resources"
             tacker_setup_default_vim_resources
         fi
+
+        if [ "${KUBERNETES_VIM}" == "True" ]; then
+            setup_k8s_service
+        fi
     fi
 
     if [[ "$1" == "unstack" ]]; then

@@ -128,24 +128,7 @@ So the first step of installing tacker is to clone Devstack and prepare your
 
          .. literalinclude:: ../../../devstack/local.conf.kubernetes
              :language: ini
-             :emphasize-lines: 56-71
-
-
-         Run the following commands to reconfigure the CNI network for
-         devstack-plugin-container after running stack.sh.
-
-         .. code-block:: console
-
-             $ ip link set cni0 down && ip link set flannel.1 down
-             $ ip link delete cni0 && ip link delete flannel.1
-             $ systemctl restart kubelet
-             $ kubectl delete pod -n kube-system $(kubectl get pod -n kube-system --no-headers \
-             -o custom-columns=":metadata.name" | grep coredns | tr -s '\n' ' ')
-
-         .. note::
-
-             This operation is required to build a Kubernetes cluster with
-             devstack-plugin-container.
+             :emphasize-lines: 54-64
 
          .. note::
 

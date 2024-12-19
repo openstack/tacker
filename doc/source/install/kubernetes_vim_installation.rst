@@ -28,11 +28,7 @@ Tacker uses devstack-plugin-container to deploy a Kubernetes cluster.
    .. code-block:: console
 
      # Enable devstack-plugin-container, crio
-
-     # "KUBERNETES_VIM=True" is not available now. As kuryr-kubernetes project will
-     # retire, the procedure when "KUBERNETES_VIM=True" will be changed to deploy
-     # with not kuryr-kubernetes but devstack-plugin-container in future updates.
-     # KUBERNETES_VIM=True
+     KUBERNETES_VIM=True
 
      # It is necessary to specify the patch version
      # because it is the version used when executing "apt-get install" command.
@@ -42,9 +38,6 @@ Tacker uses devstack-plugin-container to deploy a Kubernetes cluster.
      CRIO_VERSION="1.30.5"
 
      enable_plugin devstack-plugin-container https://opendev.org/openstack/devstack-plugin-container master
-
-     enable_service k8s-master
-     enable_service container
 
    Public network is used to launch LoadBalancer for Services in Kubernetes.
    Setting public subnet is described in [#first]_.
@@ -86,24 +79,6 @@ Tacker uses devstack-plugin-container to deploy a Kubernetes cluster.
    .. code-block:: console
 
          $ ./stack.sh
-
-#. Reconfiguring the CNI network for devstack-plugin-container
-
-   **Command:**
-
-   .. code-block:: console
-
-         $ ip link set cni0 down && ip link set flannel.1 down
-         $ ip link delete cni0 && ip link delete flannel.1
-         $ systemctl restart kubelet
-         $ kubectl delete pod -n kube-system $(kubectl get pod -n kube-system --no-headers \
-         -o custom-columns=":metadata.name" | grep coredns | tr -s '\n' ' ')
-
-   .. note::
-
-         This operation is required to build a Kubernetes cluster with
-         devstack-plugin-container, but will no longer be required for
-         user operations in a future update.
 
 #. Setup Kubernetes VIM configuration
 

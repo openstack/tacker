@@ -50,18 +50,9 @@ if [ "${TACKER_MODE}" == "all" ]; then
     enable_service tacker-conductor
 
     if [ "${KUBERNETES_VIM}" == "True" ]; then
-        KURYR_NEUTRON_DEFAULT_PROJECT="default"
-        # Octavia LBaaSv2
-        LIBS_FROM_GIT+=python-octaviaclient
-        TACKER_OCTAVIA_AGENTS=${TACKER_OCTAVIA_AGENTS:-octavia,o-api,o-cw,o-hm,o-hk}
-        for i in $(echo $TACKER_OCTAVIA_AGENTS | sed 's/,/ /g')
-        do
-            enable_service $i
-        done
-
-        # enable kuryr-kubernetes services
-        KURYR_KUBERNETES_AGENTS=${KURYR_KUBERNETES_AGENTS:-kubernetes-master,kuryr-kubernetes,kuryr-daemon}
-        for i in $(echo $KURYR_KUBERNETES_AGENTS | sed 's/,/ /g')
+        # enable devstack-plugin-container services
+        DEVSTACK_PLUGIN_CONTAINER_AGENTS=${DEVSTACK_PLUGIN_CONTAINER_AGENTS:-k8s-master,container}
+        for i in $(echo $DEVSTACK_PLUGIN_CONTAINER_AGENTS | sed 's/,/ /g')
         do
             enable_service $i
         done

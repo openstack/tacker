@@ -1,6 +1,6 @@
 - block:
   # NOTE: When create a k8s environment with devstack-plugin-container and
-  # deploy a Pod, the following error occured - `network: failed to set bridge
+  # deploy a Pod, the following error occurred - `network: failed to set bridge
   # addr: "cni0" already has an IP address different from 10.x.x.x` and
   # the Pod fails to be deployed. As a fix, delete the related interface and
   # restart service.
@@ -29,6 +29,18 @@
   - name: Restart coredns pod
     shell: >
       kubectl delete pod -n kube-system {{ coredns_name.stdout }}
+    become: yes
+    become_user: stack
+
+  - name: Delete existing flannel
+    shell: >
+      kubectl delete -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
+    become: yes
+    become_user: stack
+
+  - name: Restart flannel
+    shell: >
+      kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
     become: yes
     become_user: stack
 

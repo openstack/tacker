@@ -52,11 +52,7 @@ enable_service n-cauth
 disable_service tempest
 
 # Enable devstack-plugin-container, crio
-
-# "KUBERNETES_VIM=True" is not available now. As kuryr-kubernetes project will
-# retire, the procedure when "KUBERNETES_VIM=True" will be changed to deploy
-# with not kuryr-kubernetes but devstack-plugin-container in future updates.
-# KUBERNETES_VIM=True
+KUBERNETES_VIM=True
 
 # It is necessary to specify the patch version
 # because it is the version used when executing "apt-get install" command.
@@ -66,9 +62,6 @@ CONTAINER_ENGINE="crio"
 CRIO_VERSION="1.30.5"
 
 enable_plugin devstack-plugin-container https://opendev.org/openstack/devstack-plugin-container master
-
-enable_service k8s-master
-enable_service container
 
 [[post-config|/etc/neutron/dhcp_agent.ini]]
 [DEFAULT]
