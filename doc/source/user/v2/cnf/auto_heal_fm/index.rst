@@ -167,7 +167,7 @@ The following is the content of a sample ``prometheus.yml``:
     - targets: ["<IP of Kubernetes>:<port of metrics>"]
 
 
-The following is the content of a sample ``tacker-samplevnf-rules.json``:
+The following is the content of a sample ``tacker-samplevnf-rules.yaml``:
 
 .. code-block:: yaml
 
