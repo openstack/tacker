@@ -117,20 +117,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
             - Delete subscription
         """
         # Create subscription and register it.
-        callback_url = os.path.join(vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
-            self._testMethodName)
-        request_body = fake_vnflcm.Subscription.make_create_request_body(
-            'http://localhost:{}{}'.format(
-                vnflcm_base.FAKE_SERVER_MANAGER.SERVER_PORT,
-                callback_url))
-        resp, response_body = self._register_subscription(request_body)
-        self.assertEqual(201, resp.status_code)
-        self.assert_http_header_location_for_subscription(resp.headers)
-        self.assert_notification_get(callback_url)
-        subscription_id = response_body.get('id')
-        self.addCleanup(
-            self._delete_subscription,
-            subscription_id)
+        subscription_id = self.register_subscription()
 
         # Pre Setting: Create vnf package.
         sample_name = 'functional5'
@@ -152,7 +139,6 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         vnf_instance_id = vnf_instance['id']
         self._wait_lcm_done(vnf_instance_id=vnf_instance_id)
         self.assert_create_vnf(resp, vnf_instance, vnf_package_id)
-        self.addCleanup(self._delete_vnf_instance, vnf_instance_id)
 
         # Instantiate vnf instance
         request_body = fake_vnflcm.VnfInstances.\
@@ -170,7 +156,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
             expected_show_res=expected_show_res)
 
         # Scale-out vnf instance
-        stack = self._get_heat_stack(vnf_instance_id)
+        stack = self._get_heat_stack(vnf_instance)
         pre_stack_resource_list = self._get_heat_resource_list(stack.id, 2)
 
         request_body = fake_vnflcm.VnfInstances.make_scale_request_body(
@@ -190,7 +176,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
             expected_show_res=expected_show_res)
 
         # Scale-in vnf instance
-        stack = self._get_heat_stack(vnf_instance_id)
+        stack = self._get_heat_stack(vnf_instance)
         pre_stack_resource_list = self._get_heat_resource_list(stack.id, 2)
 
         request_body = (fake_vnflcm.VnfInstances
@@ -210,7 +196,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
             expected_show_res=expected_show_res)
 
         # Terminate VNF
-        stack = self._get_heat_stack(vnf_instance_id)
+        stack = self._get_heat_stack(vnf_instance)
         resources_list = self._get_heat_resource_list(stack.id)
         resource_name_list = [r.resource_name for r in resources_list]
         glance_image_id_list = self._get_glance_image_list_from_stack_resource(
@@ -229,11 +215,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         self.assert_delete_vnf(resp, vnf_instance_id, vnf_package_id)
 
         # Subscription delete
-        resp, response_body = self._delete_subscription(subscription_id)
-        self.assertEqual(204, resp.status_code)
-
-        resp, _ = self._show_subscription(subscription_id)
-        self.assertEqual(404, resp.status_code)
+        self.assert_subscription_deletion(subscription_id)
 
     def test_inst_scaling_heal(self):
         """Test basic life cycle operations with sample VNFD.
@@ -253,20 +235,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
             - Delete subscription
         """
         # Create subscription and register it.
-        callback_url = os.path.join(vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
-            self._testMethodName)
-        request_body = fake_vnflcm.Subscription.make_create_request_body(
-            'http://localhost:{}{}'.format(
-                vnflcm_base.FAKE_SERVER_MANAGER.SERVER_PORT,
-                callback_url))
-        resp, response_body = self._register_subscription(request_body)
-        self.assertEqual(201, resp.status_code)
-        self.assert_http_header_location_for_subscription(resp.headers)
-        self.assert_notification_get(callback_url)
-        subscription_id = response_body.get('id')
-        self.addCleanup(
-            self._delete_subscription,
-            subscription_id)
+        subscription_id = self.register_subscription()
 
         # Pre Setting: Create vnf package.
         sample_name = 'functional5'
@@ -288,7 +257,6 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         vnf_instance_id = vnf_instance['id']
         self._wait_lcm_done(vnf_instance_id=vnf_instance_id)
         self.assert_create_vnf(resp, vnf_instance, vnf_package_id)
-        self.addCleanup(self._delete_vnf_instance, vnf_instance_id)
 
         # Instantiate vnf instance
         request_body = fake_vnflcm.VnfInstances.\
@@ -306,7 +274,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
             expected_show_res=expected_show_res)
 
         # Scale-out vnf instance
-        stack = self._get_heat_stack(vnf_instance_id)
+        stack = self._get_heat_stack(vnf_instance)
         pre_stack_resource_list = self._get_heat_resource_list(stack.id, 2)
         request_body = fake_vnflcm.VnfInstances.make_scale_request_body(
             'SCALE_OUT')
@@ -325,7 +293,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
 
         # Heal vnf (do not specify vnfc_instace_id)
         # pre check heat status.
-        self.assert_heat_stack_status(vnf_instance_id)
+        self.assert_heat_stack_status(vnf_instance)
         # Heal
         request_body = fake_vnflcm.VnfInstances.make_heal_request_body()
         resp, _ = self._heal_vnf_instance(vnf_instance_id, request_body)
@@ -341,7 +309,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
             expected_show_res=expected_show_res)
 
         # Scale-in vnf instance
-        stack = self._get_heat_stack(vnf_instance_id)
+        stack = self._get_heat_stack(vnf_instance)
         pre_stack_resource_list = self._get_heat_resource_list(stack.id, 2)
         request_body = (fake_vnflcm.VnfInstances
                         .make_scale_request_body('SCALE_IN'))
@@ -359,7 +327,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
             expected_show_res=expected_show_res)
 
         # Terminate VNF
-        stack = self._get_heat_stack(vnf_instance_id)
+        stack = self._get_heat_stack(vnf_instance)
         resources_list = self._get_heat_resource_list(stack.id)
         resource_name_list = [r.resource_name for r in resources_list]
         glance_image_id_list = self._get_glance_image_list_from_stack_resource(
@@ -378,11 +346,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         self.assert_delete_vnf(resp, vnf_instance_id, vnf_package_id)
 
         # Subscription delete
-        resp, response_body = self._delete_subscription(subscription_id)
-        self.assertEqual(204, resp.status_code)
-
-        resp, _ = self._show_subscription(subscription_id)
-        self.assertEqual(404, resp.status_code)
+        self.assert_subscription_deletion(subscription_id)
 
     def test_notification_no_virtual_storage(self):
         """Test notification when virtual storage absent in VNFD.
@@ -398,20 +362,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
             - Delete subscription
         """
         # Create subscription and register it.
-        callback_url = os.path.join(vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
-                                    self._testMethodName)
-        request_body = fake_vnflcm.Subscription.make_create_request_body(
-            'http://localhost:{}{}'.format(
-                vnflcm_base.FAKE_SERVER_MANAGER.SERVER_PORT,
-                callback_url))
-        resp, response_body = self._register_subscription(request_body)
-        self.assertEqual(201, resp.status_code)
-        self.assert_http_header_location_for_subscription(resp.headers)
-        self.assert_notification_get(callback_url)
-        subscription_id = response_body.get('id')
-        self.addCleanup(
-            self._delete_subscription,
-            subscription_id)
+        subscription_id = self.register_subscription()
 
         # Pre Setting: Create vnf package.
         sample_name = 'user_data_sample_virtual_storage_missing'
@@ -433,7 +384,6 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         vnf_instance_id = vnf_instance['id']
         self._wait_lcm_done(vnf_instance_id=vnf_instance_id)
         self.assert_create_vnf(resp, vnf_instance, vnf_package_id)
-        self.addCleanup(self._delete_vnf_instance, vnf_instance_id)
 
         # Instantiate vnf instance
         request_body = fake_vnflcm.VnfInstances. \
@@ -461,7 +411,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
                 str(notify_mock_responses[2].request_body))
 
         # Terminate VNF
-        stack = self._get_heat_stack(vnf_instance_id)
+        stack = self._get_heat_stack(vnf_instance)
         resources_list = self._get_heat_resource_list(stack.id)
         resource_name_list = [r.resource_name for r in resources_list]
         glance_image_id_list = self._get_glance_image_list_from_stack_resource(
@@ -481,11 +431,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         self.assert_delete_vnf(resp, vnf_instance_id, vnf_package_id)
 
         # Subscription delete
-        resp, response_body = self._delete_subscription(subscription_id)
-        self.assertEqual(204, resp.status_code)
-
-        resp, _ = self._show_subscription(subscription_id)
-        self.assertEqual(404, resp.status_code)
+        self.assert_subscription_deletion(subscription_id)
 
     def test_vnfdid_filter_in_subscription(self):
         """Test notification when filter exists in subscription.
@@ -519,33 +465,20 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         # Create subscription with vnf instance's vnfdid filter.
         sub_id_1 = self._gen_sub_and_register_sub(
             'with_vnfd_id_filter', vnfd_id)
-        self.addCleanup(
-            self._delete_subscription,
-            sub_id_1)
         # Create subscription with other vnfdid filter.
         sub_id_2 = self._gen_sub_and_register_sub(
             'with_other_vnfd_id', uuidutils.generate_uuid())
-        self.addCleanup(
-            self._delete_subscription,
-            sub_id_2)
         # Create subscription without filter.
         sub_id_3 = self._gen_sub_and_register_sub(
             'no_filter', uuidutils.generate_uuid())
-        self.addCleanup(
-            self._delete_subscription,
-            sub_id_3)
 
         sub_id = self._gen_sub_and_register_sub(self._testMethodName, vnfd_id)
-        self.addCleanup(
-            self._delete_subscription,
-            sub_id)
         # Create vnf instance
         resp, vnf_instance = self._create_vnf_instance_from_body(
             fake_vnflcm.VnfInstances.make_create_request_body(vnfd_id))
         vnf_instance_id = vnf_instance['id']
         self._wait_lcm_done(vnf_instance_id=vnf_instance_id)
         self.assert_create_vnf(resp, vnf_instance, vnf_package_id)
-        self.addCleanup(self._delete_vnf_instance, vnf_instance_id)
         vnflcm_base.FAKE_SERVER_MANAGER.clear_history(
             os.path.join(vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
                          "with_vnfd_id_filter"))
@@ -577,7 +510,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
             self._check_subscription(name)
 
         # Terminate VNF
-        stack = self._get_heat_stack(vnf_instance_id)
+        stack = self._get_heat_stack(vnf_instance)
         resources_list = self._get_heat_resource_list(stack.id)
         resource_name_list = [r.resource_name for r in resources_list]
         glance_image_id_list = self._get_glance_image_list_from_stack_resource(
@@ -601,7 +534,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
 
         # Subscription delete
         for subsc_id in [sub_id, sub_id_1, sub_id_2, sub_id_3]:
-            self._assert_subscription_deletion(subsc_id)
+            self.assert_subscription_deletion(subsc_id)
 
     def test_stack_update_in_scaling(self):
         """Test basic life cycle operations with sample VNFD.
@@ -620,20 +553,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
             - Delete subscription
         """
         # Create subscription and register it.
-        callback_url = os.path.join(vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
-            self._testMethodName)
-        request_body = fake_vnflcm.Subscription.make_create_request_body(
-            'http://localhost:{}{}'.format(
-                vnflcm_base.FAKE_SERVER_MANAGER.SERVER_PORT,
-                callback_url))
-        resp, response_body = self._register_subscription(request_body)
-        self.assertEqual(201, resp.status_code)
-        self.assert_http_header_location_for_subscription(resp.headers)
-        self.assert_notification_get(callback_url)
-        subscription_id = response_body.get('id')
-        self.addCleanup(
-            self._delete_subscription,
-            subscription_id)
+        subscription_id = self.register_subscription()
 
         # Pre Setting: Create vnf package.
         sample_name = 'stack_update_in_scale'
@@ -655,7 +575,6 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         vnf_instance_id = vnf_instance['id']
         self._wait_lcm_done(vnf_instance_id=vnf_instance_id)
         self.assert_create_vnf(resp, vnf_instance, vnf_package_id)
-        self.addCleanup(self._delete_vnf_instance, vnf_instance_id)
 
         # Instantiate vnf instance
         request_body = (fake_vnflcm.VnfInstances.
@@ -672,7 +591,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         self.assertEqual(200, resp.status_code)
 
         # Scale-out vnf instance
-        stack = self._get_heat_stack(vnf_instance_id)
+        stack = self._get_heat_stack(vnf_instance)
         pre_stack_resource_list = self._get_heat_resource_list(stack.id, 2)
 
         request_body = fake_vnflcm.VnfInstances.make_scale_request_body(
@@ -687,7 +606,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
 
         # Scale-in vnf instance
 
-        stack = self._get_heat_stack(vnf_instance_id)
+        stack = self._get_heat_stack(vnf_instance)
         pre_stack_resource_list = self._get_heat_resource_list(stack.id, 2)
 
         request_body = (fake_vnflcm.VnfInstances
@@ -701,7 +620,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
             scale_type='SCALE_IN', expected_stack_status='UPDATE_COMPLETE')
 
         # Terminate VNF
-        stack = self._get_heat_stack(vnf_instance_id)
+        stack = self._get_heat_stack(vnf_instance)
         resources_list = self._get_heat_resource_list(stack.id)
         resource_name_list = [r.resource_name for r in resources_list]
         glance_image_id_list = self._get_glance_image_list_from_stack_resource(
@@ -720,11 +639,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         self.assert_delete_vnf(resp, vnf_instance_id, vnf_package_id)
 
         # Subscription delete
-        resp, response_body = self._delete_subscription(subscription_id)
-        self.assertEqual(204, resp.status_code)
-
-        resp, _ = self._show_subscription(subscription_id)
-        self.assertEqual(404, resp.status_code)
+        self.assert_subscription_deletion(subscription_id)
 
     def test_inst_update_heal_term(self):
         """Test basic life cycle operations.
@@ -748,18 +663,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
             - Delete subscription.
         """
         # Create subscription and register it.
-        callback_url = os.path.join(vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
-            self._testMethodName)
-        request_body = fake_vnflcm.Subscription.make_create_request_body(
-            'http://localhost:{}{}'.format(
-                vnflcm_base.FAKE_SERVER_MANAGER.SERVER_PORT,
-                callback_url))
-        resp, response_body = self._register_subscription(request_body)
-        self.assertEqual(201, resp.status_code)
-        self.assert_http_header_location_for_subscription(resp.headers)
-        self.assert_notification_get(callback_url)
-        subscription_id = response_body.get('id')
-        self.addCleanup(self._delete_subscription, subscription_id)
+        subscription_id = self.register_subscription()
 
         # Subscription show
         resp, body = self._wait_show_subscription(subscription_id)
@@ -855,7 +759,6 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         self._wait_lcm_done(vnf_instance_id=vnf_instance_id)
         self.assert_create_vnf(resp, vnf_instance, vnf_package_id)
         vnf_instance_name = vnf_instance['vnfInstanceName']
-        self.addCleanup(self._delete_vnf_instance, vnf_instance_id)
 
         # Instantiate vnf instance
         request_body = fake_vnflcm.VnfInstances.make_inst_request_body(
@@ -879,7 +782,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
 
         # Get VNF image after instantiate VDU2
         image_before_update = self._get_heat_stack_show(
-            vnf_instance_id, 'VDU2')
+            vnf_instance, 'VDU2')
         self.assertIsNotNone(
             image_before_update,
             "failed to retrieve image")
@@ -916,13 +819,13 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         self.assert_heal_vnf(resp, vnf_instance_id, vnf_package_id)
 
         # Check of Image changes after heal
-        image_after_heal = self._get_heat_stack_show(vnf_instance_id, 'VDU2')
+        image_after_heal = self._get_heat_stack_show(vnf_instance, 'VDU2')
         self.assertIsNotNone(
             image_after_heal, "failed to retrieve image")
         self.assertNotEqual(image_before_update, image_after_heal)
 
         # Terminate VNF
-        stack = self._get_heat_stack(vnf_instance_id)
+        stack = self._get_heat_stack(vnf_instance)
         resources_list = self._get_heat_resource_list(stack.id)
         resource_name_list = [r.resource_name for r in resources_list]
         glance_image_id_list = self._get_glance_image_list_from_stack_resource(
@@ -947,11 +850,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         self.assert_delete_vnf(resp, vnf_instance_id, vnf_package_id)
 
         # Subscription delete
-        resp, response_body = self._delete_subscription(subscription_id)
-        self.assertEqual(204, resp.status_code)
-
-        resp, show_body = self._show_subscription(subscription_id)
-        self.assertEqual(404, resp.status_code)
+        self.assert_subscription_deletion(subscription_id)
 
     def test_stack_param_heal_term(self):
         """Test basic life cycle operations.
@@ -976,18 +875,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
             - Delete subscription.
         """
         # Create subscription and register it.
-        callback_url = os.path.join(vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
-            self._testMethodName)
-        request_body = fake_vnflcm.Subscription.make_create_request_body(
-            'http://localhost:{}{}'.format(
-                vnflcm_base.FAKE_SERVER_MANAGER.SERVER_PORT,
-                callback_url))
-        resp, response_body = self._register_subscription(request_body)
-        self.assertEqual(201, resp.status_code)
-        self.assert_http_header_location_for_subscription(resp.headers)
-        self.assert_notification_get(callback_url)
-        subscription_id = response_body.get('id')
-        self.addCleanup(self._delete_subscription, subscription_id)
+        subscription_id = self.register_subscription()
 
         # Subscription show
         resp, body = self._wait_show_subscription(subscription_id)
@@ -1083,7 +971,6 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         self._wait_lcm_done(vnf_instance_id=vnf_instance_id)
         self.assert_create_vnf(resp, vnf_instance, vnf_package_id)
         vnf_instance_name = vnf_instance['vnfInstanceName']
-        self.addCleanup(self._delete_vnf_instance, vnf_instance_id)
 
         # Instantiate vnf instance
         request_body = fake_vnflcm.VnfInstances.make_inst_request_body(
@@ -1137,13 +1024,13 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         self.assert_heal_vnf(resp, vnf_instance_id, vnf_package_id)
 
         # Check of stack param desired_capacity existence in stack
-        stack_after_heal = self._get_heat_stack_show(vnf_instance_id)
+        stack_after_heal = self._get_heat_stack_show(vnf_instance)
         self.assertIsNotNone(
             stack_after_heal, "failed to retrieve stack")
         self.assertIsNotNone(stack_after_heal.get('desired_capacity'))
 
         # Terminate VNF
-        stack = self._get_heat_stack(vnf_instance_id)
+        stack = self._get_heat_stack(vnf_instance)
         resources_list = self._get_heat_resource_list(stack.id)
         resource_name_list = [r.resource_name for r in resources_list]
         glance_image_id_list = self._get_glance_image_list_from_stack_resource(
@@ -1168,11 +1055,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         self.assert_delete_vnf(resp, vnf_instance_id, vnf_package_id)
 
         # Subscription delete
-        resp, response_body = self._delete_subscription(subscription_id)
-        self.assertEqual(204, resp.status_code)
-
-        resp, show_body = self._show_subscription(subscription_id)
-        self.assertEqual(404, resp.status_code)
+        self.assert_subscription_deletion(subscription_id)
 
     def test_inst_update_pkgid_heal_all(self):
         """Test basic life cycle operations with pkg update.
@@ -1192,18 +1075,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
             - Delete subscription.
         """
         # Create subscription and register it.
-        callback_url = os.path.join(vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
-            self._testMethodName)
-        request_body = fake_vnflcm.Subscription.make_create_request_body(
-            'http://localhost:{}{}'.format(
-                vnflcm_base.FAKE_SERVER_MANAGER.SERVER_PORT,
-                callback_url))
-        resp, response_body = self._register_subscription(request_body)
-        self.assertEqual(201, resp.status_code)
-        self.assert_http_header_location_for_subscription(resp.headers)
-        self.assert_notification_get(callback_url)
-        subscription_id = response_body.get('id')
-        self.addCleanup(self._delete_subscription, subscription_id)
+        subscription_id = self.register_subscription()
 
         # Pre Setting: Create vnf package.
         sample_name = 'functional'
@@ -1225,7 +1097,6 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         vnf_instance_id = vnf_instance['id']
         self._wait_lcm_done(vnf_instance_id=vnf_instance_id)
         self.assert_create_vnf(resp, vnf_instance, vnf_package_id)
-        self.addCleanup(self._delete_vnf_instance, vnf_instance_id)
 
         # Instantiate vnf instance
         request_body = fake_vnflcm.VnfInstances.make_inst_request_body(
@@ -1237,7 +1108,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
 
         # Heal vnf (do not specify vnfc_instace_id)
         # pre check heat status.
-        self.assert_heat_stack_status(vnf_instance_id)
+        self.assert_heat_stack_status(vnf_instance)
 
         request_body = fake_vnflcm.VnfInstances.make_heal_request_body()
         resp, _ = self._heal_vnf_instance(vnf_instance_id, request_body)
@@ -1269,7 +1140,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         vnf_package_id = update_vnf_package_id
 
         # Terminate VNF
-        stack = self._get_heat_stack(vnf_instance_id)
+        stack = self._get_heat_stack(vnf_instance)
         resources_list = self._get_heat_resource_list(stack.id)
         resource_name_list = [r.resource_name for r in resources_list]
         glance_image_id_list = self._get_glance_image_list_from_stack_resource(
@@ -1294,8 +1165,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         self.assert_delete_vnf(resp, vnf_instance_id, vnf_package_id)
 
         # Subscription delete
-        resp, response_body = self._delete_subscription(subscription_id)
-        self.assertEqual(204, resp.status_code)
+        self.assert_subscription_deletion(subscription_id)
 
     def test_instantiate_vnf_basehot_invalid(self):
         """Test instantiation operation with invalid HOT data.
@@ -1334,9 +1204,6 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
                 vnf_instance_description=vnf_instance_description)
         self.assertIsNotNone(vnf_instance['id'])
         self.assertEqual(201, resp.status_code)
-
-        # Reserve deleting vnf instance
-        self.addCleanup(self._delete_vnf_instance, vnf_instance['id'])
 
         request_body = vnflcm_base._create_instantiate_vnf_request_body(
             "simple", vim_id=self.vim['id'], ext_vl=self.ext_vl,
@@ -1381,9 +1248,6 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
                 vnf_instance_description=vnf_instance_description)
         self.assertIsNotNone(vnf_instance['id'])
         self.assertEqual(201, resp.status_code)
-
-        # Reserve deleting vnf instance
-        self.addCleanup(self._delete_vnf_instance, vnf_instance['id'])
 
         request_body = \
             vnflcm_base._create_instantiate_vnf_request_body("simple",
@@ -1432,9 +1296,6 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         self.assertIsNotNone(vnf_instance['id'])
         self.assertEqual(201, resp.status_code)
 
-        # Reserve deleting vnf instance
-        self.addCleanup(self._delete_vnf_instance, vnf_instance['id'])
-
         request_body = \
             vnflcm_base._create_instantiate_vnf_request_body("simple",
                 vim_id=self.vim['id'],
@@ -1482,9 +1343,6 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
                 vnf_instance_description=vnf_instance_description)
         self.assertIsNotNone(vnf_instance['id'])
         self.assertEqual(201, resp.status_code)
-
-        # Reserve deleting vnf instance
-        self.addCleanup(self._delete_vnf_instance, vnf_instance['id'])
 
         request_body = \
             vnflcm_base._create_instantiate_vnf_request_body("simple",
@@ -1535,9 +1393,6 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         self.assertIsNotNone(vnf_instance['id'])
         self.assertEqual(201, resp.status_code)
 
-        # Reserve deleting vnf instance
-        self.addCleanup(self._delete_vnf_instance, vnf_instance['id'])
-
         request_body = vnflcm_base._create_instantiate_vnf_request_body(
             "simple", vim_id=self.vim['id'], ext_vl=self.ext_vl,
             add_params=add_params)
@@ -1562,20 +1417,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
             - Delete subscription.
         """
         # Create subscription and register it.
-        callback_url = os.path.join(vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
-            self._testMethodName)
-        request_body = fake_vnflcm.Subscription.make_create_request_body(
-            'http://localhost:{}{}'.format(
-                vnflcm_base.FAKE_SERVER_MANAGER.SERVER_PORT,
-                callback_url))
-        resp, response_body = self._register_subscription(request_body)
-        self.assertEqual(201, resp.status_code)
-        self.assert_http_header_location_for_subscription(resp.headers)
-        subscription_id = response_body.get('id')
-        self.addCleanup(self._delete_subscription, subscription_id)
-
-        # Test notification
-        self.assert_notification_get(callback_url)
+        subscription_id = self.register_subscription()
 
         # Pre Setting: Create vnf package.
         sample_name = 'functional3'
@@ -1599,7 +1441,6 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         vnf_instance_id = vnf_instance['id']
         self._wait_lcm_done(vnf_instance_id=vnf_instance_id)
         self.assert_create_vnf(resp, vnf_instance, vnf_package_id)
-        self.addCleanup(self._delete_vnf_instance, vnf_instance_id)
 
         # Failed instantiate VNF
         request_body = fake_vnflcm.VnfInstances.make_inst_request_body(
@@ -1669,20 +1510,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
             - Delete subscription.
         """
         # Create subscription and register it.
-        callback_url = os.path.join(vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
-            self._testMethodName)
-        request_body = fake_vnflcm.Subscription.make_create_request_body(
-            'http://localhost:{}{}'.format(
-                vnflcm_base.FAKE_SERVER_MANAGER.SERVER_PORT,
-                callback_url))
-        resp, response_body = self._register_subscription(request_body)
-        self.assertEqual(201, resp.status_code)
-        self.assert_http_header_location_for_subscription(resp.headers)
-        subscription_id = response_body.get('id')
-        self.addCleanup(self._delete_subscription, subscription_id)
-
-        # Test notification
-        self.assert_notification_get(callback_url)
+        subscription_id = self.register_subscription()
 
         # Pre Setting: Create vnf package.
         sample_name = 'functional4'
@@ -1706,7 +1534,6 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         vnf_instance_id = vnf_instance['id']
         self._wait_lcm_done(vnf_instance_id=vnf_instance_id)
         self.assert_create_vnf(resp, vnf_instance, vnf_package_id)
-        self.addCleanup(self._delete_vnf_instance, vnf_instance_id)
 
         # instantiate VNF
         request_body = fake_vnflcm.VnfInstances.make_inst_request_body(
@@ -1757,7 +1584,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         self._assert_occ_list(resp, op_occs_info)
 
         # Terminate VNF
-        stack = self._get_heat_stack(vnf_instance_id)
+        stack = self._get_heat_stack(vnf_instance)
         resources_list = self._get_heat_resource_list(stack.id)
         resource_name_list = [r.resource_name for r in resources_list]
         glance_image_id_list = self._get_glance_image_list_from_stack_resource(
@@ -1796,18 +1623,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
             - Delete subscription.
         """
         # Create subscription and register it.
-        callback_url = os.path.join(vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
-            self._testMethodName)
-        request_body = fake_vnflcm.Subscription.make_create_request_body(
-            'http://localhost:{}{}'.format(
-                vnflcm_base.FAKE_SERVER_MANAGER.SERVER_PORT,
-                callback_url))
-        resp, response_body = self._register_subscription(request_body)
-        self.assertEqual(201, resp.status_code)
-        self.assert_http_header_location_for_subscription(resp.headers)
-        self.assert_notification_get(callback_url)
-        subscription_id = response_body.get('id')
-        self.addCleanup(self._delete_subscription, subscription_id)
+        subscription_id = self.register_subscription()
 
         # Pre Setting: Create vnf package.
         sample_name = 'functional3'
@@ -1831,7 +1647,6 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         vnf_instance_id = vnf_instance['id']
         self._wait_lcm_done(vnf_instance_id=vnf_instance_id)
         self.assert_create_vnf(resp, vnf_instance, vnf_package_id)
-        self.addCleanup(self._delete_vnf_instance, vnf_instance_id)
 
         # Failed instantiate VNF
         request_body = fake_vnflcm.VnfInstances.make_inst_request_body(
@@ -1894,18 +1709,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
             - Delete subscription.
         """
         # Create subscription and register it.
-        callback_url = os.path.join(vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
-            self._testMethodName)
-        request_body = fake_vnflcm.Subscription.make_create_request_body(
-            'http://localhost:{}{}'.format(
-                vnflcm_base.FAKE_SERVER_MANAGER.SERVER_PORT,
-                callback_url))
-        resp, response_body = self._register_subscription(request_body)
-        self.assertEqual(201, resp.status_code)
-        self.assert_http_header_location_for_subscription(resp.headers)
-        self.assert_notification_get(callback_url)
-        subscription_id = response_body.get('id')
-        self.addCleanup(self._delete_subscription, subscription_id)
+        subscription_id = self.register_subscription()
 
         # Pre Setting: Create vnf package.
         sample_name = 'functional4'
@@ -1929,7 +1733,6 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         vnf_instance_id = vnf_instance['id']
         self._wait_lcm_done(vnf_instance_id=vnf_instance_id)
         self.assert_create_vnf(resp, vnf_instance, vnf_package_id)
-        self.addCleanup(self._delete_vnf_instance, vnf_instance_id)
 
         # instantiate VNF
         request_body = fake_vnflcm.VnfInstances.make_inst_request_body(
@@ -1975,7 +1778,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         self._assert_occ_list(resp, op_occs_info)
 
         # Terminate VNF
-        stack = self._get_heat_stack(vnf_instance_id)
+        stack = self._get_heat_stack(vnf_instance)
         resources_list = self._get_heat_resource_list(stack.id)
         resource_name_list = [r.resource_name for r in resources_list]
         glance_image_id_list = self._get_glance_image_list_from_stack_resource(
@@ -2014,20 +1817,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
             - Delete subscription.
         """
         # Create subscription and register it.
-        request_body = fake_vnflcm.Subscription.make_create_request_body(
-            'http://localhost:{}{}'.format(
-                vnflcm_base.FAKE_SERVER_MANAGER.SERVER_PORT,
-                os.path.join(vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
-                    self._testMethodName)))
-        resp, response_body = self._register_subscription(request_body)
-        self.assertEqual(201, resp.status_code)
-        self.assert_http_header_location_for_subscription(resp.headers)
-        subscription_id = response_body.get('id')
-        self.addCleanup(self._delete_subscription, subscription_id)
-
-        self.assert_notification_get(
-            os.path.join(vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
-            self._testMethodName))
+        subscription_id = self.register_subscription()
 
         # Pre Setting: Create vnf package.
         sample_name = 'functional3'
@@ -2051,7 +1841,6 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         vnf_instance_id = vnf_instance['id']
         self._wait_lcm_done(vnf_instance_id=vnf_instance_id)
         self.assert_create_vnf(resp, vnf_instance, vnf_package_id)
-        self.addCleanup(self._delete_vnf_instance, vnf_instance_id)
 
         # Failed instantiate VNF
         request_body = fake_vnflcm.VnfInstances.make_inst_request_body(
@@ -2088,7 +1877,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         self._assert_occ_list(resp, op_occs_info)
 
         # Delete Stack
-        stack = self._get_heat_stack(vnf_instance_id)
+        stack = self._get_heat_stack(vnf_instance)
         self._delete_heat_stack(stack.id)
         self._wait_until_stack_ready(
             stack.id, infra_cnst.STACK_DELETE_COMPLETE)
@@ -2120,20 +1909,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
             - Delete subscription.
         """
         # Create subscription and register it.
-        request_body = fake_vnflcm.Subscription.make_create_request_body(
-            'http://localhost:{}{}'.format(
-                vnflcm_base.FAKE_SERVER_MANAGER.SERVER_PORT,
-                os.path.join(vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
-                             self._testMethodName)))
-        resp, response_body = self._register_subscription(request_body)
-        self.assertEqual(201, resp.status_code)
-        self.assert_http_header_location_for_subscription(resp.headers)
-        subscription_id = response_body.get('id')
-        self.addCleanup(self._delete_subscription, subscription_id)
-
-        self.assert_notification_get(
-            os.path.join(vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
-            self._testMethodName))
+        subscription_id = self.register_subscription()
 
         # Pre Setting: Create vnf package.
         sample_name = 'functional4'
@@ -2157,7 +1933,6 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         vnf_instance_id = vnf_instance['id']
         self._wait_lcm_done(vnf_instance_id=vnf_instance_id)
         self.assert_create_vnf(resp, vnf_instance, vnf_package_id)
-        self.addCleanup(self._delete_vnf_instance, vnf_instance_id)
 
         # instantiate VNF
         request_body = fake_vnflcm.VnfInstances.make_inst_request_body(
@@ -2202,7 +1977,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         self._assert_occ_list(resp, op_occs_info)
 
         # Terminate VNF
-        stack = self._get_heat_stack(vnf_instance_id)
+        stack = self._get_heat_stack(vnf_instance)
         resources_list = self._get_heat_resource_list(stack.id)
         resource_name_list = [r.resource_name for r in resources_list]
         glance_image_id_list = self._get_glance_image_list_from_stack_resource(
@@ -2241,20 +2016,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
             - Delete subscription.
         """
         # Create subscription and register it.
-        callback_url = os.path.join(vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
-            self._testMethodName)
-        request_body = fake_vnflcm.Subscription.make_create_request_body(
-            'http://localhost:{}{}'.format(
-                vnflcm_base.FAKE_SERVER_MANAGER.SERVER_PORT,
-                callback_url))
-        resp, response_body = self._register_subscription(request_body)
-        self.assertEqual(201, resp.status_code)
-        self.assert_http_header_location_for_subscription(resp.headers)
-        subscription_id = response_body.get('id')
-        self.addCleanup(self._delete_subscription, subscription_id)
-
-        # Test notification
-        self.assert_notification_get(callback_url)
+        subscription_id = self.register_subscription()
 
         # Pre Setting: Create vnf package.
         sample_name = 'functional4'
@@ -2278,7 +2040,6 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         vnf_instance_id = vnf_instance['id']
         self._wait_lcm_done(vnf_instance_id=vnf_instance_id)
         self.assert_create_vnf(resp, vnf_instance, vnf_package_id)
-        self.addCleanup(self._delete_vnf_instance, vnf_instance_id)
 
         # Instantiate vnf instance
         request_body = fake_vnflcm.VnfInstances.make_inst_request_body(
@@ -2293,7 +2054,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         self.assertEqual(200, resp.status_code)
 
         # Delete StacK
-        stack = self._get_heat_stack(vnf_instance_id)
+        stack = self._get_heat_stack(vnf_instance)
         self._delete_heat_stack(stack.id)
         self._wait_until_stack_ready(stack.id,
                 infra_cnst.STACK_DELETE_COMPLETE)
@@ -2387,12 +2148,6 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
             self.tacker_client, vnf_pkg_id)
         self.assert_vnf_package_usage_state(vnf_pkg_info)
 
-    def _assert_subscription_deletion(self, sub_id):
-        resp, _ = self._delete_subscription(sub_id)
-        self.assertEqual(204, resp.status_code)
-        resp, _ = self._show_subscription(sub_id)
-        self.assertEqual(404, resp.status_code)
-
     def _assert_scale_vnf(self, resp, vnf_instance_id, vnf_pkg_id,
             pre_stack_resource_list, post_stack_resource_list, scale_type,
             expected_stack_status, expected_show_res=None):
@@ -2456,7 +2211,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
             expected_usage_state,
             vnf_package_info['usageState'])
 
-    def _get_fixed_ips(self, vnf_instance_id, request_body):
+    def _get_fixed_ips(self, vnf_instance, request_body):
         res_name = None
         for extvirlink in request_body['extVirtualLinks']:
             if 'extCps' not in extvirlink:
@@ -2470,7 +2225,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         if res_name is None:
             return []
 
-        stack = self._get_heat_stack(vnf_instance_id)
+        stack = self._get_heat_stack(vnf_instance)
         stack_id = stack.id
 
         stack_resource = self._get_heat_resource_list(stack_id, nested_depth=2)
@@ -2628,22 +2383,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
             - Delete subscription
         """
         # Create subscription and register it.
-        callback_url = os.path.join(vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
-            self._testMethodName)
-        request_body = fake_vnflcm.Subscription.make_create_request_body(
-            'http://localhost:{}{}'.format(
-                vnflcm_base.FAKE_SERVER_MANAGER.SERVER_PORT,
-                callback_url))
-        resp, response_body = self._register_subscription(request_body)
-        self.assertEqual(201, resp.status_code)
-        self.assert_http_header_location_for_subscription(resp.headers)
-        subscription_id = response_body.get('id')
-        self.addCleanup(
-            self._delete_subscription,
-            subscription_id)
-
-        # Test notification
-        self.assert_notification_get(callback_url)
+        subscription_id = self.register_subscription()
 
         # Subscription show
         resp, body = self._wait_show_subscription(subscription_id)
@@ -2674,7 +2414,6 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         self._wait_lcm_done(vnf_instance_id=vnf_instance_id)
         self.assert_create_vnf(resp, vnf_instance, vnf_package_id)
         vnf_instance_name = vnf_instance['vnfInstanceName']
-        self.addCleanup(self._delete_vnf_instance, vnf_instance_id)
 
         # Instantiate vnf instance
         request_body = fake_vnflcm.VnfInstances.make_inst_request_body(
@@ -2701,11 +2440,11 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
             fake_vnflcm.VnfInstances.make_change_ext_conn_request_body(
                 self.vim['tenant_id'], self.changed_ext_networks,
                 self.changed_ext_subnets)
-        before_fixed_ips = self._get_fixed_ips(vnf_instance_id, request_body)
+        before_fixed_ips = self._get_fixed_ips(vnf_instance, request_body)
         resp, _ = \
             self._change_ext_conn_vnf_instance(vnf_instance_id, request_body)
         self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
-        after_fixed_ips = self._get_fixed_ips(vnf_instance_id, request_body)
+        after_fixed_ips = self._get_fixed_ips(vnf_instance, request_body)
         self.assertNotEqual(before_fixed_ips, after_fixed_ips)
 
         callback_url = os.path.join(
@@ -2725,7 +2464,7 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         self._assert_occ_show(resp, op_occs_info)
 
         # Terminate VNF
-        stack = self._get_heat_stack(vnf_instance_id)
+        stack = self._get_heat_stack(vnf_instance)
         resources_list = self._get_heat_resource_list(stack.id)
         resource_name_list = [r.resource_name for r in resources_list]
         glance_image_id_list = \
@@ -2745,8 +2484,4 @@ class VnfLcmWithUserDataTest(vnflcm_base.BaseVnfLcmTest):
         self.assert_delete_vnf(resp, vnf_instance_id, vnf_package_id)
 
         # Subscription delete
-        resp, response_body = self._delete_subscription(subscription_id)
-        self.assertEqual(204, resp.status_code)
-
-        resp, _ = self._show_subscription(subscription_id)
-        self.assertEqual(404, resp.status_code)
+        self.assert_subscription_deletion(subscription_id)

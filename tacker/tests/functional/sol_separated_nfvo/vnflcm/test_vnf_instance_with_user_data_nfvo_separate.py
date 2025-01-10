@@ -103,8 +103,7 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
             - Get opOccs information.
             - Terminate VNF.
             - Delete VNF.
-            - Delete subscription.
-            - Show subscription.
+            - Delete and Show subscription.
         """
         vnf_package_info = self._register_vnf_package_mock_response()
         glance_image = fake_grant.Grant.get_sw_image()
@@ -115,20 +114,7 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
             [zone.zone for zone in availability_zone_info
              if zone.binary == 'nova-compute']))
         # Create subscription and register it.
-        callback_url = os.path.join(vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
-            self._testMethodName)
-        request_body = fake_vnflcm.Subscription.make_create_request_body(
-            'http://localhost:{}{}'.format(
-                vnflcm_base.FAKE_SERVER_MANAGER.SERVER_PORT,
-                callback_url))
-        resp, response_body = self._register_subscription(request_body)
-        self.assertEqual(201, resp.status_code)
-        self.assert_http_header_location_for_subscription(resp.headers)
-        subscription_id = response_body.get('id')
-        self.addCleanup(self._delete_subscription, subscription_id)
-
-        # Test notification
-        self.assert_notification_get(callback_url)
+        subscription_id = self.register_subscription()
 
         # Create vnf instance
         resp, vnf_instance = self._create_vnf_instance_from_body(
@@ -138,7 +124,6 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
         self._wait_lcm_done(vnf_instance_id=vnf_instance_id)
         self._assert_create_vnf(resp, vnf_instance)
         vnf_instance_name = vnf_instance['vnfInstanceName']
-        self.addCleanup(self._delete_vnf_instance, vnf_instance_id)
 
         # Set Fake server response for Grant-Req(Instantiate)
         vnflcm_base.FAKE_SERVER_MANAGER.set_callback('POST',
@@ -187,11 +172,11 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
             fake_vnflcm.VnfInstances.make_change_ext_conn_request_body(
                 self.vim['tenant_id'], self.changed_ext_networks,
                 self.changed_ext_subnets)
-        before_fixed_ips = self._get_fixed_ips(vnf_instance_id, request_body)
+        before_fixed_ips = self._get_fixed_ips(vnf_instance, request_body)
         resp, _ = \
             self._change_ext_conn_vnf_instance(vnf_instance_id, request_body)
         self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
-        after_fixed_ips = self._get_fixed_ips(vnf_instance_id, request_body)
+        after_fixed_ips = self._get_fixed_ips(vnf_instance, request_body)
         self.assertNotEqual(before_fixed_ips, after_fixed_ips)
         vnflcm_base.FAKE_SERVER_MANAGER.clear_history(
             fake_grant.Grant.GRANT_REQ_PATH)
@@ -220,7 +205,7 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
             req_body: fake_grant.Grant.make_term_response_body(req_body))
 
         # Get stack informations to terminate.
-        stack = self._get_heat_stack(vnf_instance_id)
+        stack = self._get_heat_stack(vnf_instance)
         resources_list = self._get_heat_resource_list(stack.id)
         resource_name_list = [r.resource_name for r in resources_list]
         glance_image_id_list = self._get_glance_image_list_from_stack_resource(
@@ -239,13 +224,8 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
         self._wait_lcm_done(vnf_instance_id=vnf_instance_id)
         self.assert_delete_vnf(resp, vnf_instance_id)
 
-        # Delete Subscription
-        resp, response_body = self._delete_subscription(subscription_id)
-        self.assertEqual(204, resp.status_code)
-
-        # Check subscription was deleted
-        resp, show_body = self._show_subscription(subscription_id)
-        self.assertEqual(404, resp.status_code)
+        # Delete and Show Subscription
+        self.assert_subscription_deletion(subscription_id)
 
     # TODO(yasufum): Fix the timeout issue waiting for _wait_lcm_done().
     @unittest.skip("Skip for terminating VNF is timeouted.")
@@ -271,18 +251,7 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
              if zone.binary == 'nova-compute']))
 
         # Create subscription and register it.
-        callback_url = os.path.join(vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
-            self._testMethodName)
-        request_body = fake_vnflcm.Subscription.make_create_request_body(
-            'http://localhost:{}{}'.format(
-                vnflcm_base.FAKE_SERVER_MANAGER.SERVER_PORT,
-                callback_url))
-        resp, response_body = self._register_subscription(request_body)
-        self.assertEqual(201, resp.status_code)
-        self.assert_http_header_location_for_subscription(resp.headers)
-        self.assert_notification_get(callback_url)
-        subscription_id = response_body.get('id')
-        self.addCleanup(self._delete_subscription, subscription_id)
+        subscription_id = self.register_subscription()
 
         # Create vnf instance
         resp, vnf_instance = self._create_vnf_instance_from_body(
@@ -291,7 +260,6 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
         vnf_instance_id = vnf_instance.get('id')
         self._wait_lcm_done(vnf_instance_id=vnf_instance_id)
         self._assert_create_vnf(resp, vnf_instance)
-        self.addCleanup(self._delete_vnf_instance, vnf_instance_id)
 
         # Set Fake server response for Grant-Req(Instantiate)
         vnflcm_base.FAKE_SERVER_MANAGER.set_callback('POST',
@@ -312,7 +280,7 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
         resp, _ = self._instantiate_vnf_instance(vnf_instance_id, request_body)
         self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
         self._assert_instantiate_vnf(resp, vnf_instance_id)
-        self._assert_stack_template(vnf_instance_id)
+        self._assert_stack_template(vnf_instance)
 
         # Show vnf instance
         resp, vnf_instance = self._show_vnf_instance(vnf_instance_id)
@@ -342,7 +310,7 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
         resp, _ = self._heal_vnf_instance(vnf_instance_id, request_body)
         self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
         self._assert_heal_vnf(resp, vnf_instance_id)
-        self._assert_stack_template(vnf_instance_id)
+        self._assert_stack_template(vnf_instance)
 
         # Set Fake server response for Grant-Req(Terminate)
         vnflcm_base.FAKE_SERVER_MANAGER.set_callback('POST',
@@ -351,7 +319,7 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
             req_body: fake_grant.Grant.make_term_response_body(req_body))
 
         # Get stack informations to terminate.
-        stack = self._get_heat_stack(vnf_instance_id)
+        stack = self._get_heat_stack(vnf_instance)
         resources_list = self._get_heat_resource_list(stack.id)
         resource_name_list = [r.resource_name for r in resources_list]
         glance_image_id_list = self._get_glance_image_list_from_stack_resource(
@@ -401,18 +369,7 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
              if zone.binary == 'nova-compute']))
 
         # Create subscription and register it.
-        callback_url = os.path.join(vnflcm_base.MOCK_NOTIFY_CALLBACK_URL,
-            self._testMethodName)
-        request_body = fake_vnflcm.Subscription.make_create_request_body(
-            'http://localhost:{}{}'.format(
-                vnflcm_base.FAKE_SERVER_MANAGER.SERVER_PORT,
-                callback_url))
-        resp, response_body = self._register_subscription(request_body)
-        self.assertEqual(201, resp.status_code)
-        self.assert_http_header_location_for_subscription(resp.headers)
-        self.assert_notification_get(callback_url)
-        subscription_id = response_body.get('id')
-        self.addCleanup(self._delete_subscription, subscription_id)
+        subscription_id = self.register_subscription()
 
         # Create vnf instance
         resp, vnf_instance = self._create_vnf_instance_from_body(
@@ -421,7 +378,6 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
         vnf_instance_id = vnf_instance.get('id')
         self._wait_lcm_done(vnf_instance_id=vnf_instance_id)
         self._assert_create_vnf(resp, vnf_instance)
-        self.addCleanup(self._delete_vnf_instance, vnf_instance_id)
 
         # Set Fake server response for Grant-Req(Instantiate)
         vnflcm_base.FAKE_SERVER_MANAGER.set_callback('POST',
@@ -442,7 +398,7 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
         resp, _ = self._instantiate_vnf_instance(vnf_instance_id, request_body)
         self._wait_lcm_done('COMPLETED', vnf_instance_id=vnf_instance_id)
         self._assert_instantiate_vnf(resp, vnf_instance_id)
-        self._assert_stack_template_scale(vnf_instance_id)
+        self._assert_stack_template_scale(vnf_instance)
 
         # Show vnf instance
         resp, vnf_instance = self._show_vnf_instance(vnf_instance_id)
@@ -461,7 +417,7 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
                 zone_name_list))
 
         # Scale-out vnf instance
-        stack = self._get_heat_stack(vnf_instance_id)
+        stack = self._get_heat_stack(vnf_instance)
         pre_stack_resource_list = self._get_heat_resource_list(stack.id, 2)
         request_body = fake_vnflcm.VnfInstances.\
             make_scale_request_body('SCALE_OUT')
@@ -485,7 +441,7 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
                 zone_name_list))
 
         # Scale-in vnf instance
-        stack = self._get_heat_stack(vnf_instance_id)
+        stack = self._get_heat_stack(vnf_instance)
         pre_stack_resource_list = self._get_heat_resource_list(stack.id, 2)
 
         request_body = fake_vnflcm.VnfInstances.make_scale_request_body(
@@ -506,7 +462,7 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
             req_body: fake_grant.Grant.make_term_response_body(req_body))
 
         # Get stack informations to terminate.
-        stack = self._get_heat_stack(vnf_instance_id)
+        stack = self._get_heat_stack(vnf_instance)
         resources_list = self._get_heat_resource_list(stack.id)
         resource_name_list = [r.resource_name for r in resources_list]
         glance_image_id_list = self._get_glance_image_list_from_stack_resource(
@@ -689,7 +645,7 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
         self.assertIsNotNone(_links.get('grant'))
         self.assertIsNotNone(_links.get('grant').get('href'))
 
-    def _get_fixed_ips(self, vnf_instance_id, request_body):
+    def _get_fixed_ips(self, vnf_instance, request_body):
         res_name = None
         for extvirlink in request_body['extVirtualLinks']:
             if 'extCps' not in extvirlink:
@@ -702,7 +658,7 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
                     break
         self.assertTrue(res_name)
 
-        stack = self._get_heat_stack(vnf_instance_id)
+        stack = self._get_heat_stack(vnf_instance)
         stack_id = stack.id
 
         stack_resource = self._get_heat_resource_list(stack_id, nested_depth=2)
@@ -730,22 +686,22 @@ class VnfLcmWithNfvoSeparator(vnflcm_base.BaseVnfLcmTest):
 
         return ans_list
 
-    def _assert_stack_template(self, vnf_instance_id):
-        stack = self._get_heat_stack(vnf_instance_id)
+    def _assert_stack_template(self, vnf_instance):
+        stack = self._get_heat_stack(vnf_instance)
         resources_list\
             = self._get_heat_resource_list(stack.id, nested_depth=2)
-        stack_name_wd = vnf_instance_id + "-VDU2"
+        stack_name_wd = vnf_instance['id'] + "-VDU2"
         physical_resource_id = [r.physical_resource_id for r
         in resources_list if stack_name_wd in r.stack_name]
         template = self._get_heat_stack_template(physical_resource_id[0])
         template_count = str(template).count("flavor")
         self.assertEqual(template_count, 3)
 
-    def _assert_stack_template_scale(self, vnf_instance_id):
-        stack = self._get_heat_stack(vnf_instance_id)
+    def _assert_stack_template_scale(self, vnf_instance):
+        stack = self._get_heat_stack(vnf_instance)
         resources_list\
             = self._get_heat_resource_list(stack.id, nested_depth=2)
-        stack_name_wd = vnf_instance_id + "-VDU1"
+        stack_name_wd = vnf_instance['id'] + "-VDU1"
         physical_resource_id = [r.physical_resource_id for r
         in resources_list if stack_name_wd in r.stack_name]
         template = self._get_heat_stack_template(physical_resource_id[0])
