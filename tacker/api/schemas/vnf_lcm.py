@@ -91,7 +91,7 @@ _cpProtocolData = {
         'type': 'object',
         'properties': {
             'layerProtocol': {'type': 'string',
-                              'enum': 'IP_OVER_ETHERNET'
+                              'enum': ['IP_OVER_ETHERNET']
                               },
             'ipOverEthernet': _ipOverEthernetAddressData,
         },
