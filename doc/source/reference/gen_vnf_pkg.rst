@@ -49,6 +49,9 @@ You can check the networks with the following command.
   | eeb398f0-818b-4c75-9573-8f50fa5de501 | net_mgmt        | bfa8e9d2-039d-4e59-85a2-8a9801d90cfd                                       |
   | ef55ac46-bb38-4abe-bdf7-2b9d3be02266 | k8s-service-net | 0d98b3b8-a6fd-4044-8acf-f0630755f956                                       |
   +--------------------------------------+-----------------+----------------------------------------------------------------------------+
+
+.. code-block:: console
+
   $ openstack subnet list
   +--------------------------------------+-------------------------+--------------------------------------+---------------------+
   | ID                                   | Name                    | Network                              | Subnet              |
@@ -72,156 +75,176 @@ Usage
 By specifying the VIM Type as an option, a sample of the corresponding
 VNF Package for Tacker v2 API is generated.
 
-This tool support the following VIM Types:
+This tool supports the following VIM Types:
 
 * ETSINFV.OPENSTACK_KEYSTONE.V_3
 * ETSINFV.KUBERNETES.V_1
 * ETSINFV.HELM.V_3
 
-In this document, ``TACKER_ROOT`` is the root of tacker's repository on
-the server.
+Refer to help message for the usage.
+
+.. note::
+
+  In this document, ``TACKER_ROOT`` is the root of tacker's repository on
+  the server.
 
 .. code-block:: console
 
   $ cd TACKER_ROOT/tools
   $ python3 gen_vnf_pkg.py -h
-  usage: gen_vnf_pkg.py [-h] -t VIM_TYPE
+  usage: gen_vnf_pkg.py [-h] -t VIM_TYPE [-c VIM_CONF] [--vim-id VIM_ID] [--vim-name VIM_NAME]
 
   Create VNF Package zip and parameter files
 
   options:
     -h, --help            show this help message and exit
     -t VIM_TYPE, --type VIM_TYPE
-                          specify the vim type
-                            * ETSINFV.OPENSTACK_KEYSTONE.V_3
-                            * ETSINFV.KUBERNETES.V_1
-                            * ETSINFV.HELM.V_3
+                          vim type (lowercase is also available)
+                          * ETSINFV.OPENSTACK_KEYSTONE.V_3
+                          * ETSINFV.KUBERNETES.V_1
+                          * ETSINFV.HELM.V_3
+    -c VIM_CONF, --vim-config VIM_CONF
+                          Path of VIM config file for specifying the VIM
+    --vim-id VIM_ID       VIM ID (Only for OpenStack and overwrittenby `--vim-config`)
+    --vim-name VIM_NAME   Name of VIM (Only for OpenStack and overwrittenby `--vim-config`)
 
 
 .. note::
 
   This tool requires some Tacker modules, so you need to run it in
   an environment where Tacker is installed.
-  If you have installed Tacker in python virtual environment using devstack,
-  etc., please activate it as follows before using the tool.
+
+  You can run the tool from virtual environment if you've setup Tacker
+  with devstack. Activate it as follows before using the tool.
 
   .. code-block:: console
 
     $ source ~/data/venv/bin/activate
-    (venv) $ python3 gen_vnf_pkg.py -h
+    (venv) $ python3 $TACKER_ROOT/tools/gen_vnf_pkg.py -h
+
+  Or run the tool from tox which is defined as tox's environment
+  ``gen-pkg`` without devstack environment.
+
+  .. code-block:: console
+
+    $ tox -e gen-pkg -- -h
 
 
-The output of this tool is as follows:
-
-* Specified VIM Type
-* Generated zip file name
-* List of file names included in the generated zip file
+Examples of output for three types showing generated zip and request files,
+and list of file names included in the generated zip file.
 
 .. code-block:: console
 
   $ python3 gen_vnf_pkg.py -t ETSINFV.OPENSTACK_KEYSTONE.V_3
-  VIM type = ETSINFV.OPENSTACK_KEYSTONE.V_3
-  Zip file: userdata_standard.zip
-  --------------------------------------------------
-  BaseHOT/
-  Definitions/
-  Files/
-  Scripts/
-  TOSCA-Metadata/
-  UserData/
-  Files/images/
-  Files/images/cirros-0.5.2-x86_64-disk.img
-  Scripts/coordinate_vnf.py
-  Scripts/sample_script.py
-  TOSCA-Metadata/TOSCA.meta
-  UserData/userdata_standard.py
-  BaseHOT/simple/
-  BaseHOT/simple/nested/
-  BaseHOT/simple/sample3.yaml
-  BaseHOT/simple/nested/VDU1.yaml
-  BaseHOT/simple/nested/VDU2.yaml
-  Definitions/v2_sample3_types.yaml
-  Definitions/v2_sample3_top.vnfd.yaml
-  Definitions/etsi_nfv_sol001_vnfd_types.yaml
-  Definitions/etsi_nfv_sol001_common_types.yaml
-  Definitions/v2_sample3_df_simple.yaml
-  --------------------------------------------------
+  Generating package and request files in './output/userdata_standard/' ...
+  VNF package: userdata_standard.zip
+  Request files: create_req, terminate_req, instantiate_req, scale_out_req, scale_in_req, heal_req, change_ext_conn_req, update_req
+  Contents of the VNF package:
+  File Name                                             Modified             Size
+  BaseHOT/                                       2024-08-28 05:36:20            0
+  Definitions/                                   2025-01-29 10:58:48            0
+  Files/                                         2025-01-29 10:58:48            0
+  Scripts/                                       2024-08-28 05:36:20            0
+  TOSCA-Metadata/                                2024-08-28 05:36:20            0
+  UserData/                                      2025-01-29 10:58:48            0
+  BaseHOT/simple/                                2024-08-28 05:36:20            0
+  BaseHOT/simple/nested/                         2024-08-28 05:36:20            0
+  BaseHOT/simple/sample3.yaml                    2024-08-28 05:36:20         1694
+  BaseHOT/simple/nested/VDU1.yaml                2024-08-28 05:36:20         1179
+  BaseHOT/simple/nested/VDU2.yaml                2024-08-28 05:36:20         1725
+  UserData/userdata_standard.py                  2025-01-29 10:58:48        20805
+  Files/images/                                  2025-01-29 10:58:48            0
+  Files/images/cirros-0.5.2-x86_64-disk.img      2025-01-29 10:58:48     16300544
+  Scripts/coordinate_vnf.py                      2024-08-28 05:36:20         2785
+  Scripts/sample_script.py                       2024-08-28 05:36:20         1964
+  Definitions/etsi_nfv_sol001_common_types.yaml  2025-01-29 10:58:48         9093
+  Definitions/etsi_nfv_sol001_vnfd_types.yaml    2025-01-29 10:58:48        67046
+  Definitions/v2_sample3_types.yaml              2025-01-29 10:58:48         1630
+  Definitions/v2_sample3_top.vnfd.yaml           2025-01-29 10:58:48          887
+  Definitions/v2_sample3_df_simple.yaml          2025-01-29 10:58:48        10149
+  TOSCA-Metadata/TOSCA.meta                      2024-08-28 05:36:20          133
+
+.. code-block:: console
 
   $ python3 gen_vnf_pkg.py -t ETSINFV.KUBERNETES.V_1
-  VIM type: ETSINFV.KUBERNETES.V_1
-  Zip file: test_instantiate_cnf_resources.zip
-  --------------------------------------------------
-  Definitions/
-  Files/
-  Scripts/
-  TOSCA-Metadata/
-  Files/kubernetes/
-  Files/kubernetes/controller-revision.yaml
-  Files/kubernetes/role_rolebinding_SA.yaml
-  Files/kubernetes/pod-template.yaml
-  Files/kubernetes/deployment.yaml
-  Files/kubernetes/statefulset.yaml
-  Files/kubernetes/multiple_yaml_priority-class.yaml
-  Files/kubernetes/persistent-volume-0.yaml
-  Files/kubernetes/storage-class_pv_pvc.yaml
-  Files/kubernetes/multiple_yaml_network-policy.yaml
-  Files/kubernetes/subject-access-review.yaml
-  Files/kubernetes/self-subject-access-review_and_self-subject-rule-review.yaml
-  Files/kubernetes/bindings.yaml
-  Files/kubernetes/pod.yaml
-  Files/kubernetes/daemon-set.yaml
-  Files/kubernetes/job.yaml
-  Files/kubernetes/persistent-volume-1.yaml
-  Files/kubernetes/horizontal-pod-autoscaler.yaml
-  Files/kubernetes/multiple_yaml_lease.yaml
-  Files/kubernetes/namespace.yaml
-  Files/kubernetes/clusterrole_clusterrolebinding_SA.yaml
-  Files/kubernetes/storage-class.yaml
-  Files/kubernetes/limit-range.yaml
-  Files/kubernetes/local-subject-access-review.yaml
-  Files/kubernetes/replicaset_service_secret.yaml
-  Files/kubernetes/resource-quota.yaml
-  Files/kubernetes/deployment_fail_test.yaml
-  Files/kubernetes/token-review.yaml
-  Files/kubernetes/config-map.yaml
-  Scripts/sample_script.py
-  TOSCA-Metadata/TOSCA.meta
-  Definitions/sample_cnf_df_simple.yaml
-  Definitions/etsi_nfv_sol001_vnfd_types.yaml
-  Definitions/etsi_nfv_sol001_common_types.yaml
-  Definitions/sample_cnf_top.vnfd.yaml
-  Definitions/sample_cnf_types.yaml
-  --------------------------------------------------
+  Generating package and request files in './output/test_instantiate_cnf_resources/' ...
+  VNF package: test_instantiate_cnf_resources.zip
+  Request files: create_req, max_sample_instantiate, max_sample_terminate, max_sample_scale_out, max_sample_scale_in, max_sample_heal
+  Contents of the VNF package:
+  File Name                                             Modified             Size
+  Definitions/                                   2025-01-29 11:02:26            0
+  Files/                                         2024-08-28 05:36:20            0
+  Scripts/                                       2024-08-28 05:36:20            0
+  TOSCA-Metadata/                                2024-12-19 07:57:02            0
+  Files/kubernetes/                              2024-12-19 07:57:02            0
+  Files/kubernetes/limit-range.yaml              2024-08-28 05:36:20          165
+  Files/kubernetes/storage-class_pv_pvc.yaml     2024-08-28 05:36:20          697
+  Files/kubernetes/job.yaml                      2024-12-19 07:57:02          554
+  Files/kubernetes/controller-revision.yaml      2024-08-28 05:36:20          127
+  Files/kubernetes/subject-access-review.yaml    2024-08-28 05:36:20          188
+  Files/kubernetes/replicaset_service_secret.yaml 2024-08-28 05:36:20          950
+  Files/kubernetes/bindings.yaml                 2024-08-28 05:36:20          150
+  Files/kubernetes/namespace.yaml                2024-08-28 05:36:20           54
+  Files/kubernetes/deployment_fail_test.yaml     2024-08-28 05:36:20          537
+  Files/kubernetes/statefulset.yaml              2024-08-28 05:36:20          825
+  Files/kubernetes/config-map.yaml               2024-08-28 05:36:20          120
+  Files/kubernetes/horizontal-pod-autoscaler.yaml 2024-08-28 05:36:20          280
+  Files/kubernetes/persistent-volume-0.yaml      2024-08-28 05:36:20          281
+  Files/kubernetes/token-review.yaml             2024-08-28 05:36:20          291
+  Files/kubernetes/persistent-volume-1.yaml      2024-08-28 05:36:20          285
+  Files/kubernetes/pod-template.yaml             2024-12-19 07:57:02          923
+  Files/kubernetes/deployment.yaml               2024-08-28 05:36:20          536
+  Files/kubernetes/local-subject-access-review.yaml 2024-08-28 05:36:20          224
+  Files/kubernetes/self-subject-access-review_and_self-subject-rule-review.yaml 2024-08-28 05:36:20          275
+  Files/kubernetes/resource-quota.yaml           2024-08-28 05:36:20          158
+  Files/kubernetes/clusterrole_clusterrolebinding_SA.yaml 2024-08-28 05:36:20          578
+  Files/kubernetes/storage-class.yaml            2024-08-28 05:36:20          153
+  Files/kubernetes/role_rolebinding_SA.yaml      2024-08-28 05:36:20          559
+  Files/kubernetes/multiple_yaml_priority-class.yaml 2024-08-28 05:36:20          155
+  Files/kubernetes/pod.yaml                      2024-12-19 07:57:02          291
+  Files/kubernetes/multiple_yaml_lease.yaml      2024-08-28 05:36:20          155
+  Files/kubernetes/daemon-set.yaml               2024-08-28 05:36:20          417
+  Files/kubernetes/multiple_yaml_network-policy.yaml 2024-08-28 05:36:20          277
+  Scripts/sample_script.py                       2024-08-28 05:36:20         1964
+  Definitions/etsi_nfv_sol001_common_types.yaml  2025-01-29 11:02:26         9093
+  Definitions/sample_cnf_types.yaml              2025-01-29 11:02:26         1538
+  Definitions/etsi_nfv_sol001_vnfd_types.yaml    2025-01-29 11:02:26        67046
+  Definitions/sample_cnf_df_simple.yaml          2025-01-29 11:02:26         6771
+  Definitions/sample_cnf_top.vnfd.yaml           2025-01-29 11:02:26          887
+  TOSCA-Metadata/TOSCA.meta                      2024-12-19 07:57:02         4661
+
+.. code-block:: console
 
   $ python3 gen_vnf_pkg.py -t ETSINFV.HELM.V_3
-  VIM type = ETSINFV.HELM.V_3
-  Zip file: test_helm_instantiate.zip
-  --------------------------------------------------
-  Definitions/
-  Files/
-  Scripts/
-  TOSCA-Metadata/
-  Files/kubernetes/
-  Files/kubernetes/test-chart/
-  Files/kubernetes/test-chart-0.1.0.tgz
-  Files/kubernetes/test-chart/templates/
-  Files/kubernetes/test-chart/Chart.yaml
-  Files/kubernetes/test-chart/values.yaml
-  Files/kubernetes/test-chart/.helmignore
-  Files/kubernetes/test-chart/templates/service.yaml
-  Files/kubernetes/test-chart/templates/deployment_vdu2.yaml
-  Files/kubernetes/test-chart/templates/NOTES.txt
-  Files/kubernetes/test-chart/templates/serviceaccount.yaml
-  Files/kubernetes/test-chart/templates/_helpers.tpl
-  Files/kubernetes/test-chart/templates/deployment_vdu1.yaml
-  Scripts/sample_script.py
-  TOSCA-Metadata/TOSCA.meta
-  Definitions/sample_cnf_df_simple.yaml
-  Definitions/etsi_nfv_sol001_vnfd_types.yaml
-  Definitions/etsi_nfv_sol001_common_types.yaml
-  Definitions/sample_cnf_top.vnfd.yaml
-  Definitions/sample_cnf_types.yaml
-  --------------------------------------------------
+  Generating package and request files into './output/helm_instantiate/' ...
+  VNF package: test_helm_instantiate.zip
+  Request files: create_req, helm_instantiate_req, helm_terminate_req, helm_scale_out, helm_scale_in, helm_heal
+  Contents of the VNF package:
+  File Name                                             Modified             Size
+  Definitions/                                   2025-01-29 11:11:48            0
+  Files/                                         2024-08-28 05:36:20            0
+  Scripts/                                       2024-08-28 05:36:20            0
+  TOSCA-Metadata/                                2024-08-28 05:36:20            0
+  Files/kubernetes/                              2024-08-28 05:36:20            0
+  Files/kubernetes/test-chart/                   2024-08-28 05:36:20            0
+  Files/kubernetes/test-chart-0.1.0.tgz          2024-08-28 05:36:20         2882
+  Files/kubernetes/test-chart/templates/         2024-08-28 05:36:20            0
+  Files/kubernetes/test-chart/values.yaml        2024-08-28 05:36:20         1409
+  Files/kubernetes/test-chart/.helmignore        2024-08-28 05:36:20          349
+  Files/kubernetes/test-chart/Chart.yaml         2024-08-28 05:36:20          125
+  Files/kubernetes/test-chart/templates/NOTES.txt 2024-08-28 05:36:20         1554
+  Files/kubernetes/test-chart/templates/serviceaccount.yaml 2024-08-28 05:36:20          326
+  Files/kubernetes/test-chart/templates/deployment_vdu2.yaml 2024-08-28 05:36:20         1519
+  Files/kubernetes/test-chart/templates/deployment_vdu1.yaml 2024-08-28 05:36:20         1598
+  Files/kubernetes/test-chart/templates/_helpers.tpl 2024-08-28 05:36:20         1812
+  Files/kubernetes/test-chart/templates/service.yaml 2024-08-28 05:36:20          370
+  Scripts/sample_script.py                       2024-08-28 05:36:20         1964
+  Definitions/etsi_nfv_sol001_common_types.yaml  2025-01-29 11:11:48         9093
+  Definitions/sample_cnf_types.yaml              2025-01-29 11:11:48         1538
+  Definitions/etsi_nfv_sol001_vnfd_types.yaml    2025-01-29 11:11:48        67046
+  Definitions/sample_cnf_df_simple.yaml          2025-01-29 11:11:48         4770
+  Definitions/sample_cnf_top.vnfd.yaml           2025-01-29 11:11:48          887
+  TOSCA-Metadata/TOSCA.meta                      2024-08-28 05:36:20          285
 
 
 This tool generates a VNF Package zip file and a sample request file
@@ -245,16 +268,9 @@ for each VIM Type under the output directory.
   helm_terminate_req  test_helm_instantiate.zip
 
 
-.. note::
-
-  If a file exists with the same name as the zip file being generated,
-  the tool will fail.
-  When running the tool again to generate a zip file,
-  please delete or rename the old zip file.
-
-
 For the following request files, ``endpoint``, ``ssl_ca_cert`` and
-``bearer_token`` need to be changed by your own k8s cluster information.
+``bearer_token`` need to be changed by your own k8s cluster information,
+or replaced with params VIM config file specified with ``-c`` option.
 
 * max_sample_instantiate for ETSINFV.KUBERNETES.V_1
 * helm_instantiate_req for ETSINFV.HELM.V_3
@@ -271,7 +287,8 @@ For the following request files, ``endpoint``, ``ssl_ca_cert`` and
 
 
 You can also set your own k8s cluster information to ``auth_url``,
-``bearer_token``, and ``ssl_ca_cert`` in gen_vnf_pkg.py before running this tool.
+``bearer_token``, and ``ssl_ca_cert`` in gen_vnf_pkg.py before running this
+tool.
 
 .. note::
 
