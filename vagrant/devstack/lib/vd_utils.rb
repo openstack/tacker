@@ -34,7 +34,7 @@ module VdUtils
       dst = "#{target_dir}/templates/gitconfig.j2"
 
       gitconfig = File.expand_path src
-      if File.exists? gitconfig
+      if File.exist? gitconfig
         FileUtils.copy(gitconfig, dst)
       end
     end

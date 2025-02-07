@@ -1,18 +1,12 @@
 ---
-- name: ubuntu-jammy controller node
-  hosts: ubuntu-jammy.controller
+- name: ubuntu-noble controller node
+  hosts: ubuntu-noble.controller
   remote_user: stack
   roles:
-      - ubuntu-jammy/controller
+      - ubuntu-noble/controller
 
-- name: ubuntu-jammy compute nodes
-  hosts: ubuntu-jammy.compute
+- name: ubuntu-noble compute nodes
+  hosts: ubuntu-noble.compute
   remote_user: stack
   roles:
-      - ubuntu-jammy/compute
-
-- name: centos-stream8 controller node
-  hosts: centos-stream8.controller
-  remote_user: stack
-  roles:
-      - centos-stream8/controller
+      - ubuntu-noble/compute

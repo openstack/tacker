@@ -1,11 +1,5 @@
-[ubuntu-jammy.controller]
+[ubuntu-noble.controller]
 192.168.56.11
 
-[ubuntu-jammy.compute]
+[ubuntu-noble.compute]
 #192.168.56.12
-
-[centos-stream8.controller]
-#192.168.56.15
-
-[centos-stream8.compute]
-#192.168.56.16
