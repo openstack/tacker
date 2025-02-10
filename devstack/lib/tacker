@@ -67,15 +67,6 @@ TACKER_PROTOCOL=${TACKER_PROTOCOL:-$SERVICE_PROTOCOL}
 TACKER_ADMIN_USERNAME=${TACKER_ADMIN_USERNAME:-tacker}
 # Default auth strategy
 TACKER_AUTH_STRATEGY=${TACKER_AUTH_STRATEGY:-keystone}
-TACKER_USE_ROOTWRAP=${TACKER_USE_ROOTWRAP:-True}
-
-TACKER_RR_CONF_FILE=$TACKER_CONF_DIR/rootwrap.conf
-if [[ "$TACKER_USE_ROOTWRAP" == "False" ]]; then
-    TACKER_RR_COMMAND="sudo"
-else
-    TACKER_ROOTWRAP=$(get_rootwrap_location tacker)
-    TACKER_RR_COMMAND="sudo $TACKER_ROOTWRAP $TACKER_RR_CONF_FILE"
-fi
 
 TACKER_NOVA_URL=${TACKER_NOVA_URL:-http://127.0.0.1:8774/v2}
 TACKER_NOVA_CA_CERTIFICATES_FILE=${TACKER_NOVA_CA_CERTIFICATES_FILE:-}
@@ -272,47 +263,10 @@ function configure_tacker {
     if [[ "${USE_BARBICAN}" == "True" ]]; then
          iniset $TACKER_CONF vim_keys use_barbican True
     fi
-    _tacker_setup_rootwrap
 }
 
 # Utility Functions
 #------------------
-
-# _tacker_deploy_rootwrap_filters() - deploy rootwrap filters to $TACKER_CONF_ROOTWRAP_D (owned by root).
-function _tacker_deploy_rootwrap_filters {
-    local srcdir=$1
-    sudo install -d -o root -m 755 $TACKER_CONF_ROOTWRAP_D
-    sudo install -o root -m 644 $srcdir/etc/tacker/rootwrap.d/* $TACKER_CONF_ROOTWRAP_D/
-}
-
-# _tacker_setup_rootwrap() - configure Tacker's rootwrap
-function _tacker_setup_rootwrap {
-    if [[ "$TACKER_USE_ROOTWRAP" == "False" ]]; then
-        return
-    fi
-    # Wipe any existing ``rootwrap.d`` files first
-    TACKER_CONF_ROOTWRAP_D=$TACKER_CONF_DIR/rootwrap.d
-    if [[ -d $TACKER_CONF_ROOTWRAP_D ]]; then
-        sudo rm -rf $TACKER_CONF_ROOTWRAP_D
-    fi
-
-    _tacker_deploy_rootwrap_filters $TACKER_DIR
-
-    sudo install -o root -g root -m 644 $TACKER_DIR/etc/tacker/rootwrap.conf $TACKER_RR_CONF_FILE
-    sudo sed -e "s:^filters_path=.*$:filters_path=$TACKER_CONF_ROOTWRAP_D:" -i $TACKER_RR_CONF_FILE
-    # Specify ``rootwrap.conf`` as first parameter to tacker-rootwrap
-    ROOTWRAP_SUDOER_CMD="$TACKER_ROOTWRAP $TACKER_RR_CONF_FILE *"
-
-    # Set up the rootwrap sudoers for tacker
-    TEMPFILE=`mktemp`
-    echo "$STACK_USER ALL=(root) NOPASSWD: $ROOTWRAP_SUDOER_CMD" >$TEMPFILE
-    chmod 0440 $TEMPFILE
-    sudo chown root:root $TEMPFILE
-    sudo mv $TEMPFILE /etc/sudoers.d/tacker-rootwrap
-
-    # Update the root_helper
-    iniset $TACKER_CONF agent root_helper "$TACKER_RR_COMMAND"
-}
 
 # Configures keystone integration for tacker service and agents
 function _tacker_setup_keystone {
