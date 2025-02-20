@@ -14,8 +14,8 @@ import json
 import os
 
 from oslo_log import log as logging
+
 from tacker.vnfm.mgmt_drivers.ansible import event_handler
-from tacker.vnfm.mgmt_drivers.ansible import exceptions
 
 from tacker.vnfm.mgmt_drivers.ansible.config_actions.\
     vm_app_config import executor
@@ -82,22 +82,43 @@ class AnsiblePlaybookExecutor(executor.Executor):
                 params += "{}={} ".format(key, str_value)
         return params
 
+    def _get_venv_activate_cmd(self, playbook_cmd):
+        ansible_version = playbook_cmd.get("ansible_version", "")
+
+        if not ansible_version:
+            return ""
+
+        if ansible_version not in self._venv_paths:
+            LOG.warning(
+                "ansible_version=%s env does not exist, "
+                "so run in default env.",
+                ansible_version,
+            )
+            LOG.warning("venv_paths=%s", self._venv_paths)
+            return ""
+
+        venv_path = self._venv_paths[ansible_version]
+        activate_script_path = "{}/bin/activate".format(venv_path.rstrip("/"))
+
+        if not os.path.exists(activate_script_path):
+            LOG.warning(
+                "Environment for ansible_version=%s cannot be activated, "
+                "so run in default env. "
+                "Please check if the environment is properly set up.",
+                ansible_version,
+            )
+            return ""
+
+        venv_activate_cmd = ". {} ;".format(activate_script_path)
+        return venv_activate_cmd
+
     def _convert_mgmt_url_to_extra_vars(self, mgmt_url):
         return json.dumps(mgmt_url)
 
-    def _get_playbook_path(self, playbook_cmd):
-        path = playbook_cmd.get("path", "")
-        if not path:
-            raise exceptions.ConfigValidationError(
-                vdu=self._vdu,
-                details="Playbook {} did not specify path".format(playbook_cmd)
-            )
-        return path
-
     def _get_final_command(self, playbook_cmd):
-        init_cmd = ("cd {} ; ansible-playbook -i {} -vvv {} "
+        venv_activate_cmd = (self._get_venv_activate_cmd(playbook_cmd))
+        init_cmd = ("ansible-playbook -i {} {} "
         "--extra-vars \"host={} node_pair_ip={}".format(
-            os.path.dirname(self._get_playbook_path(playbook_cmd)),
             self._get_playbook_target_hosts(playbook_cmd),
             self._get_playbook_path(playbook_cmd),
             self._mgmt_ip_address,
@@ -140,7 +161,8 @@ class AnsiblePlaybookExecutor(executor.Executor):
         mgmt_url_vars = " --extra-vars '{}'".format(
             self._convert_mgmt_url_to_extra_vars(self._mgmt_url))
 
-        cmd_raw = "{} {} {} {} {}".format(
+        cmd_raw = "{} {} {} {} {} {}".format(
+            venv_activate_cmd,
             init_cmd,
             ssh_args,
             self._get_params(playbook_cmd),

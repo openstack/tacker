@@ -347,6 +347,8 @@ of the tacker.
     vnflcm_noop = tacker.vnfm.mgmt_drivers.vnflcm_noop:VnflcmMgmtNoop
     ansible_driver = tacker.vnfm.mgmt_drivers.ansible.ansible:DeviceMgmtAnsible
 
+.. _set_tacker_conf:
+
 2. Set the tacker.conf
 ^^^^^^^^^^^^^^^^^^^^^^
 
@@ -362,6 +364,55 @@ and separate by commas.
     ...
     vnflcm_mgmt_driver = vnflcm_noop,ansible_driver
     ...
+
+
+This is example of advanced configuration (optional).
+
+To allow users to select an Ansible version other than the default,
+define mapping of virtual environment paths and identifier in ``venv_path``.
+
+To enforce specific Ansible execution options,
+define the environment variables and values in ``env_vars``.
+Here, you can use markers in the values to replace them with specific values.
+
+.. code-block:: console
+
+    $ vi /etc/tacker/tacker.conf
+    ...
+    [ansible]
+    venv_path = ansible-2.9:/opt/my-envs/2.9
+    venv_path = ansible-2.10:/opt/my-envs/2.10
+    venv_path = ansible-2.11:/opt/my-envs/2.11
+    env_vars = ANSIBLE_CALLBACK_PLUGINS:/opt/callback_plugins
+    env_vars = ANSIBLE_STDOUT_CALLBACK:custom_callback_plugin_for_tacker
+    env_vars = ANSIBLE_LOG_PATH:/var/log/tacker/ansible_driver/{tenant_id}_{vnflcm_id}_{lcm_name}_{vdu_name}.log
+    ...
+
+.. list-table:: Markers Available in ``env_vars``
+   :widths: 20 40 40
+   :header-rows: 1
+
+   * - Marker
+     - Meaning
+     - Example Conversion
+   * - ``{tenant_id}``
+     - Tenant ID invoking the playbook
+     - ``0000000000000000000000000000000``
+   * - ``{vnflcm_id}``
+     - VNFLCM ID invoking the playbook
+     - ``00000000-0000-0000-0000-000000000000``
+   * - ``{lcm_name}``
+     - LCM operation name
+     - ``instantiate``, ``termination``, ``healing``, ``scale-in``, ``scale-out``
+   * - ``{timestamp}``
+     - Playbook execution time (Unix timestamp)
+     - ``1721128301``
+   * - ``{date}``
+     - Playbook execution date (yyyy-MM-dd)
+     - ``2024-06-22``
+   * - ``{vdu_name}``
+     - Virtual Deployment Unit name
+     - ``VDU_1``
 
 3. Update the tacker.egg-info
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -486,13 +537,18 @@ by the set value.
                params:
                  ansible_password: _VAR_password
                order: 0
+               ansible_version: ansible-2.11 # Optional
 
 The example above shows that we have a key ``_VAR_password`` with a value
 ``password``. It will replace the ``_VAR_password`` used in the
 ``vm_app_config``.
 
-.. note::
+To specify an Ansible version other than the default, set ``ansible_version``.
+Note that to use this option, you must first install multiple Ansible versions
+and define a mapping of virtual environment paths and identifiers
+in ``tacker.conf`` (see :ref:`set_tacker_conf`).
 
+.. note::
     The ``_VAR_vnf_package_path/`` variable is mandatory for the path of the
     Ansible Playbook. This value is replaced by the actual vnf package path
     during runtime.
