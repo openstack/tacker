@@ -8,35 +8,37 @@
     check:
       jobs:
         - tacker-ft-v2-k8s
-        - tacker-ft-v2-df-userdata-basic-max
         - tacker-ft-v2-df-userdata-basic-min
         - tacker-ft-v2-df-userdata-update
         - tacker-ft-v2-df-userdata-scale
         - tacker-ft-v2-df-userdata-ccvp
         - tacker-ft-v2-df-userdata-err-handling
         - tacker-ft-v2-st-userdata-basic
-        - tacker-ft-v2-st-userdata-basic-max
         - tacker-ft-v2-st-userdata-basic-min
         - tacker-ft-v2-st-userdata-ccvp
-        - tacker-ft-v2-st-userdata-various-lcm
-        - tacker-ft-v2-st-userdata-err-handling
-        - tacker-ft-v2-prometheus
-        - tacker-ft-v2-df-userdata-encrypt-cred-barbican
-        - tacker-ft-v2-df-userdata-encrypt-cred-local
         - tacker-ft-v2-df-userdata-https
         - tacker-ft-v2-df-userdata-notification
-        - tacker-ft-v2-df-userdata-separated-nfvo
-        - tacker-ft-v2-st-userdata-az-retry
         - tacker-ft-v2-terraform
+        - tacker-ft-v1-vnfpkgm
+        - tacker-ft-v1-k8s
+        - tacker-ft-v1-userdata-vnflcm
+        - tacker-ft-v1-compliance-sol
+    periodic-weekly:
+      jobs:
+        - tacker-ft-v2-df-userdata-basic-max
+        - tacker-ft-v2-df-userdata-separated-nfvo
+        - tacker-ft-v2-df-userdata-encrypt-cred-barbican
+        - tacker-ft-v2-df-userdata-encrypt-cred-local
+        - tacker-ft-v2-st-userdata-various-lcm
+        - tacker-ft-v2-st-userdata-err-handling
+        - tacker-ft-v2-st-userdata-basic-max
+        - tacker-ft-v2-st-userdata-az-retry
+        - tacker-ft-v2-prometheus
         - tacker-ft-k8s-oidc-auth
         - tacker-ft-k8s-enhanced-policy-sol
         - tacker-ft-enhanced-policy-sol
         - tacker-ft-legacy-vim
-        - tacker-ft-v1-vnfpkgm
-        - tacker-ft-v1-k8s
-        - tacker-ft-v1-k8s-multi-tenant
-        - tacker-ft-v1-tosca-vnflcm
-        - tacker-ft-v1-userdata-vnflcm
         - tacker-ft-v1-userdata-multi-tenant
         - tacker-ft-v1-userdata-separated-nfvo
-        - tacker-ft-v1-compliance-sol
+        - tacker-ft-v1-k8s-multi-tenant
+        - tacker-ft-v1-tosca-vnflcm
