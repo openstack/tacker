@@ -15,7 +15,6 @@
 
 import copy
 import datetime
-import iso8601
 
 from tacker.db.db_sqlalchemy import models
 from tacker.tests import constants
@@ -29,7 +28,7 @@ vnf_package_data = {'algorithm': None, 'hash': None,
                     'usage_state': 'NOT_IN_USE',
                     'user_data': {'abc': 'xyz'},
                     'created_at': datetime.datetime(
-                        2019, 8, 8, 0, 0, 0, tzinfo=iso8601.UTC),
+                        2019, 8, 8, 0, 0, 0, tzinfo=datetime.timezone.utc),
                     'deleted': False,
                     'size': 0,
                     "downloading": 0
@@ -122,9 +121,9 @@ lcm_op_occs_data = {
     "tenant_id": uuidsentinel.tenant_id,
     'operation_state': 'PROCESSING',
     'state_entered_time': datetime.datetime(1900, 1, 1, 1, 1, 1,
-                                            tzinfo=iso8601.UTC),
+                                            tzinfo=datetime.timezone.utc),
     'start_time': datetime.datetime(1900, 1, 1, 1, 1, 1,
-                                    tzinfo=iso8601.UTC),
+                                    tzinfo=datetime.timezone.utc),
     'operation': 'MODIFY_INFO',
     'is_automatic_invocation': 0,
     'is_cancel_pending': 0,
@@ -169,7 +168,8 @@ vnf_deployment_flavour = {'flavour_id': 'simple',
                               'default_level': 'instantiation_level_1'
                           },
                           'created_at': datetime.datetime(
-                              2019, 8, 8, 0, 0, 0, tzinfo=iso8601.UTC),
+                              2019, 8, 8, 0, 0, 0,
+                              tzinfo=datetime.timezone.utc),
                           }
 
 vnf_artifacts = {
@@ -177,7 +177,8 @@ vnf_artifacts = {
     '_metadata': {},
     'algorithm': 'sha-256',
     'hash': 'd0e7828293355a07c2dccaaa765c80b507e60e6167067c950dc2e6b0da0dbd8b',
-    'created_at': datetime.datetime(2020, 6, 29, 0, 0, 0, tzinfo=iso8601.UTC),
+    'created_at': datetime.datetime(
+        2020, 6, 29, 0, 0, 0, tzinfo=datetime.timezone.utc),
 }
 
 
@@ -254,9 +255,9 @@ def get_lcm_op_occs_data(id, vnf_instance_id):
         "tenant_id": uuidsentinel.tenant_id,
         'operation_state': 'PROCESSING',
         'state_entered_time': datetime.datetime(1900, 1, 1, 1, 1, 1,
-                                                tzinfo=iso8601.UTC),
+                                                tzinfo=datetime.timezone.utc),
         'start_time': datetime.datetime(1900, 1, 1, 1, 1, 1,
-                                        tzinfo=iso8601.UTC),
+                                        tzinfo=datetime.timezone.utc),
         'vnf_instance_id': vnf_instance_id,
         'operation': 'MODIFY_INFO',
         'is_automatic_invocation': 0,
@@ -270,7 +271,7 @@ def fake_vnf_instance_model_dict(**updates):
         'deleted_at': None,
         'updated_at': None,
         'created_at': datetime.datetime(1900, 1, 1, 1, 1, 1,
-                                        tzinfo=iso8601.UTC),
+                                        tzinfo=datetime.timezone.utc),
         'vnf_product_name': 'Sample VNF',
         'vnf_instance_name': 'Sample VNF',
         'vnf_instance_description': None,

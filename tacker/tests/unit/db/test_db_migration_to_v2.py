@@ -15,7 +15,6 @@
 
 import copy
 import datetime
-import iso8601
 import sys
 
 from oslo_utils import timeutils
@@ -869,8 +868,8 @@ class TestDbMigrationToV2(SqlTestCase):
                     self.ext_virtual_link_info.resource_handle.resource_id}]}
         vnf_lcm_op_occs_data_1.update({
             "operation_state": "COMPLETED",
-            "start_time":
-                datetime.datetime(1900, 1, 1, 1, 1, 2, tzinfo=iso8601.UTC),
+            "start_time": datetime.datetime(
+                1900, 1, 1, 1, 1, 2, tzinfo=datetime.timezone.utc),
             "operation": "CHANGE_EXT_CONN",
             "operation_params": str(operation_params)})
         vnf_lcm_op_occs_1 = objects.vnf_lcm_op_occs.VnfLcmOpOcc(
