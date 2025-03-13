@@ -16,7 +16,6 @@
 import base64
 import datetime
 import fixtures
-import iso8601
 import json
 import os
 import re
@@ -73,7 +72,7 @@ class FakeVnfLcmDriver(mock.Mock):
     def modify_vnf(self, context, vnf_lcm_opoccs, body_data,
                    vnfd_pkg_data, vnfd_id):
         return datetime.datetime(
-            1900, 1, 1, 1, 1, 1, tzinfo=iso8601.UTC)
+            1900, 1, 1, 1, 1, 1, tzinfo=datetime.timezone.utc)
 
 
 class FakeVNFMPlugin(mock.Mock):
@@ -184,7 +183,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             'id': uuidsentinel.id,
             'state_entered_time': datetime.datetime(
                 1900, 1, 1, 1, 1, 1,
-                tzinfo=iso8601.UTC),
+                tzinfo=datetime.timezone.utc),
             'operationParams': 'operationParams',
             'tenant_id': uuidsentinel.tenant_id
         }
@@ -2701,9 +2700,9 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_info = fakes._get_vnf()
         vnf_lcm_op_occ = objects.VnfLcmOpOcc(
             state_entered_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
-                                              tzinfo=iso8601.UTC),
+                                              tzinfo=datetime.timezone.utc),
             start_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
-                                         tzinfo=iso8601.UTC),
+                                         tzinfo=datetime.timezone.utc),
             vnf_instance_id=uuidsentinel.vnf_instance_id,
             operation='SCALE',
             operation_state='ACTIVE',
@@ -2712,7 +2711,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             error_point=0,
             id=test_constants.UUID,
             created_at=datetime.datetime(2000, 1, 1, 1, 1, 1,
-                                         tzinfo=iso8601.UTC))
+                                         tzinfo=datetime.timezone.utc))
         vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occ
         vnf_instance = fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED,
@@ -2766,9 +2765,9 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_info = fakes._get_vnf()
         vnf_lcm_op_occ = objects.VnfLcmOpOcc(
             state_entered_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
-                                              tzinfo=iso8601.UTC),
+                                              tzinfo=datetime.timezone.utc),
             start_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
-                                         tzinfo=iso8601.UTC),
+                                         tzinfo=datetime.timezone.utc),
             vnf_instance_id=uuidsentinel.vnf_instance_id,
             operation='SCALE',
             operation_state='ACTIVE',
@@ -2777,7 +2776,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             error_point=0,
             id=test_constants.UUID,
             created_at=datetime.datetime(2000, 1, 1, 1, 1, 1,
-                                         tzinfo=iso8601.UTC))
+                                         tzinfo=datetime.timezone.utc))
         vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occ
         vnf_instance = fakes.return_vnf_instance(
             fields.VnfInstanceState.INSTANTIATED,
@@ -2886,9 +2885,9 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_lcm_op_occ = objects.VnfLcmOpOcc(
             context=self.context,
             state_entered_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
-                                              tzinfo=iso8601.UTC),
+                                              tzinfo=datetime.timezone.utc),
             start_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
-                                         tzinfo=iso8601.UTC),
+                                         tzinfo=datetime.timezone.utc),
             vnf_instance_id=vnf_instance.id,
             operation='SCALE',
             operation_state='ACTIVE',
@@ -2899,7 +2898,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             id='00e1314d-2a82-40bd-b318-cc881243842d',
             tenant_id='01db9967-ba45-4f1d-962d-7cbb825448f1',
             created_at=datetime.datetime(2000, 1, 1, 1, 1, 1,
-                                         tzinfo=iso8601.UTC))
+                                         tzinfo=datetime.timezone.utc))
         vnf_lcm_op_occ.create()
         vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occ
         vnf_instance = fakes.return_vnf_instance(
@@ -3028,9 +3027,9 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_lcm_op_occ = objects.VnfLcmOpOcc(
             context=self.context,
             state_entered_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
-                                              tzinfo=iso8601.UTC),
+                                              tzinfo=datetime.timezone.utc),
             start_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
-                                         tzinfo=iso8601.UTC),
+                                         tzinfo=datetime.timezone.utc),
             vnf_instance_id=vnf_instance.id,
             operation='SCALE',
             operation_state='ACTIVE',
@@ -3041,7 +3040,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             tenant_id='7cd42301-a3a5-47ad-a7bd-87b02540503b',
             id='00e1314d-2a82-40bd-b318-cc881243843d',
             created_at=datetime.datetime(2000, 1, 1, 1, 1, 1,
-                                         tzinfo=iso8601.UTC))
+                                         tzinfo=datetime.timezone.utc))
         vnf_lcm_op_occ.create()
         vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occ
         vnf_instance = fakes.return_vnf_instance(
@@ -3126,9 +3125,9 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
         vnf_lcm_op_occ = objects.VnfLcmOpOcc(
             context=self.context,
             state_entered_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
-                                              tzinfo=iso8601.UTC),
+                                              tzinfo=datetime.timezone.utc),
             start_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
-                                         tzinfo=iso8601.UTC),
+                                         tzinfo=datetime.timezone.utc),
             vnf_instance_id=vnf_instance.id,
             operation='SCALE',
             operation_state='ACTIVE',
@@ -3138,7 +3137,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
             id='00e1314d-2a82-40bd-b318-cc881243843d',
             tenant_id='00e1314d-2a82-40bd-b318-cc881243843r',
             created_at=datetime.datetime(2000, 1, 1, 1, 1, 1,
-                                         tzinfo=iso8601.UTC))
+                                         tzinfo=datetime.timezone.utc))
         vnf_lcm_op_occ.create()
         vnf_info['vnf_lcm_op_occ'] = vnf_lcm_op_occ
         vnf_instance = fakes.return_vnf_instance(
@@ -3639,7 +3638,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
                                         mock_add, mock_get_by_id):
         mock_create.return_value = "OK"
         mock_update.return_value = datetime.datetime(
-            1900, 1, 1, 1, 1, 1, tzinfo=iso8601.UTC)
+            1900, 1, 1, 1, 1, 1, tzinfo=datetime.timezone.utc)
         mock_add.return_value = "OK"
         mock_save.return_value = "OK"
         vnf_package_vnfd = self._create_and_upload_vnf_package()
@@ -3667,7 +3666,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
                                         mock_add, mock_get_by_id):
         mock_create.return_value = "OK"
         mock_update.return_value = datetime.datetime(
-            1900, 1, 1, 1, 1, 1, tzinfo=iso8601.UTC)
+            1900, 1, 1, 1, 1, 1, tzinfo=datetime.timezone.utc)
         mock_add.return_value = "OK"
         mock_save.return_value = "OK"
         vnf_package_vnfd = self._create_and_upload_vnf_package()
@@ -3695,7 +3694,7 @@ class TestConductor(SqlTestCase, unit_base.FixturedTestCase):
                                                   mock_add, mock_get_by_id):
         mock_create.return_value = "OK"
         mock_update.return_value = datetime.datetime(
-            1900, 1, 1, 1, 1, 1, tzinfo=iso8601.UTC)
+            1900, 1, 1, 1, 1, 1, tzinfo=datetime.timezone.utc)
         mock_add.return_value = "OK"
         mock_save.return_value = "OK"
         vnf_package_vnfd = self._create_and_upload_vnf_package()

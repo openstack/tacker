@@ -14,7 +14,6 @@
 #    under the License.
 
 import datetime
-import iso8601
 import os
 import shutil
 from tacker import objects
@@ -112,9 +111,9 @@ def get_lcm_op_occs_data():
         'operation_state': 'PROCESSING',
         'state_entered_time':
         datetime.datetime(1900, 1, 1, 1, 1, 1,
-                          tzinfo=iso8601.UTC),
+                          tzinfo=datetime.timezone.utc),
         'start_time': datetime.datetime(1900, 1, 1, 1, 1, 1,
-                                        tzinfo=iso8601.UTC),
+                                        tzinfo=datetime.timezone.utc),
         'operation': 'MODIFY_INFO',
         'is_automatic_invocation': 0,
         'is_cancel_pending': 0,
@@ -163,7 +162,7 @@ def fake_vnf_package_vnfd_model_dict(**updates):
         'deleted_at': None,
         'updated_at': None,
         'created_at': datetime.datetime(2020, 1, 1, 1, 1, 1,
-                                        tzinfo=iso8601.UTC),
+                                        tzinfo=datetime.timezone.utc),
         'vnf_product_name': 'Sample VNF',
         'vnf_provider': 'test vnf provider',
         'vnf_software_version': '1.0',
@@ -187,7 +186,7 @@ def return_vnf_package_vnfd():
 def _model_non_instantiated_vnf_instance(**updates):
     vnf_instance = {
         'created_at': datetime.datetime(2020, 1, 1, 1, 1, 1,
-                                        tzinfo=iso8601.UTC),
+                                        tzinfo=datetime.timezone.utc),
         'deleted': False,
         'deleted_at': None,
         'id': uuidsentinel.vnf_instance_id,

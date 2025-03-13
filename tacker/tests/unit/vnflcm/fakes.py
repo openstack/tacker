@@ -16,7 +16,6 @@
 from copy import deepcopy
 import datetime
 from http import client as http_client
-import iso8601
 import json
 import os
 import webob
@@ -94,7 +93,7 @@ def fake_vnf_package_vnfd_model_dict(**updates):
         'deleted_at': None,
         'updated_at': None,
         'created_at': datetime.datetime(2020, 1, 1, 1, 1, 1,
-                                        tzinfo=iso8601.UTC),
+                                        tzinfo=datetime.timezone.utc),
         'vnf_product_name': 'Sample VNF',
         'vnf_provider': 'test vnf provider',
         'vnf_software_version': '1.0',
@@ -131,7 +130,7 @@ def scale_request_make(type, number_of_steps):
 def _model_non_instantiated_vnf_instance(**updates):
     vnf_instance = {
         'created_at': datetime.datetime(2020, 1, 1, 1, 1, 1,
-                                        tzinfo=iso8601.UTC),
+                                        tzinfo=datetime.timezone.utc),
         'deleted': False,
         'deleted_at': None,
         'id': uuidsentinel.vnf_instance_id,
@@ -340,7 +339,7 @@ def fake_vnf_package(**updates):
         'deleted_at': None,
         'updated_at': None,
         'created_at': datetime.datetime(1900, 1, 1, 1, 1, 1,
-                                        tzinfo=iso8601.UTC),
+                                        tzinfo=datetime.timezone.utc),
         'hash': None,
         'location_glance_store': None,
         'onboarding_state': 'CREATED',
@@ -394,7 +393,7 @@ def fake_vnf_package_software_image(**updates):
         'flavour_uuid': constants.UUID,
         'software_image_id': constants.UUID,
         'created_at': datetime.datetime(1900, 1, 1, 1, 1, 1,
-                                        tzinfo=iso8601.UTC)
+                                        tzinfo=datetime.timezone.utc)
     }
 
     if updates:
@@ -1535,7 +1534,8 @@ def get_dummy_grant_response():
 
 def return_vnf_resource():
     version_obj = objects.VnfResource(
-        created_at=datetime.datetime(1900, 1, 1, 1, 1, 1, tzinfo=iso8601.UTC),
+        created_at=datetime.datetime(
+            1900, 1, 1, 1, 1, 1, tzinfo=datetime.timezone.utc),
         deleted=False,
         deleted_at=None,
         id=uuidsentinel.vnf_resource_id,
@@ -1558,7 +1558,7 @@ def vnf_scale():
 
 
 def vnflcm_scale_in_cnf():
-    dt = datetime.datetime(2000, 1, 1, 1, 1, 1, tzinfo=iso8601.UTC)
+    dt = datetime.datetime(2000, 1, 1, 1, 1, 1, tzinfo=datetime.timezone.utc)
     return objects.VnfLcmOpOcc(
         state_entered_time=dt,
         start_time=dt,
@@ -1573,7 +1573,7 @@ def vnflcm_scale_in_cnf():
 
 
 def vnflcm_scale_out_cnf():
-    dt = datetime.datetime(2000, 1, 1, 1, 1, 1, tzinfo=iso8601.UTC)
+    dt = datetime.datetime(2000, 1, 1, 1, 1, 1, tzinfo=datetime.timezone.utc)
     return objects.VnfLcmOpOcc(
         state_entered_time=dt,
         start_time=dt,
@@ -1588,7 +1588,7 @@ def vnflcm_scale_out_cnf():
 
 
 def vnflcm_rollback(error_point=7):
-    dt = datetime.datetime(2000, 1, 1, 1, 1, 1, tzinfo=iso8601.UTC)
+    dt = datetime.datetime(2000, 1, 1, 1, 1, 1, tzinfo=datetime.timezone.utc)
     return objects.VnfLcmOpOcc(
         state_entered_time=dt,
         start_time=dt,
@@ -1603,7 +1603,7 @@ def vnflcm_rollback(error_point=7):
 
 
 def vnflcm_rollback_insta(error_point=7):
-    dt = datetime.datetime(2000, 1, 1, 1, 1, 1, tzinfo=iso8601.UTC)
+    dt = datetime.datetime(2000, 1, 1, 1, 1, 1, tzinfo=datetime.timezone.utc)
     return objects.VnfLcmOpOcc(
         state_entered_time=dt,
         start_time=dt,
@@ -1619,7 +1619,7 @@ def vnflcm_rollback_insta(error_point=7):
 
 def vnflcm_cancel_insta(error_point=7):
     default_datetime = datetime.datetime(
-        2000, 1, 1, 1, 1, 1, tzinfo=iso8601.UTC)
+        2000, 1, 1, 1, 1, 1, tzinfo=datetime.timezone.utc)
     ext_link_port_info = objects.ExtLinkPortInfo(
         resource_handle=objects.ResourceHandle(
             resource_id="109f5049-b51e-409a-9a99-d740ba5f3acb",
@@ -1651,7 +1651,7 @@ def vnflcm_cancel_insta(error_point=7):
 
 def vnflcm_fail_insta(error_point=7):
     default_datetime = datetime.datetime(
-        2000, 1, 1, 1, 1, 1, tzinfo=iso8601.UTC)
+        2000, 1, 1, 1, 1, 1, tzinfo=datetime.timezone.utc)
     ext_link_port_info = objects.ExtLinkPortInfo(
         resource_handle=objects.ResourceHandle(
             resource_id="109f5049-b51e-409a-9a99-d740ba5f3acb",
@@ -1715,9 +1715,9 @@ def vnflcm_fail_check_added_params(error_point=7):
         vnfd_version="fake_vnfd_version")
     return objects.VnfLcmOpOcc(
         state_entered_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
-                                             tzinfo=iso8601.UTC),
+                                             tzinfo=datetime.timezone.utc),
         start_time=datetime.datetime(2000, 1, 1, 1, 1, 1,
-                                     tzinfo=iso8601.UTC),
+                                     tzinfo=datetime.timezone.utc),
         vnf_instance_id=constants.UUID,
         operation='INSTANTIATE',
         operation_state='FAILED_TEMP',
@@ -1727,13 +1727,13 @@ def vnflcm_fail_check_added_params(error_point=7):
         id=constants.UUID,
         grant_id=constants.UUID,
         created_at=datetime.datetime(2000, 1, 1, 1, 1, 1,
-                                     tzinfo=iso8601.UTC),
+                                     tzinfo=datetime.timezone.utc),
         changed_ext_connectivity=[changed_ext_connectivity_values],
         changed_info=changed_info_values)
 
 
 def vnflcm_rollback_active():
-    dt = datetime.datetime(2000, 1, 1, 1, 1, 1, tzinfo=iso8601.UTC)
+    dt = datetime.datetime(2000, 1, 1, 1, 1, 1, tzinfo=datetime.timezone.utc)
     return objects.VnfLcmOpOcc(
         state_entered_time=dt,
         start_time=dt,
@@ -1748,7 +1748,7 @@ def vnflcm_rollback_active():
 
 
 def vnflcm_rollback_ope():
-    dt = datetime.datetime(2000, 1, 1, 1, 1, 1, tzinfo=iso8601.UTC)
+    dt = datetime.datetime(2000, 1, 1, 1, 1, 1, tzinfo=datetime.timezone.utc)
     return objects.VnfLcmOpOcc(
         state_entered_time=dt,
         start_time=dt,
@@ -1763,7 +1763,7 @@ def vnflcm_rollback_ope():
 
 
 def vnflcm_rollback_scale_in():
-    dt = datetime.datetime(2000, 1, 1, 1, 1, 1, tzinfo=iso8601.UTC)
+    dt = datetime.datetime(2000, 1, 1, 1, 1, 1, tzinfo=datetime.timezone.utc)
     return objects.VnfLcmOpOcc(
         state_entered_time=dt,
         start_time=dt,
@@ -2115,9 +2115,9 @@ VNFLCMOPOCC_RESPONSE = {
             'f26f181d-7891-4720-b022-b074ec1733ef/fail'}},
     'operationState': 'COMPLETED',
     'stateEnteredTime': datetime.datetime(1900, 1, 1, 1, 1, 1,
-                            tzinfo=iso8601.UTC),
+                            tzinfo=datetime.timezone.utc),
     'startTime': datetime.datetime(1900, 1, 1, 1, 1, 1,
-                            tzinfo=iso8601.UTC),
+                            tzinfo=datetime.timezone.utc),
     'vnfInstanceId': 'f26f181d-7891-4720-b022-b074ec1733ef',
     'grantId': 'f26f181d-7891-4720-b022-b074ec1733ef',
     'operation': 'MODIFY_INFO',
@@ -2331,7 +2331,7 @@ def fake_vnf_lcm_op_occs():
          chg_ext_conn, context) for chg_ext_conn in
          changed_ext_connectivity]
 
-    dt = datetime.datetime(1900, 1, 1, 1, 1, 1, tzinfo=iso8601.UTC)
+    dt = datetime.datetime(1900, 1, 1, 1, 1, 1, tzinfo=datetime.timezone.utc)
     vnf_lcm_op_occs = {
         'id': constants.UUID,
         'operation_state': 'COMPLETED',
@@ -2365,7 +2365,7 @@ def return_vnf_lcm_opoccs_obj(**updates):
 
 def vnflcm_op_occs_retry_data(error_point=7, operation='INSTANTIATE',
         operation_state='FAILED_TEMP'):
-    now = datetime.datetime(2000, 1, 1, 1, 1, 1, tzinfo=iso8601.UTC)
+    now = datetime.datetime(2000, 1, 1, 1, 1, 1, tzinfo=datetime.timezone.utc)
     return objects.VnfLcmOpOcc(
         state_entered_time=now,
         start_time=now,

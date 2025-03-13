@@ -13,11 +13,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from datetime import datetime
+import datetime
 from unittest import mock
 
 import ddt
-import iso8601
 from oslo_utils import uuidutils
 import yaml
 
@@ -111,7 +110,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             name='fake_template',
             description='fake_template_description',
             template_source='onboarded',
-            deleted_at=datetime.min)
+            deleted_at=datetime.datetime.min)
         session.add(vnf_template)
         session.commit()
         return vnf_template
@@ -123,7 +122,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             tenant_id='ad7ebc56538745a08ef7c5e97f8bd437',
             name='tmpl-koeak4tqgoqo8cr4-dummy_inline_vnf',
             description='inline_fake_template_description',
-            deleted_at=datetime.min,
+            deleted_at=datetime.datetime.min,
             template_source='inline')
         session.add(vnf_template)
         session.commit()
@@ -141,7 +140,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             vim_id='6261579e-d6f3-49ad-8bc3-a9cb974778ff',
             placement_attr={'region': 'RegionOne'},
             status=status,
-            deleted_at=datetime.min)
+            deleted_at=datetime.datetime.min)
         session.add(vnf_db)
         session.commit()
         return vnf_db
@@ -158,7 +157,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             vim_id='6261579e-d6f3-49ad-8bc3-a9cb974778ff',
             placement_attr={'region': 'RegionOne'},
             status=status,
-            deleted_at=datetime.min)
+            deleted_at=datetime.datetime.min)
         session.add(vnf_db)
         session.commit()
         return vnf_db
@@ -200,7 +199,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             name='fake_vim',
             description='fake_vim_description',
             type='test_vim',
-            deleted_at=datetime.min,
+            deleted_at=datetime.datetime.min,
             placement_attr={'regions': ['RegionOne']})
         vim_auth_db = nfvo_db.VimAuth(
             vim_id='6261579e-d6f3-49ad-8bc3-a9cb974778ff',
@@ -225,7 +224,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             scope='ZONE',
             server_group_name='my_compute_placement_policy',
             resource=res_str,
-            deleted_at=datetime.min)
+            deleted_at=datetime.datetime.min)
         vnf_inst = models.VnfInstance(
             id='7ddc38c3-a116-48b0-bfc1-68d7f306f467',
             vnf_provider=' ',
@@ -235,9 +234,9 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             vnfd_id='8d86480e-d4e6-4ee0-ba4d-08217118d6cb',
             instantiation_state=' ',
             tenant_id='9b3f0518-bf6b-4982-af32-d282ce577c8f',
-            created_at=datetime(
+            created_at=datetime.datetime(
                 2020, 1, 1, 1, 1, 1,
-                tzinfo=iso8601.UTC),
+                tzinfo=datetime.timezone.utc),
             vnf_pkg_id=uuidutils.generate_uuid())
         self.context.session.add(vnf_inst)
         self.context.session.commit()
@@ -260,7 +259,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             scope='ZONE',
             server_group_name='my_compute_placement_policy',
             resource=res_str,
-            deleted_at=datetime.min)
+            deleted_at=datetime.datetime.min)
         res_str2 = '[{"id_type": "GRANT", "resource_id": ' + \
             '"4cef1b7e-8e5f-430e-b32e-a7585a61d61c"}]'
         placemnt2 = models.PlacementConstraint(
@@ -270,7 +269,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             scope='ZONE',
             server_group_name='my_compute_placement_policy',
             resource=res_str2,
-            deleted_at=datetime.min)
+            deleted_at=datetime.datetime.min)
         vnf_inst = models.VnfInstance(
             id='7ddc38c3-a116-48b0-bfc1-68d7f306f467',
             vnf_provider=' ',
@@ -280,9 +279,9 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             vnfd_id='8d86480e-d4e6-4ee0-ba4d-08217118d6cb',
             instantiation_state=' ',
             tenant_id='9b3f0518-bf6b-4982-af32-d282ce577c8f',
-            created_at=datetime(
+            created_at=datetime.datetime(
                 2020, 1, 1, 1, 1, 1,
-                tzinfo=iso8601.UTC),
+                tzinfo=datetime.timezone.utc),
             vnf_pkg_id=uuidutils.generate_uuid())
         self.context.session.add(vnf_inst)
         self.context.session.commit()
@@ -320,7 +319,7 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             scope='ZONE',
             server_group_name='my_compute_placement_policy',
             resource=res_str,
-            deleted_at=datetime.min)
+            deleted_at=datetime.datetime.min)
         vnf_inst = models.VnfInstance(
             id='7ddc38c3-a116-48b0-bfc1-68d7f306f467',
             vnf_provider=' ',
@@ -330,9 +329,9 @@ class TestVNFMPlugin(db_base.SqlTestCase):
             vnfd_id='8d86480e-d4e6-4ee0-ba4d-08217118d6cb',
             instantiation_state=' ',
             tenant_id='9b3f0518-bf6b-4982-af32-d282ce577c8f',
-            created_at=datetime(
+            created_at=datetime.datetime(
                 2020, 1, 1, 1, 1, 1,
-                tzinfo=iso8601.UTC),
+                tzinfo=datetime.timezone.utc),
             vnf_pkg_id=uuidutils.generate_uuid())
         self.context.session.add(vnf_inst)
         self.context.session.commit()

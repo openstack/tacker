@@ -17,7 +17,6 @@
 from copy import deepcopy
 import datetime
 from http import client as http_client
-import iso8601
 import os
 from oslo_utils import uuidutils
 import shutil
@@ -67,7 +66,7 @@ VNFPACKAGE_RESPONSE = {
                      'hash': 'fake software image hash'},
         'containerFormat': 'bare',
         'createdAt': datetime.datetime(1900, 1, 1, 1, 1, 1,
-                                       tzinfo=iso8601.UTC),
+                                       tzinfo=datetime.timezone.utc),
         'diskFormat': 'qcow2',
         'id': 'fake_software_image_id',
         'imagePath': 'fake image path',
@@ -124,7 +123,7 @@ def _fake_software_image(updates=None):
         'algorithm': 'fake-algorithm',
         'metadata': {'key3': 'value3', 'key4': 'value4'},
         'created_at': datetime.datetime(1900, 1, 1, 1, 1, 1,
-                                        tzinfo=iso8601.UTC),
+                                        tzinfo=datetime.timezone.utc),
     }
     if updates:
         software_image.update(updates)
