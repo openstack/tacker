@@ -108,6 +108,8 @@ properties:
                       properties:
                         path:
                           type: string
+                        ansible_version:
+                          type: string
                         params:
                           type: object
                         command:

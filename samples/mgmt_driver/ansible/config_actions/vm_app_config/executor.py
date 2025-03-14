@@ -9,8 +9,10 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+from datetime import datetime
 
 from oslo_config import cfg
+from oslo_config import types
 from oslo_log import log as logging
 
 from tacker.vnfm.mgmt_drivers.ansible import event_handler
@@ -20,6 +22,7 @@ from tacker.vnfm.mgmt_drivers.ansible import utils
 from tacker.vnfm.mgmt_drivers.ansible.config_actions.\
     vm_app_config import config_walker
 
+import os
 import subprocess
 
 LOG = logging.getLogger(__name__)
@@ -40,6 +43,57 @@ OPTS = [
         help="time in seconds before ssh timeout"),
     cfg.IntOpt("command_execution_wait_timeout", default=3600,
         help="maximum time allocated to a command to return result"),
+    cfg.BoolOpt("write_output_to_log", default=True,
+        help="logs playbook stdout and stderr at info-level if True"),
+    cfg.MultiOpt("venv_path", item_type=types.Dict(), default="",
+        help='''
+Mapping ansible-version-id and python venv path
+
+Example:
+venv_path=ansible-2.9:/opt/my-envs/2.9
+venv_path=ansible-2.10:/opt/my-envs/2.10
+venv_path=ansible-2.11:/opt/my-envs/2.11
+
+'''),
+    cfg.MultiOpt("env_vars", item_type=types.Dict(),
+        default={'ANSIBLE_DISPLAY_FAILED_STDERR': 'true'},
+        help='''
+Environment variables and their values during playbook execution
+
+Setting `ANSIBLE_DISPLAY_FAILED_STDERR:true` sends playbook error details to
+standard error output using the default callback plugin.
+This enables checking playbook errors from VNF_LCM_OP_OCC's Error field.
+
+These markers are assigned values like the following during execution:
+
+{tenant_id}:
+  Tenant ID invoking the playbook.
+  e.g., "0000000000000000000000000000000"
+
+{vnflcm_id}:
+  VNFLCM ID invoking the playbook.
+  e.g., "00000000-0000-0000-0000-000000000000"
+
+{lcm_name}:
+  LCM operation name.
+  e.g., "instantiate", "termination", "healing", "scale-in", "scale-out"
+
+{timestamp}:
+  Playbook execution time in Unix timestamp.
+  e.g., "1721128301"
+
+{date}:
+  Playbook execution date in yyyy-MM-dd format.
+  e.g., "2024-06-22"
+
+{vdu_name}:
+  Virtual Deployment Unit name.
+  e.g., "VDU_1"
+
+Example:
+env_vars=ANSIBLE_DISPLAY_FAILED_STDERR:true
+env_vars=ANSIBLE_LOG_PATH:/path/to/{tenant_id}_{vdu_name}_{date}.log
+''')
 ]
 cfg.CONF.register_opts(OPTS, "ansible")
 
@@ -65,6 +119,8 @@ class Executor(config_walker.VmAppConfigWalker):
         self._mgmt_url = None
         self._cfg_parser = None
         self._mgmt_executor_type = None
+
+        self._venv_paths = {}
 
         super(Executor, self).__init__()
 
@@ -109,6 +165,10 @@ class Executor(config_walker.VmAppConfigWalker):
         self._target_host = self._get_target_host(self._conf_value)
         self._node_pair_ip = self._get_node_pair_ip(self._conf_value,
             self._mgmt_url)
+
+        for venv_path in cfg.CONF.ansible.venv_path:
+            for key, value in venv_path.items():
+                self._venv_paths[key] = value
 
         # translate some params
         inline_param = {
@@ -155,6 +215,34 @@ class Executor(config_walker.VmAppConfigWalker):
             self._execute(retry_count, retry_interval,
                 connection_wait_timeout, command_execution_wait_timeout)
 
+    def _get_playbook_path(self, playbook_cmd):
+        path = playbook_cmd.get("path", "")
+        if not path:
+            raise exceptions.ConfigValidationError(
+                vdu=self._vdu,
+                details="Playbook {} did not specify path".format(playbook_cmd)
+            )
+        return self._cfg_parser.substitute(path)
+
+    def _get_playbook_env(self):
+        exec_time = datetime.now()
+
+        markers = {}
+        markers["tenant_id"] = self._vnf["tenant_id"]
+        markers["vnflcm_id"] = self._vnf["id"]
+        markers["vdu_name"] = self._vdu
+        markers["lcm_name"] = self._action_key
+        markers["timestamp"] = str(int(exec_time.timestamp()))
+        markers["date"] = exec_time.strftime('%Y-%m-%d')
+
+        playbook_env = {}
+        for env_var in cfg.CONF.ansible.env_vars:
+            for key, value in env_var.items():
+                # replace the marker and store value
+                playbook_env[key] = value.format(**markers)
+
+        return playbook_env
+
     def _execute(self, retry_count, retry_interval, connection_wait_timeout,
             command_execution_wait_timeout):
         for order in sorted(self._queue):
@@ -168,10 +256,20 @@ class Executor(config_walker.VmAppConfigWalker):
                 cmd = self._get_final_command(playbook_cmd)
                 LOG.debug("command for execution: {}".format(cmd))
 
+                playbook_dir = os.path.dirname(
+                    self._get_playbook_path(playbook_cmd)
+                )
+                LOG.debug("execution dir: {}".format(playbook_dir))
+
+                playbook_env = self._get_playbook_env()
+                LOG.debug("execution env: {}".format(playbook_env))
+
                 res_code = -1
                 try:
-                    res_code, host = self._execute_cmd(
+                    res_code, host, std_error = self._execute_cmd(
                         cmd,
+                        playbook_dir,
+                        playbook_env,
                         retry_count,
                         retry_interval,
                         connection_wait_timeout,
@@ -213,7 +311,8 @@ class Executor(config_walker.VmAppConfigWalker):
             entity_list.append(playbook_cmd)
             self._queue[order] = entity_list
 
-    def _execute_cmd(self, cmd, retry_count, retry_interval,
+    def _execute_cmd(self, cmd, playbook_dir, playbook_env,
+            retry_count, retry_interval,
             connection_wait_timeout, command_execution_wait_timeout):
 
         if self._local_execute_host:
@@ -235,16 +334,19 @@ class Executor(config_walker.VmAppConfigWalker):
                 cmd, self._vdu, host, user, password, host_private_key_file))
 
         # create command executor
-        result = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE, shell=True, universal_newlines=True)
+        result = subprocess.Popen(cmd, cwd=playbook_dir, env=playbook_env,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            shell=True, universal_newlines=True)
         std_out, std_err = result.communicate()
 
         LOG.debug("command execution result code: {}".format(
             result.returncode))
-        LOG.debug("command execution result code: {}".format(std_out))
-        LOG.debug("command execution result code: {}".format(std_err))
 
-        return result.returncode, host
+        if cfg.CONF.ansible.write_output_to_log:
+            LOG.info("command execution result stdout: {}".format(std_out))
+            LOG.info("command execution result stderr: {}".format(std_err))
+
+        return result.returncode, host, std_err
 
     def _post_execution(self, cmd, res_code, host):
 
