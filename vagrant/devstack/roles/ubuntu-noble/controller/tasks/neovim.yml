@@ -2,13 +2,13 @@
 - name: install neovim
   become: yes
   unarchive:
-      src=https://github.com/neovim/neovim/releases/download/stable/nvim-linux64.tar.gz
+      src=https://github.com/neovim/neovim/releases/download/stable/nvim-linux-x86_64.tar.gz
       dest=/usr/local
       remote_src=yes
 
 - name: set PATH for '.local/bin'
   lineinfile:
-      line="export PATH=/usr/local/nvim-linux64/bin:$PATH"
+      line="export PATH=/usr/local/nvim-linux-x86_64/bin:$PATH"
       dest={{ ansible_env.HOME }}/.bashrc
 
 - name: install latest nodejs for nvim coc

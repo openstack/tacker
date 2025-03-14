@@ -1,6 +1,0 @@
----
-- name: install extra packages
-  become: yes
-  yum: name={{ item }}
-  with_items:
-      - jq
