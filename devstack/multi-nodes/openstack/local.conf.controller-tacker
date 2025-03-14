@@ -1,0 +1,63 @@
+# Not using k8s
+# local.conf.controller-tacker
+# NOTE: Items that are used in local.conf on Zuul but are not required
+#       locally have been commented out.
+[[local|localrc]]
+disable_all_services
+enable_service ovn-controller
+enable_service ovs-vswitchd
+enable_service ovsdb-server
+enable_service q-ovn-metadata-agent
+enable_service tacker
+enable_service tacker-conductor
+ADMIN_PASSWORD="secretadmin"
+#CELLSV2_SETUP="singleconductor"
+DATABASE_HOST="192.168.56.11"
+DATABASE_PASSWORD="secretdatabase"
+DATABASE_TYPE="mysql"
+ENABLE_CHASSIS_AS_GW="False"
+ENABLE_SYSCTL_MEM_TUNING="True"
+ENABLE_SYSCTL_NET_TUNING="True"
+ENABLE_ZSWAP="True"
+#ERROR_ON_CLONE="True"
+FIXED_RANGE="10.1.0.0/20"
+FLOATING_RANGE="192.168.56.0/24"
+#GLANCE_HOSTPORT="192.168.56.11:9292"
+GNOCCHI_SERVICE_HOST="192.168.56.12"
+HOST_IP="192.168.56.12"
+IPV4_ADDRS_SAFE_TO_USE="10.1.0.0/20"
+IS_ZUUL_FT="True"
+#KEYSTONE_SERVICE_HOST="192.168.56.11"
+L2_AGENT_EXTENSIONS="qos"
+LIBVIRT_TYPE="qemu"
+LOGFILE="/opt/stack/logs/devstacklog.txt"
+#LOG_COLOR="False"
+MYSQL_HOST="192.168.56.11"
+NETWORK_GATEWAY="10.1.0.1"
+NOVA_LIBVIRT_TB_CACHE_SIZE="128"
+NOVA_VNC_ENABLED="True"
+NOVNC_FROM_PACKAGE="True"
+OVS_BRIDGE_MAPPINGS="public:br-ex,mgmtphysnet0:br-infra"
+PHYSICAL_NETWORK="mgmtphysnet0"
+PUBLIC_BRIDGE_MTU="1430"
+PUBLIC_NETWORK_GATEWAY="192.168.56.1"
+#Q_HOST="192.168.56.11"
+Q_ML2_PLUGIN_MECHANISM_DRIVERS="ovn,logger"
+Q_SERVICE_PLUGIN_CLASSES="qos,networking_sfc.services.flowclassifier.plugin.FlowClassifierPlugin,neutron.services.qos.qos_plugin.QoSPlugin,ovn-router"
+RABBIT_HOST="192.168.56.11"
+RABBIT_PASSWORD="secretrabbit"
+SERVICE_HOST="192.168.56.11"
+SERVICE_PASSWORD="secretservice"
+TACKER_HOST="192.168.56.12"
+TACKER_MODE="standalone"
+#VERBOSE="True"
+VERBOSE_NO_TIMESTAMP="True"
+LIBS_FROM_GIT=aodh,barbican,cinder,devstack,glance,heat,horizon,keystone,networking-sfc,neutron,nova,os-test-images,placement,python-barbicanclient,python-tackerclient,requirements,swift,tacker,tacker-horizon
+enable_plugin tacker https://opendev.org/openstack/tacker
+
+[[post-config|$TACKER_CONF]]
+[database]
+max_pool_size = 0
+
+[openstack_vim]
+stack_retries = 120
