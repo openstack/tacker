@@ -14,7 +14,6 @@
 # limitations under the License.
 
 from oslo_db.sqlalchemy import models
-from sqlalchemy.ext import declarative
 from sqlalchemy import orm
 
 
@@ -43,10 +42,10 @@ class TackerBase(models.ModelBase):
 
 class TackerBaseV1(TackerBase):
 
-    @declarative.declared_attr
+    @orm.declared_attr
     def __tablename__(cls):
         # NOTE(jkoelker) use the pluralized name of the class as the table
         return cls.__name__.lower() + 's'
 
 
-BASE = declarative.declarative_base(cls=TackerBaseV1)
+BASE = orm.declarative_base(cls=TackerBaseV1)
