@@ -474,7 +474,6 @@ def _convert_artifacts(vnf_artifacts, artifacts_data, csar):
 
 
 def _validate_hash(algorithm, hash_code, csar, artifact_path):
-    z = zipfile.ZipFile(csar.path)
     algorithm = algorithm.lower()
 
     # validate Algorithm's value
@@ -491,7 +490,8 @@ def _validate_hash(algorithm, hash_code, csar, artifact_path):
 
     # validate Source's value
     if artifact_path in filelist:
-        hash_obj.update(z.read(artifact_path))
+        with zipfile.ZipFile(csar.path) as z:
+            hash_obj.update(z.read(artifact_path))
     elif ((urlparse(artifact_path).scheme == 'file') or
           (bool(urlparse(artifact_path).scheme) and
            bool(urlparse(artifact_path).netloc))):
