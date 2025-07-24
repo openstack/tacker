@@ -139,7 +139,7 @@ Install Tacker
 References
 ----------
 
-.. [1] https://docs.openstack.org/openstack-helm/latest/install/deploy_kubernetes.html
-.. [2] https://docs.openstack.org/openstack-helm/latest/install/deploy_ingress_controller.html
-.. [3] https://docs.openstack.org/openstack-helm/latest/install/deploy_openstack_backend.html
-.. [4] https://docs.openstack.org/openstack-helm/latest/install/deploy_openstack.html
+.. [1] https://docs.openstack.org/openstack-helm/latest/install/kubernetes.html
+.. [2] https://docs.openstack.org/openstack-helm/latest/install/prerequisites.html#ingress-controller
+.. [3] https://docs.openstack.org/openstack-helm/latest/install/openstack.html#openstack-backend
+.. [4] https://docs.openstack.org/openstack-helm/latest/install/openstack.html
