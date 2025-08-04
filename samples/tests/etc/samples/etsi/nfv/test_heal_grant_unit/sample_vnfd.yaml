@@ -79,7 +79,7 @@ topology_template:
             virtual_local_storage:
               - size_of_storage: 45 GB
 
-    PORT1:
+    VDU1_CP1:
       type: tosca.nodes.nfv.VduCp
       properties:
         layer_protocols: [ ipv4 ]

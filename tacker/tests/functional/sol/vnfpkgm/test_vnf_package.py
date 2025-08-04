@@ -40,7 +40,7 @@ class VnfPackageTest(base.BaseTackerTest):
     # The size of CSAR zip file used while verifying downloaded package.
     # NOTE: It should be updated if some contents of packages under
     #       `samples/tests/etc/samples` dir.
-    SIZE_CSAR_ZIP = 16389082
+    SIZE_CSAR_ZIP = 16389461
 
     def setUp(self):
         super(VnfPackageTest, self).setUp()

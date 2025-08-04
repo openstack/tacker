@@ -20,7 +20,12 @@ vnflcm_noop,mgmt-container-update" /etc/tacker/tacker.conf
 
 # Reload the tacker configuration file.
 cd /opt/stack/tacker/
-sudo python3 setup.py build
+#TODO(Shivam): Earlier command 'sudo python3 setup.py build' used to reload Tacker
+#is not able to make 'mgmt-container-update' available in registered mgmt driver
+#list, causing tacker-conductor to miss the mgmt driver and fail with KeyError.
+#Once the root cause with the previous command is resolved, this pip command
+#can be reverted back to the original one.
+sudo /opt/stack/data/venv/bin/pip install --editable .
 sudo chown -R stack:stack /opt/stack/tacker/
 
 # Restart the tacker service for the

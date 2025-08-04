@@ -1207,13 +1207,17 @@ node_types:
         constraints:
         - valid_values: [ normal, virtio, direct-physical ]
     requirements:
+      #Tosca-parser 2.13.0 adds validation for relationship occurrences. Since SOL001 v2.6.1 does not have these occurrences
+      #set, validation fails. Aligning with SOL001 v5.1.1 by adding occurrences to pass the validation.
       - virtual_link:
           capability: tosca.capabilities.nfv.VirtualLinkable
           relationship: tosca.relationships.nfv.VirtualLinksTo
+          occurrences: [0, 1]
       - virtual_binding:
           capability: tosca.capabilities.nfv.VirtualBindable
           relationship: tosca.relationships.nfv.VirtualBindsTo
           node: tosca.nodes.nfv.Vdu.Compute
+          occurrences: [0, 1]
 
   tosca.nodes.nfv.VnfVirtualLink:
     derived_from: tosca.nodes.Root

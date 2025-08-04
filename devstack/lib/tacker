@@ -40,6 +40,10 @@ GITREPO["tacker-horizon"]=${TACKERHORIZON_REPO:-${GIT_BASE}/openstack/tacker-hor
 GITBRANCH["tacker-horizon"]=${TACKERHORIZON_BRANCH:-master}
 GITDIR["tacker-horizon"]=$DEST/tacker-horizon
 
+GITREPO["python-tackerclient"]=${TACKERCLIENT_REPO:-${GIT_BASE}/openstack/python-tackerclient.git}
+GITBRANCH["python-tackerclient"]=${TACKERCLIENT_BRANCH:-master}
+GITDIR["python-tackerclient"]=$DEST/python-tackerclient
+
 TACKER_DIR=$DEST/tacker
 
 # Support entry points installation of console scripts
@@ -77,6 +81,14 @@ GLANCE_DEFAULT_BACKEND=${GLANCE_DEFAULT_BACKEND:=file}
 
 # Functions
 # ---------
+# install_tackerclient - Collect source and prepare
+function install_tackerclient {
+    if use_library_from_git "python-tackerclient"; then
+        git_clone_by_name "python-tackerclient"
+        setup_dev_lib "python-tackerclient"
+    fi
+}
+
 # function install_db_client_mysql() - ensure mysql client is installed
 function install_db_client_mysql {
     if is_oraclelinux; then

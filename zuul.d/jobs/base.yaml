@@ -40,7 +40,7 @@
         DEVSTACK_PARALLEL: True
         OVN_L3_CREATE_PUBLIC_NETWORK: true
         OVN_DBS_LOG_LEVEL: dbg
-        Q_ML2_PLUGIN_MECHANISM_DRIVERS: ovn,logger
+        Q_ML2_PLUGIN_MECHANISM_DRIVERS: ovn
       test_matrix_configs: [neutron]
       zuul_work_dir: src/opendev.org/openstack/tacker
     host-vars:
@@ -151,7 +151,7 @@
             ovn-router"
           L2_AGENT_EXTENSIONS: qos
           ENABLE_CHASSIS_AS_GW: false
-          Q_ML2_PLUGIN_MECHANISM_DRIVERS: ovn,logger
+          Q_ML2_PLUGIN_MECHANISM_DRIVERS: ovn
         devstack_services:
           # To override the parent job's definitions.
           tls-proxy: false
@@ -286,9 +286,8 @@
           TACKER_MODE: standalone
           USE_PYTHON3: true
           ENABLE_CHASSIS_AS_GW: false
-          Q_ML2_PLUGIN_MECHANISM_DRIVERS: ovn,logger
-          # TODO(ueha): Remove this workarround if the Zuul jobs succeed with GLOBAL_VENV=true
-          GLOBAL_VENV: false
+          Q_ML2_PLUGIN_MECHANISM_DRIVERS: ovn
+          GLOBAL_VENV: true
           K8S_TOKEN: "9agf12.zsu5uh2m4pzt3qba"
         devstack_services:
           dstat: false
@@ -324,9 +323,8 @@
         DEVSTACK_PARALLEL: True
         OVN_L3_CREATE_PUBLIC_NETWORK: true
         OVN_DBS_LOG_LEVEL: dbg
-        Q_ML2_PLUGIN_MECHANISM_DRIVERS: ovn,logger
-        # TODO(ueha): Remove this workarround if the Zuul jobs succeed with GLOBAL_VENV=true
-        GLOBAL_VENV: false
+        Q_ML2_PLUGIN_MECHANISM_DRIVERS: ovn
+        GLOBAL_VENV: true
       devstack_local_conf:
         post-config:
           $NEUTRON_DHCP_CONF:

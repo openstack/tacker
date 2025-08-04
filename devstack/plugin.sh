@@ -14,6 +14,7 @@ if is_service_enabled tacker; then
         # Perform installation of service source
         echo_summary "Installing Tacker"
         install_tacker
+        install_tackerclient
 
         if use_library_from_git heat-translator; then
             git_clone_by_name heat-translator
