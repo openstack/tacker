@@ -139,10 +139,17 @@ class VimClient(object):
     @staticmethod
     def _find_vim_key(vim_id):
         key_file = os.path.join(CONF.vim_keys.openstack, vim_id)
-        LOG.debug('Attempting to open key file for vim id %s', vim_id)
+        if not os.path.isfile(key_file):
+            key_file = os.path.join(CONF.vim_keys.openstack,
+                                    CONF.vim_keys.default_secret_key)
+            LOG.debug('Attempting to open default key file')
+        else:
+            LOG.debug('Attempting to open key file for vim id %s', vim_id)
+
         try:
             with open(key_file, 'r') as f:
                 return f.read()
         except Exception:
-            LOG.error('VIM id invalid or key not found for  %s', vim_id)
+            LOG.warning('VIM id invalid or key not found [key_file=%s]',
+                        key_file)
             raise nfvo.VimKeyNotFoundException(vim_id=vim_id)

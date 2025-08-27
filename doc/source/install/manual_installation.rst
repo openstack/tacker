@@ -362,6 +362,46 @@ Installing Tacker Server
      $ cp -r etc/tacker/rootwrap.d/ /etc/tacker/
      $ cp etc/tacker/prometheus-plugin.yaml /etc/tacker/
 
+#. Configure a common VIM Fernet key on multi-node (Optional)
+
+   Use this when you want all Tacker nodes to share a single Fernet key
+   for encrypting VIM credentials. Skip this if you use Barbican
+   (``[vim_keys] use_barbican = true``).
+
+   Administrators will generate a default Fernet key file in advance
+   (e.g., `default.key`), place it in the existing `openstack` directory
+   (default: `/etc/tacker/vim/fernet_keys`) on each Tacker node, and
+   specify the filename using the `default_secret_key` option.
+
+   **Generate the key on one node (tacker-1):**
+
+   .. code-block:: console
+
+      $ sudo mkdir /etc/tacker/vim/fernet_keys
+      $ sudo chmod 700 /etc/tacker/vim/fernet_keys
+      $ sudo tacker-db-manage generate_secret_key \
+           --file /etc/tacker/vim/fernet_keys/default.key
+
+   **Distribute the same key to the other nodes (tacker-2, tacker-3):**
+
+   .. code-block:: console
+
+      $ sudo mkdir /etc/tacker/vim/fernet_keys
+      $ sudo chmod 700 /etc/tacker/vim/fernet_keys
+      $ sudo scp tacker-1:/etc/tacker/vim/fernet_keys/default.key \
+           /etc/tacker/vim/fernet_keys/default.key
+
+   **Configure ``tacker.conf`` on all nodes:**
+
+   .. code-block:: ini
+
+      [vim_keys]
+      openstack = /etc/tacker/vim/fernet_keys
+      default_secret_key = default.key
+      # use_barbican = false  # set to true if you store credentials in Barbican
+
+   After updating the configuration, restart Tacker services on each node.
+
 
 #. Populate Tacker database.
 

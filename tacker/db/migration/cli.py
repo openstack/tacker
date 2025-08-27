@@ -18,12 +18,14 @@ from alembic import command as alembic_command
 from alembic import config as alembic_config
 from alembic import script as alembic_script
 from alembic import util as alembic_util
+from cryptography import fernet
 from oslo_config import cfg
 
 from tacker._i18n import _
 from tacker.db.migration import migrate_to_v2
 from tacker.db.migration import purge_tables
 from tacker.db.migration.models import head  # noqa
+import warnings
 
 HEAD_FILENAME = 'HEAD'
 
@@ -123,6 +125,15 @@ def migrate_to_v2_tables(config, cmd):
                       CONF.command.vnf_id)
 
 
+def generate_secret_key(config, cmd):
+    output_file = CONF.command.file
+    existed = os.path.exists(output_file)
+    with open(output_file, 'wb') as f:
+        f.write(fernet.Fernet.generate_key())
+    if existed:
+        warnings.warn(f"Replaced existing file: {output_file}")
+
+
 def add_command_parsers(subparsers):
     for name in ['current', 'history', 'branches']:
         parser = subparsers.add_parser(name)
@@ -198,6 +209,12 @@ def add_command_parsers(subparsers):
     parser.add_argument(
         '--vnf-id',
         help=_('The specific VNF will be migrated.'))
+
+    parser = subparsers.add_parser('generate_secret_key')
+    parser.add_argument(
+        '--file', default='/dev/stdout',
+        help=_('output file path of generated key'))
+    parser.set_defaults(func=generate_secret_key)
 
 
 command_opt = cfg.SubCommandOpt('command',

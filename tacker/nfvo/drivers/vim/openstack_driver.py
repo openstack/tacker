@@ -41,7 +41,12 @@ OPTS = [cfg.StrOpt('openstack', default='/etc/tacker/vim/fernet_keys',
         cfg.BoolOpt('use_barbican', default=False,
                     help=_('Use barbican to encrypt vim password if True, '
                            'save vim credentials in local file system '
-                           'if False'))
+                           'if False')),
+        cfg.StrOpt('default_secret_key', default='',
+                   help=("Specify the filename of the default secret key, "
+                         "if available. If not specified, a key will be "
+                         "generated for each vim_id. If a key with the "
+                         "vim_id name exists, it will be used.")),
         ]
 
 # same params as we used in ping monitor driver
@@ -204,6 +209,9 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver):
                 raise
         else:
             key_file = os.path.join(CONF.vim_keys.openstack, vim_id)
+            if (CONF.vim_keys.default_secret_key != '' and
+               not os.path.exists(key_file)):
+                return
             try:
                 os.remove(key_file)
                 LOG.debug('VIM key deleted successfully for vim %s',
@@ -218,11 +226,10 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver):
 
          Store VIM auth using fernet key encryption
          """
-        fernet_key, fernet_obj = self.keystone.create_fernet_key()
-        encoded_auth = fernet_obj.encrypt(auth['password'].encode('utf-8'))
-        auth['password'] = encoded_auth
+        fernet_obj = None
 
         if CONF.vim_keys.use_barbican:
+            fernet_key, fernet_obj = self.keystone.create_fernet_key()
             try:
                 k_context = t_context.generate_tacker_service_context()
                 if CONF.ext_oauth2_auth.use_ext_oauth2_auth:
@@ -240,8 +247,21 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver):
                 LOG.error('VIM key creation failed for vim %s due to %s',
                           vim_id, ex)
                 raise
+        elif CONF.vim_keys.default_secret_key != '':
+            key_file = os.path.join(CONF.vim_keys.openstack,
+                                    CONF.vim_keys.default_secret_key)
+            try:
+                with open(key_file, 'rb') as f:
+                    fernet_key = f.read()
+                    fernet_obj = self.keystone.create_fernet_object(fernet_key)
+            except FileNotFoundError:
+                raise nfvo.DefaultVimKeyNotFoundException()
 
+            auth['key_type'] = 'fernet_key'
+            LOG.debug('Use default secret key')
         else:
+            fernet_key, fernet_obj = self.keystone.create_fernet_key()
+
             auth['key_type'] = 'fernet_key'
             key_file = os.path.join(CONF.vim_keys.openstack, vim_id)
             try:
@@ -251,6 +271,9 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver):
                               vim_id)
             except IOError:
                 raise nfvo.VimKeyNotFoundException(vim_id=vim_id)
+
+        encoded_auth = fernet_obj.encrypt(auth['password'].encode('utf-8'))
+        auth['password'] = encoded_auth
 
     @log.log
     def get_vim_resource_id(self, vim_obj, resource_type, resource_name):
