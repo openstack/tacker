@@ -41,6 +41,7 @@ Refer following installation procedures for both of these systems:
       Manual Installation <manual_installation.rst>
       Install via Kolla Ansible <kolla.rst>
       Install via Openstack-helm <openstack_helm.rst>
+      Install via Automation Script <tacker_helm_deployment_automation.rst>
 
 #. Target VIM Installation
 
