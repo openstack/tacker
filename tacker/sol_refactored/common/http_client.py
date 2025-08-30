@@ -218,7 +218,10 @@ class OAuth2AuthPlugin(plugin.FixedEndpointPlugin):
         data = {'grant_type': 'client_credentials'}
 
         resp, resp_body = client.do_request(url, "POST",
-                data=data, content_type='application/x-www-form-urlencoded')
+                data=data, content_type='application/x-www-form-urlencoded',
+                headers={
+                    "Accept": "application/json"
+                })
 
         if resp.status_code != 200:
             LOG.error("get OAuth2 token failed: %d" % resp.status_code)
