@@ -20,6 +20,33 @@ OPTS = [
         'endpoint_url',
         default='http://localhost:9890/',
         help="endpoint_url"),
+    cfg.StrOpt(
+        'heal_include_block_storage_key',
+        default='tacker_extension_heal_include_block_storage',
+        help="""
+Name of the boolean key in ``additionalParams`` that toggles including
+block storage for a v1 heal request.
+
+Example payload::
+
+  {
+    "additionalParams": {
+      "tacker_extension_heal_include_block_storage": true
+    }
+  }
+"""),
+    cfg.BoolOpt(
+        'heal_vnfc_block_storage',
+        default=True,
+        help="""
+Default behaviour when a v1 heal request omits the per-request key.
+If ``additionalParams[<heal_include_block_storage_key>]`` is present,
+that value takes precedence over this option.
+
+In ``tacker.conf`` (``[vnf_lcm]`` section)::
+
+  heal_vnfc_block_storage = false
+"""),
     cfg.IntOpt(
         'subscription_num',
         default=100,

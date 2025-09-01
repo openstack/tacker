@@ -229,6 +229,8 @@ Request Parameters
   - vnfInstanceId: vnf_instance_id
   - cause: cause
   - vnfcInstanceId: vnfc_resource_info_ids
+  - additionalParams: heal_additional_params
+  - tacker_extension_heal_include_block_storage: tacker_extension_heal_include_block_storage
 
 
 Request Example

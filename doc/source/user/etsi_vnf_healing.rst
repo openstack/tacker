@@ -733,8 +733,14 @@ VDU1 information before healing:
 
 .. code-block:: console
 
-  $ openstack stack resource show HEAT_STACK_ID \
-    VDU_NAME -c physical_resource_id -c resource_status
+  $ openstack stack resource show HEAT_STACK_ID VDU1_SERVER_NAME \
+    -c physical_resource_id -c resource_name -c resource_status -c resource_type
+
+
+.. code-block:: console
+
+  $ openstack stack resource show HEAT_STACK_ID VDU1_VOLUME_NAME \
+    -c physical_resource_id -c resource_name -c resource_status -c resource_type
 
 
 Result:
@@ -744,17 +750,75 @@ Result:
   +----------------------+--------------------------------------+
   | Field                | Value                                |
   +----------------------+--------------------------------------+
-  | physical_resource_id | 6b89f9c9-ebd8-49ca-8e2c-c01838daeb95 |
+  | physical_resource_id | ed781426-c59d-4c32-8bc3-e26144167220 |
+  | resource_name        | VDU1                                 |
   | resource_status      | CREATE_COMPLETE                      |
+  | resource_type        | OS::Nova::Server                     |
   +----------------------+--------------------------------------+
+
+
+.. code-block:: console
+
+  +----------------------+--------------------------------------+
+  | Field                | Value                                |
+  +----------------------+--------------------------------------+
+  | physical_resource_id | 2d4715e6-1e0e-449e-91b5-a6c162adbb39 |
+  | resource_name        | VDU1-VirtualStorage                  |
+  | resource_status      | CREATE_COMPLETE                      |
+  | resource_type        | OS::Cinder::Volume                   |
+  +----------------------+--------------------------------------+
+
+Heal Specified with VNFC Instances can control whether related Cinder
+block storage is recreated for the healed VNFC(s).
+
+This is done via an optional key inside ``additionalParams`` in the Heal
+request. The key name is operator-configurable, and when the request
+omits the key, a configurable default is applied [Conf-Options_].
+
+* **Request key (configurable)**:
+  the key to read from ``additionalParams`` is configured by
+  ``[vnf_lcm] heal_include_block_storage_key`` on the VNFM.
+  By default it is ``tacker_extension_heal_include_block_storage``.
+* **Default behavior (configurable)**:
+  when the request does not include the key, the behavior is decided by
+  ``[vnf_lcm] heal_vnfc_block_storage``.
+
+.. warning::
+
+   The default behavior (when the key is not provided) and the key name
+   itself depend on ``tacker.conf``. If you are unsure, contact your
+   environment administrator.
+
+In the examples below, the parameter name is shown as
+``tacker_extension_heal_include_block_storage``.
+
+*Example: recreate storage (boolean true)*
+
+.. code-block:: json
+
+   {
+     "additionalParams": {
+       "tacker_extension_heal_include_block_storage": true
+     }
+   }
+
+*Example: do not recreate storage (boolean false)*
+
+.. code-block:: json
+
+   {
+     "additionalParams": {
+       "tacker_extension_heal_include_block_storage": false
+     }
+   }
 
 
 Healing execution of VDU1:
 
 .. code-block:: console
 
-  $ openstack vnflcm heal VNF_INSTANCE_ID --vnfc-instance VNFC_INSTANCE_ID
-
+  $ openstack vnflcm heal VNF_INSTANCE_ID --vnfc-instance VNFC_INSTANCE_ID \
+       --additional-param-file heal-params.json \
 
 Result:
 
@@ -772,8 +836,14 @@ VDU1 information after healing:
 
 .. code-block:: console
 
-  $ openstack stack resource show HEAT_STACK_ID \
-    VDU_NAME -c physical_resource_id -c resource_status
+  $ openstack stack resource show HEAT_STACK_ID VDU1_SERVER_NAME \
+    -c physical_resource_id -c resource_name -c resource_status -c resource_type
+
+
+.. code-block:: console
+
+  $ openstack stack resource show HEAT_STACK_ID VDU1_VOLUME_NAME \
+    -c physical_resource_id -c resource_name -c resource_status -c resource_type
 
 
 Result:
@@ -783,10 +853,38 @@ Result:
   +----------------------+--------------------------------------+
   | Field                | Value                                |
   +----------------------+--------------------------------------+
-  | physical_resource_id | 6b89f9c9-ebd8-49ca-8e2c-c01838daeb95 |
+  | physical_resource_id | ed781426-c59d-4c32-8bc3-e26144167220 |
+  | resource_name        | VDU1                                 |
   | resource_status      | UPDATE_COMPLETE                      |
+  | resource_type        | OS::Nova::Server                     |
   +----------------------+--------------------------------------+
 
+
+*recreate storage*
+
+.. code-block:: console
+
+  +----------------------+--------------------------------------+
+  | Field                | Value                                |
+  +----------------------+--------------------------------------+
+  | physical_resource_id | 2d4715e6-1e0e-449e-91b5-a6c162adbb39 |
+  | resource_name        | VDU1-VirtualStorage                  |
+  | resource_status      | UPDATE_COMPLETE                      |
+  | resource_type        | OS::Cinder::Volume                   |
+  +----------------------+--------------------------------------+
+
+*do not recreate storage*
+
+.. code-block:: console
+
+  +----------------------+--------------------------------------+
+  | Field                | Value                                |
+  +----------------------+--------------------------------------+
+  | physical_resource_id | 2d4715e6-1e0e-449e-91b5-a6c162adbb39 |
+  | resource_name        | VDU1-VirtualStorage                  |
+  | resource_status      | CREATE_COMPLETE                      |
+  | resource_type        | OS::Cinder::Volume                   |
+  +----------------------+--------------------------------------+
 
 .. note::
 
@@ -797,3 +895,4 @@ Result:
 .. _NFV-SOL002 v2.6.1 : https://www.etsi.org/deliver/etsi_gs/NFV-SOL/001_099/002/02.06.01_60/gs_NFV-SOL002v020601p.pdf
 .. _Heat API reference : https://docs.openstack.org/api-ref/orchestration/v1/index.html
 .. _Heat CLI reference : https://docs.openstack.org/python-openstackclient/latest/cli/plugin-commands/heat.html
+.. _Conf-Options : https://docs.openstack.org/tacker/latest/configuration/config.html#vnf-lcm
