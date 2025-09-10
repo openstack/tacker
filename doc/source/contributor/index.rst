@@ -32,6 +32,7 @@ Developer Info
    tacker_compliance_test.rst
    dashboards.rst
    vagrant_devstack.rst
+   tst_release_transition_guidelines.rst
 
 Code Documentation
 ------------------
