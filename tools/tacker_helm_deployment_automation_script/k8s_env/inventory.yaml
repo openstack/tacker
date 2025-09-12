@@ -1,0 +1,62 @@
+---
+all:
+  vars:
+    ansible_port: 22
+    # ansible user for running the playbook
+    ansible_user: ubuntu
+    ansible_ssh_private_key_file: /home/ubuntu/.ssh/id_rsa
+    ansible_ssh_extra_args: -o StrictHostKeyChecking=no
+    # The user and group that will be used to run Kubectl and Helm commands.
+    kubectl:
+      user: ubuntu
+      group: ubuntu
+    # The user and group that will be used to run Docker commands.
+    docker_users:
+      - ubuntu
+    # By default the deploy-env role sets up ssh key to make it possible
+    # to connect to the k8s master node via ssh without a password.
+    client_ssh_user: ubuntu
+    cluster_ssh_user: ubuntu
+    # The MetalLB controller will be installed on the Kubernetes cluster.
+    # MetalLB controllr is used for bare-metal loadbalancer.
+    #metallb_setup: true
+    # Loopback devices will be created on all cluster nodes which then can be used
+    # to deploy a Ceph cluster which requires block devices to be provided.
+    # Please use loopback devices only for testing purposes. They are not suitable
+    # for production due to performance reasons.
+    #loopback_setup: true
+    #loopback_device: /dev/loop100
+    #loopback_image: /var/lib/openstack-helm/ceph-loop.img
+    #loopback_image_size: 12G
+  children:
+    # The primary node where Kubectl and Helm will be installed. If it is
+    # the only node then it must be a member of the groups k8s_cluster and
+    # k8s_control_plane. If there are more nodes then the wireguard tunnel
+    # will be established between the primary node and the k8s_control_plane node.
+    primary:
+      hosts:
+        primary:
+          ansible_host: 10.0.0.217
+    # The nodes where the Kubernetes components will be installed.
+    k8s_cluster:
+      hosts:
+        primary:
+        ###ansible_host: 10.0.0.217
+        #node-2:
+        ###ansible_host: 10.0.0.217
+        #node-3:
+        ###ansible_host: 10.0.0.217
+    # The control plane node where the Kubernetes control plane components will be installed.
+    # It must be the only node in the group k8s_control_plane.
+    k8s_control_plane:
+      hosts:
+        primary:
+          #ansible_host: 10.0.0.217
+    # These are Kubernetes worker nodes. There could be zero such nodes.
+    # In this case the Openstack workloads will be deployed on the control plane node.
+    k8s_nodes:
+      hosts:
+        #primary:
+          #ansible_host: 10.0.0.217
+          #node-3:
+          #ansible_host: 10.0.0.217

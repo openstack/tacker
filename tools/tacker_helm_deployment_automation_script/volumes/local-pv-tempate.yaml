@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: local-pv-template
+  finalizers:
+    - kubernetes.io/pv-protection
+  annotations:
+    pv.kubernetes.io/bound-by-controller: "yes"
+spec:
+  capacity:
+    storage: 2Gi
+  accessModes:
+    - ReadWriteOnce
+  volumeMode: Filesystem
+  persistentVolumeReclaimPolicy: Delete
+  storageClassName: standard
+  hostPath:
+    path: /mnt/vol1
+    type: ""  # Leave empty or specify "DirectoryOrCreate", "Directory", etc.
+  claimRef:
+    namespace: openstack
+    name: glance-images

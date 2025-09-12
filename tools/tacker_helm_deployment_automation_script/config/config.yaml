@@ -1,0 +1,15 @@
+REPOS:
+  OPENSTACK_REPO: "https://opendev.org/openstack/openstack-helm.git"
+  TACKER_INFRA_REPO: "https://opendev.org/openstack/openstack-helm-infra.git"
+  ZUUL_REPO:  "https://opendev.org/zuul/zuul-jobs.git"
+HELM:
+  HELM_SCRIPT: "https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3"
+DURATION:
+  CHECK_INTERVAL: 30
+  TIMEOUT: 600
+  POLL_INTERVAL: 5
+K8S:
+  NAMESPACE: "kube-system"
+  SET_ENVIRONMENT: "export KUBECONFIG=/etc/kubernetes/admin.conf"
+NODES:
+  TACKER_NODE: "<NODE_NAME>"
