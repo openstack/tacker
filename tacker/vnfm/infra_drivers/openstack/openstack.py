@@ -54,7 +54,6 @@ from tacker.vnfm.lcm_user_data.constants import USER_DATA_TIMEOUT
 from tacker.vnfm.lcm_user_data import utils as user_data_utils
 from toscaparser import tosca_template
 
-
 eventlet.monkey_patch(time=True)
 
 SCALING_GROUP_RESOURCE = "OS::Heat::AutoScalingGroup"
@@ -1495,12 +1494,15 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                         vnfc_resource.compute_resource.resource_id}
                 vdu_resources.append(resource_details)
 
-                # Get storage resources
-                for resource_name, resource_id in \
-                        _get_storage_resources(vnfc_resource):
-                    resource_details = {"resource_name": resource_name,
-                        "physical_resource_id": resource_id}
-                    vdu_resources.append(resource_details)
+                if heal_vnf_request.additional_params.get(
+                        CONF.vnf_lcm.heal_include_block_storage_key,
+                        CONF.vnf_lcm.heal_vnfc_block_storage):
+                    # Get storage resources
+                    for resource_name, resource_id in \
+                            _get_storage_resources(vnfc_resource):
+                        resource_details = {"resource_name": resource_name,
+                            "physical_resource_id": resource_id}
+                        vdu_resources.append(resource_details)
 
             return vdu_resources
 

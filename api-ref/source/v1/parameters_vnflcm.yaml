@@ -702,6 +702,14 @@ grant_id:
   in: body
   required: false
   type: string
+heal_additional_params:
+  description: |
+    Additional parameters passed by the NFVO as input to the healing process,
+    specific to the VNF being healed, as declared in the VNFD as part of
+    "HealVnfOpConfig".
+  in: body
+  required: false
+  type: key value pairs
 instantiated_vnf_info:
   description: |
     Information specific to an instantiated VNF instance. This attribute shall
@@ -985,6 +993,23 @@ subscription_id_response:
   in: body
   required: true
   type: string
+tacker_extension_heal_include_block_storage:
+  description: |
+    ** Admin-configurable parameter name. **  
+    Controls whether related Cinder block storage is recreated when
+    healing specified VNFC instance(s).
+
+    The key name is configured by ``[vnf_lcm] heal_include_block_storage_key``
+    in ``tacker.conf`` (default: ``tacker_extension_heal_include_block_storage``).
+    If the key is omitted, the default behavior is controlled by
+    ``[vnf_lcm] heal_vnfc_block_storage``.
+
+    **Recommendation:** Because both the key name and the default behavior
+    depend on your deployment settings, it is recommended to confirm them
+    with your environment administrator.
+  in: body
+  required: false
+  type: boolean
 termination_type:
   description: |
     Indicates whether forceful or graceful termination is requested.
