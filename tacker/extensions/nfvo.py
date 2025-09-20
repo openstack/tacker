@@ -57,6 +57,10 @@ class VimKeyNotFoundException(exceptions.TackerException):
     message = _("Unable to find key file for VIM %(vim_id)s")
 
 
+class DefaultVimKeyNotFoundException(exceptions.TackerException):
+    message = _("Unable to find default key file")
+
+
 class VimEncryptKeyError(exceptions.TackerException):
     message = _("Barbican must be enabled for VIM %(vim_id)s")
 

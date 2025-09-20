@@ -62,7 +62,8 @@ def get_mock_conf_key_effect():
         elif name == 'vim_keys':
             return MockConfig(
                 conf={
-                    'use_barbican': True
+                    'use_barbican': True,
+                    'default_secret_key': ''
                 })
         else:
             return cfg.CONF._get(name)

@@ -76,5 +76,8 @@ class Keystone(object):
 
     def create_fernet_key(self):
         fernet_key = fernet.Fernet.generate_key()
-        fernet_obj = fernet.Fernet(fernet_key)
+        fernet_obj = self.create_fernet_object(fernet_key)
         return fernet_key, fernet_obj
+
+    def create_fernet_object(self, fernet_key):
+        return fernet.Fernet(fernet_key)
