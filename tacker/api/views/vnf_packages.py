@@ -45,6 +45,14 @@ class ViewBuilder(base.BaseViewBuilder):
         links = self._get_links(vnf_package)
         vnf_package_response.update(links)
 
+        # Convert containerFormat and diskFormat values in uppercase
+        # as per ETSI specification
+        if 'softwareImages' in vnf_package_response:
+            for item in vnf_package_response['softwareImages']:
+                if 'containerFormat' in item:
+                    item['containerFormat'] = item['containerFormat'].upper()
+                if 'diskFormat' in item:
+                    item['diskFormat'] = item['diskFormat'].upper()
         return vnf_package_response
 
     def _get_modified_user_data(self, old_user_data, new_user_data):

@@ -183,6 +183,41 @@ class ViewBuilder(base.BaseViewBuilder):
         links = self._get_lcm_op_occs_links(vnf_lcm_op_occs)
 
         vnf_lcm_op_occs_dict.update(links)
+
+        # Remove the optional parameters which are having None
+        if 'grantId' in vnf_lcm_op_occs_dict and \
+                vnf_lcm_op_occs_dict['grantId'] is None:
+            vnf_lcm_op_occs_dict.pop('grantId')
+
+        if 'resourceChanges' in vnf_lcm_op_occs_dict:
+            if 'affectedVnfcs' in vnf_lcm_op_occs_dict['resourceChanges']:
+                for item in vnf_lcm_op_occs_dict['resourceChanges'][
+                        'affectedVnfcs']:
+                    if 'removedStorageResourceIds' in item and \
+                            item['removedStorageResourceIds'] is None:
+                        item.pop('removedStorageResourceIds')
+
+        if 'resourceChanges' in vnf_lcm_op_occs_dict:
+            if 'affectedVirtualLinks' in vnf_lcm_op_occs_dict[
+                    'resourceChanges']:
+                for item in vnf_lcm_op_occs_dict['resourceChanges'][
+                        'affectedVirtualLinks']:
+                    if 'networkResource' in item and 'vimConnectionId' in \
+                            item['networkResource']:
+                        if item['networkResource']['vimConnectionId'] is None:
+                            item['networkResource'].pop('vimConnectionId')
+
+                    if 'networkResource' in item and \
+                            'vimLevelResourceType' in item['networkResource']:
+                        if item['networkResource'][
+                                'vimLevelResourceType'] is None:
+                            item['networkResource'].pop('vimLevelResourceType')
+
+        # Convert operationParams to dict type as per expected specification
+        if 'operationParams' in vnf_lcm_op_occs_dict:
+            if isinstance(vnf_lcm_op_occs_dict['operationParams'], str):
+                vnf_lcm_op_occs_dict['operationParams'] = json.loads(
+                    vnf_lcm_op_occs_dict['operationParams'])
         return vnf_lcm_op_occs_dict
 
     def create(self, vnf_instance):

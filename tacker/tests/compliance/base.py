@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import copy
 import json
 import os
 import time
@@ -24,7 +25,8 @@ import robot
 from urllib.parse import urlparse
 
 from tacker.tests.functional import base
-from tacker.tests.functional.sol.vnflcm import test_vnf_instance as vnflcmtest
+from tacker.tests.functional.sol.vnflcm import base as vnflcm_base
+from tacker.tests import utils
 
 VNFPKG_PATH = '/vnfpkgm/v1/vnf_packages/%s'
 VNFINSS_PATH = '/vnflcm/v1/vnf_instances'
@@ -202,8 +204,10 @@ class BaseComplTest(base.BaseTackerTest):
     def _create_and_upload_vnf_packages(cls, pkgnames):
         vnfpkginfos = []
         for pkgname in pkgnames:
-            vnfpkgid, vnfdid = vnflcmtest._create_and_upload_vnf_package(
-                cls.http_client, pkgname, {})
+            file_path = utils.test_etc_sample("etsi/nfv", pkgname)
+            path, uniqueid = utils.create_csar_with_unique_vnfd_id(file_path)
+            vnfpkgid, vnfdid = vnflcm_base._create_and_upload_vnf_package(
+                cls.http_client, {}, path)
             vnfpkginfos.append(VnfPkgInfo(vnfpkgid, vnfdid))
 
         return vnfpkginfos
@@ -251,7 +255,7 @@ class BaseComplTest(base.BaseTackerTest):
 
     @classmethod
     def _instantiate_vnf_instance(cls, vnfid):
-        body = INSTANTIATION_BODY
+        body = copy.deepcopy(INSTANTIATION_BODY)
         body['extVirtualLinks'][0]['resourceId'] = cls.net0_id
         body['vimConnectionInfo'][0]['id'] = uuidutils.generate_uuid()
         body['vimConnectionInfo'][0]['vimId'] = cls.vimid
@@ -282,7 +286,7 @@ class BaseComplTest(base.BaseTackerTest):
 
     @classmethod
     def _instantiate_vnf_instance_for_scale(cls, vnfid):
-        body = INSTANTIATION_BODY
+        body = copy.deepcopy(INSTANTIATION_BODY)
         body['flavourId'] = 'default'
         body['extVirtualLinks'][0]['resourceId'] = cls.net0_id
         body['vimConnectionInfo'][0]['id'] = uuidutils.generate_uuid()
@@ -299,7 +303,7 @@ class BaseComplTest(base.BaseTackerTest):
 
     @classmethod
     def _instantiate_error_vnf_instance(cls, vnfid):
-        body = INSTANTIATION_BODY
+        body = copy.deepcopy(INSTANTIATION_BODY)
         body['flavorId'] = 'sample'
         body['extVirtualLinks'][0]['resourceId'] = cls.net0_id
         body['vimConnectionInfo'][0]['id'] = uuidutils.generate_uuid()
