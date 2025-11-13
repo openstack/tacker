@@ -122,7 +122,9 @@ class VnfLcmKubernetesHelmTest(vnflcm_base.BaseVnfLcmKubernetesTest):
                     "helmchartname": "apache",
                     "exthelmrepo_url": "https://charts.bitnami.com/bitnami",
                     "helmparameter": [
-                        "service.type=NodePort"
+                        "service.type=NodePort",
+                        "image.repository=bitnamilegacy/apache",
+                        "image.tag=2.4.65-debian-12-r2"
                     ]
                 }
             ],
@@ -189,7 +191,9 @@ class VnfLcmKubernetesHelmTest(vnflcm_base.BaseVnfLcmKubernetesTest):
                     "helmchartname": "apache",
                     "exthelmrepo_url": "https://charts.bitnami.com/bitnami",
                     "helmparameter": [
-                        "service.type=NodePort"
+                        "service.type=NodePort",
+                        "image.repository=bitnamilegacy/apache",
+                        "image.tag=2.4.65-debian-12-r2"
                     ]
                 }
             ],

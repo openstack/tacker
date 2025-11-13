@@ -171,7 +171,7 @@
     # TODO(gmann): Tacker k8s jobs are failing on Ubuntu Noble due to the below bug,
     # which needs to be fixed in devstack-plugin-container. Move this job to ubuntu
     # noble nodeset once the bug is fixed - https://bugs.launchpad.net/tacker/+bug/2090859
-    nodeset: openstack-k8s-3-nodes-jammy
+    nodeset: openstack-k8s-3-nodes-noble
     pre-run: playbooks/devstack/pre.yaml
     run: playbooks/devstack/run.yaml
     post-run: playbooks/devstack/post.yaml
