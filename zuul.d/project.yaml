@@ -24,6 +24,7 @@
         - tacker-ft-v1-compliance-sol
     periodic-weekly:
       jobs:
+        - tacker-docs-link-check
         - tacker-ft-v2-df-userdata-basic-max
         - tacker-ft-v2-df-userdata-separated-nfvo
         - tacker-ft-v2-df-userdata-encrypt-cred-barbican
