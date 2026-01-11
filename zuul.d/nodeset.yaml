@@ -87,3 +87,25 @@
         nodes:
           - controller-tacker
           - controller-k8s
+
+- nodeset:
+    name: openstack-k8s-3-nodes-noble
+    nodes:
+      - name: controller
+        label: ubuntu-noble
+      - name: controller-tacker
+        label: ubuntu-noble
+      - name: controller-k8s
+        label: ubuntu-noble
+    groups:
+      - name: subnode
+        nodes:
+          - controller-tacker
+          - controller-k8s
+      - name: switch
+        nodes:
+          - controller
+      - name: peers
+        nodes:
+          - controller-tacker
+          - controller-k8s
