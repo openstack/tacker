@@ -231,6 +231,36 @@ Prepare VNF Package
      $ wget https://forge.etsi.org/rep/nfv/SOL001/raw/${TOSCA_VERSION}/etsi_nfv_sol001_common_types.yaml
      $ wget https://forge.etsi.org/rep/nfv/SOL001/raw/${TOSCA_VERSION}/etsi_nfv_sol001_vnfd_types.yaml
 
+   .. note::
+
+     Starting from tosca-parser 2.13.0, a new validation rule enforces that all requirement
+     definitions must explicitly specify the occurrences field.
+
+     The default ETSI SOL001 v2.6.1 type definition file (etsi_nfv_sol001_vnfd_types.yaml) available
+     on external sources such as forge.etsi.org does not include these occurrences, which leads to
+     validation errors during VNF Package creation.
+
+     Tacker includes an updated version of the ETSI specification files with the required occurrences
+     fields already added. If users download SOL001 files from any other source, they must manually
+     add the missing occurrences attributes to satisfy the tosla-parser validation.
+
+     For example, the tosca.nodes.nfv.VduCp node type must explicitly define the virtual_link and
+     virtual_binding requirements as shown below:
+
+   .. code-block:: yaml
+
+     requirements:
+       - virtual_link:
+           capability: tosca.capabilities.nfv.VirtualLinkable
+           relationship: tosca.relationships.nfv.VirtualLinksTo
+           occurrences: [0, 1]
+
+       - virtual_binding:
+           capability: tosca.capabilities.nfv.VirtualBindable
+           relationship: tosca.relationships.nfv.VirtualBindsTo
+           node: tosca.nodes.nfv.Vdu.Compute
+           occurrences: [0, 1]
+
 
 #. Create VNFD files:
 
