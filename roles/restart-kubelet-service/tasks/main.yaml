@@ -5,11 +5,15 @@
   # the Pod fails to be deployed. As a fix, delete the related interface and
   # restart service.
   - name: k8s interface down
-    shell: ip link set cni0 down && ip link set flannel.1 down
+    shell: |
+      ip link show cni0 2>/dev/null && ip link set cni0 down || true
+      ip link show flannel.1 2>/dev/null && ip link set flannel.1 down || true
     become: yes
 
   - name: k8s interface delete
-    shell: ip link delete cni0 && ip link delete flannel.1
+    shell: |
+      ip link show cni0 2>/dev/null && ip link delete cni0 || true
+      ip link show flannel.1 2>/dev/null && ip link delete flannel.1 || true
     become: yes
 
   - name: kubelet service restart

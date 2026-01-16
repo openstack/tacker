@@ -1,4 +1,19 @@
 - hosts: all
+  pre_tasks:
+    - name: Set up ipv4 iptables rules for Kubernetes
+      become: yes
+      iptables:
+        state: present
+        action: insert
+        chain: INPUT
+        ip_version: ipv4
+        source: "{{ item }}"
+        jump: ACCEPT
+      with_items:
+        # Default flannel pod cidr
+        - "10.244.0.0/16"
+        # Default kubernetes service cidr
+        - "10.96.0.0/12"
   roles:
     - ensure-db-cli-installed
     - setup-k8s-nodes

@@ -277,8 +277,8 @@
           K8S_API_SERVER_IP: "{{ hostvars['controller-k8s']['nodepool']['private_ipv4'] }}"
           KEYSTONE_SERVICE_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
           CONTAINER_ENGINE: crio
-          K8S_VERSION: "1.30.5"
-          CRIO_VERSION: "1.30.5"
+          K8S_VERSION: "1.32.1"
+          CRIO_VERSION: "1.32.1"
           MYSQL_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
           OVS_BRIDGE_MAPPINGS: public:br-ex,mgmtphysnet0:br-infra
           PHYSICAL_NETWORK: mgmtphysnet0

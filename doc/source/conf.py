@@ -101,6 +101,16 @@ latex_documents = [
 # Example configuration for intersphinx: refer to the Python standard library.
 #intersphinx_mapping = {'http://docs.python.org/': None}
 
+# -- Options for suppress_warnings --------------------------------------------
+# Suppress ambiguous cross-reference warnings for the attribute name 'type'
+# which is shared across multiple tacker classes. This warning (ref.python)
+# became visible after Sphinx 9.0 fixed bug #13935 in autodoc's autoclass
+# handling, which previously masked the ambiguity by incorrectly attributing
+# parent class members based on processing order.
+suppress_warnings = [
+    'ref.python',
+]
+
 # -- Options for openstackdocstheme -------------------------------------------
 openstackdocs_repo_name = 'openstack/tacker'
 openstackdocs_auto_name = False

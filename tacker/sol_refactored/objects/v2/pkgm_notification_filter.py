@@ -40,9 +40,9 @@ class PkgmNotificationFilterV2(base.TackerObject, base.TackerObjectDictCompat):
         'vnfdId': fields.ListOfStringsField(nullable=True),
         'vnfPkgId': fields.ListOfStringsField(nullable=True),
         'operationalState': fields.Field(fields.List(
-            v2fields.PackageOperationalStateType), nullable=True),
+            v2fields.PackageOperationalStateType()), nullable=True),
         'usageState': fields.Field(fields.List(
-            v2fields.PackageUsageStateType), nullable=True),
+            v2fields.PackageUsageStateType()), nullable=True),
         'vnfmInfo': fields.ListOfStringsField(nullable=True),
     }
 
