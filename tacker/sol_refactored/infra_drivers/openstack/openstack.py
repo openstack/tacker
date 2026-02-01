@@ -554,6 +554,47 @@ class Openstack(object):
         base_files = heat_client.get_files(stack_name)
         base_files.update(fields['files'])
 
+        # TODO(shivam): Remove this workaround once Nova microversion
+        # 2.100 bug is fixed. This temporarily removes scheduler_hints
+        # from nested templates during rolling updates to avoid Nova's
+        # scheduler_hints.group type mismatch error (list vs string).
+        # The Nova bug causes scheduler_hints.group to be returned as a list
+        # in GET server responses but expected as a string in rebuild requests.
+        # Related Nova bug: https://bugs.launchpad.net/nova/+bug/2139275
+        for file_name, file_content in base_files.items():
+            if file_name.endswith(('.yaml', '.yml')):
+                try:
+                    nested_template = yaml.safe_load(file_content)
+                    modified = False
+
+                    if 'resources' in nested_template:
+                        for res_name, res_value in (
+                                nested_template['resources'].items()):
+                            if (
+                                res_value.get('type') == 'OS::Nova::Server'
+                                and 'properties' in res_value
+                                and 'scheduler_hints'
+                                in res_value['properties']
+                            ):
+                                del res_value['properties']['scheduler_hints']
+                                modified = True
+                                LOG.info(
+                                    "Removed scheduler_hints from %s:%s "
+                                    "to workaround Nova microversion "
+                                    "2.100 bug",
+                                    file_name,
+                                    res_name
+                                )
+
+                    if modified:
+                        base_files[file_name] = yaml.dump(nested_template)
+                except Exception as e:
+                    LOG.warning(
+                        "Could not process %s to remove scheduler_hints: %s",
+                        file_name,
+                        e
+                    )
+
         base_parameters = heat_client.get_parameters(stack_name)
         # NOTE: Using json.loads because parameters['nfv'] is string
         base_nfv_dict = json.loads(base_parameters.get('nfv', '{}'))
