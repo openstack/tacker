@@ -67,6 +67,7 @@
     parent: devstack
     description: |
       Multinodes job for SOL devstack-based functional tests
+    voting: false
     nodeset: openstack-4-nodes-jammy
     pre-run: playbooks/devstack/pre.yaml
     run: playbooks/devstack/run.yaml
@@ -236,6 +237,7 @@
     parent: tacker-functional-devstack-multinode-sol
     description: |
       Multinodes job for SOL V2 devstack-based functional tests
+    voting: true
     host-vars:
       controller-tacker:
         devstack_local_conf:
@@ -253,6 +255,7 @@
     parent: tacker-functional-devstack-multinode-sol
     description: |
       Multinodes job for SOL Multi tenant devstack-based functional tests
+    voting: true
     host-vars:
       controller-tacker:
         tox_envlist: dsvm-functional-sol-multi-tenant
@@ -262,6 +265,7 @@
 - job:
     name: tacker-functional-devstack-multinode-sol-separated-nfvo
     parent: tacker-functional-devstack-multinode-sol
+    voting: true
     description: |
       Multinodes job for SOL devstack-based functional tests
       with separated NFVO
@@ -285,6 +289,7 @@
     description: |
       Multinodes job for SOL devstack-based functional tests
       with separated V2 NFVO
+    voting: true
     host-vars:
       controller-tacker:
         devstack_local_conf:
@@ -305,6 +310,7 @@
     description: |
       Multinode job for SOL V2 devstack-based individual vnfc mgmt functional
       tests
+    voting: true
     host-vars:
       controller-tacker:
         devstack_local_conf:
@@ -323,6 +329,7 @@
     parent: devstack
     description: |
       Multinodes job for SOL devstack-based kubernetes functional tests
+    voting: false
     nodeset: openstack-k8s-4-nodes-jammy
     pre-run: playbooks/devstack/pre.yaml
     run: playbooks/devstack/run.yaml
@@ -333,7 +340,6 @@
     required-projects:
       - openstack/barbican
       - openstack/cinder
-      - openstack/devstack-gate
       - openstack/devstack-plugin-container
       - openstack/glance
       - openstack/heat
@@ -530,6 +536,7 @@
     parent: tacker-functional-devstack-multinode-sol-kubernetes
     description: |
       Multinodes job for SOL Kubernetes Multi tenant devstack-based functional tests
+    voting: false
     host-vars:
       controller-tacker:
         tox_envlist: dsvm-functional-sol-kubernetes-multi-tenant
@@ -541,6 +548,7 @@
     parent: tacker-functional-devstack-multinode-sol-kubernetes
     description: |
       Multinodes job for SOL Kubernetes V2 devstack-based functional tests
+    voting: false
     host-vars:
       controller-tacker:
         devstack_local_conf:
@@ -564,6 +572,7 @@
     description: |
       Multinodes job for SOL devstack-based functional tests
       with https request
+    voting: true
     host-vars:
       controller-tacker:
         devstack_local_conf:
@@ -600,6 +609,7 @@
     description: |
       Multinodes job for SOL devstack-based functional tests
       with encrypt credentials
+    voting: true
     host-vars:
       controller-tacker:
         devstack_local_conf:
@@ -627,6 +637,7 @@
     description: |
       Multinodes job for SOL devstack-based functional tests
       with encrypt credentials
+    voting: true
     host-vars:
       controller-tacker:
         devstack_local_conf:
@@ -654,6 +665,7 @@
     parent: tacker-functional-devstack-multinode-sol-kubernetes-v2
     description: |
       Multinodes job for Kubernetes OIDC Auth tests
+    voting: false
     host-vars:
       controller-tacker:
         tox_envlist: dsvm-functional-sol_kubernetes_oidc_auth
@@ -667,6 +679,7 @@
     parent: tacker-functional-devstack-multinode-sol-v2
     description: |
       Multinodes job for retry of AZ selection in SOL V2 devstack-based functional tests
+    voting: true
     host-vars:
       controller-tacker:
         devstack_local_conf:
@@ -690,6 +703,7 @@
     parent: tacker-functional-devstack-multinode-sol
     description: |
       Enhanced policy job for SOL devstack-based functional tests
+    voting: true
     host-vars:
       controller-tacker:
         tox_envlist: dsvm-functional-enhanced-policy-sol
@@ -706,6 +720,7 @@
     parent: tacker-functional-devstack-multinode-sol-kubernetes-v2
     description: |
       Enhanced policy job for SOL Kubernetes devstack-based functional tests
+    voting: false
     host-vars:
       controller-tacker:
         tox_envlist: dsvm-functional-enhanced-policy-sol-kubernetes
@@ -722,6 +737,7 @@
     parent: tacker-functional-devstack-multinode-sol
     description: |
       Multinodes job for SOL Terraform devstack-based functional tests
+    voting: false
     attempts: 1
     host-vars:
       controller-tacker:
@@ -739,10 +755,10 @@
     parent: tacker-functional-devstack-multinode-sol
     description: |
       Multinodes job for SOL devstack-based compliance tests
+    voting: false
     host-vars:
       controller-tacker:
         tox_envlist: dsvm-compliance-sol-api
-    voting: false
 
 - project:
     templates:
