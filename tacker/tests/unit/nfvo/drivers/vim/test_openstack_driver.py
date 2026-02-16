@@ -157,10 +157,21 @@ class TestOpenstack_Driver(base.TestCase):
 
     def test_register_keystone_v3(self):
         regions = mock_dict(regions=[{'id': 'RegionOne'}])
-        attrs = {'get.return_value.json.return_value': regions}
-        mock_ks_client = mock.Mock(**attrs)
+        mock_session = mock.Mock()
+        mock_auth = mock.Mock()
+        mock_auth.auth_url = 'http://localhost/identity'
+        mock_session.auth = mock_auth
+        mock_response = mock.Mock()
+        mock_response.json.return_value = regions
+        mock_response.raise_for_status = mock.Mock()
+        mock_session.get.return_value = mock_response
+        mock_ks_client = mock.Mock()
+        mock_ks_client.session = mock_session
+        expected_regions_url = 'http://localhost/identity/v3/regions'
+
         self._test_register_vim(self.vim_obj, mock_ks_client)
-        mock_ks_client.get.assert_called_once_with('/v3/regions')
+        mock_session.get.assert_called_once_with(expected_regions_url,
+            authenticated=True)
         self.keystone.initialize_client.assert_called_once_with(
             **self.auth_obj)
 
@@ -230,12 +241,14 @@ class TestOpenstack_Driver(base.TestCase):
     def _test_register_vim_auth(self, attrs):
         keystone_version = 'v3'
         self.keystone.get_version.return_value = keystone_version
-        mock_ks_client = mock.Mock(**attrs)
+        mock_ks_client = mock.Mock()
+        mock_ks_client.session.get.side_effect = attrs['get.side_effect']
+        mock_ks_client.session.auth.auth_url = "http://localhost/identity"
         self.keystone.initialize_client.return_value = mock_ks_client
         self.assertRaises(nfvo.VimUnauthorizedException,
                           self.openstack_driver.register_vim,
                           self.vim_obj)
-        mock_ks_client.get.assert_called_once_with('/v3/regions')
+        mock_ks_client.session.get.assert_called_once()
         self.keystone.initialize_client.assert_called_once_with(
             **self.auth_obj)
 

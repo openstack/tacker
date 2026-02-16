@@ -145,7 +145,11 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver):
 
     def _find_regions(self, ks_client):
         # TODO(h-asahina): implement this method into KeystoneClient module
-        resp = ks_client.get('/v3/regions')
+        auth_url = str(ks_client.session.auth.auth_url).rstrip('/')
+        if auth_url.endswith('/v3'):
+            auth_url = auth_url[:-3]
+        regions_url = auth_url + '/v3/regions'
+        resp = ks_client.session.get(regions_url, authenticated=True)
         return [region['id'] for region in resp.json().get('regions', [])]
 
     def discover_placement_attr(self, vim_obj, ks_client):
