@@ -1,0 +1,10 @@
+- job:
+    name: tacker-docs-link-check
+    description: |
+      Periodic job to validate URLs referenced in Tacker documentation.
+      Recursively checks Tacker docs and validates referenced OpenStack
+      documentation links without setting up Tacker services.
+    parent: openstack-tox
+    vars:
+      tox_envlist: docs-link-check
+
