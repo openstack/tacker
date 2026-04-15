@@ -349,4 +349,4 @@ class Helm(kubernetes_common.KubernetesCommon):
         )
 
     def _is_match_pod_naming_rule(self, rsc_kind, rsc_name, pod_name):
-        return rsc_name in pod_name
+        return self.is_match_pod_naming(rsc_kind, rsc_name, pod_name)

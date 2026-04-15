@@ -327,7 +327,7 @@ class KubernetesCommon(object):
         resource_pods = {}
 
         for pod in all_pods:
-            if self.is_match_pod_naming(resource_type,
+            if self._is_match_pod_naming_rule(resource_type,
                   resource_name, pod.metadata.name):
                 resource_pods[pod.metadata.name] = pod.metadata.to_dict()
         return resource_pods
