@@ -197,6 +197,7 @@ def get_admin_context():
     return Context(user_id=None,
                    tenant_id=None,
                    is_admin=True,
+                   roles=['admin'],
                    overwrite=False)
 
 

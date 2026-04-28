@@ -37,17 +37,19 @@ class BasePolicyTest(base.TestCase):
 
     def setUp(self):
         super(BasePolicyTest, self).setUp()
-        if self.enforce_new_defaults:
-            cfg.CONF.set_override('enforce_new_defaults', True,
-                                  group='oslo_policy')
-            # NOTE(gmann): oslo policy config option enforce_new_defaults
-            # is changed here which is used while loading the rule in
-            # oslo_policy.init() method that is why we need to reset the
-            # policy and initialize again so that rule will be re-loaded
-            # considering the enforce_new_defaults new value.
-            policy.reset()
-            policy.init(suppress_deprecation_warnings=True)
-            self.addCleanup(policy.reset)
+        # NOTE(gmann): oslo policy config option enforce_new_defaults
+        # is changed here which is used while loading the rule in
+        # oslo_policy.init() method that is why we need to reset the
+        # policy and initialize again so that rule will be re-loaded
+        # considering the enforce_new_defaults new value.
+        # Always set explicitly so tests are not affected by the system
+        # default (oslo.policy 4.4.0 enables new defaults by default).
+        cfg.CONF.set_override('enforce_new_defaults',
+                              self.enforce_new_defaults,
+                              group='oslo_policy')
+        policy.reset()
+        policy.init(suppress_deprecation_warnings=True)
+        self.addCleanup(policy.reset)
 
         self.admin_project_id = uuids.admin_project_id
         self.project_id = uuids.project_id
