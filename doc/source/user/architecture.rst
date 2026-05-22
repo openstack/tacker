@@ -112,13 +112,19 @@ Supported versions:
 * **Prometheus 2.45** - is supported from 2023.2 Bobcat onwards.
 * **Alertmanager 0.26** - is supported from 2023.2 Bobcat onwards.
 
-[2025.1 Epoxy]
+[2025.1 Epoxy / 2025.2 Flamingo / 2026.1 Gazpacho]
 
-* **Kubernetes 1.30** - is supported from 2025.1 Epoxy onwards.
+* **Kubernetes 1.30** - is supported from 2025.1 Epoxy to 2026.1 Gazpacho.
 * **Helm 3.15** - is supported from 2025.1 Epoxy onwards.
 * **Prometheus 2.45** - is supported from 2023.2 Bobcat onwards.
 * **Alertmanager 0.26** - is supported from 2023.2 Bobcat onwards.
 
+[2026.2 Hibiscus]
+
+* **Kubernetes 1.32** - is supported from 2026.2 Hibiscus onwards.
+* **Helm 3.15** - is supported from 2025.1 Epoxy onwards.
+* **Prometheus 2.45** - is supported from 2023.2 Bobcat onwards.
+* **Alertmanager 0.26** - is supported from 2023.2 Bobcat onwards.
 
 Tacker Service
 --------------
