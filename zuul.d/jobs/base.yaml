@@ -92,7 +92,7 @@
           # Neutron services
           q-svc: true
           q-qos: true
-          q-ovn-metadata-agent: true
+          q-ovn-agent: true
           # Cinder services
           c-api: true
           c-sch: true
@@ -118,7 +118,7 @@
           ovs-vswitchd: true
           ovsdb-server: true
           # Neutron services
-          q-ovn-metadata-agent: true
+          q-ovn-agent: true
           # Tacker services
           tacker: true
           tacker-conductor: true
@@ -160,7 +160,7 @@
           ovs-vswitchd: true
           ovsdb-server: true
           # Neutron services
-          q-ovn-metadata-agent: true
+          q-ovn-agent: true
 
 - job:
     name: tacker-ft-k8s-base
@@ -228,7 +228,7 @@
           ovsdb-server: true
           q-qos: true
           q-svc: true
-          q-ovn-metadata-agent: true
+          q-ovn-agent: true
           rabbit: true
           s-account: false
           s-container: false
@@ -249,7 +249,7 @@
           ovn-northd: true
           ovs-vswitchd: true
           ovsdb-server: true
-          q-ovn-metadata-agent: true
+          q-ovn-agent: true
           tacker: true
           tacker-conductor: true
         devstack_plugins:
@@ -264,7 +264,7 @@
           ovn-northd: true
           ovs-vswitchd: true
           ovsdb-server: true
-          q-ovn-metadata-agent: true
+          q-ovn-agent: true
           container: true
           k8s-master: true
         tox_install_siblings: false
@@ -303,7 +303,7 @@
           ovn-controller: true
           ovs-vswitchd: true
           ovsdb-server: true
-          q-ovn-metadata-agent: true
+          q-ovn-agent: true
           tls-proxy: false
     vars:
       devstack_localrc:
