@@ -720,11 +720,11 @@ class TestContainerUpdate(base.TestCase):
             req, inst, None, None, self.old_csar_dir,
             self.new_csar_dir)
         cur_dir = os.path.dirname(__file__)
-        mock_urlopen.return_value = open(
-            os.path.join(cur_dir, 'fake_configmap.yaml'))
-        self.assertRaises(
-            exceptions.MgmtDriverOtherError,
-            new_mgmt_driver.modify_information_end)
+        with open(os.path.join(cur_dir, 'fake_configmap.yaml')) as f:
+            mock_urlopen.return_value = f
+            self.assertRaises(
+                exceptions.MgmtDriverOtherError,
+                new_mgmt_driver.modify_information_end)
 
     @mock.patch.object(client.CoreV1Api, 'list_namespaced_pod')
     @mock.patch.object(client.CoreV1Api, 'delete_namespaced_pod')
