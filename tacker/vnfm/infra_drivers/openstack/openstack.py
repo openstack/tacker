@@ -27,7 +27,6 @@ from collections import OrderedDict
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
-from oslo_utils import encodeutils
 from oslo_utils import excutils
 from oslo_utils import uuidutils
 from tacker._i18n import _
@@ -1051,14 +1050,14 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                     LOG.error("Failed to create image %(name)s for vnf %(id)s "
                               "due to error: %(error)s",
                               {"name": name, "id": vnf_instance.id,
-                              "error": encodeutils.exception_to_unicode(exp)})
+                              "error": str(exp)})
 
                     # Delete previously created images
                     _roll_back_images()
 
                     raise exceptions.VnfPreInstantiationFailed(
                         id=vnf_instance.id,
-                        error=encodeutils.exception_to_unicode(exp))
+                        error=str(exp))
             try:
                 if is_url:
                     glance_client.import_image(image, image_path)
@@ -1079,7 +1078,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
                     LOG.error("Image %(name)s not active for vnf %(id)s "
                               "error: %(error)s",
                               {"name": name, "id": vnf_instance.id,
-                              "error": encodeutils.exception_to_unicode(exp)})
+                              "error": str(exp)})
 
                     err_msg = "Failed to delete image %(uuid)s for vnf %(id)s"
                     # Delete the image
@@ -1094,7 +1093,7 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
 
                     raise exceptions.VnfPreInstantiationFailed(
                         id=vnf_instance.id,
-                        error=encodeutils.exception_to_unicode(exp))
+                        error=str(exp))
 
         return vnf_resources
 

@@ -24,7 +24,6 @@ import yaml
 import zipfile
 
 from oslo_log import log as logging
-from oslo_utils import encodeutils
 from oslo_utils import excutils
 from tacker.common import utils
 from toscaparser.prereq.csar import CSAR
@@ -518,7 +517,7 @@ def extract_csar_zip_file(file_path, extract_path):
             LOG.error("Error encountered while extracting "
                       "csar zip file %(path)s. Error: %(error)s.",
                       {'path': file_path,
-                      'error': encodeutils.exception_to_unicode(exp)})
+                      'error': str(exp)})
             exp.reraise = False
             raise exceptions.InvalidZipFile(path=file_path)
 
@@ -539,15 +538,14 @@ def load_csar_data(context, package_uuid, zip_path):
             LOG.error("Error processing CSAR file %(path)s for vnf package"
                       " %(uuid)s: Error: %(error)s. ",
                       {'path': zip_path, 'uuid': package_uuid,
-                    'error': encodeutils.exception_to_unicode(exp)})
+                    'error': str(exp)})
     except Exception as exp:
         with excutils.save_and_reraise_exception():
             LOG.error("Tosca parser failed for vnf package %(uuid)s: "
                       "Error: %(error)s. ", {'uuid': package_uuid,
-                      'error': encodeutils.exception_to_unicode(exp)})
+                      'error': str(exp)})
             exp.reraise = False
-            raise exceptions.InvalidCSAR(encodeutils.exception_to_unicode
-                                         (exp))
+            raise exceptions.InvalidCSAR(str(exp))
 
 
 def delete_csar_data(package_uuid):

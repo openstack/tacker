@@ -34,7 +34,6 @@ from oslo_serialization import jsonutils
 from oslo_service import loopingcall
 from oslo_service import periodic_task
 from oslo_service import service
-from oslo_utils import encodeutils
 from oslo_utils import excutils
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
@@ -617,14 +616,14 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
                 zip_path = glance_store.load_csar(vnf_package.id, location)
                 csar_utils.extract_csar_zip_file(zip_path, csar_path)
             except (store_exceptions.GlanceStoreException) as e:
-                exc_msg = encodeutils.exception_to_unicode(e)
+                exc_msg = str(e)
                 msg = ("Exception raised while extracting csar zip file"
                        " Error: %s." % exc_msg)
                 raise exceptions.FailedToGetVnfdData(error=msg)
         try:
             return self._read_vnfd_files(csar_path)
         except Exception as e:
-            exc_msg = encodeutils.exception_to_unicode(e)
+            exc_msg = str(e)
             msg = ("Exception raised while reading csar file"
                    " Error: %s." % exc_msg)
             raise exceptions.FailedToGetVnfdData(error=msg)
@@ -841,8 +840,7 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
             finally:
                 error_msg = "Failed to build instantiation information \
                             for vnf {} because {}".\
-                    format(vnf_instance.id, encodeutils.
-                        exception_to_unicode(ex))
+                    format(vnf_instance.id, str(ex))
                 LOG.error("_build_instantiated_vnf_info error {}".
                     format(error_msg))
                 raise exceptions.TackerException(message=error_msg)
@@ -866,7 +864,7 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
         except Exception as exp:
             error_msg = \
                 "Failed to update instantiation information for vnf {}: {}".\
-                format(vnf_instance.id, encodeutils.exception_to_unicode(exp))
+                format(vnf_instance.id, str(exp))
             LOG.error("_update_instantiated_vnf_info error {}".
                 format(error_msg))
             raise exceptions.TackerException(message=error_msg)
@@ -892,7 +890,7 @@ class Conductor(manager.Manager, v2_hook.ConductorV2Hook):
         except Exception as exp:
             error_msg = \
                 "Failed to update instantiation information for vnf {}: {}".\
-                format(vnf_instance.id, encodeutils.exception_to_unicode(exp))
+                format(vnf_instance.id, str(exp))
             raise exceptions.TackerException(message=error_msg)
 
     @log.log

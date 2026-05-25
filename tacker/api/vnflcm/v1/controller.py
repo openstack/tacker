@@ -23,7 +23,6 @@ import webob
 from oslo_db.exception import DBDuplicateEntry
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
-from oslo_utils import encodeutils
 from oslo_utils import excutils
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
@@ -373,7 +372,7 @@ class VnfLcmController(wsgi.Controller):
         except Exception as ex:
             LOG.error(
                 "Encoutered problem sending notification {}".format(
-                    encodeutils.exception_to_unicode(ex)))
+                    str(ex)))
 
         return vnf_lcm_op_occs_id
 
@@ -1701,7 +1700,7 @@ class VnfLcmController(wsgi.Controller):
         except Exception as e:
             error_msg = (
                 'Error in VNF Cancel for vnf %s because %s' %
-                (vnf_instance.id, encodeutils.exception_to_unicode(e)))
+                (vnf_instance.id, str(e)))
             LOG.error(error_msg)
             raise exceptions.TackerException(message=error_msg)
 
@@ -1793,7 +1792,7 @@ class VnfLcmController(wsgi.Controller):
             vnf_lcm_op_occs.save()
         except Exception as ex:
             error_msg = "Error in VNF Fail for vnf {} because {}".format(
-                vnf_instance.id, encodeutils.exception_to_unicode(ex))
+                vnf_instance.id, str(ex))
             LOG.error(error_msg)
             raise exceptions.TackerException(message=error_msg)
 

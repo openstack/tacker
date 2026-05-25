@@ -21,7 +21,6 @@ import urllib.request as urllib2
 import yaml
 
 from oslo_log import log as logging
-from oslo_utils import encodeutils
 from tacker.common.container import kubernetes_utils
 from tacker.common import exceptions
 from tacker.common import log
@@ -152,7 +151,7 @@ class ContainerUpdateMgmtDriver(vnflcm_abstract_driver.
                                    body=body)
         except Exception as exp:
             raise exceptions.MgmtDriverOtherError(
-                error_message=encodeutils.exception_to_unicode(exp))
+                error_message=str(exp))
 
         return response
 
@@ -175,7 +174,7 @@ class ContainerUpdateMgmtDriver(vnflcm_abstract_driver.
             response = read_scale_api(name=name, namespace=namespace)
         except Exception as exp:
             raise exceptions.MgmtDriverOtherError(
-                error_message=encodeutils.exception_to_unicode(exp))
+                error_message=str(exp))
 
         return response
 
@@ -259,7 +258,7 @@ class ContainerUpdateMgmtDriver(vnflcm_abstract_driver.
             return k8s_pod_objs
         except Exception as exp:
             raise exceptions.MgmtDriverOtherError(
-                error_message=encodeutils.exception_to_unicode(exp))
+                error_message=str(exp))
 
     @log.log
     def modify_information_end(self, context, vnf_instance,

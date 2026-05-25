@@ -20,7 +20,6 @@ import urllib
 import glance_store
 from glance_store import exceptions as store_exceptions
 from oslo_log import log as logging
-from oslo_utils import encodeutils
 from oslo_utils import units
 
 from tacker.common import exceptions
@@ -51,7 +50,7 @@ def get_csar_data_iter(body):
 
         return data_iter
     except Exception as e:
-        error = encodeutils.exception_to_unicode(e)
+        error = str(e)
         LOG.error("Failed to open csar URL: %(url)s due to error: %(error)s",
                   {"url": url, "error": error})
         raise exceptions.VNFPackageURLInvalid(url=url)
@@ -72,7 +71,7 @@ def store_csar(context, package_uuid, body):
             CONF.vnf_package.hashing_algorithm,
             context=context)
     except Exception as e:
-        error = encodeutils.exception_to_unicode(e)
+        error = str(e)
         LOG.error("Failed to store csar data in glance store for "
                   "package %(uuid)s due to error: %(error)s",
                   {"uuid": package_uuid,
@@ -122,7 +121,7 @@ def load_csar(package_uuid, location):
                       "csar '%(package_uuid)s' into csar path %(zip_path)s:"
                       "%(error)s. ", {'package_uuid': package_uuid,
                        'zip_path': zip_path,
-                       'error': encodeutils.exception_to_unicode(exp)})
+                       'error': str(exp)})
 
     return zip_path
 

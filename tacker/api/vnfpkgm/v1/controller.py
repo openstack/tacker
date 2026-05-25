@@ -27,7 +27,6 @@ from glance_store import exceptions as store_exceptions
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
-from oslo_utils import encodeutils
 from oslo_utils import excutils
 from oslo_utils import uuidutils
 
@@ -774,7 +773,7 @@ class VnfPkgmController(wsgi.Controller):
                 zip_path = glance_store.load_csar(vnf_package.id, location)
                 csar_utils.extract_csar_zip_file(zip_path, csar_path)
             except (store_exceptions.GlanceStoreException) as e:
-                exc_msg = encodeutils.exception_to_unicode(e)
+                exc_msg = str(e)
                 msg = (_("Exception raised from glance store can be "
                          "unrecoverable if it is not related to connection"
                          " error. Error: %s.") % exc_msg)
@@ -789,7 +788,7 @@ class VnfPkgmController(wsgi.Controller):
                 vnf_artifact_data = f.read(chunk_size)
                 return vnf_artifact_data
         except Exception as e:
-            exc_msg = encodeutils.exception_to_unicode(e)
+            exc_msg = str(e)
             msg = (_("Exception raised while reading artifact file"
                      " Error: %s.") % exc_msg)
             raise exceptions.FailedToGetVnfArtifact(error=msg)

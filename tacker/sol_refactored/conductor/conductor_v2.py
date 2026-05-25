@@ -18,7 +18,6 @@ import threading
 
 from oslo_log import log as logging
 from oslo_service import loopingcall
-from oslo_utils import encodeutils
 
 from tacker.common import log
 from tacker import context as tacker_context
@@ -413,7 +412,7 @@ class ConductorV2(object):
                          f"skip this DB synchronization. vnf: {inst.id}.")
             except Exception as e:
                 LOG.error(f"Failed to synchronize database vnf: {inst.id} "
-                          f"Error: {encodeutils.exception_to_unicode(e)}")
+                          f"Error: {str(e)}")
         LOG.debug("Ended _sync_db")
 
     @coordinate.lock_vnf_instance('{inst.id}')
