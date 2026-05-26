@@ -32,25 +32,23 @@ def rm_idx(name_idx):
 def add_idx_to_vdu_template(vdu_template, vdu_idx):
     """Add index to the third element of get_param
 
-    ex. input VDU template:
-    ---
-    VDU1:
-      type: VDU1.yaml
-      properties:
-        flavor: { get_param: [ nfv, VDU, VDU1, computeFlavourId ] }
-        image-VDU1: { get_param: [ nfv, VDU, VDU1, vcImageId ] }
-        net1: { get_param: [ nfv, CP, VDU1_CP1, network ] }
-    ---
+    ex. input VDU template::
 
-    output VDU template:
-    ---
-    VDU1:
-      type: VDU1.yaml
-      properties:
-        flavor: { get_param: [ nfv, VDU, VDU1-1, computeFlavourId ] }
-        image-VDU1: { get_param: [ nfv, VDU, VDU1-1, vcImageId ] }
-        net1: { get_param: [ nfv, CP, VDU1_CP1-1, network ] }
-    ---
+        VDU1:
+          type: VDU1.yaml
+          properties:
+            flavor: { get_param: [ nfv, VDU, VDU1, computeFlavourId ] }
+            image-VDU1: { get_param: [ nfv, VDU, VDU1, vcImageId ] }
+            net1: { get_param: [ nfv, CP, VDU1_CP1, network ] }
+
+    output VDU template::
+
+        VDU1:
+          type: VDU1.yaml
+          properties:
+            flavor: { get_param: [ nfv, VDU, VDU1-1, computeFlavourId ] }
+            image-VDU1: { get_param: [ nfv, VDU, VDU1-1, vcImageId ] }
+            net1: { get_param: [ nfv, CP, VDU1_CP1-1, network ] }
     """
     res = copy.deepcopy(vdu_template)
     for prop_value in res.get('properties', {}).values():

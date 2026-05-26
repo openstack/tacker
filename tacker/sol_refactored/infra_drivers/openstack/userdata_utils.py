@@ -23,7 +23,8 @@ class AbstractUserData(metaclass=abc.ABCMeta):
 
     Args:
         req: Request dict for each API
-             (ex. InstantiateVnfRequest for instantiate)
+            (ex. InstantiateVnfRequest for instantiate)
+
         inst: VnfInstance dict
         grant_req: GrantRequest dict
         grant: Grant dict
