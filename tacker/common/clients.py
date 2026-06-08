@@ -84,6 +84,7 @@ class OpenstackSdkConnection(object):
             region_name=access_info.get('region'),
             session=session,
             identity_interface='internal',
-            image_api_version=version)
+            image_api_version=version,
+            connect_retries=1)
 
         return conn

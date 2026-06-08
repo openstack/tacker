@@ -48,8 +48,8 @@ class KubernetesHTTPAPI(object):
                 auth_plugin['id_token'] = id_token
 
             # set id token to k8s config
-            config.api_key_prefix['authorization'] = 'Bearer'
-            config.api_key['authorization'] = auth_plugin['id_token']
+            config.api_key_prefix['BearerToken'] = 'Bearer'
+            config.api_key['BearerToken'] = auth_plugin['id_token']
 
         else:
             if ('username' in auth_plugin) and ('password' in auth_plugin)\
@@ -57,10 +57,10 @@ class KubernetesHTTPAPI(object):
                 config.username = auth_plugin['username']
                 config.password = auth_plugin['password']
                 basic_token = config.get_basic_auth_token()
-                config.api_key['authorization'] = basic_token
+                config.api_key['BearerToken'] = basic_token
             if 'bearer_token' in auth_plugin:
-                config.api_key_prefix['authorization'] = 'Bearer'
-                config.api_key['authorization'] = auth_plugin['bearer_token']
+                config.api_key_prefix['BearerToken'] = 'Bearer'
+                config.api_key['BearerToken'] = auth_plugin['bearer_token']
         ca_cert_file = auth_plugin.get('ca_cert_file')
         if ca_cert_file is not None:
             config.ssl_ca_cert = ca_cert_file

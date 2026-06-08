@@ -67,9 +67,9 @@ class TestKubernetesHTTPAPI(base.BaseTestCase):
         k8s_client = self.kubernetes_http_api.get_k8s_client(auth_plugin)
         k8s_client_config = k8s_client.configuration
         self.assertEqual('auth_url', k8s_client_config.host)
-        self.assertDictEqual({'authorization': 'Bearer'},
+        self.assertDictEqual({'BearerToken': 'Bearer'},
                              k8s_client_config.api_key_prefix)
-        self.assertDictEqual({'authorization': 'id_token'},
+        self.assertDictEqual({'BearerToken': 'id_token'},
                              k8s_client_config.api_key)
         self.assertEqual('ca_cert_file', k8s_client_config.ssl_ca_cert)
         self.assertTrue(k8s_client_config.verify_ssl)
@@ -89,9 +89,9 @@ class TestKubernetesHTTPAPI(base.BaseTestCase):
         k8s_client = self.kubernetes_http_api.get_k8s_client(auth_plugin)
         k8s_client_config = k8s_client.configuration
         self.assertEqual('auth_url', k8s_client_config.host)
-        self.assertDictEqual({'authorization': 'Bearer'},
+        self.assertDictEqual({'BearerToken': 'Bearer'},
                              k8s_client_config.api_key_prefix)
-        self.assertDictEqual({'authorization': 'id_token'},
+        self.assertDictEqual({'BearerToken': 'id_token'},
                              k8s_client_config.api_key)
         self.assertFalse(k8s_client_config.verify_ssl)
 
@@ -110,9 +110,9 @@ class TestKubernetesHTTPAPI(base.BaseTestCase):
         k8s_client = self.kubernetes_http_api.get_k8s_client(auth_plugin)
         k8s_client_config = k8s_client.configuration
         self.assertEqual('auth_url', k8s_client_config.host)
-        self.assertDictEqual({'authorization': 'Bearer'},
+        self.assertDictEqual({'BearerToken': 'Bearer'},
                              k8s_client_config.api_key_prefix)
-        self.assertDictEqual({'authorization': 'id_token'},
+        self.assertDictEqual({'BearerToken': 'id_token'},
                              k8s_client_config.api_key)
         self.assertEqual('ca_cert_file', k8s_client_config.ssl_ca_cert)
         self.assertTrue(k8s_client_config.verify_ssl)
@@ -126,8 +126,8 @@ class TestKubernetesHTTPAPI(base.BaseTestCase):
         k8s_client = self.kubernetes_http_api.get_k8s_client(auth_plugin)
         k8s_client_config = k8s_client.configuration
         self.assertEqual('auth_url', k8s_client_config.host)
-        self.assertDictEqual({'authorization': 'Bearer'},
+        self.assertDictEqual({'BearerToken': 'Bearer'},
                              k8s_client_config.api_key_prefix)
-        self.assertDictEqual({'authorization': 'bearer_token'},
+        self.assertDictEqual({'BearerToken': 'bearer_token'},
                              k8s_client_config.api_key)
         self.assertFalse(k8s_client_config.verify_ssl)

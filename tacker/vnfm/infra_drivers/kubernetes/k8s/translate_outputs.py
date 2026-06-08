@@ -302,7 +302,7 @@ class Transformer(object):
                 setattr(obj, param_value, value)
             elif isinstance(value, dict):
                 obj_name = obj.openapi_types.get(param_value)
-                if obj_name == 'dict(str, str)':
+                if obj_name == 'dict[str, str]':
                     setattr(obj, param_value, value)
                 else:
                     rely_obj = self._gen_k8s_obj_from_name(obj_name)

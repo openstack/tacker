@@ -167,19 +167,19 @@ class AuthContextManager:
                 client_secret=self.vim_info.accessInfo.get('client_secret'),
                 ssl_ca_cert=self.ca_cert_file
             )
-            k8s_config.api_key_prefix['authorization'] = 'Bearer'
-            k8s_config.api_key['authorization'] = id_token
+            k8s_config.api_key_prefix['BearerToken'] = 'Bearer'
+            k8s_config.api_key['BearerToken'] = id_token
         else:
             if ('username' in self.vim_info.accessInfo and
                     self.vim_info.accessInfo.get('password') is not None):
                 k8s_config.username = self.vim_info.accessInfo['username']
                 k8s_config.password = self.vim_info.accessInfo['password']
                 basic_token = k8s_config.get_basic_auth_token()
-                k8s_config.api_key['authorization'] = basic_token
+                k8s_config.api_key['BearerToken'] = basic_token
 
             if 'bearer_token' in self.vim_info.accessInfo:
-                k8s_config.api_key_prefix['authorization'] = 'Bearer'
-                k8s_config.api_key['authorization'] = self.vim_info.accessInfo[
+                k8s_config.api_key_prefix['BearerToken'] = 'Bearer'
+                k8s_config.api_key['BearerToken'] = self.vim_info.accessInfo[
                     'bearer_token']
 
         if self.ca_cert_file:

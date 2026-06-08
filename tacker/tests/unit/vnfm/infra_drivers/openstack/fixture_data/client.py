@@ -77,5 +77,6 @@ class SdkConnectionFixture(ClientFixture):
             region_name=None,
             session=self.session,
             identity_interface='internal',
-            image_api_version='2')
+            image_api_version='2',
+            connect_retries=1)
         return conn
