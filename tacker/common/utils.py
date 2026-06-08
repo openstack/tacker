@@ -27,17 +27,18 @@ import os
 import re
 import signal
 import socket
-from stevedore import driver
+import subprocess
 import sys
+from urllib import parse as urlparse
 
-from eventlet.green import subprocess
 import netaddr
 from oslo_concurrency import lockutils
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
 from oslo_utils import importutils
-from urllib import parse as urlparse
+from stevedore import driver
+
 try:
     from eventlet import sleep
 except ImportError:

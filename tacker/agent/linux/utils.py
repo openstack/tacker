@@ -15,15 +15,14 @@
 
 import os
 import shlex
+import subprocess
+import time
 
-from eventlet.green import subprocess
-from eventlet import greenthread
 from oslo_log import log as logging
 from oslo_utils import excutils
 
 from tacker._i18n import _
 from tacker.common import utils
-
 
 LOG = logging.getLogger(__name__)
 
@@ -75,10 +74,7 @@ def execute(cmd, root_helper=None, process_input=None, addl_env=None,
         elif debuglog:
             LOG.debug(m)
     finally:
-        # NOTE(termie): this appears to be necessary to let the subprocess
-        #               call clean something up in between calls, without
-        #               it two execute calls in a row hangs the second one
-        greenthread.sleep(0)
+        time.sleep(0)
 
     return return_stderr and (_stdout, _stderr) or _stdout
 
