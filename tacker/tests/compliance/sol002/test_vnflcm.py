@@ -13,10 +13,14 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from oslo_log import log as logging
 from oslo_serialization import jsonutils
 from oslo_utils import uuidutils
 from tacker.tests.compliance import base as rootbase
 from tacker.tests.compliance.sol002 import base
+
+
+LOG = logging.getLogger(__name__)
 
 
 class BaseVNFLifecycleManagementTest(base.BaseComplSolTest):
@@ -115,7 +119,6 @@ class IndividualVNFInstanceTest(BaseVNFLifecycleManagementTest):
 
         variables = ['vnfInstanceId:' + vnf['id']]
         rc, output = self._run('DELETE Individual VNFInstance', variables)
-
         # Post-Conditions: VNF instance deleted
 
         self.assertEqual(0, rc)
@@ -133,7 +136,6 @@ class IndividualVNFInstanceTest(BaseVNFLifecycleManagementTest):
         rc, output = self._run('PATCH Individual VNFInstance',
             variables=variables,
             body=jsonutils.dumps(body))
-
         # Post-Conditions:
         self._delete_vnf_instance(vnfid)
 
@@ -150,7 +152,6 @@ class InstantiateVNFTaskTest(BaseVNFLifecycleManagementTest):
     def test_post_instantiate_vnfinstance(self):
         # Pre-conditions: none
         res, vnf = self._create_vnf_instance(self.vnfpkginfos[0].vnfdid)
-
         variables = ['vnfInstanceId:' + vnf['id']]
 
         body = rootbase.INSTANTIATION_BODY
@@ -163,7 +164,6 @@ class InstantiateVNFTaskTest(BaseVNFLifecycleManagementTest):
             variables=variables,
             body=jsonutils.dumps(body),
             filename='instantiateVnfRequest.json')
-
         # Post-Conditions:
         self._wait_vnf_status(vnf['id'], 'instantiationState', 'INSTANTIATED')
         self._terminate_vnf_instance(vnf['id'])
@@ -182,7 +182,6 @@ class TerminateVNFTaskTest(BaseVNFLifecycleManagementTest):
     def test_post_terminate_vnfinstance(self):
         # Pre-conditions: none
         res, vnf = self._create_vnf_instance(self.vnfpkginfos[0].vnfdid)
-
         self._instantiate_vnf_instance(vnf['id'])
 
         variables = ['vnfInstanceId:' + vnf['id']]
@@ -204,18 +203,53 @@ class ScaleVNFTaskTest(BaseVNFLifecycleManagementScaleTest):
     @classmethod
     def setUpClass(cls):
         cls.resource = 'ScaleVNFTask'
-
+        # Cleaup the existing DemoVirtualStorage images
+        # which are created during scale operation
+        cls._cleanup_test_images()
         super(ScaleVNFTaskTest, cls).setUpClass()
 
-    def test_post_expand_by_scaleout(self):
+    @classmethod
+    def _cleanup_test_images(cls):
+        try:
+            glance = cls.glanceclient()
+            images = list(glance.images.list(
+                filters={'name': 'DemoVirtualStorage'}))
+
+            if images:
+                for image in images:
+                    try:
+                        glance.images.delete(image.id)
+                    except Exception as e:
+                        LOG.exception(
+                            "Failed to delete image %s: %s",
+                            image.id, e
+                        )
+
+        except Exception as e:
+            LOG.exception("Error during cleanup: %s", e)
+
+    # Both the scale operation (scale-out and scale-in) test functions are
+    # merged as single test function where it first performs scale-out and
+    # then perform scale-in operation
+
+    def test_post_scale(self):
         # Pre-conditions: none
         res, vnf = self._create_vnf_instance(self.vnfpkginfos[0].vnfdid)
-
         self._instantiate_vnf_instance_for_scale(vnf['id'])
 
         variables = ['vnfInstanceId:' + vnf['id']]
         body = rootbase.SCALE_BODY
         body['type'] = 'SCALE_OUT'
+
+        rc, output = self._run('POST Scale a vnfInstance',
+            variables=variables,
+            body=jsonutils.dumps(body),
+            filename='scaleVnfRequest.json')
+        lcmid = self._get_lcm_op_occs_id(vnf['id'], lcm='SCALE')
+        res = self._wait_lcm_status(lcmid)
+        self.assertEqual(0, res)
+
+        body['type'] = 'SCALE_IN'
 
         rc, output = self._run('POST Scale a vnfInstance',
             variables=variables,
@@ -228,28 +262,8 @@ class ScaleVNFTaskTest(BaseVNFLifecycleManagementScaleTest):
         lcmid = self._get_lcm_op_occs_id(vnf['id'], lcm='SCALE')
         res = self._wait_lcm_status(lcmid)
         self.assertEqual(0, res)
-
-        self.assertEqual(0, rc)
-
-    def test_post_reduce_by_scalein(self):
-        vnf_id = self._get_vnf_instance_id()
-
-        body = rootbase.SCALE_BODY
-        body['type'] = 'SCALE_IN'
-
-        rc, output = self._run('POST Scale a vnfInstance',
-            variables=['vnfInstanceId:' + vnf_id],
-            body=jsonutils.dumps(body),
-            filename='scaleVnfRequest.json')
-
-        res = self._get_responses_from_output(output)
-
-        # Post-Conditions:
-        lcmid = self._get_lcm_op_occs_id(vnf_id, lcm='SCALE')
-        res = self._wait_lcm_status(lcmid)
-        self.assertEqual(0, res)
-        self._terminate_vnf_instance(vnf_id)
-        self._delete_vnf_instance(vnf_id)
+        self._terminate_vnf_instance(vnf['id'])
+        self._delete_vnf_instance(vnf['id'])
 
         self.assertEqual(0, rc)
 
@@ -326,7 +340,6 @@ class HealVNFTaskTest(BaseVNFLifecycleManagementTest):
         # Pre-conditions: none
         res, vnf = self._create_vnf_instance(self.vnfpkginfos[0].vnfdid)
         self._instantiate_vnf_instance(vnf['id'])
-
         variables = ['vnfInstanceId:' + vnf['id']]
         resbody = self._get_vnf_ind_instance(vnf['id'])
         body = rootbase.HEAL_BODY
@@ -360,7 +373,6 @@ class RetryOperationTaskTest(BaseVNFLifecycleManagementTest):
         res, vnf = self._create_vnf_instance(self.vnfpkginfos[0].vnfdid)
         self._instantiate_error_vnf_instance(vnf['id'])
         lcmid = self._get_lcm_op_occs_id(vnf['id'])
-
         variables = ['vnfLcmOpOccId:' + lcmid]
 
         rc, output = self._run('Post Retry operation task',
@@ -386,9 +398,7 @@ class ChangeExternalVNFConnectivityTaskTest(BaseVNFLifecycleManagementTest):
 
         # Pre-conditions: none
         res, vnf = self._create_vnf_instance(self.vnfpkginfos[0].vnfdid)
-
         self._instantiate_vnf_instance(vnf['id'])
-
         variables = ['vnfInstanceId:' + vnf['id']]
 
         resbody = self._get_vnf_ind_instance(vnf['id'])
@@ -402,7 +412,6 @@ class ChangeExternalVNFConnectivityTaskTest(BaseVNFLifecycleManagementTest):
             variables=variables,
             body=jsonutils.dumps(body),
             filename='changeExtVnfConnectivityRequest.json')
-
         # Post-Conditions:
         lcmid = self._get_lcm_op_occs_id(vnf['id'], lcm='CHANGE_EXT_CONN')
         res = self._wait_lcm_status(lcmid)

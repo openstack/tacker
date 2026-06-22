@@ -64,10 +64,10 @@ VNFPACKAGE_RESPONSE = {
     'softwareImages': [{
         'checksum': {'algorithm': 'fake-algorithm',
                      'hash': 'fake software image hash'},
-        'containerFormat': 'bare',
+        'containerFormat': 'BARE',
         'createdAt': datetime.datetime(1900, 1, 1, 1, 1, 1,
                                        tzinfo=datetime.timezone.utc),
-        'diskFormat': 'qcow2',
+        'diskFormat': 'QCOW2',
         'id': 'fake_software_image_id',
         'imagePath': 'fake image path',
         'minDisk': 1,

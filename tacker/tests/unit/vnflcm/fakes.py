@@ -2122,7 +2122,7 @@ VNFLCMOPOCC_RESPONSE = {
     'grantId': 'f26f181d-7891-4720-b022-b074ec1733ef',
     'operation': 'MODIFY_INFO',
     'isAutomaticInvocation': False,
-    'operationParams': '{"is_reverse": False, "is_auto": False}',
+    'operationParams': '{"is_reverse": false, "is_auto": false}',
     'error': {
         'status': 500,
         'detail': "name 'con' is not defined",
@@ -2341,7 +2341,7 @@ def fake_vnf_lcm_op_occs():
         'grant_id': constants.UUID,
         'operation': 'MODIFY_INFO',
         'is_automatic_invocation': False,
-        'operation_params': '{"is_reverse": False, "is_auto": False}',
+        'operation_params': '{"is_reverse": false, "is_auto": false}',
         'is_cancel_pending': False,
         'error': error_obj,
         'resource_changes': resource_changes_obj,

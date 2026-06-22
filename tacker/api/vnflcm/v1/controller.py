@@ -253,7 +253,6 @@ class VnfLcmController(wsgi.Controller):
             if dep_flavour.instantiation_levels:
                 inst_levels.update({
                     dep_flavour.flavour_id: dep_flavour.instantiation_levels})
-
         if req_body['flavour_id'] not in flavour_list:
             raise exceptions.FlavourNotFound(flavour_id=req_body['flavour_id'])
 
@@ -272,7 +271,6 @@ class VnfLcmController(wsgi.Controller):
             if req_inst_level_id in inst_level.get('levels').keys():
                 # Found instantiation level
                 return
-
         raise exceptions.InstantiationLevelNotFound(
             inst_level_id=req_body['instantiation_level_id'])
 
@@ -1940,6 +1938,10 @@ class VnfLcmController(wsgi.Controller):
              all_fields=all_fields, exclude_fields=exclude_fields,
              fields=fields, exclude_default=exclude_default)
 
+        # Remove grantId if it is None
+        for ind_op in result:
+            if 'grantId' in ind_op and ind_op['grantId'] is None:
+                ind_op.pop('grantId')
         res = webob.Response(content_type='application/json')
         res.status_int = 200
 

@@ -2111,6 +2111,9 @@ class TestController(base.TestCase):
 
         expected_result = fakes.VNFLCMOPOCC_RESPONSE
         res_dict = self.controller.show_lcm_op_occs(req, constants.UUID)
+        if isinstance(res_dict['operationParams'], dict):
+            res_dict['operationParams'] = json.dumps(
+                res_dict['operationParams'])
         self.assertEqual(expected_result, res_dict)
 
     @mock.patch.object(TackerManager, 'get_service_plugins',

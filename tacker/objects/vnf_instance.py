@@ -523,8 +523,11 @@ class VnfInstance(base.TackerObject, base.TackerPersistentObject,
 
         if (self.instantiation_state == fields.VnfInstanceState.INSTANTIATED
                 and self.instantiated_vnf_info):
-            data.update({'instantiated_vnf_info':
-                         self.instantiated_vnf_info.to_dict()})
+            instantiated_vnf_data = self.instantiated_vnf_info.to_dict()
+
+            # Replace all null values with empty strings
+            inst_vnf_data = self._filter_null_values(instantiated_vnf_data)
+            data.update({'instantiated_vnf_info': inst_vnf_data})
 
             vim_connection_info_list = []
             for vim_connection_info in self.vim_connection_info:
@@ -532,6 +535,30 @@ class VnfInstance(base.TackerObject, base.TackerPersistentObject,
             data.update({'vim_connection_info': vim_connection_info_list})
 
         return data
+
+    def _filter_null_values(self, obj):
+        """Replace all null values with empty strings"""
+        if isinstance(obj, dict):
+            result = {}
+            for key, value in obj.items():
+                if value is None:
+                    # Replace null with empty string
+                    result[key] = ''
+                elif isinstance(value, (dict, list)):
+                    # Recursively process nested dicts or lists
+                    result[key] = self._filter_null_values(value)
+                else:
+                    # Keep the value as-is
+                    result[key] = value
+
+            return result
+        elif isinstance(obj, list):
+            return [
+                self._filter_null_values(item)
+                for item in obj
+                if item is not None
+            ]
+        return obj
 
     @base.remotable
     def update(
