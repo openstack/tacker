@@ -137,9 +137,10 @@ class TestVnfPackageRequest(base.BaseTestCase):
                 check_zip(expected_zip)
 
             for expected_artifact in expected_artifacts:
-                expected_checksum = hashlib.sha256(
-                    open(utils.test_etc_sample(
-                        expected_artifact), 'rb').read()).hexdigest()
+                with open(utils.test_etc_sample(
+                        expected_artifact), 'rb') as ef:
+                    expected_checksum = hashlib.sha256(
+                        ef.read()).hexdigest()
                 actual_checksum = hashlib.sha256(
                     actual_zip.read(expected_artifact)).hexdigest()
                 self.assertEqual(expected_checksum, actual_checksum)

@@ -27,6 +27,7 @@ class TestGenerateSecretKey(unittest.TestCase):
             db_cli.CONF(
                 ['generate_secret_key', '--file', out])
             db_cli.generate_secret_key(None, None)
-            data = open(out, 'rb').read()
+            with open(out, 'rb') as f:
+                data = f.read()
             Fernet(data)
             self.assertGreaterEqual(len(data), 32)
