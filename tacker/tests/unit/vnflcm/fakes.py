@@ -2077,7 +2077,8 @@ def wsgi_app_v1(fake_auth_context=None):
         ctxt = fake_auth_context
     else:
         ctxt = context.ContextBase(uuidsentinel.user_id,
-                                   uuidsentinel.project_id, is_admin=True)
+                                   uuidsentinel.project_id, is_admin=True,
+                                   roles=['admin', 'member', 'reader'])
     api_v1 = InjectContext(ctxt, inner_app_v1)
     return api_v1
 

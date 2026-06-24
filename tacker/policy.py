@@ -21,7 +21,6 @@ import sys
 from oslo_config import cfg
 from oslo_db import exception as db_exc
 from oslo_log import log as logging
-from oslo_policy import opts
 from oslo_policy import policy
 from oslo_utils import excutils
 from oslo_utils import importutils
@@ -37,15 +36,6 @@ LOG = logging.getLogger(__name__)
 
 _ENFORCER = None
 ADMIN_CTX_POLICY = 'context_is_admin'
-
-# TODO(gmann): Remove setting the default value of config options:
-# - 'enforce_scope', and 'enforce_new_defaults' once cinder is ready with the
-# new RBAC (oslo_policy enable them by default)
-DEFAULT_POLICY_FILE = 'policy.yaml'
-opts.set_defaults(
-    cfg.CONF,
-    enforce_scope=False,
-    enforce_new_defaults=False)
 
 
 def reset():

@@ -126,7 +126,7 @@ class TestTackerContext(base.BaseTestCase):
     def test_tacker_context_admin_context(self):
         ctx = context.get_admin_context()
         self.assertTrue(ctx.is_admin)
-        self.assertFalse(ctx.roles)
+        self.assertEqual(['admin'], ctx.roles)
 
     def test_tacker_context_elevated_retains_request_id(self):
         ctx = context.Context('user_id', 'tenant_id')

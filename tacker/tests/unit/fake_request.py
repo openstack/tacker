@@ -39,5 +39,6 @@ class HTTPRequest(webob.Request):
         out.environ['tacker.context'] = FakeRequestContext(
             uuidsentinel.user_id,
             uuidsentinel.project_id,
-            is_admin=use_admin_context)
+            is_admin=use_admin_context,
+            roles=['admin', 'member', 'reader'])
         return out

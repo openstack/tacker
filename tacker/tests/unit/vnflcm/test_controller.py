@@ -1680,7 +1680,7 @@ class TestController(base.TestCase):
                 'VnfLcmController._delete')
     @mock.patch.object(TackerManager, 'get_service_plugins',
                        return_value={'VNFM': FakeVNFMPlugin()})
-    @mock.patch.object(objects.vnf_instance, "_vnf_instance_get_by_id")
+    @mock.patch.object(objects.VnfInstance, "get_by_id")
     @mock.patch.object(objects.vnf_instance, '_destroy_vnf_instance')
     def test_delete(self, mock_destroy_vnf_instance, mock_vnf_by_id,
             mock_get_service_plugins, mock_private_delete):
