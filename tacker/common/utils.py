@@ -37,7 +37,6 @@ from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
 from oslo_utils import importutils
-import urllib
 from urllib import parse as urlparse
 try:
     from eventlet import sleep
@@ -452,9 +451,15 @@ def convert_snakecase_to_camelcase(request_data):
 
 
 def is_url(url):
+    """Check syntactically if the given string is a URL.
+
+    Unlike is_valid_url(), this does not require a path and does not
+    restrict schemes; it is intended to distinguish a URL from a local
+    file path. Reachability of the URL is not checked.
+    """
     try:
-        urllib.request.urlopen(url)
-        return True
+        result = urlparse.urlparse(url)
+        return all([result.scheme, result.netloc])
     except Exception:
         return False
 

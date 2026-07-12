@@ -131,6 +131,28 @@ class TestValidateUrl(testtools.TestCase):
         self.assertFalse(result)
 
 
+class TestIsUrl(testtools.TestCase):
+    def test_url(self):
+        result = utils.is_url("http://download.net/images/test.img")
+        self.assertTrue(result)
+
+    def test_url_without_path(self):
+        result = utils.is_url("https://10.10.10.10")
+        self.assertTrue(result)
+
+    def test_absolute_file_path(self):
+        result = utils.is_url("/tmp/images/test.img")
+        self.assertFalse(result)
+
+    def test_relative_file_path(self):
+        result = utils.is_url("Files/images/test.img")
+        self.assertFalse(result)
+
+    def test_not_a_string(self):
+        result = utils.is_url(None)
+        self.assertFalse(result)
+
+
 class TestConvertStringToBool(testtools.TestCase):
     def test_do_not_convert(self):
         result = utils.str_to_bool(True)
