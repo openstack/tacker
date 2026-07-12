@@ -21,10 +21,10 @@ import pickle
 import re
 import subprocess
 import sys
+import time
 import yaml
 
 from dateutil import parser
-import eventlet
 from oslo_log import log as logging
 from oslo_utils import uuidutils
 
@@ -137,7 +137,7 @@ class Openstack(object):
             timeout = CONF.v2_vnfm.default_graceful_termination_timeout
             if req.obj_attr_is_set('gracefulTerminationTimeout'):
                 timeout = req.gracefulTerminationTimeout
-            eventlet.sleep(timeout)
+            time.sleep(timeout)
 
         # delete stack
         vim_info = inst_utils.select_vim_info(inst.vimConnectionInfo)

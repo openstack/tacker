@@ -13,10 +13,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import concurrent.futures
 import os
 import time
 
-import eventlet
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
 import paramiko
@@ -48,14 +48,19 @@ class HelmClient():
             timeout=HELM_CMD_TIMEOUT)
 
     def _execute_command(self, ssh_command, timeout=HELM_CMD_TIMEOUT, retry=0):
-        eventlet.monkey_patch()
         while retry >= 0:
+            # NOTE: A new executor is created per attempt because a
+            # native thread cannot be interrupted from outside; a timed
+            # out attempt keeps its worker thread busy until the command
+            # returns.
+            executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
             try:
-                with eventlet.Timeout(timeout, True):
-                    result = self.commander.execute_command(
-                        ssh_command, input_data=None)
-                    break
-            except eventlet.timeout.Timeout:
+                future = executor.submit(
+                    self.commander.execute_command, ssh_command,
+                    input_data=None)
+                result = future.result(timeout=timeout)
+                break
+            except concurrent.futures.TimeoutError:
                 error_message = ('It is time out, When execute command: '
                                  f'{ssh_command}.')
                 LOG.debug(error_message)
@@ -66,6 +71,8 @@ class HelmClient():
                     raise vnfm.HelmClientOtherError(
                         error_message=error_message)
                 time.sleep(HELM_CMD_INTERVAL)
+            finally:
+                executor.shutdown(wait=False)
         if result.get_return_code():
             self.close_session()
             err = result.get_stderr()

@@ -10,8 +10,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import concurrent.futures
 import copy
-import eventlet
 import paramiko
 
 from ddt import ddt
@@ -120,8 +120,7 @@ class TestKubernetesHelm(base.TestCase):
         patcher = mock.patch(target, new)
         return patcher.start()
 
-    @mock.patch.object(eventlet, 'monkey_patch')
-    def test_execute_command_success(self, mock_monkey_patch):
+    def test_execute_command_success(self):
         self.helm_client.commander.config(True)
         ssh_command = 'helm install'
         timeout = 120
@@ -129,8 +128,7 @@ class TestKubernetesHelm(base.TestCase):
         self.helm_client._execute_command(
             ssh_command, timeout, retry)
 
-    @mock.patch.object(eventlet, 'monkey_patch')
-    def test_execute_command_failed(self, mock_monkey_patch):
+    def test_execute_command_failed(self):
         self.helm_client.commander.config(False)
         ssh_command = 'helm install'
         timeout = 120
@@ -139,11 +137,9 @@ class TestKubernetesHelm(base.TestCase):
                           self.helm_client._execute_command,
                           ssh_command, timeout, retry)
 
-    @mock.patch.object(eventlet, 'monkey_patch')
     @mock.patch.object(FakeCommander, 'execute_command')
-    def test_execute_command_timeout(self, mock_execute_command,
-                                     mock_monkey_patch):
-        mock_execute_command.side_effect = eventlet.timeout.Timeout
+    def test_execute_command_timeout(self, mock_execute_command):
+        mock_execute_command.side_effect = concurrent.futures.TimeoutError
         ssh_command = 'helm install'
         timeout = 120
         retry = 1
@@ -151,15 +147,13 @@ class TestKubernetesHelm(base.TestCase):
                           self.helm_client._execute_command,
                           ssh_command, timeout, retry)
 
-    @mock.patch.object(eventlet, 'monkey_patch')
-    def test_helmclient_get_value_nested_param(self, mock_monkey_patch):
+    def test_helmclient_get_value_nested_param(self):
         stdout = ['{"foo":{"bar":1}}']
         self.helm_client.commander.config(True, stdout=stdout)
         res = self.helm_client.get_value('fake_release_name', '', 'foo.bar')
         self.assertEqual(res, 1)
 
-    @mock.patch.object(eventlet, 'monkey_patch')
-    def test_helmclient_get_value_missing_param(self, mock_monkey_patch):
+    def test_helmclient_get_value_missing_param(self):
         stdout = ['{"foo":1}']
         self.helm_client.commander.config(True, stdout=stdout)
         self.assertRaises(vnfm.HelmClientMissingParamsError,

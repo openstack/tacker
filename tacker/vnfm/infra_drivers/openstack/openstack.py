@@ -14,8 +14,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import concurrent.futures
 import copy
-import eventlet
 import importlib
 import ipaddress
 import os
@@ -53,8 +53,6 @@ from tacker.vnfm.infra_drivers import scale_driver
 from tacker.vnfm.lcm_user_data.constants import USER_DATA_TIMEOUT
 from tacker.vnfm.lcm_user_data import utils as user_data_utils
 from toscaparser import tosca_template
-
-eventlet.monkey_patch(time=True)
 
 SCALING_GROUP_RESOURCE = "OS::Heat::AutoScalingGroup"
 NOVA_SERVER_RESOURCE = "OS::Nova::Server"
@@ -228,15 +226,21 @@ class OpenStack(abstract_driver.VnfAbstractDriver,
             hot_param_dict = None
             param_base_hot_dict = copy.deepcopy(nested_hot_dict)
             param_base_hot_dict['heat_template'] = base_hot_dict
-            with eventlet.timeout.Timeout(USER_DATA_TIMEOUT, False):
-                try:
-                    hot_param_dict = klass.instantiate(
-                        param_base_hot_dict, vnfd_dict,
-                        inst_req_info, grant_info)
-                except Exception:
-                    raise
-                finally:
-                    self._delete_user_data_module(user_data_module)
+            # NOTE: A native thread cannot be interrupted from outside,
+            # so on timeout the UserData script keeps running in the
+            # worker thread until it returns; only its result is
+            # discarded here.
+            executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+            try:
+                future = executor.submit(
+                    klass.instantiate, param_base_hot_dict, vnfd_dict,
+                    inst_req_info, grant_info)
+                hot_param_dict = future.result(timeout=USER_DATA_TIMEOUT)
+            except concurrent.futures.TimeoutError:
+                pass
+            finally:
+                executor.shutdown(wait=False)
+                self._delete_user_data_module(user_data_module)
 
             if hot_param_dict is not None:
                 LOG.info('HOT input parameter: %s', hot_param_dict)
