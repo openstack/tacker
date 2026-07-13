@@ -75,7 +75,7 @@ For example, consider the ``POST /vnflcm/v1/vnf_instances`` API.
 
 Policy scope is disabled by default to allow operators to migrate from the
 old policy enforcement system in a graceful way. This can be enabled by
-configuring the :oslo.config:option:`oslo_policy.enforce_scope` option to
+configuring the ``oslo_policy.enforce_scope`` option to
 ``True`` in tacker.conf on controller node.
 
 .. note::
@@ -281,19 +281,19 @@ Here is step wise guide for migration:
 
 #. Enable Scope Checks
 
-   The :oslo.config:option:`oslo_policy.enforce_scope` flag is to enable the
+   The ``oslo_policy.enforce_scope`` flag is to enable the
    ``scope_type`` features. The scope of the token used in the request is
    always compared to the ``scope_type`` of the policy. If the scopes do not
    match, one of two things can happen.
-   If :oslo.config:option:`oslo_policy.enforce_scope` is True, the request
-   will be rejected. If  :oslo.config:option:`oslo_policy.enforce_scope` is
+   If ``oslo_policy.enforce_scope`` is True, the request
+   will be rejected. If ``oslo_policy.enforce_scope`` is
    False, an warning will be logged, but the request will be accepted
    (assuming the rest of the policy passes). The default value of this flag
    is False.
 
 #. Enable new defaults
 
-   The :oslo.config:option:`oslo_policy.enforce_new_defaults` flag switches
+   The ``oslo_policy.enforce_new_defaults`` flag switches
    the policy to new defaults-only. This flag controls whether or not to use
    old deprecated defaults when evaluating policies. If True, the old
    deprecated defaults are not evaluated. This means if any existing token
