@@ -477,9 +477,9 @@ def _validate_hash(algorithm, hash_code, csar, artifact_path):
     algorithm = algorithm.lower()
 
     # validate Algorithm's value
-    if algorithm in HASH_DICT.keys():
+    try:
         hash_obj = HASH_DICT[algorithm]()
-    else:
+    except KeyError:
         invalid_artifact_err_msg = (('The algorithm("%(algorithm)s") of '
                                      'artifact("%(artifact_path)s") is '
                                      'an invalid value.') %
