@@ -17,8 +17,6 @@ import os
 from unittest import mock
 import urllib
 
-from oslo_config import cfg
-
 from tacker.api.vnfpkgm.v1 import controller
 from tacker.common import csar_utils
 from tacker.common import exceptions
@@ -328,18 +326,10 @@ class VNFPackagePolicyTest(base_test.BasePolicyTest):
 
 
 class VNFPackageScopeTypePolicyTest(VNFPackagePolicyTest):
-    """Test VNF Package APIs policies with scope enabled.
-
-    This class set the tacker.conf [oslo_policy] enforce_scope to True
-    so that we can switch on the scope checking on oslo policy side.
-    This check that system scope users are not allowed to access the
-    Tacker VNF Package APIs.
-    """
+    """Test VNF Package APIs policies with scope enabled."""
 
     def setUp(self):
         super(VNFPackageScopeTypePolicyTest, self).setUp()
-        cfg.CONF.set_override('enforce_scope', True,
-                              group='oslo_policy')
 
         self.project_authorized_contexts = [
             self.legacy_admin_context, self.project_admin_context,
@@ -459,8 +449,6 @@ class VNFPackageNewDefaultsWithScopePolicyTest(
 
     def setUp(self):
         super(VNFPackageNewDefaultsWithScopePolicyTest, self).setUp()
-        cfg.CONF.set_override('enforce_scope', True,
-                              group='oslo_policy')
 
         # With scope enable and no legacy rule, only project admin/member
         # will be able to create VNF Package in their project.

@@ -15,8 +15,6 @@
 
 from unittest import mock
 
-from oslo_config import cfg
-
 from tacker.api.vnflcm.v1 import controller
 import tacker.conductor.conductorrpc.vnf_lcm_rpc as vnf_lcm_rpc
 from tacker import objects
@@ -456,18 +454,10 @@ class VNFLCMPolicyTest(base_test.BasePolicyTest):
 
 
 class VNFLCMScopeTypePolicyTest(VNFLCMPolicyTest):
-    """Test VNF LCM APIs policies with scope enabled.
-
-    This class set the tacker.conf [oslo_policy] enforce_scope to True
-    so that we can switch on the scope checking on oslo policy side.
-    This check that system scope users are not allowed to access the
-    Tacker VNF LCM APIs.
-    """
+    """Test VNF LCM APIs policies with scope enabled."""
 
     def setUp(self):
         super(VNFLCMScopeTypePolicyTest, self).setUp()
-        cfg.CONF.set_override('enforce_scope', True,
-                              group='oslo_policy')
         self.project_authorized_contexts = [
             self.legacy_admin_context, self.project_admin_context,
             self.project_member_context, self.project_reader_context,
@@ -584,8 +574,6 @@ class VNFLCMNewDefaultsWithScopePolicyTest(VNFLCMNewDefaultsPolicyTest):
 
     def setUp(self):
         super(VNFLCMNewDefaultsWithScopePolicyTest, self).setUp()
-        cfg.CONF.set_override('enforce_scope', True,
-                              group='oslo_policy')
 
         # With scope enable and no legacy rule, only project admin/member
         # will be able to create VNF in their project.
