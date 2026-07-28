@@ -54,8 +54,6 @@ from tacker.vnfm.lcm_user_data.constants import USER_DATA_TIMEOUT
 from tacker.vnfm.lcm_user_data import utils as user_data_utils
 from toscaparser import tosca_template
 
-eventlet.monkey_patch(time=True)
-
 SCALING_GROUP_RESOURCE = "OS::Heat::AutoScalingGroup"
 NOVA_SERVER_RESOURCE = "OS::Nova::Server"
 NEUTRON_PORT_RESOURCE = "OS::Neutron::Port"

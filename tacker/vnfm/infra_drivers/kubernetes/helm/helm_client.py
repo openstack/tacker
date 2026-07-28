@@ -48,7 +48,6 @@ class HelmClient():
             timeout=HELM_CMD_TIMEOUT)
 
     def _execute_command(self, ssh_command, timeout=HELM_CMD_TIMEOUT, retry=0):
-        eventlet.monkey_patch()
         while retry >= 0:
             try:
                 with eventlet.Timeout(timeout, True):
