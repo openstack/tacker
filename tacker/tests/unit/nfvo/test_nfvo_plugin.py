@@ -26,6 +26,7 @@ from tacker.keymgr import API as KEYMGR_API
 from tacker.nfvo import nfvo_plugin
 from tacker.tests.unit.db import base as db_base
 from tacker.tests.unit.db import utils
+from tacker.vnfm import vim_client
 
 SECRET_PASSWORD = '***'
 
@@ -113,6 +114,7 @@ class TestNfvoPlugin(db_base.SqlTestCase):
         super(TestNfvoPlugin, self).setUp()
         self.requests_mock = self.useFixture(rm_fixture.Fixture())
         KEYMGR_API('')
+        self.addCleanup(vim_client.reset_keymgr_apis)
         self.access_token = 'access_token_uuid'
         self.addCleanup(mock.patch.stopall)
         self.context = context.get_admin_context()

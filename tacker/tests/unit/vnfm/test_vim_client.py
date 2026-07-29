@@ -76,6 +76,7 @@ class TestVIMClient(base.TestCase):
         super(TestVIMClient, self).setUp()
         self.requests_mock = self.useFixture(rm_fixture.Fixture())
         KEYMGR_API('')
+        self.addCleanup(vim_client.reset_keymgr_apis)
         self.access_token = 'access_token_uuid'
         self.vim_info = {'id': 'aaaa', 'name': 'VIM0', 'type': 'test_vim',
                          'auth_cred': {'password': '****'},

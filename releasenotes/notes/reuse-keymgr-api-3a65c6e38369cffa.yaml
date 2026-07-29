@@ -1,0 +1,13 @@
+---
+fixes:
+  - |
+    Fix `bug 2162669`_ by reducing the requests sent to Keystone and
+    Barbican while getting the credentials of a VIM. A key manager API was
+    created for every encrypted field of the credentials, and the Barbican
+    client it caches was thrown away before it could be used again, so
+    every field required a token request and a version discovery in
+    addition to getting the secret. The key manager API is now kept per
+    auth url and Barbican client is created only once. Note that this does
+    not apply when ``ext_oauth2_auth`` is enabled.
+
+    .. _bug 2162669: https://bugs.launchpad.net/tacker/+bug/2162669
