@@ -1881,6 +1881,8 @@ class TestOpenStack(base.FixturedTestCase):
         self.assertEqual(import_image_url.call_count, 1)
         self.assertEqual(get_image_url.call_count, 1)
 
+    @mock.patch('tacker.common.utils.is_url', mock.MagicMock(
+        return_value=True))
     @ddt.data(False, True)
     def test_pre_instantiation_vnf_failed_in_image_creation(
             self, exception_in_delete_image):
@@ -1932,6 +1934,8 @@ class TestOpenStack(base.FixturedTestCase):
                           self.context, vnf_instance, None,
                           vnf_software_images)
 
+    @mock.patch('tacker.common.utils.is_url', mock.MagicMock(
+        return_value=True))
     def test_pre_instantiation_vnf_failed_with_mismatch_in_hash_value(self):
         vnf_instance = fd_utils.get_vnf_instance_object()
 
@@ -1955,6 +1959,8 @@ class TestOpenStack(base.FixturedTestCase):
         self.assertEqual(get_image_url.call_count, 1)
         self.assertEqual(delete_image_url.call_count, 1)
 
+    @mock.patch('tacker.common.utils.is_url', mock.MagicMock(
+        return_value=True))
     def test_pre_instantiation_vnf_with_image_create_wait_failed(self):
         vnf_instance = fd_utils.get_vnf_instance_object()
 
@@ -1985,6 +1991,8 @@ class TestOpenStack(base.FixturedTestCase):
                                             status_code=200,
                                             headers=self.json_headers)
 
+    @mock.patch('tacker.common.utils.is_url', mock.MagicMock(
+        return_value=True))
     @ddt.data(True, False)
     def test_pre_instantiation_vnf_failed_in_image_import(
             self, exception_in_delete):
