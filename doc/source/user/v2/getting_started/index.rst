@@ -261,6 +261,17 @@ Prepare VNF Package
            node: tosca.nodes.nfv.Vdu.Compute
            occurrences: [0, 1]
 
+   .. note::
+
+     The same rule applies to requirements that you declare yourself on a VNF
+     node type derived from ``tosca.nodes.nfv.VNF``. When a requirement is left
+     unfulfilled by the VNF node template, its occurrences must allow zero,
+     otherwise the default of ``[1, UNBOUNDED]`` makes the onboarding fail with
+     ``Relationship "<name>" in template "VNF" has a wrong number of
+     occurrences``. This is why ``virtual_link_internal`` in
+     ``sample_vnfd_types.yaml`` below specifies its occurrences explicitly:
+     ``sample_vnfd_top.yaml`` maps it in lower-level templates instead.
+
 
 #. Create VNFD files:
 
@@ -581,8 +592,9 @@ Instantiate VNF
 
      .. note::
 
-       ``userdata_standard.py`` should be replaced with the UserData file name.
-       And ``StandardUserData`` should be replaced with the UserData class name.
+       ``lcm_user_data.py`` and ``StandardUserData`` refer to the UserData
+       file created above and the class it defines. Replace them if you use
+       a different file name or class name.
 
 
 #. Instantiate VNF:

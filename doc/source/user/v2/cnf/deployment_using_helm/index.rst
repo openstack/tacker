@@ -386,6 +386,7 @@ and default values of the VNF.
             capability: tosca.capabilities.nfv.VirtualLinkable
         - virtual_link_internal:
             capability: tosca.capabilities.nfv.VirtualLinkable
+            occurrences: [ 0, UNBOUNDED ]
       interfaces:
         Vnflcm:
           type: tosca.interfaces.nfv.Vnflcm

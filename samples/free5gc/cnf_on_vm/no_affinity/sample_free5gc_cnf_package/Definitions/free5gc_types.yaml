@@ -62,4 +62,5 @@ node_types:
         capability: tosca.capabilities.nfv.VirtualLinkable
     - virtual_link_internal:
         capability: tosca.capabilities.nfv.VirtualLinkable
+        occurrences: [ 0, UNBOUNDED ]
 tosca_definitions_version: tosca_simple_yaml_1_2
