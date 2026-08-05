@@ -25,7 +25,6 @@ import logging as std_logging
 import math
 import os
 import re
-import signal
 import socket
 from stevedore import driver
 import sys
@@ -143,17 +142,10 @@ def find_config_file(options, config_file):
             return cfg_file
 
 
-def _subprocess_setup():
-    # Python installs a SIGPIPE handler by default. This is usually not what
-    # non-Python subprocesses expect.
-    signal.signal(signal.SIGPIPE, signal.SIG_DFL)
-
-
 def subprocess_popen(args, stdin=None, stdout=None, stderr=None, shell=False,
                      env=None):
     return subprocess.Popen(args, shell=shell, stdin=stdin, stdout=stdout,
-                            stderr=stderr, preexec_fn=_subprocess_setup,
-                            close_fds=True, env=env)
+                            stderr=stderr, close_fds=True, env=env)
 
 
 def get_hostname():
