@@ -24,9 +24,16 @@
       - openstack/networking-sfc
       - openstack/python-barbicanclient
       - openstack/python-tackerclient
+      - openstack/requirements
       - openstack/tacker
       - openstack/tacker-horizon
     vars:
+      # NOTE: Use the upper-constraints.txt checked out by Zuul instead
+      # of fetching it from releases.openstack.org over the network,
+      # which is not reliable in CI (e.g. requests can be blocked by
+      # the anti-bot protection).
+      tox_constraints_file: >-
+        {{ ansible_user_dir }}/src/opendev.org/openstack/requirements/upper-constraints.txt
       devstack_localrc:
         CELLSV2_SETUP: singleconductor
         PHYSICAL_NETWORK: mgmtphysnet0
@@ -191,6 +198,7 @@
       - openstack/placement
       - openstack/python-barbicanclient
       - openstack/python-tackerclient
+      - openstack/requirements
       - openstack/tacker
       - openstack/tacker-horizon
     host-vars:
@@ -334,6 +342,12 @@
       k8s_ssl_verify: true
       helm_version: "3.15.4"
       test_matrix_configs: [neutron]
+      # NOTE: Use the upper-constraints.txt checked out by Zuul instead
+      # of fetching it from releases.openstack.org over the network,
+      # which is not reliable in CI (e.g. requests can be blocked by
+      # the anti-bot protection).
+      tox_constraints_file: >-
+        {{ ansible_user_dir }}/src/opendev.org/openstack/requirements/upper-constraints.txt
       zuul_work_dir: src/opendev.org/openstack/tacker
       zuul_copy_output:
         '{{ devstack_log_dir }}/kubernetes': 'logs'
