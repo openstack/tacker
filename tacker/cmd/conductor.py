@@ -10,8 +10,19 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from tacker.conductor import conductor_server
-from tacker import objects
+# NOTE: init_backend() can be called only once per process and must run
+# before any other oslo.service module is imported, otherwise the default
+# eventlet backend is selected implicitly. The get_backend_type() guard
+# avoids BackendAlreadySelected when this module is imported alongside
+# tacker.cmd.eventlet in the same process, e.g. by Sphinx autodoc during
+# the docs build.
+from oslo_service import backend
+
+if backend.get_backend_type() is None:
+    backend.init_backend(backend.BackendType.THREADING)
+
+from tacker.conductor import conductor_server  # noqa: E402
+from tacker import objects  # noqa: E402
 
 
 def main():

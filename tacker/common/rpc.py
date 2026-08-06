@@ -206,8 +206,11 @@ def get_server(target, endpoints, serializer=None):
     assert TRANSPORT is not None
     serializer = RequestContextSerializer(serializer)
     access_policy = dispatcher.DefaultRPCAccessPolicy
+    # NOTE: The executor is auto-detected by oslo.messaging: 'eventlet'
+    # when the process is monkey patched (tacker-server), 'threading'
+    # otherwise (tacker-conductor).
     return oslo_messaging.get_rpc_server(TRANSPORT, target, endpoints,
-                                         'eventlet', serializer,
+                                         serializer=serializer,
                                          access_policy=access_policy)
 
 
