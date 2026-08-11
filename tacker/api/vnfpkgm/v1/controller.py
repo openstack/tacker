@@ -757,7 +757,10 @@ class VnfPkgmController(wsgi.Controller):
             else:
                 chunk_size = artifact_size
 
-            request.response.headers['Content-Length'] = chunk_size
+            # NOTE: The header value must be a string (PEP 3333). The
+            # eventlet wsgi server tolerates an integer but uWSGI drops
+            # such a header.
+            request.response.headers['Content-Length'] = str(chunk_size)
             return request.response
         else:
             msg = _("Not Found Artifact File.")

@@ -57,6 +57,10 @@ TACKER_CONF_DIR=/etc/tacker
 TACKER_CONF=$TACKER_CONF_DIR/tacker.conf
 TACKER_DATA_DIR=${TACKER_DATA_DIR:=$DATA_DIR/tacker}
 
+# Run the Tacker API under uWSGI.
+TACKER_USE_UWSGI=${TACKER_USE_UWSGI:-True}
+TACKER_UWSGI_CONF=$TACKER_CONF_DIR/tacker-api-uwsgi.ini
+
 
 # Default name for Tacker database
 TACKER_DB_NAME=${TACKER_DB_NAME:-tacker}
@@ -163,6 +167,33 @@ function init_tacker {
 # install_tacker() - Collect source and prepare
 function install_tacker {
     setup_develop $TACKER_DIR
+    if [[ "$TACKER_USE_UWSGI" == "True" ]]; then
+        pip_install uwsgi
+    fi
+}
+
+# _write_tacker_uwsgi_conf() - Write a uWSGI configuration for the
+# Tacker API.
+function _write_tacker_uwsgi_conf {
+    sudo rm -f $TACKER_UWSGI_CONF
+    iniset -sudo $TACKER_UWSGI_CONF uwsgi http-socket $TACKER_HOST:$TACKER_PORT
+    iniset -sudo $TACKER_UWSGI_CONF uwsgi module "tacker.api.wsgi.api:application"
+    if [[ "$TACKER_BIN_DIR" != "/usr/bin" && "$TACKER_BIN_DIR" != "/usr/local/bin" ]]; then
+        iniset -sudo $TACKER_UWSGI_CONF uwsgi virtualenv $(dirname $TACKER_BIN_DIR)
+    fi
+    iniset -sudo $TACKER_UWSGI_CONF uwsgi processes ${API_WORKERS:-2}
+    iniset -sudo $TACKER_UWSGI_CONF uwsgi enable-threads true
+    iniset -sudo $TACKER_UWSGI_CONF uwsgi threads 4
+    iniset -sudo $TACKER_UWSGI_CONF uwsgi master true
+    # Load the application in each worker instead of the master so
+    # that oslo.messaging and logging are initialized per process.
+    iniset -sudo $TACKER_UWSGI_CONF uwsgi lazy-apps true
+    iniset -sudo $TACKER_UWSGI_CONF uwsgi die-on-term true
+    iniset -sudo $TACKER_UWSGI_CONF uwsgi exit-on-reload false
+    iniset -sudo $TACKER_UWSGI_CONF uwsgi buffer-size 65535
+    iniset -sudo $TACKER_UWSGI_CONF uwsgi thunder-lock true
+    iniset -sudo $TACKER_UWSGI_CONF uwsgi worker-reload-mercy ${WORKER_TIMEOUT:-90}
+    iniset -sudo $TACKER_UWSGI_CONF uwsgi add-header "Connection: close"
 }
 
 function start_tacker {
@@ -173,7 +204,12 @@ function start_tacker {
     # Start the Tacker service
     sudo cp $TACKER_DIR/etc/systemd/system/tacker.service $SYSTEMD_DIR/devstack@tacker.service
     iniset -sudo $SYSTEMD_DIR/devstack@tacker.service "Service" "User" $STACK_USER
-    iniset -sudo $SYSTEMD_DIR/devstack@tacker.service "Service" "ExecStart" "$TACKER_BIN_DIR/tacker-server $cfg_file_options"
+    if [[ "$TACKER_USE_UWSGI" == "True" ]]; then
+        _write_tacker_uwsgi_conf
+        iniset -sudo $SYSTEMD_DIR/devstack@tacker.service "Service" "ExecStart" "$TACKER_BIN_DIR/uwsgi --procname-prefix tacker-api --ini $TACKER_UWSGI_CONF"
+    else
+        iniset -sudo $SYSTEMD_DIR/devstack@tacker.service "Service" "ExecStart" "$TACKER_BIN_DIR/tacker-server $cfg_file_options"
+    fi
     sudo systemctl enable devstack@tacker.service
     sudo systemctl restart devstack@tacker.service
     # Start the Tacker conductor service
