@@ -15,7 +15,6 @@
 
 """Base Test Case for all Unit Tests"""
 
-import contextlib
 import gc
 import logging
 import os
@@ -23,7 +22,6 @@ import os.path
 from unittest import mock
 import weakref
 
-import eventlet.timeout
 import fixtures
 from oslo_config import cfg
 from oslo_messaging import conffixture as messaging_conffixture
@@ -203,13 +201,6 @@ class BaseTestCase(testtools.TestCase):
         group = kw.pop('group', None)
         for k, v in (kw).items():
             CONF.set_override(k, v, group)
-
-    @contextlib.contextmanager
-    def assert_max_execution_time(self, max_execution_time=5):
-        with eventlet.timeout.Timeout(max_execution_time, False):
-            yield
-            return
-        self.fail('Execution of this test timed out')
 
     def get_new_temp_dir(self):
         """Create a new temporary directory.
