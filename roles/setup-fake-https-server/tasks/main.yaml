@@ -8,20 +8,27 @@
       mode: "0755"
     become: yes
 
+  # basicConstraints=CA:TRUE is required: Python 3.13+ verifies
+  # certificates with VERIFY_X509_STRICT by default and rejects a CA
+  # certificate without it as "invalid CA certificate".
   - name: Generate CA key and csr for fake https server
-    shell: openssl req -newkey rsa:2048 -nodes -subj "/CN=rootca" -keyout {{ ca_key }} -out {{ ca_csr }}
+    shell: openssl req -newkey rsa:2048 -nodes -subj "/CN=rootca" -addext "basicConstraints=critical,CA:TRUE" -addext "keyUsage=critical,keyCertSign,cRLSign" -keyout {{ ca_key }} -out {{ ca_csr }}
     become: yes
 
   - name: Generate CA certificate for fake https server
-    shell: openssl x509 -req -signkey {{ ca_key }} -days 10000 -in {{ ca_csr }} -out {{ ca_crt }}
+    shell: openssl x509 -req -signkey {{ ca_key }} -days 10000 -copy_extensions copy -in {{ ca_csr }} -out {{ ca_crt }}
     become: yes
 
+  # The subjectAltName is required: urllib3 2.x no longer falls back to
+  # the CN when verifying the hostname, so a CN-only certificate is
+  # rejected with "Hostname mismatch" and every request from tacker to
+  # the fake server fails.
   - name: Generate server key and csr for fake https server
-    shell: openssl req -newkey rsa:2048 -nodes -subj "/CN=localhost" -keyout {{ serv_key }} -out {{ serv_csr }}
+    shell: openssl req -newkey rsa:2048 -nodes -subj "/CN=localhost" -addext "subjectAltName=DNS:localhost,IP:127.0.0.1" -keyout {{ serv_key }} -out {{ serv_csr }}
     become: yes
 
   - name: Generate server certificate for fake https server
-    shell: openssl x509 -req -CA {{ ca_crt }} -CAkey {{ ca_key }} -CAcreateserial -days 10000 -in {{ serv_csr }} -out {{ serv_crt }}
+    shell: openssl x509 -req -CA {{ ca_crt }} -CAkey {{ ca_key }} -CAcreateserial -days 10000 -copy_extensions copy -in {{ serv_csr }} -out {{ serv_crt }}
     become: yes
 
   - name: Generate server pem file for fake https server
