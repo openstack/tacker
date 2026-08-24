@@ -13,102 +13,16 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import os
-import socket
 import testtools
 from unittest import mock
-from urllib import request as urllibrequest
 import webob
 import webob.exc
 
-from oslo_config import cfg
 import oslo_i18n
 
 from tacker.common import exceptions as exception
 from tacker.tests import base
 from tacker import wsgi
-
-CONF = cfg.CONF
-
-TEST_VAR_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                               '..', 'var'))
-
-
-class TestWSGIServer(base.BaseTestCase):
-    """WSGI server tests."""
-
-    def test_start_random_port(self):
-        server = wsgi.Server("test_random_port")
-        server.start(None, 0, host="127.0.0.1")
-        self.assertNotEqual(0, server.port)
-        server.stop()
-        server.wait()
-
-    def test_start_random_port_with_ipv6(self):
-        server = wsgi.Server("test_random_port")
-        server.start(None, 0, host="::1")
-        self.assertEqual("::1", server.host)
-        self.assertNotEqual(0, server.port)
-        server.stop()
-        server.wait()
-
-    def test_ipv6_listen_called_with_scope(self):
-        self.skipTest("Not ready yet")
-        server = wsgi.Server("test_app")
-
-        with mock.patch.object(wsgi.eventlet, 'listen') as mock_listen:
-            with mock.patch.object(socket, 'getaddrinfo') as mock_get_addr:
-                mock_get_addr.return_value = [
-                    (socket.AF_INET6,
-                     socket.SOCK_STREAM,
-                     socket.IPPROTO_TCP,
-                     '',
-                     ('fe80::204:acff:fe96:da87%eth0', 1234, 0, 2))
-                ]
-                with mock.patch.object(server, 'pool') as mock_pool:
-                    server.start(None,
-                                 1234,
-                                 host="fe80::204:acff:fe96:da87%eth0")
-
-                    mock_get_addr.assert_called_once_with(
-                        "fe80::204:acff:fe96:da87%eth0",
-                        1234,
-                        socket.AF_UNSPEC,
-                        socket.SOCK_STREAM
-                    )
-
-                    mock_listen.assert_called_once_with(
-                        ('fe80::204:acff:fe96:da87%eth0', 1234, 0, 2),
-                        family=socket.AF_INET6,
-                        backlog=cfg.CONF.backlog
-                    )
-
-                    mock_pool.spawn.assert_has_calls([
-                        mock.call(
-                            server._run,
-                            None,
-                            mock_listen.return_value)
-                    ])
-
-    def test_app(self):
-        self.skipTest("Not ready yet")
-        greetings = 'Hello, World!!!'
-
-        def hello_world(env, start_response):
-            if env['PATH_INFO'] != '/':
-                start_response('404 Not Found',
-                               [('Content-Type', 'text/plain')])
-                return ['Not Found\r\n']
-            start_response('200 OK', [('Content-Type', 'text/plain')])
-            return [greetings]
-
-        server = wsgi.Server("test_app")
-        server.start(hello_world, 0, host="127.0.0.1")
-
-        response = urllibrequest.urlopen('http://127.0.0.1:%d/' % server.port)
-        self.assertEqual(greetings, response.read())
-
-        server.stop()
 
 
 class SerializerTest(base.BaseTestCase):
@@ -655,72 +569,3 @@ class FaultTest(base.BaseTestCase):
                                  headers={'Content-Type': "unknow"})
         response = my_fault(req)
         self.assertEqual(415, response.status_int)
-
-
-class TestWSGIServerWithSSL(base.BaseTestCase):
-    """WSGI server tests."""
-
-    def setUp(self):
-        super(TestWSGIServerWithSSL, self).setUp()
-        self.skipTest("Not ready yet")
-
-    def test_app_using_ssl(self):
-        CONF.set_default('use_ssl', True)
-        CONF.set_default("ssl_cert_file",
-                         os.path.join(TEST_VAR_DIR, 'certificate.crt'))
-        CONF.set_default("ssl_key_file",
-                         os.path.join(TEST_VAR_DIR, 'privatekey.key'))
-
-        greetings = 'Hello, World!!!'
-
-        @webob.dec.wsgify
-        def hello_world(req):
-            return greetings
-
-        server = wsgi.Server("test_app")
-        server.start(hello_world, 0, host="127.0.0.1")
-
-        response = urllibrequest.urlopen('https://127.0.0.1:%d/' % server.port)
-        self.assertEqual(greetings, response.read())
-
-        server.stop()
-
-    def test_app_using_ssl_combined_cert_and_key(self):
-        CONF.set_default('use_ssl', True)
-        CONF.set_default("ssl_cert_file",
-                         os.path.join(TEST_VAR_DIR, 'certandkey.pem'))
-
-        greetings = 'Hello, World!!!'
-
-        @webob.dec.wsgify
-        def hello_world(req):
-            return greetings
-
-        server = wsgi.Server("test_app")
-        server.start(hello_world, 0, host="127.0.0.1")
-
-        response = urllibrequest.urlopen('https://127.0.0.1:%d/' % server.port)
-        self.assertEqual(greetings, response.read())
-
-        server.stop()
-
-    def test_app_using_ipv6_and_ssl(self):
-        CONF.set_default('use_ssl', True)
-        CONF.set_default("ssl_cert_file",
-                         os.path.join(TEST_VAR_DIR, 'certificate.crt'))
-        CONF.set_default("ssl_key_file",
-                         os.path.join(TEST_VAR_DIR, 'privatekey.key'))
-
-        greetings = 'Hello, World!!!'
-
-        @webob.dec.wsgify
-        def hello_world(req):
-            return greetings
-
-        server = wsgi.Server("test_app")
-        server.start(hello_world, 0, host="::1")
-
-        response = urllibrequest.urlopen('https://[::1]:%d/' % server.port)
-        self.assertEqual(greetings, response.read())
-
-        server.stop()

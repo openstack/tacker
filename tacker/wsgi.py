@@ -18,24 +18,13 @@ Utility methods for working with WSGI servers
 """
 import functools
 
-import errno
 import http.client
-import os
-import socket
-import ssl
 import sys
-import time
 from urllib import parse
-
-import eventlet.wsgi
-# eventlet.patcher.monkey_patch(all=False, socket=True, thread=True)
-from oslo_config import cfg
-import tacker.conf
 
 import oslo_i18n as i18n
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
-from oslo_service import systemd
 from oslo_utils import encodeutils
 from oslo_utils import excutils
 import routes.middleware
@@ -45,43 +34,6 @@ import webob.exc
 from tacker._i18n import _
 from tacker.common import exceptions as exception
 from tacker import context
-
-
-socket_opts = [
-    cfg.IntOpt('backlog',
-               default=4096,
-               help=_("Number of backlog requests to configure "
-                      "the socket with")),
-    cfg.IntOpt('tcp_keepidle',
-               default=600,
-               help=_("Sets the value of TCP_KEEPIDLE in seconds for each "
-                      "server socket. Not supported on OS X.")),
-    cfg.IntOpt('retry_until_window',
-               default=30,
-               help=_("Number of seconds to keep retrying to listen")),
-    cfg.IntOpt('max_header_line',
-               default=16384,
-               help=_("Max header line to accommodate large tokens")),
-    cfg.BoolOpt('use_ssl',
-                default=False,
-                help=_('Enable SSL on the API server')),
-    cfg.StrOpt('ssl_ca_file',
-               help=_("CA certificate file to use to verify "
-                      "connecting clients")),
-    cfg.StrOpt('ssl_cert_file',
-               help=_("Certificate file to use when starting "
-                      "the server securely")),
-    cfg.StrOpt('ssl_key_file',
-               help=_("Private key file to use when starting "
-                      "the server securely")),
-]
-
-CONF = tacker.conf.CONF
-CONF.register_opts(socket_opts)
-
-
-def config_opts():
-    return [(None, socket_opts)]
 
 
 LOG = logging.getLogger(__name__)
@@ -161,132 +113,6 @@ def deprecate_legacy_warning(req):
             f'(path={parts.path}) will be removed in the first major '
             'release after the Tacker server version 9.0.0 (2023.1 Antelope '
             'release).')
-
-
-class Server(object):
-    """Server class to manage multiple WSGI sockets and applications."""
-
-    def __init__(self, name, threads=1000):
-        # Raise the default from 8192 to accommodate large tokens
-        eventlet.wsgi.MAX_HEADER_LINE = CONF.max_header_line
-        self.pool = eventlet.GreenPool(threads)
-        self.name = name
-        self._server = None
-
-    def _get_socket(self, host, port, backlog):
-        bind_addr = (host, port)
-        # TODO(dims): eventlet's green dns/socket module does not actually
-        # support IPv6 in getaddrinfo(). We need to get around this in the
-        # future or monitor upstream for a fix
-        try:
-            info = socket.getaddrinfo(bind_addr[0],
-                                      bind_addr[1],
-                                      socket.AF_UNSPEC,
-                                      socket.SOCK_STREAM)[0]
-            family = info[0]
-            bind_addr = info[-1]
-        except Exception:
-            LOG.exception("Unable to listen on %(host)s:%(port)s",
-                          {'host': host, 'port': port})
-            sys.exit(1)
-
-        if CONF.use_ssl:
-            if not os.path.exists(CONF.ssl_cert_file):
-                raise RuntimeError(_("Unable to find ssl_cert_file"
-                                     ": %s") % CONF.ssl_cert_file)
-
-            # ssl_key_file is optional because the key may be embedded in the
-            # certificate file
-            if CONF.ssl_key_file and not os.path.exists(CONF.ssl_key_file):
-                raise RuntimeError(_("Unable to find "
-                                     "ssl_key_file: %s") % CONF.ssl_key_file)
-
-            # ssl_ca_file is optional
-            if CONF.ssl_ca_file and not os.path.exists(CONF.ssl_ca_file):
-                raise RuntimeError(_("Unable to find ssl_ca_file"
-                                     ": %s") % CONF.ssl_ca_file)
-
-        def wrap_ssl(sock):
-            ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-            ssl_context.load_cert_chain(CONF.ssl_cert_file, CONF.ssl_key_file)
-
-            if CONF.ssl_ca_file:
-                ssl_context.verify_mode = ssl.CERT_REQUIRED
-                ssl_context.load_verify_locations(CONF.ssl_ca_file)
-            else:
-                ssl_context.check_hostname = False
-                ssl_context.verify_mode = ssl.CERT_NONE
-
-            return ssl_context.wrap_socket(sock, server_side=True)
-
-        sock = None
-        retry_until = time.time() + CONF.retry_until_window
-        while not sock and time.time() < retry_until:
-            try:
-                sock = eventlet.listen(bind_addr,
-                                       backlog=backlog,
-                                       family=family)
-                if CONF.use_ssl:
-                    sock = wrap_ssl(sock)
-            except socket.error as err:
-                with excutils.save_and_reraise_exception() as ctxt:
-                    if err.errno == errno.EADDRINUSE:
-                        ctxt.reraise = False
-                        eventlet.sleep(0.1)
-        if not sock:
-            raise RuntimeError(_("Could not bind to %(host)s:%(port)s "
-                                 "after trying for %(time)d seconds") %
-                               {'host': host,
-                                'port': port,
-                                'time': CONF.retry_until_window})
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        # sockets can hang around forever without keepalive
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
-
-        # This option isn't available in the OS X version of eventlet
-        if hasattr(socket, 'TCP_KEEPIDLE'):
-            sock.setsockopt(socket.IPPROTO_TCP,
-                            socket.TCP_KEEPIDLE,
-                            CONF.tcp_keepidle)
-
-        return sock
-
-    def start(self, application, port, host='0.0.0.0'):
-        """Run a WSGI server with the given application."""
-        self._host = host
-        self._port = port
-        backlog = CONF.backlog
-
-        self._socket = self._get_socket(self._host,
-                                        self._port,
-                                        backlog=backlog)
-        # For the case where only one process is required.
-        self._server = self.pool.spawn(self._run, application,
-                                       self._socket)
-        systemd.notify_once()
-
-    @property
-    def host(self):
-        return self._socket.getsockname()[0] if self._socket else self._host
-
-    @property
-    def port(self):
-        return self._socket.getsockname()[1] if self._socket else self._port
-
-    def stop(self):
-        self._server.kill()
-
-    def wait(self):
-        """Wait until all servers have completed running."""
-        try:
-            self.pool.waitall()
-        except KeyboardInterrupt:
-            pass
-
-    def _run(self, application, socket):
-        """Start a WSGI server in a new green thread."""
-        eventlet.wsgi.server(socket, application, custom_pool=self.pool,
-                             log=LOG)
 
 
 class Middleware(object):
