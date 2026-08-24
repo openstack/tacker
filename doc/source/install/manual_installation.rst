@@ -410,17 +410,47 @@ Installing Tacker Server
      $ tacker-db-manage --config-file /etc/tacker/tacker.conf upgrade head
 
 
+#. Install uWSGI and prepare its configuration for the Tacker API.
+   The Tacker API runs as the WSGI application
+   ``tacker.api.wsgi.api:application`` under a WSGI server such as uWSGI
+   or mod_wsgi. Here is an example of a uWSGI configuration.
+
+   .. code-block:: console
+
+     $ pip install uwsgi
+     $ sudo tee /etc/tacker/tacker-api-uwsgi.ini << EOF
+     [uwsgi]
+     http-socket = 0.0.0.0:9890
+     module = tacker.api.wsgi.api:application
+     processes = 2
+     enable-threads = true
+     threads = 4
+     master = true
+     lazy-apps = true
+     die-on-term = true
+     buffer-size = 65535
+     add-header = Connection: close
+     EOF
+
+
+   .. note::
+
+     When Tacker is installed in a python virtual environment, add
+     ``virtualenv = <path of the virtual environment>`` to the
+     configuration so that uWSGI can find the Tacker modules.
+
+
 #. To make Tacker be controlled from systemd, edit and copy ``tacker.service``
    and ``tacker-conductor.service`` file to ``/etc/systemd/system/`` directory,
    and restart ``systemctl`` daemon. Before copying to system folder, be sure
    to add user used to install Tacker to service user and be sure to change the
-   path of Tacker-server and Tacker-conductor to correct path.
+   path of uWSGI and Tacker-conductor to correct path.
 
    .. code-block:: console
 
      $ sed -i "/^\[Service\]/a User = $USER" \
      etc/systemd/system/tacker.service
-     $ sed -i "s|/usr/local/bin/tacker-server|$(which tacker-server)|g" \
+     $ sed -i "s|/usr/local/bin/uwsgi|$(which uwsgi)|g" \
      etc/systemd/system/tacker.service
      $ sudo cp etc/systemd/system/tacker.service /etc/systemd/system/
 
