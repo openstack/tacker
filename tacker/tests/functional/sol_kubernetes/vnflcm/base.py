@@ -248,6 +248,11 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
 
         return vnf_instance
 
+    @staticmethod
+    def _get_vnf_lcm_op_occ_id(resp):
+        """Get vnfLcmOpOccId from the Location header of a 202 response"""
+        return resp.headers['Location'].rsplit('/', 1)[-1]
+
     def _vnf_instance_wait(
             self, id,
             instantiation_state=fields.VnfInstanceState.INSTANTIATED,
@@ -273,11 +278,13 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
         resp, _ = self.http_client.do_request(
             url, "POST", body=jsonutils.dumps(request_body))
         self.assertEqual(202, resp.status_code)
+        vnf_lcm_op_occ_id = self._get_vnf_lcm_op_occ_id(resp)
         if wait_state == "COMPLETED":
             self._vnf_instance_wait(id)
         # wait vnflcm_op_occs.operation_state become wait_state
         self._wait_vnflcm_op_occs(self.context, id,
-                                  self.lcm_timeout['instantiate'], wait_state)
+                                  self.lcm_timeout['instantiate'], wait_state,
+                                  vnf_lcm_op_occ_id=vnf_lcm_op_occ_id)
 
     def _create_and_instantiate_vnf_instance(self, vnfd_id, flavour_id,
                                              inst_name, inst_desc,
@@ -312,9 +319,11 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
         resp, _ = self.http_client.do_request(
             url, "PATCH", body=jsonutils.dumps(request_body))
         self.assertEqual(202, resp.status_code)
+        vnf_lcm_op_occ_id = self._get_vnf_lcm_op_occ_id(resp)
         time.sleep(5)
         self._wait_vnflcm_op_occs(
-            self.context, vnf_instance_id, self.lcm_timeout['modify'])
+            self.context, vnf_instance_id, self.lcm_timeout['modify'],
+            vnf_lcm_op_occ_id=vnf_lcm_op_occ_id)
         vnflcm_op_occ = self._get_vnflcm_op_occs_by_id(
             self.context, vnf_instance_id)
         self.assertEqual('MODIFY_INFO', vnflcm_op_occ.operation)
@@ -366,6 +375,7 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
         resp, _ = self.http_client.do_request(
             url, "POST", body=jsonutils.dumps(request_body))
         self.assertEqual(202, resp.status_code)
+        return self._get_vnf_lcm_op_occ_id(resp)
 
     def _heal_vnf_instance(self, id, vnfc_instance_id):
         url = os.path.join(self.base_vnf_instances_url, id, "heal")
@@ -375,6 +385,7 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
         resp, _ = self.http_client.do_request(
             url, "POST", body=jsonutils.dumps(request_body))
         self.assertEqual(202, resp.status_code)
+        return self._get_vnf_lcm_op_occ_id(resp)
 
     @classmethod
     @db_api.context_manager.reader
@@ -401,11 +412,15 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
 
     def _wait_vnflcm_op_occs(
             self, context, vnf_instance_id, timeout,
-            operation_state='COMPLETED'):
+            operation_state='COMPLETED', vnf_lcm_op_occ_id=None):
         start_time = int(time.time())
         while True:
-            vnflcm_op_occ = self._get_vnflcm_op_occs_by_id(
-                context, vnf_instance_id)
+            if vnf_lcm_op_occ_id:
+                vnflcm_op_occ = vnf_lcm_op_occs.VnfLcmOpOcc.get_by_id(
+                    context, vnf_lcm_op_occ_id)
+            else:
+                vnflcm_op_occ = self._get_vnflcm_op_occs_by_id(
+                    context, vnf_instance_id)
 
             if vnflcm_op_occ.operation_state == operation_state:
                 break
@@ -438,7 +453,8 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
     def _test_scale(self, id, type, aspect_id, previous_level,
                     number_of_steps=1, error=False):
         # scale operation
-        self._scale_vnf_instance(id, type, aspect_id, number_of_steps)
+        vnf_lcm_op_occ_id = self._scale_vnf_instance(
+            id, type, aspect_id, number_of_steps)
         wait_state = "COMPLETED"
         if error:
             expected_level = previous_level
@@ -449,7 +465,8 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
             expected_level = previous_level - number_of_steps
         # wait vnflcm_op_occs.operation_state become COMPLETE/FAILED_TEMP
         self._wait_vnflcm_op_occs(
-            self.context, id, self.lcm_timeout['scale'], wait_state)
+            self.context, id, self.lcm_timeout['scale'], wait_state,
+            vnf_lcm_op_occ_id=vnf_lcm_op_occ_id)
         # check scaleStatus after scale operation
         vnf_instance = self._show_vnf_instance(id)
         scale_level = self._get_scale_level_by_aspect_id(
@@ -479,13 +496,15 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
 
     def _test_heal(self, vnf_instance, vnfc_instance_id):
         before_vnfc_rscs = self._get_vnfc_resource_info(vnf_instance)
-        self._heal_vnf_instance(vnf_instance['id'], vnfc_instance_id)
+        vnf_lcm_op_occ_id = self._heal_vnf_instance(
+            vnf_instance['id'], vnfc_instance_id)
         # wait vnflcm_op_occs.operation_state become COMPLETE
         if vnfc_instance_id:
             timeout = self.lcm_timeout['heal_sol002']
         else:
             timeout = self.lcm_timeout['heal_sol003']
-        self._wait_vnflcm_op_occs(self.context, vnf_instance['id'], timeout)
+        self._wait_vnflcm_op_occs(self.context, vnf_instance['id'], timeout,
+                                  vnf_lcm_op_occ_id=vnf_lcm_op_occ_id)
         # check vnfcResourceInfo after heal operation
         vnf_instance = self._show_vnf_instance(vnf_instance['id'])
         after_vnfc_rscs = self._get_vnfc_resource_info(vnf_instance)
@@ -509,7 +528,8 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
         self._rollback_vnf_instance(vnf_lcm_op_occ_id)
         # wait vnflcm_op_occs.operation_state become ROLLED_BACK
         self._wait_vnflcm_op_occs(self.context, id,
-            self.lcm_timeout['terminate'], "ROLLED_BACK")
+            self.lcm_timeout['terminate'], "ROLLED_BACK",
+            vnf_lcm_op_occ_id=vnf_lcm_op_occ_id)
 
     def _test_rollback_cnf_scale(self, id, aspect_id, previous_level):
         # get vnflcm_op_occ id for rollback
@@ -520,7 +540,8 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
         self._rollback_vnf_instance(vnf_lcm_op_occ_id)
         # wait vnflcm_op_occs.operation_state become ROLLED_BACK
         self._wait_vnflcm_op_occs(self.context, id, self.lcm_timeout['scale'],
-                                  "ROLLED_BACK")
+                                  "ROLLED_BACK",
+                                  vnf_lcm_op_occ_id=vnf_lcm_op_occ_id)
         # check scaleStatus after scale operation
         vnf_instance = self._show_vnf_instance(id)
         expected_level = previous_level
