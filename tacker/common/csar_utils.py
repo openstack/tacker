@@ -376,12 +376,14 @@ def _get_data_from_csar(tosca, context, id):
     csar = CSAR(tosca.input_path, tosca.a_file)
     vnf_artifacts = []
     if csar.validate():
-        vnf_artifacts = _get_vnf_artifacts(csar)
+        csar_root = os.path.realpath(
+            os.path.join(CONF.vnf_package.vnf_package_csar_path, id))
+        vnf_artifacts = _get_vnf_artifacts(csar, csar_root)
 
     return vnf_data, flavours, vnf_artifacts
 
 
-def _get_vnf_artifacts(csar):
+def _get_vnf_artifacts(csar, csar_root):
     vnf_artifacts = []
     if csar.is_tosca_metadata:
         if csar._get_metadata("ETSI-Entry-Manifest"):
@@ -389,7 +391,7 @@ def _get_vnf_artifacts(csar):
             if manifest_path.lower().endswith(".mf"):
                 manifest_data = csar.zfile.read(manifest_path)
                 vnf_artifacts = _convert_artifacts(
-                    vnf_artifacts, manifest_data, csar)
+                    vnf_artifacts, manifest_data, csar, csar_root)
             else:
                 invalid_manifest_err_msg = (
                     ('The file "%(manifest)s" in the CSAR "%(csar)s" does not '
@@ -397,7 +399,8 @@ def _get_vnf_artifacts(csar):
                     {'manifest': manifest_path, 'csar': csar.path})
                 raise exceptions.InvalidCSAR(invalid_manifest_err_msg)
         tosca_data = csar.zfile.read(TOSCA_META)
-        vnf_artifacts = _convert_artifacts(vnf_artifacts, tosca_data, csar)
+        vnf_artifacts = _convert_artifacts(
+            vnf_artifacts, tosca_data, csar, csar_root)
 
     else:
         filelist = csar.zfile.namelist()
@@ -409,7 +412,7 @@ def _get_vnf_artifacts(csar):
                 if manifest_file_name == main_template_file_name:
                     manifest_data = csar.zfile.read(path)
                     vnf_artifacts = _convert_artifacts(
-                        vnf_artifacts, manifest_data, csar)
+                        vnf_artifacts, manifest_data, csar, csar_root)
                 else:
                     invalid_manifest_err_msg = \
                         (('The filename "%(manifest)s" is an invalid name.'
@@ -423,7 +426,7 @@ def _get_vnf_artifacts(csar):
     return vnf_artifacts
 
 
-def _convert_artifacts(vnf_artifacts, artifacts_data, csar):
+def _convert_artifacts(vnf_artifacts, artifacts_data, csar, csar_root):
     artifacts_data_split = re.split(b'\n\n+', artifacts_data)
 
     for data in artifacts_data_split:
@@ -460,7 +463,7 @@ def _convert_artifacts(vnf_artifacts, artifacts_data, csar):
                     algorithm = artifact_data_dict.get('Algorithm')
                     hash_code = artifact_data_dict.get('Hash')
                     result = _validate_hash(algorithm, hash_code,
-                                            csar, artifact_path)
+                                            csar, artifact_path, csar_root)
                     if result:
                         vnf_artifacts.append(artifact_data_dict)
                     else:
@@ -473,7 +476,19 @@ def _convert_artifacts(vnf_artifacts, artifacts_data, csar):
     return vnf_artifacts
 
 
-def _validate_hash(algorithm, hash_code, csar, artifact_path):
+def _validate_artifact_path_is_safe(artifact_path, csar_root):
+    """Reject artifact Source paths outside the package directory."""
+    resolved = os.path.realpath(os.path.join(csar_root, artifact_path))
+    if os.path.commonpath((csar_root, resolved)) != csar_root:
+        invalid_artifact_err_msg = (
+            ('The path("%(artifact_path)s") of artifact Source '
+             'resolves outside the VNF package directory.') %
+            {'artifact_path': artifact_path})
+        raise exceptions.InvalidCSAR(invalid_artifact_err_msg)
+
+
+def _validate_hash(algorithm, hash_code, csar, artifact_path, csar_root):
+    _validate_artifact_path_is_safe(artifact_path, csar_root)
     algorithm = algorithm.lower()
 
     # validate Algorithm's value
