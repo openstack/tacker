@@ -47,6 +47,25 @@ NOTES:
 Possible values:
     * Any positive number less than or equal to 9223372036854775808
 """)),
+    cfg.IntOpt('csar_max_disk_usage_percent',
+               default=100, min=1, max=100,
+               help=_("""
+Maximum percentage of the CSAR storage partition (vnf_package_csar_path)
+that Tacker may fill when extracting an uploaded VNF package.
+
+Before extracting each remaining member of the archive, the space
+that extraction would still require is checked against the space
+actually available on the partition, minus a reserve equal to
+(100 - csar_max_disk_usage_percent)% of the partition's total size.
+If the remaining members would not fit within that budget,
+extraction is aborted and any partial output is removed.
+
+At the default of 100, no space is reserved and the package is
+rejected only if it would not fit in the space currently free.
+
+Possible values:
+    * An integer between 1 and 100.
+""")),
     cfg.StrOpt('hashing_algorithm',
                default='sha512',
                help=_("""
