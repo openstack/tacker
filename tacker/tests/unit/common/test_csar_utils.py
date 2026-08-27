@@ -12,6 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import collections
 import os
 import shutil
 import tempfile
@@ -26,6 +27,8 @@ from tacker import context
 from tacker.tests import constants
 from tacker.tests import utils
 
+DiskUsage = collections.namedtuple('DiskUsage', ['total', 'used', 'free'])
+
 
 class TestCSARUtils(testtools.TestCase):
 
@@ -33,10 +36,26 @@ class TestCSARUtils(testtools.TestCase):
         super(TestCSARUtils, self).setUp()
         self.context = context.get_admin_context()
 
+    def _make_test_zip(self, member_contents):
+        """Build a real zip file on disk for extraction tests.
+
+        :param member_contents: dict of {filename: bytes}.
+        :returns: path to the created zip file.
+        """
+        zip_fd, zip_path = tempfile.mkstemp(suffix='.zip')
+        os.close(zip_fd)
+        self.addCleanup(os.remove, zip_path)
+
+        with zipfile.ZipFile(zip_path, 'w') as zf:
+            for filename, content in member_contents.items():
+                zf.writestr(filename, content)
+        return zip_path
+
     def _sample_path(self, file_name):
         return utils.test_etc_sample("etsi/nfv", file_name)
 
-    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
+    @mock.patch(
+        'tacker.common.csar_utils.extract_csar_zip_file_with_disk_check')
     def test_load_csar_data(self, mock_extract_csar_zip_file):
         file_path, _ = utils.create_csar_with_unique_vnfd_id(
             self._sample_path('sample_vnfpkg_tosca_vnfd'))
@@ -48,7 +67,8 @@ class TestCSARUtils(testtools.TestCase):
         self.assertEqual(flavours[0]['flavour_id'], 'simple')
         self.assertIsNotNone(flavours[0]['sw_images'])
 
-    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
+    @mock.patch(
+        'tacker.common.csar_utils.extract_csar_zip_file_with_disk_check')
     def test_load_csar_data_with_single_yaml(
             self, mock_extract_csar_zip_file):
         file_path, _ = utils.create_csar_with_unique_vnfd_id(
@@ -91,7 +111,8 @@ class TestCSARUtils(testtools.TestCase):
         zcsar.close()
         return tempname
 
-    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
+    @mock.patch(
+        'tacker.common.csar_utils.extract_csar_zip_file_with_disk_check')
     def test_load_csar_data_in_meta_and_manifest_with_vnf_artifact(
             self, mock_extract_csar_zip_file):
         file_path = utils.create_csar_with_unique_artifact(
@@ -110,7 +131,8 @@ class TestCSARUtils(testtools.TestCase):
             flag = item.get('Source').lower().endswith('.img')
             self.assertEqual(flag, False)
 
-    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
+    @mock.patch(
+        'tacker.common.csar_utils.extract_csar_zip_file_with_disk_check')
     def test_load_csar_data_with_single_manifest_with_vnf_artifact(
             self, mock_extract_csar_zip_file):
         file_path = utils.create_csar_with_unique_artifact(
@@ -126,7 +148,8 @@ class TestCSARUtils(testtools.TestCase):
         self.assertIsNotNone(vnf_artifacts[0]['Source'])
         self.assertIsNotNone(vnf_artifacts[0]['Hash'])
 
-    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
+    @mock.patch(
+        'tacker.common.csar_utils.extract_csar_zip_file_with_disk_check')
     def test_load_csar_data_with_single_meta_with_vnf_artifact(
             self, mock_extract_csar_zip_file):
         file_path = utils.create_csar_with_unique_artifact(
@@ -142,7 +165,8 @@ class TestCSARUtils(testtools.TestCase):
         self.assertIsNotNone(vnf_artifacts[0]['Source'])
         self.assertIsNotNone(vnf_artifacts[0]['Hash'])
 
-    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
+    @mock.patch(
+        'tacker.common.csar_utils.extract_csar_zip_file_with_disk_check')
     def test_load_csar_data_meta_in_manifest_with_vnf_artifact(
             self, mock_extract_csar_zip_file):
         file_path = utils.create_csar_with_unique_artifact(
@@ -158,7 +182,8 @@ class TestCSARUtils(testtools.TestCase):
         self.assertIsNotNone(vnf_artifacts[0]['Source'])
         self.assertIsNotNone(vnf_artifacts[0]['Hash'])
 
-    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
+    @mock.patch(
+        'tacker.common.csar_utils.extract_csar_zip_file_with_disk_check')
     def test_load_csar_data_false_mf_with_vnf_artifact(
             self, mock_extract_csar_zip_file):
         file_path = utils.create_csar_with_unique_artifact(
@@ -174,7 +199,8 @@ class TestCSARUtils(testtools.TestCase):
                {'manifest': manifest_path, 'csar': file_path})
         self.assertEqual(msg, exc.format_message())
 
-    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
+    @mock.patch(
+        'tacker.common.csar_utils.extract_csar_zip_file_with_disk_check')
     def test_load_csar_data_false_mf_name_with_vnf_artifact(
             self, mock_extract_csar_zip_file):
         file_path = utils.create_csar_with_unique_artifact(
@@ -191,7 +217,8 @@ class TestCSARUtils(testtools.TestCase):
                {'manifest': manifest_path})
         self.assertEqual(msg, exc.format_message())
 
-    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
+    @mock.patch(
+        'tacker.common.csar_utils.extract_csar_zip_file_with_disk_check')
     def test_load_csar_data_false_hash_with_vnf_artifact(
             self, mock_extract_csar_zip_file):
         file_path = utils.create_csar_with_unique_artifact(
@@ -209,7 +236,8 @@ class TestCSARUtils(testtools.TestCase):
                {'hash': hash_code, 'artifact': artifact_path})
         self.assertEqual(msg, exc.format_message())
 
-    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
+    @mock.patch(
+        'tacker.common.csar_utils.extract_csar_zip_file_with_disk_check')
     def test_load_csar_data_missing_key_with_vnf_artifact(
             self, mock_extract_csar_zip_file):
         file_path = utils.create_csar_with_unique_artifact(
@@ -224,7 +252,8 @@ class TestCSARUtils(testtools.TestCase):
                 'the key("%(key)s")') % {'key': key_name})
         self.assertEqual(msg, exc.format_message())
 
-    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
+    @mock.patch(
+        'tacker.common.csar_utils.extract_csar_zip_file_with_disk_check')
     def test_load_csar_data_missing_value_with_vnf_artifact(
             self, mock_extract_csar_zip_file):
         file_path = utils.create_csar_with_unique_artifact(
@@ -239,7 +268,8 @@ class TestCSARUtils(testtools.TestCase):
                 'the key value("%(key)s")') % {'key': key_name})
         self.assertEqual(msg, exc.format_message())
 
-    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
+    @mock.patch(
+        'tacker.common.csar_utils.extract_csar_zip_file_with_disk_check')
     def test_load_csar_data_false_source_with_vnf_artifact(
             self, mock_extract_csar_zip_file):
         file_path = utils.create_csar_with_unique_artifact(
@@ -255,7 +285,8 @@ class TestCSARUtils(testtools.TestCase):
                {'artifact_path': artifact_path})
         self.assertEqual(msg, exc.format_message())
 
-    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
+    @mock.patch(
+        'tacker.common.csar_utils.extract_csar_zip_file_with_disk_check')
     def test_load_csar_data_false_algorithm_with_vnf_artifact(
             self, mock_extract_csar_zip_file):
         file_path = utils.create_csar_with_unique_artifact(self._sample_path(
@@ -273,7 +304,8 @@ class TestCSARUtils(testtools.TestCase):
                 'artifact_path': artifact_path})
         self.assertEqual(msg, exc.format_message())
 
-    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
+    @mock.patch(
+        'tacker.common.csar_utils.extract_csar_zip_file_with_disk_check')
     def test_load_csar_data_without_instantiation_level(
             self, mock_extract_csar_zip_file):
         file_path = self._get_csar_zip_from_dir(
@@ -285,7 +317,8 @@ class TestCSARUtils(testtools.TestCase):
                ' "tosca.policies.nfv.InstantiationLevels is not defined.')
         self.assertEqual(msg, exc.format_message())
 
-    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
+    @mock.patch(
+        'tacker.common.csar_utils.extract_csar_zip_file_with_disk_check')
     def test_load_csar_data_with_invalid_instantiation_level(
             self, mock_extract_csar_zip_file):
         file_path = self._get_csar_zip_from_dir(
@@ -298,7 +331,8 @@ class TestCSARUtils(testtools.TestCase):
                "defined levels %s") % ",".join(sorted(levels))
         self.assertEqual(msg, exc.format_message())
 
-    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
+    @mock.patch(
+        'tacker.common.csar_utils.extract_csar_zip_file_with_disk_check')
     def test_load_csar_data_with_invalid_default_instantiation_level(
             self, mock_extract_csar_zip_file):
         file_path = self._get_csar_zip_from_dir(
@@ -311,7 +345,8 @@ class TestCSARUtils(testtools.TestCase):
                "defined levels %s") % ",".join(sorted(levels))
         self.assertEqual(msg, exc.format_message())
 
-    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
+    @mock.patch(
+        'tacker.common.csar_utils.extract_csar_zip_file_with_disk_check')
     def test_load_csar_data_without_vnfd_info(
             self, mock_extract_csar_zip_file):
         file_path = self._get_csar_zip_from_dir(
@@ -321,7 +356,8 @@ class TestCSARUtils(testtools.TestCase):
                                 self.context, constants.UUID, file_path)
         self.assertEqual("VNF properties are mandatory", exc.format_message())
 
-    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
+    @mock.patch(
+        'tacker.common.csar_utils.extract_csar_zip_file_with_disk_check')
     def test_load_csar_data_with_artifacts_and_without_sw_image_data(
             self, mock_extract_csar_zip_file):
         file_path = self._get_csar_zip_from_dir(
@@ -333,7 +369,8 @@ class TestCSARUtils(testtools.TestCase):
                'artifact sw_image for node VDU1.')
         self.assertEqual(msg, exc.format_message())
 
-    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
+    @mock.patch(
+        'tacker.common.csar_utils.extract_csar_zip_file_with_disk_check')
     def test_load_csar_data_with_multiple_sw_image_data(
             self, mock_extract_csar_zip_file):
         file_path = self._get_csar_zip_from_dir(
@@ -345,7 +382,8 @@ class TestCSARUtils(testtools.TestCase):
                ' is added more than one time for node VDU1.')
         self.assertEqual(msg, exc.format_message())
 
-    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
+    @mock.patch(
+        'tacker.common.csar_utils.extract_csar_zip_file_with_disk_check')
     def test_csar_with_missing_sw_image_data_in_main_template(
             self, mock_extract_csar_zip_file):
         file_path = self._get_csar_zip_from_dir(
@@ -357,7 +395,8 @@ class TestCSARUtils(testtools.TestCase):
                ' artifact sw_image for node VDU1.')
         self.assertEqual(msg, exc.format_message())
 
-    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
+    @mock.patch(
+        'tacker.common.csar_utils.extract_csar_zip_file_with_disk_check')
     def test_load_csar_data_without_flavour_info(
             self, mock_extract_csar_zip_file):
         file_path = self._get_csar_zip_from_dir('csar_without_flavour_info')
@@ -366,7 +405,8 @@ class TestCSARUtils(testtools.TestCase):
                                 self.context, constants.UUID, file_path)
         self.assertEqual("No VNF flavours are available", exc.format_message())
 
-    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
+    @mock.patch(
+        'tacker.common.csar_utils.extract_csar_zip_file_with_disk_check')
     def test_load_csar_data_without_flavour_info_in_main_template(
             self, mock_extract_csar_zip_file):
         file_path = self._get_csar_zip_from_dir(
@@ -389,7 +429,8 @@ class TestCSARUtils(testtools.TestCase):
         mock_rmtree.assert_called()
         mock_remove.assert_called()
 
-    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
+    @mock.patch(
+        'tacker.common.csar_utils.extract_csar_zip_file_with_disk_check')
     def test_load_csar_data_without_policies(
             self, mock_extract_csar_zip_file):
         file_path = self._get_csar_zip_from_dir(
@@ -399,7 +440,8 @@ class TestCSARUtils(testtools.TestCase):
         self.assertIsNone(flavours[0].get('instantiation_levels'))
         self.assertEqual(vnf_data['descriptor_version'], '1.0')
 
-    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
+    @mock.patch(
+        'tacker.common.csar_utils.extract_csar_zip_file_with_disk_check')
     def test_load_csar_with_artifacts_short_notation_without_sw_image_data(
             self, mock_extract_csar_zip_file):
         file_path = self._sample_path(
@@ -413,7 +455,8 @@ class TestCSARUtils(testtools.TestCase):
         self.assertEqual(msg, exc.format_message())
         os.remove(zip_name)
 
-    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
+    @mock.patch(
+        'tacker.common.csar_utils.extract_csar_zip_file_with_disk_check')
     def test_load_csar_data_with_artifacts_short_notation(
             self, mock_extract_csar_zip_file):
         file_path = self._sample_path(
@@ -428,7 +471,8 @@ class TestCSARUtils(testtools.TestCase):
         self.assertIsNotNone(flavours[0]['sw_images'])
         os.remove(zip_name)
 
-    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
+    @mock.patch(
+        'tacker.common.csar_utils.extract_csar_zip_file_with_disk_check')
     def test_load_csar_data_with_multiple_sw_image_data_with_short_notation(
             self, mock_extract_csar_zip_file):
 
@@ -443,7 +487,8 @@ class TestCSARUtils(testtools.TestCase):
         self.assertEqual(msg, exc.format_message())
         os.remove(zip_name)
 
-    @mock.patch('tacker.common.csar_utils.extract_csar_zip_file')
+    @mock.patch(
+        'tacker.common.csar_utils.extract_csar_zip_file_with_disk_check')
     def test_load_csar_data_with_unit_conversion(
             self, mock_extract_csar_zip_file):
         file_path, _ = utils.create_csar_with_unique_vnfd_id(
@@ -483,3 +528,79 @@ class TestCSARUtils(testtools.TestCase):
         status = os.stat(extract_file_path)
         permission = oct(status.st_mode)[-3:]
         self.assertEqual('755', permission)
+
+    @mock.patch('tacker.common.csar_utils.os.path.exists', return_value=True)
+    @mock.patch('tacker.common.csar_utils.shutil.disk_usage')
+    def test_check_disk_space_default_threshold_rejects_oversized_package(
+            self, mock_disk_usage, mock_exists):
+        # Regression test for the original bug: at the default
+        # threshold (100), this must reject a package that does
+        # not fit what's actually free.
+        mock_disk_usage.return_value = DiskUsage(
+            total=1000, used=500, free=500)
+
+        exc = self.assertRaises(
+            exceptions.InvalidCSAR,
+            csar_utils._check_disk_space, 600, '/tmp/fake_extract/pkg')
+        self.assertIn('disk usage threshold of 100%', exc.format_message())
+
+    @mock.patch('tacker.common.csar_utils.os.path.exists', return_value=True)
+    @mock.patch('tacker.common.csar_utils.shutil.disk_usage')
+    def test_check_disk_space_reserves_configured_margin(
+            self, mock_disk_usage, mock_exists):
+        csar_utils.CONF.set_override(
+            'csar_max_disk_usage_percent', 90, group='vnf_package')
+        self.addCleanup(csar_utils.CONF.clear_override,
+                        'csar_max_disk_usage_percent', group='vnf_package')
+        mock_disk_usage.return_value = DiskUsage(
+            total=1000, used=500, free=500)
+        # if threshold=90, reserve=100 and budget=400.
+
+        # Fits the budget: no raise.
+        csar_utils._check_disk_space(300, '/tmp/fake_extract/pkg')
+
+        # Fits in raw free space (500) but not the reserved budget
+        # (400) -- proves the option actually reserves a margin
+        # at non-default values.
+        self.assertRaises(
+            exceptions.InvalidCSAR,
+            csar_utils._check_disk_space, 450, '/tmp/fake_extract/pkg')
+
+    @mock.patch('tacker.common.csar_utils._check_disk_space')
+    def test_extract_csar_zip_file_with_disk_check_stops_and_cleans_up(
+            self, mock_check_disk_space):
+        mock_check_disk_space.side_effect = [
+            None,
+            exceptions.InvalidCSAR(
+                "CSAR extraction requires 999 bytes, but only 0 bytes "
+                "are available within the configured disk usage "
+                "threshold of 90%. Cannot proceed with CSAR upload.")]
+        zip_path = self._make_test_zip(
+            {'Definitions/vnfd.yaml': b'small',
+             'Files/images/large_image.img': b'also small',
+             'Scripts/install.sh': b'unreached'})
+        extract_path = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, extract_path, ignore_errors=True)
+
+        self.assertRaises(
+            exceptions.InvalidCSAR,
+            csar_utils.extract_csar_zip_file_with_disk_check,
+            zip_path, extract_path)
+
+        # First member extracted before the check tripped; cleanup
+        # removed it along with the rest of the (partial) output.
+        self.assertFalse(os.path.exists(extract_path))
+
+    @mock.patch('tacker.common.csar_utils.shutil.rmtree')
+    @mock.patch('tacker.common.csar_utils.PreserveZipFilePermissions')
+    def test_extract_csar_zip_file_with_disk_check_bad_zip_file(
+            self, mock_zipfile_cls, mock_rmtree):
+        mock_zipfile_cls.side_effect = zipfile.BadZipFile('not a zip')
+
+        self.assertRaises(
+            exceptions.InvalidZipFile,
+            csar_utils.extract_csar_zip_file_with_disk_check,
+            '/tmp/fake.zip', '/tmp/fake_extract')
+
+        mock_rmtree.assert_called_once_with(
+            '/tmp/fake_extract', ignore_errors=True)

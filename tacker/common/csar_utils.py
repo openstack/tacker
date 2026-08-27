@@ -523,6 +523,77 @@ def _validate_hash(algorithm, hash_code, csar, artifact_path, csar_root):
         return False
 
 
+def _check_disk_space(required, extract_target_dir):
+    """Validate disk space before and during CSAR extraction
+
+    Check whether the required number of bytes fits within the space
+    currently available on the partition, minus a reserve controlled
+    by csar_max_disk_usage_percent. Called both before the first
+    member is extracted and before each one after it.
+    """
+    parent_dir = os.path.dirname(extract_target_dir.rstrip(os.sep))
+    if not os.path.exists(parent_dir):
+        LOG.warning("CSAR disk check: path %s does not exist, skipping "
+                   "disk space check.", parent_dir)
+        return
+
+    total, _, free = shutil.disk_usage(parent_dir)
+    max_percent = CONF.vnf_package.csar_max_disk_usage_percent
+    reserve = total * (100 - max_percent) / 100.0
+    budget = free - reserve
+
+    LOG.debug("CSAR disk check: required=%d free=%d reserve=%d "
+              "budget=%d (threshold=%d%%)",
+              required, free, reserve, budget, max_percent)
+
+    if required > budget:
+        raise exceptions.InvalidCSAR(
+            "CSAR extraction requires %d bytes, but only %d bytes "
+            "are available within the configured disk usage "
+            "threshold of %d%%. Cannot proceed with CSAR upload." %
+            (required, max(budget, 0), max_percent))
+
+
+def extract_csar_zip_file_with_disk_check(file_path, extract_path):
+    """Extract CSAR members with disk space checks
+
+    Extract each CSAR member one by one, checking the available disk
+    space before writing each member. Each member is fully extracted
+    using zf.extract() before moving to the next one.
+
+    Checking before the first member as well as every later one means
+    this loop also acts as the upfront check for the whole archive,
+    and re-checking before each member catches space used by
+    something else, like a concurrent upload, while extraction is
+    still in progress.
+    """
+    try:
+        with PreserveZipFilePermissions(file_path, 'r') as zf:
+            members = zf.infolist()
+            remaining = sum(m.file_size for m in members)
+            for member in members:
+                _check_disk_space(remaining, extract_path)
+                zf.extract(member, extract_path)
+                remaining -= member.file_size
+    except exceptions.InvalidCSAR:
+        with excutils.save_and_reraise_exception():
+            LOG.warning(
+                "CSAR extraction aborted for %(path)s "
+                "after extracting %(member)s: remaining "
+                "members no longer fit the configured "
+                "disk usage budget.",
+                {'path': file_path, 'member': member.filename})
+            shutil.rmtree(extract_path, ignore_errors=True)
+    except (RuntimeError, zipfile.BadZipfile) as exp:
+        with excutils.save_and_reraise_exception():
+            LOG.error("Error encountered while extracting "
+                      "csar zip file %(path)s. Error: %(error)s.",
+                      {'path': file_path, 'error': str(exp)})
+            exp.reraise = False
+            shutil.rmtree(extract_path, ignore_errors=True)
+            raise exceptions.InvalidZipFile(path=file_path)
+
+
 def extract_csar_zip_file(file_path, extract_path):
     try:
         with PreserveZipFilePermissions(file_path, 'r') as zf:
@@ -541,7 +612,7 @@ def load_csar_data(context, package_uuid, zip_path):
 
     extract_zip_path = os.path.join(CONF.vnf_package.vnf_package_csar_path,
                                     package_uuid)
-    extract_csar_zip_file(zip_path, extract_zip_path)
+    extract_csar_zip_file_with_disk_check(zip_path, extract_zip_path)
 
     try:
         tosca = ToscaTemplate(
