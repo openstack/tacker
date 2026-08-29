@@ -13,15 +13,12 @@ Startup
 Tackers's WSGI server is started from the `server module <https://opendev.org/openstack/tacker/src/branch/master/tacker/service.py>`_
 and the entry point `serve_wsgi` is called to build an instance of the
 `TackerApiService`_, which is then returned to the server module,
-which spawns a `Eventlet`_ `GreenPool`_ that will run the WSGI
+and will run the WSGI
 application and respond to requests from clients.
 
 
 .. _TackerApiService: https://opendev.org/openstack/tacker/src/branch/master/tacker/service.py
 
-.. _Eventlet: https://eventlet.net/
-
-.. _GreenPool: https://eventlet.net/doc/modules/greenpool.html
 
 WSGI Application
 ----------------
