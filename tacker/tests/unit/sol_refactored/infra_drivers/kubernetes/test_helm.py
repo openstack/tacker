@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import ddt
 import os
 from unittest import mock
 
@@ -27,6 +28,7 @@ from tacker.tests import utils
 CNF_SAMPLE_VNFD_ID = "b1bb0ce7-ebca-4fa7-95ed-4840d70a1177"
 
 
+@ddt.ddt
 class TestHelm(base.TestCase):
 
     def setUp(self):
@@ -72,3 +74,37 @@ class TestHelm(base.TestCase):
             self.driver._scale, req, inst, grant_req, mock.Mock(),
             self.vnfd_1, mock.Mock(), mock.Mock())
         self.assertEqual(expected_ex.detail, ex.detail)
+
+    @ddt.data({'kind': 'Pod',
+               'rsc_name': 'vdu1-vnf0e222bb1a81b45f5ba51fef83559caf6',
+               'pod_name': 'vdu1-vnf0e222bb1a81b45f5ba51fef83559caf6',
+               'expected_result': True},
+              {'kind': 'Pod',
+               'rsc_name': 'vdu1-vnf0e222bb1a81b45f5ba51fef83559caf6',
+               'pod_name': 'vdu1-vnf0e222bb1a81b45f5ba51fef83559caf6-test',
+               'expected_result': False},
+              {'kind': 'Deployment',
+               'rsc_name': 'vdu1-vnf0e222bb1a81b45f5ba51fef83559caf6',
+               'pod_name': ('vdu1-vnf0e222bb1a81b45f5ba51fef83559caf6-'
+                            '644dbd5989-2nwmj'),
+               'expected_result': True},
+              {'kind': 'Deployment',
+               'rsc_name': 'vdu1-vnf0e222bb1a81b45f5ba51fef83559caf6',
+               'pod_name': 'vdu1-vnf0e222bb1a81b45f5ba51fef83559caf6',
+               'expected_result': False},
+              {'kind': 'Deployment',
+               'rsc_name': 'vdu1-vnf0e222bb1a81b45f5ba51fef83559caf6',
+               'pod_name': ('testvdu1-vnf0e222bb1a81b45f5ba51fef83559caf6-'
+                            '644dbd5989-2nwmj'),
+               'expected_result': False},
+              {'kind': 'Deployment',
+               'rsc_name': 'vdu1-vnf0e222bb1a81b45f5ba51fef83559caf6',
+               'pod_name': ('vdu1-vnf0e222bb1a81b45f5ba51fef83559caf6-admin-'
+                            '644dbd5989-2nwmj'),
+               'expected_result': False})
+    @ddt.unpack
+    def test_is_match_pod_naming_rule(
+            self, kind, rsc_name, pod_name, expected_result):
+        result = self.driver._is_match_pod_naming_rule(
+            kind, rsc_name, pod_name)
+        self.assertEqual(expected_result, result)
