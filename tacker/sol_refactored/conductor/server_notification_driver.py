@@ -16,7 +16,6 @@
 import threading
 
 from oslo_log import log as logging
-from oslo_utils import encodeutils
 
 from tacker import context as tacker_context
 from tacker.sol_refactored.common import config as cfg
@@ -94,7 +93,7 @@ class ServerNotificationDriver():
         except Exception as exp:
             LOG.error(str(body))
             LOG.error("server_notification auto healing is failed: %s.",
-                      encodeutils.exception_to_unicode(exp))
+                      str(exp))
 
     def timer_expired(self, vnf_instance_id, vnfc_instance_ids):
         self.remove_timer(vnf_instance_id)

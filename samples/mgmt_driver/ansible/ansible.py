@@ -11,7 +11,6 @@
 #    under the License.
 
 from oslo_log import log as logging
-from oslo_utils import encodeutils
 from tacker.common import log
 from tacker.vnfm.mgmt_drivers import constants as mgmt_constants
 from tacker.vnfm.mgmt_drivers import vnflcm_abstract_driver
@@ -53,7 +52,7 @@ class DeviceMgmtAnsible(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                 instantiate_vnf_request, **kwargs)
         except Exception as e:
             raise Exception("Ansible Driver Error: %s",
-                encodeutils.exception_to_unicode(e))
+                str(e))
 
     @log.log
     def terminate_start(self, context, vnf_instance,
@@ -67,7 +66,7 @@ class DeviceMgmtAnsible(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                 terminate_vnf_request, **kwargs)
         except Exception as e:
             raise Exception("Ansible Driver Error: %s",
-                encodeutils.exception_to_unicode(e))
+                str(e))
 
     def terminate_end(self, context, vnf_instance,
                       terminate_vnf_request, grant,
@@ -86,7 +85,7 @@ class DeviceMgmtAnsible(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                 scale_vnf_request, **kwargs)
         except Exception as e:
             raise Exception("Ansible Driver Error: %s",
-                encodeutils.exception_to_unicode(e))
+                str(e))
 
     @log.log
     def scale_end(self, context, vnf_instance,
@@ -100,7 +99,7 @@ class DeviceMgmtAnsible(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                 scale_vnf_request, **kwargs)
         except Exception as e:
             raise Exception("Ansible Driver Error: %s",
-                encodeutils.exception_to_unicode(e))
+                str(e))
 
     def heal_start(self, context, vnf_instance,
                    heal_vnf_request, grant,
@@ -119,7 +118,7 @@ class DeviceMgmtAnsible(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                 heal_vnf_request, **kwargs)
         except Exception as e:
             raise Exception("Ansible Driver Error: %s",
-                encodeutils.exception_to_unicode(e))
+                str(e))
 
     def change_external_connectivity_start(
             self, context, vnf_instance,

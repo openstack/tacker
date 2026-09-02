@@ -25,7 +25,6 @@ import traceback
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
-from oslo_utils import encodeutils
 from oslo_utils import excutils
 from oslo_utils import timeutils
 from toscaparser import tosca_template
@@ -377,10 +376,10 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                 LOG.error("Unable to instantiate vnf instance "
                     "%(id)s due to error : %(error)s",
                     {"id": vnf_instance.id, "error":
-                    encodeutils.exception_to_unicode(exp)})
+                    str(exp)})
                 raise exceptions.VnfInstantiationFailed(
                     id=vnf_instance.id,
-                    error=encodeutils.exception_to_unicode(exp))
+                    error=str(exp))
 
         if vnf_instance.instantiated_vnf_info and\
                 vnf_instance.instantiated_vnf_info.instance_id != instance_id:
@@ -420,10 +419,10 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                     LOG.error("Vnf creation wait failed for vnf instance "
                         "%(id)s due to error : %(error)s",
                         {"id": vnf_instance.id, "error":
-                        encodeutils.exception_to_unicode(exp)})
+                        str(exp)})
                     raise exceptions.VnfInstantiationWaitFailed(
                         id=vnf_instance.id,
-                        error=encodeutils.exception_to_unicode(exp))
+                        error=str(exp))
         elif vnf_dict['before_error_point'] == EP.POST_VIM_CONTROL:
             try:
                 self._vnf_manager.invoke(
@@ -439,10 +438,10 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                     LOG.error("Vnf update wait failed for vnf instance "
                         "%(id)s due to error : %(error)s",
                         {"id": vnf_instance.id, "error":
-                        encodeutils.exception_to_unicode(exp)})
+                        str(exp)})
                     raise exceptions.VnfInstantiationWaitFailed(
                         id=vnf_instance.id,
-                        error=encodeutils.exception_to_unicode(exp))
+                        error=str(exp))
 
         if vnf_instance.instantiated_vnf_info.instance_id:
             self._vnf_manager.invoke(vim_connection_info.vim_type,
@@ -744,7 +743,7 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
 
                 LOG.error("Unable to terminate vnf '%s' instance. "
                           "Error: %s", vnf_instance.id,
-                          encodeutils.exception_to_unicode(exp))
+                          str(exp))
 
         vnf_dict['current_error_point'] = EP.VNF_CONFIG_END
         if vnf_dict['before_error_point'] <= EP.VNF_CONFIG_END:
@@ -817,9 +816,9 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                 exc_ctxt.reraise = False
                 LOG.error("Failed to heal vnf %(id)s in infra driver. "
                           "Error: %(error)s", {"id": vnf_instance.id, "error":
-                          encodeutils.exception_to_unicode(exp)})
+                          str(exp)})
                 raise exceptions.VnfHealFailed(id=vnf_instance.id,
-                    error=encodeutils.exception_to_unicode(exp))
+                    error=str(exp))
 
         vnf['current_error_point'] = EP.POST_VIM_CONTROL
 
@@ -834,7 +833,7 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                       "%(instance)s. Error: %(error)s",
                       {'id': vnf_instance.id, 'instance':
                       inst_vnf_info.instance_id, 'error':
-                      encodeutils.exception_to_unicode(exp)})
+                      str(exp)})
 
         try:
             self._vnf_manager.invoke(
@@ -851,9 +850,9 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                           "Error: %(error)s",
                           {'id': vnf_instance.id, 'instance':
                           inst_vnf_info.instance_id, 'error':
-                          encodeutils.exception_to_unicode(exp)})
+                          str(exp)})
                 raise exceptions.VnfHealFailed(id=vnf_instance.id,
-                    error=encodeutils.exception_to_unicode(exp))
+                    error=str(exp))
 
     def _respawn_vnf(self, context, vnf_instance, vnf_dict,
                     vim_connection_info, heal_vnf_request):
@@ -871,7 +870,7 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                     LOG.error(err_msg % {"id": vnf_instance.id,
                               "error": str(exc)})
                     raise exceptions.VnfHealFailed(id=vnf_instance.id,
-                        error=encodeutils.exception_to_unicode(exc))
+                        error=str(exc))
 
         if vnf_instance.instantiated_vnf_info.scale_status:
             # Since the instantiated_vnf_info is initialized in subsequent
@@ -918,7 +917,7 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                 LOG.error(err_msg % {"id": vnf_instance.id,
                           "error": str(exc)})
                 raise exceptions.VnfHealFailed(id=vnf_instance.id,
-                    error=encodeutils.exception_to_unicode(exc))
+                    error=str(exc))
 
         self._vnf_instance_update(context, vnf_instance,
                     instantiation_state=fields.VnfInstanceState.INSTANTIATED,
@@ -981,10 +980,10 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
 
                 LOG.error("Unable to heal vnf '%s' instance. "
                           "Error: %s", heal_vnf_request.vnfc_instance_id,
-                          encodeutils.exception_to_unicode(exp))
+                          str(exp))
 
                 raise exceptions.VnfHealFailed(id=vnf_instance.id,
-                    error=encodeutils.exception_to_unicode(exp))
+                    error=str(exp))
 
         vnf_dict['current_error_point'] = EP.VNF_CONFIG_END
 
@@ -1919,9 +1918,9 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                 LOG.error("Failed to change external connectivity "
                           "vnf %(id)s in infra driver. "
                           "Error: %(error)s", {"id": vnf_instance.id, "error":
-                          encodeutils.exception_to_unicode(exp)})
+                          str(exp)})
                 raise exceptions.VnfChangeExtConnFailed(id=vnf_instance.id,
-                    error=encodeutils.exception_to_unicode(exp))
+                    error=str(exp))
         vnf_dict['current_error_point'] = fields.ErrorPoint.POST_VIM_CONTROL
         try:
             self._vnf_manager.invoke(
@@ -1933,10 +1932,10 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
                       "%(instance)s. Error: %(error)s",
                       {'id': vnf_instance.id, 'instance':
                       inst_vnf_info.instance_id, 'error':
-                      encodeutils.exception_to_unicode(exp)})
+                      str(exp)})
             raise exceptions.VnfChangeExtConnWaitFailed(
                 id=vnf_instance.id,
-                error=encodeutils.exception_to_unicode(exp))
+                error=str(exp))
 
     @log.log
     @revert_to_error_task_state
@@ -2030,4 +2029,4 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
 
             except Exception as e:
                 LOG.error(f"Error is occoured vnf {vnf_instance.id} "
-                        f"Error: {encodeutils.exception_to_unicode(e)}")
+                        f"Error: {str(e)}")

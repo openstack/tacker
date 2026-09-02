@@ -24,7 +24,6 @@ from kubernetes import client
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
-from oslo_utils import encodeutils
 from oslo_utils import uuidutils
 from toscaparser import tosca_template
 
@@ -2466,7 +2465,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
         except Exception as e:
             LOG.error(f"Failed to synchronize database vnf: "
                       f"{vnf_instance.id} Error: "
-                      f"{encodeutils.exception_to_unicode(e)}")
+                      f"{str(e)}")
 
     @check_vnf_state(action="db_sync",
         instantiation_state=[fields.VnfInstanceState.INSTANTIATED],
@@ -2537,7 +2536,7 @@ class Kubernetes(abstract_driver.VnfAbstractDriver,
 
         except Exception as e:
             LOG.error(f"Failed to update database vnf {vnf_instance.id} "
-                    f"Error: {encodeutils.exception_to_unicode(e)}")
+                    f"Error: {str(e)}")
             vnf_instance = copy.deepcopy(backup_vnf_instance)
             vnf_instance.task_state = None
             vnf_instance.save()
