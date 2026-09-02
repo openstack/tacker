@@ -29,6 +29,24 @@ from tacker.plugins.common import constants
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
 
+# Key manager APIs cached by the auth url they were created for. The key
+# manager keeps the barbican client it creates, so the instance has to be
+# kept as well to make use of it.
+_KEYMGR_APIS = {}
+
+
+def reset_keymgr_apis():
+    """Discard the cached key manager APIs"""
+    _KEYMGR_APIS.clear()
+
+
+def _get_keymgr_api(auth_url):
+    keymgr_api = _KEYMGR_APIS.get(auth_url)
+    if keymgr_api is None:
+        keymgr_api = KEYMGR_API(auth_url)
+        _KEYMGR_APIS[auth_url] = keymgr_api
+    return keymgr_api
+
 
 class VimClient(object):
     def get_vim(self, context, vim_id=None, region_name=None):
@@ -121,9 +139,11 @@ class VimClient(object):
         if auth.get('key_type') == 'barbican_key':
             secret_uuid = auth['secret_uuid']
             if CONF.ext_oauth2_auth.use_ext_oauth2_auth:
-                keymgr_api = KEYMGR_API(CONF.ext_oauth2_auth.token_endpoint)
+                keymgr_api = _get_keymgr_api(
+                    CONF.ext_oauth2_auth.token_endpoint)
             else:
-                keymgr_api = KEYMGR_API(CONF.keystone_authtoken.auth_url)
+                keymgr_api = _get_keymgr_api(
+                    CONF.keystone_authtoken.auth_url)
             k_context = t_context.generate_tacker_service_context()
             secret_obj = keymgr_api.get(k_context, secret_uuid)
             vim_key = secret_obj.payload
