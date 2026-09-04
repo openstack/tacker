@@ -107,7 +107,7 @@ def get_param_image(vdu_name, flavour_id, vnfd, grant, fallback_vnfd=True):
                     return image['vimSoftwareImageId']
 
     if fallback_vnfd:
-        # if this flag is True, VNFD is refered to.
+        # if this flag is True, VNFD is referred to.
         # if specified in VNFD, use it.
         # NOTE: image name is assumed to be unique in the system.
         # NFVO should be return vimAssets basically.

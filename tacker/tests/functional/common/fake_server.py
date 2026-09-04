@@ -52,7 +52,7 @@ def PrepareRequestHandler(manager):
         def _returned_callback(self, path, mock_info):
             """Send responses to client. Called in do_* methods.
 
-            This method do not handle message when error is occured.
+            This method do not handle message when error is occurred.
 
             Args:
                 path (str): URI path
