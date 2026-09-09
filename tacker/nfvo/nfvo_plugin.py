@@ -16,7 +16,6 @@
 
 import copy
 
-import eventlet
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
@@ -60,7 +59,6 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb):
 
     def __init__(self):
         super(NfvoPlugin, self).__init__()
-        self._pool = eventlet.GreenPool()
         self._vim_drivers = driver_manager.DriverManager(
             'tacker.nfvo.vim.drivers',
             cfg.CONF.nfvo_vim.vim_drivers)

@@ -26,8 +26,8 @@ import math
 import os
 import re
 import socket
-import subprocess
 import sys
+from time import sleep
 from urllib import parse as urlparse
 
 import netaddr
@@ -37,11 +37,6 @@ from oslo_log import log as logging
 from oslo_utils import excutils
 from oslo_utils import importutils
 from stevedore import driver
-
-try:
-    from eventlet import sleep
-except ImportError:
-    from time import sleep
 
 from tacker._i18n import _
 from tacker.common import constants as q_const
@@ -141,12 +136,6 @@ def find_config_file(options, config_file):
         cfg_file = os.path.join(cfg_dir, config_file)
         if os.path.exists(cfg_file):
             return cfg_file
-
-
-def subprocess_popen(args, stdin=None, stdout=None, stderr=None, shell=False,
-                     env=None):
-    return subprocess.Popen(args, shell=shell, stdin=stdin, stdout=stdout,
-                            stderr=stderr, close_fds=True, env=env)
 
 
 def get_hostname():
@@ -282,10 +271,10 @@ def expects_func_args(*args):
 
 
 def cooperative_iter(iter):
-    """Prevent eventlet thread starvation during iteration
+    """Prevent thread starvation during iteration
 
     Return an iterator which schedules after each
-    iteration. This can prevent eventlet thread starvation.
+    iteration. This can prevent thread starvation.
 
     :param iter: an iterator to wrap
     """
@@ -300,10 +289,10 @@ def cooperative_iter(iter):
 
 
 def cooperative_read(fd):
-    """Prevent eventlet thread starvationafter each read operation.
+    """Prevent thread starvation after each read operation.
 
     Wrap a file descriptor's read with a partial function which schedules
-    after each read. This can prevent eventlet thread starvation.
+    after each read. This can prevent thread starvation.
 
     :param fd: a file descriptor to wrap
     """
@@ -502,13 +491,13 @@ def json_merge_patch(target, patch):
 
 
 class CooperativeReader(object):
-    """An eventlet thread friendly class for reading in image data.
+    """A thread friendly class for reading in image data.
 
     When accessing data either through the iterator or the read method
     we perform a sleep to allow a co-operative yield. When there is more than
-    one image being uploaded/downloaded this prevents eventlet thread
-    starvation, ie allows all threads to be scheduled periodically rather than
-    having the same thread be continuously active.
+    one image being uploaded/downloaded this prevents thread starvation,
+    ie allows all threads to be scheduled periodically rather than having
+    the same thread be continuously active.
     """
     def __init__(self, fd):
         """Construct an CooperativeReader object.
