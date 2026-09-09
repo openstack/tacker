@@ -154,7 +154,7 @@ So the first step of installing tacker is to clone Devstack and prepare your
 
          .. literalinclude:: ../../../devstack/local.conf.kubernetes
              :language: ini
-             :emphasize-lines: 54-64
+             :emphasize-lines: 61-88
 
 
          .. note::

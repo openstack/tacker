@@ -261,6 +261,7 @@ function configure_tacker {
         iniset "/$Q_PLUGIN_CONF_FILE" ovs bridge_mappings $PUBLIC_PHYSICAL_NETWORK:$PUBLIC_BRIDGE,$MGMT_PHYS_NET:$BR_MGMT
 
         echo "Creating bridge"
+        _tacker_ensure_ovsdb_running
         sudo ovs-vsctl --may-exist add-br ${BR_MGMT}
     fi
     if [[ "${USE_BARBICAN}" == "True" ]]; then
@@ -270,6 +271,34 @@ function configure_tacker {
 
 # Utility Functions
 #------------------
+
+# Makes sure ovsdb-server is up so that ovs-vsctl can be used.
+#
+# BR_MGMT has to exist before the Neutron agents start, because it is what
+# the bridge_mappings entry written by configure_tacker refers to. That puts
+# its creation in the post-config phase, but devstack starts the OVS services
+# together with the agents, which is later. In the multi-node Zuul job this
+# goes unnoticed: br-infra is pre-created by the multi-node-bridge role and
+# OVS is already running by the time devstack starts.
+function _tacker_ensure_ovsdb_running {
+    if sudo ovs-vsctl --timeout=5 show >/dev/null 2>&1; then
+        return 0
+    fi
+
+    # Set by devstack when Q_AGENT is ovn; the names differ when OVS is built
+    # from source. Fall back to the distro service, which covers both daemons.
+    start_service ${OVSDB_SERVER_SERVICE:-openvswitch-switch}
+    start_service ${OVS_VSWITCHD_SERVICE:-openvswitch-switch}
+
+    local i
+    for i in $(seq 1 10); do
+        if sudo ovs-vsctl --timeout=5 show >/dev/null 2>&1; then
+            return 0
+        fi
+        sleep 1
+    done
+    die $LINENO "ovsdb-server is not reachable, cannot create ${BR_MGMT}"
+}
 
 # Configures keystone integration for tacker service and agents
 function _tacker_setup_keystone {

@@ -31,6 +31,13 @@ ENABLE_VERBOSE_LOG_LEVEL=True
 Q_PLUGIN=ml2
 Q_AGENT=ovn
 
+# The management network Tacker creates is a flat network on
+# MGMT_PHYS_NET, which needs a chassis level mapping to BR_MGMT. Only
+# OVN_BRIDGE_MAPPINGS reaches ovn-bridge-mappings; the bridge_mappings
+# option in the ML2 config is read by the openvswitch agent alone, so
+# without this VM based VNFs fail to boot with PortBindingFailed.
+OVN_BRIDGE_MAPPINGS=public:br-ex,mgmtphysnet0:br-infra
+
 # Disable security groups
 LIBVIRT_FIREWALL_DRIVER=nova.virt.firewall.NoopFirewallDriver
 

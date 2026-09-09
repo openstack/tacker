@@ -31,6 +31,13 @@ ENABLE_VERBOSE_LOG_LEVEL=True
 Q_PLUGIN=ml2
 Q_AGENT=ovn
 
+# The management network Tacker creates is a flat network on
+# MGMT_PHYS_NET, which needs a chassis level mapping to BR_MGMT. Only
+# OVN_BRIDGE_MAPPINGS reaches ovn-bridge-mappings; the bridge_mappings
+# option in the ML2 config is read by the openvswitch agent alone, so
+# without this VM based VNFs fail to boot with PortBindingFailed.
+OVN_BRIDGE_MAPPINGS=public:br-ex,mgmtphysnet0:br-infra
+
 # Disable security groups
 LIBVIRT_FIREWALL_DRIVER=nova.virt.firewall.NoopFirewallDriver
 
@@ -56,10 +63,27 @@ KUBERNETES_VIM=True
 
 # It is necessary to specify the patch version
 # because it is the version used when executing "apt-get install" command.
-K8S_VERSION="1.30.5"
+#
+# NOTE: devstack-plugin-container renders the kubeadm configuration with
+# apiVersion kubeadm.k8s.io/v1beta4, which kubeadm treats as experimental
+# and rejects before 1.31. Keep K8S_VERSION at 1.31 or later.
+K8S_VERSION="1.34.2"
 K8S_TOKEN="9agf12.zsu5uh2m4pzt3qba"
 CONTAINER_ENGINE="crio"
-CRIO_VERSION="1.30.5"
+# NOTE: CRI-O follows the Kubernetes release cycle with respect to its
+# minor versions, so keep the minor version of CRIO_VERSION the same as
+# K8S_VERSION.
+CRIO_VERSION="1.34.2"
+
+# The plugin points kubeadm at the etcd deployed by devstack, and kubeadm 1.34
+# refuses an external etcd older than 3.5.24-0. devstack still defaults to
+# 3.5.21, so pin a newer one. Checksums are from the upstream SHA256SUMS of
+# the release.
+ETCD_VERSION=v3.5.27
+ETCD_SHA256_AMD64="0aad9a9e4e0817a021e933f9806a2b2960a62f949ad5a3d6436d8886945cb1bc"
+ETCD_SHA256_ARM64="1277309f540c5a0329c428f95455c9f76d24f768c8d28fd2753e891c379053fa"
+ETCD_SHA256_PPC64="b41d488dcd579e780f49f5bd747e9386e17e1376ffb77bfff061f7944818a678"
+ETCD_SHA256_S390X="c4377ed23fbc666bfc217fa68ff901f9a922644d50a0bae48d684a8432254507"
 
 enable_plugin devstack-plugin-container https://opendev.org/openstack/devstack-plugin-container master
 
