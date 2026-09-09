@@ -113,21 +113,8 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
                 "PUT", body=file_object, content_type='application/zip')
 
         # wait for onboard
-        start_time = int(time.time())
-        show_url = os.path.join(self.base_vnf_package_url, vnf_pkg_id)
-        vnfd_id = None
-        while True:
-            _, body = tacker_client.do_request(show_url, "GET")
-            if body['onboardingState'] == "ONBOARDED":
-                vnfd_id = body['vnfdId']
-                break
-
-            if (int(time.time()) - start_time) > VNF_PACKAGE_UPLOAD_TIMEOUT:
-                raise Exception(WAIT_TIMEOUT_ERR_MSG %
-                    {"action": "onboard vnf package",
-                     "timeout": VNF_PACKAGE_UPLOAD_TIMEOUT})
-
-            time.sleep(RETRY_WAIT_TIME)
+        vnfd_id = self._wait_vnf_package_onboarded(
+            tacker_client, vnf_pkg_id)
 
         # remove temporarily created CSAR file
         os.remove(file_path)
@@ -156,14 +143,36 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
                 "PUT", body=file_object, content_type='application/zip')
 
         # wait for onboard
+        vnfd_id = self._wait_vnf_package_onboarded(
+            tacker_client, vnf_pkg_id)
+
+        # remove temporarily created CSAR file
+        os.remove(file_path)
+        return vnf_package['id'], vnfd_id
+
+    @classmethod
+    def _wait_vnf_package_onboarded(cls, tacker_client, vnf_pkg_id):
         start_time = int(time.time())
-        show_url = os.path.join(self.base_vnf_package_url, vnf_pkg_id)
-        vnfd_id = None
+        show_url = os.path.join(cls.base_vnf_package_url, vnf_pkg_id)
+        # PackageOnboardingStateType has no failure state: on error the
+        # conductor resets onboardingState back to CREATED so the CSAR can
+        # be re-uploaded. Seeing CREATED again after leaving it therefore
+        # means onboarding failed.
+        left_created_state = False
         while True:
             _, body = tacker_client.do_request(show_url, "GET")
-            if body['onboardingState'] == "ONBOARDED":
-                vnfd_id = body['vnfdId']
-                break
+            onboarding_state = body['onboardingState']
+            if onboarding_state == "ONBOARDED":
+                return body['vnfdId']
+
+            if onboarding_state == "CREATED":
+                if left_created_state:
+                    raise Exception(
+                        "Failed to onboard vnf package %s: onboardingState"
+                        " reverted to CREATED, the CSAR was rejected." %
+                        vnf_pkg_id)
+            else:
+                left_created_state = True
 
             if (int(time.time()) - start_time) > VNF_PACKAGE_UPLOAD_TIMEOUT:
                 raise Exception(WAIT_TIMEOUT_ERR_MSG %
@@ -171,10 +180,6 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
                      "timeout": VNF_PACKAGE_UPLOAD_TIMEOUT})
 
             time.sleep(RETRY_WAIT_TIME)
-
-        # remove temporarily created CSAR file
-        os.remove(file_path)
-        return vnf_package['id'], vnfd_id
 
     @classmethod
     def _disable_and_delete_vnf_package(cls, package_id):
@@ -256,7 +261,9 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
     def _vnf_instance_wait(
             self, id,
             instantiation_state=fields.VnfInstanceState.INSTANTIATED,
-            timeout=None):
+            timeout=None, vnf_lcm_op_occ_id=None):
+        failure_states = (fields.LcmOccsOperationState.FAILED_TEMP,
+                          fields.LcmOccsOperationState.FAILED)
         show_url = os.path.join(self.base_vnf_instances_url, id)
         start_time = int(time.time())
         if timeout is None:
@@ -265,6 +272,21 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
             _, body = self.tacker_client.do_request(show_url, "GET")
             if body['instantiationState'] == instantiation_state:
                 break
+
+            # instantiationState is not updated when the operation fails, so
+            # detect it here to avoid polling until the timeout expires.
+            if vnf_lcm_op_occ_id:
+                vnflcm_op_occ = vnf_lcm_op_occs.VnfLcmOpOcc.get_by_id(
+                    self.context, vnf_lcm_op_occ_id)
+                if vnflcm_op_occ.operation_state in failure_states:
+                    error = None
+                    if vnflcm_op_occ.obj_attr_is_set('error'):
+                        error = vnflcm_op_occ.error
+                    raise Exception(
+                        f"Operation transitioned to"
+                        f" {vnflcm_op_occ.operation_state} state while"
+                        f" waiting for the vnf instance to be"
+                        f" {instantiation_state}. error: {error}")
 
             if (int(time.time()) - start_time) > timeout:
                 raise Exception(WAIT_TIMEOUT_ERR_MSG %
@@ -280,7 +302,8 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
         self.assertEqual(202, resp.status_code)
         vnf_lcm_op_occ_id = self._get_vnf_lcm_op_occ_id(resp)
         if wait_state == "COMPLETED":
-            self._vnf_instance_wait(id)
+            self._vnf_instance_wait(
+                id, vnf_lcm_op_occ_id=vnf_lcm_op_occ_id)
         # wait vnflcm_op_occs.operation_state become wait_state
         self._wait_vnflcm_op_occs(self.context, id,
                                   self.lcm_timeout['instantiate'], wait_state,
@@ -342,12 +365,15 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
             url, "POST", body=jsonutils.dumps(request_body))
         self.assertEqual(202, resp.status_code)
 
+        vnf_lcm_op_occ_id = self._get_vnf_lcm_op_occ_id(resp)
+
         timeout = request_body.get('gracefulTerminationTimeout', None)
         start_time = int(time.time())
 
         self._vnf_instance_wait(
             id, instantiation_state=fields.VnfInstanceState.NOT_INSTANTIATED,
-            timeout=self.lcm_timeout['terminate'])
+            timeout=self.lcm_timeout['terminate'],
+            vnf_lcm_op_occ_id=vnf_lcm_op_occ_id)
 
         # If gracefulTerminationTimeout is set, check whether vnf
         # instantiation_state is set to NOT_INSTANTIATED after
@@ -413,6 +439,13 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
     def _wait_vnflcm_op_occs(
             self, context, vnf_instance_id, timeout,
             operation_state='COMPLETED', vnf_lcm_op_occ_id=None):
+        failure_states = (fields.LcmOccsOperationState.FAILED_TEMP,
+                          fields.LcmOccsOperationState.FAILED)
+        # A rollback starts from FAILED_TEMP and the state is updated to
+        # ROLLING_BACK by the conductor, so a failure state is not
+        # unexpected while waiting for the operation to be rolled back.
+        expect_failure_state = (operation_state in failure_states or
+                                operation_state == 'ROLLED_BACK')
         start_time = int(time.time())
         while True:
             if vnf_lcm_op_occ_id:
@@ -424,6 +457,17 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
 
             if vnflcm_op_occ.operation_state == operation_state:
                 break
+
+            # Only checked when the lcm_op_occ is looked up by id, because
+            # the record of a previous operation can be returned until the
+            # current one is created.
+            failed = (vnf_lcm_op_occ_id is not None and
+                      vnflcm_op_occ.operation_state in failure_states)
+            if failed and not expect_failure_state:
+                raise Exception(
+                    "Operation transitioned to "
+                    f"{vnflcm_op_occ.operation_state} state while waiting"
+                    f" for {operation_state} state.")
 
             if (int(time.time()) - start_time) > timeout:
                 raise Exception("Timeout waiting for transition to"
