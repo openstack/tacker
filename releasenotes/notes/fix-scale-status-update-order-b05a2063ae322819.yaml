@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Fix `bug 2162060`_ for the order of updating the database in the v1 scale
+    operation. The ``vnflcm_op_occs`` record was marked as ``COMPLETED``
+    before the VNF instance was saved, and a client reacting to the
+    ``COMPLETED`` state could get the ``scaleLevel`` of ``scaleStatus``
+    before the scaling. The VNF instance is now saved first so that its
+    ``scaleStatus`` is already updated once the operation has reached
+    ``COMPLETED``, which is the same order as the instantiate operation.
+
+    .. _bug 2162060: https://bugs.launchpad.net/tacker/+bug/2162060

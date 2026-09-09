@@ -450,6 +450,21 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
             raise Exception(f"aspectId {aspect_id} is not found.")
         return scale_level
 
+    def _wait_scale_level(self, id, aspect_id, expected_level, timeout):
+        start_time = int(time.time())
+        while True:
+            vnf_instance = self._show_vnf_instance(id)
+            scale_level = self._get_scale_level_by_aspect_id(
+                vnf_instance, aspect_id)
+            if scale_level == expected_level:
+                return scale_level
+
+            if (int(time.time()) - start_time) > timeout:
+                self.fail(f"Timeout waiting for scaleLevel of {aspect_id} to"
+                          f" become {expected_level}, but {scale_level}.")
+
+            time.sleep(RETRY_WAIT_TIME)
+
     def _test_scale(self, id, type, aspect_id, previous_level,
                     number_of_steps=1, error=False):
         # scale operation
@@ -468,12 +483,19 @@ class BaseVnfLcmKubernetesTest(base.BaseTackerTest):
             self.context, id, self.lcm_timeout['scale'], wait_state,
             vnf_lcm_op_occ_id=vnf_lcm_op_occ_id)
         # check scaleStatus after scale operation
-        vnf_instance = self._show_vnf_instance(id)
-        scale_level = self._get_scale_level_by_aspect_id(
-            vnf_instance, aspect_id)
-        self.assertEqual(scale_level, expected_level)
+        if error:
+            # A failed operation does not update scaleStatus, so there is
+            # nothing to wait for.
+            vnf_instance = self._show_vnf_instance(id)
+            scale_level = self._get_scale_level_by_aspect_id(
+                vnf_instance, aspect_id)
+            self.assertEqual(expected_level, scale_level)
+            return scale_level
 
-        return scale_level
+        # Note that scaleStatus can be committed slightly after the
+        # operation state is updated.
+        return self._wait_scale_level(
+            id, aspect_id, expected_level, self.lcm_timeout['scale'])
 
     def _test_scale_out_and_in(self, vnf_instance, aspect_id,
                                number_of_steps=1, error=False):

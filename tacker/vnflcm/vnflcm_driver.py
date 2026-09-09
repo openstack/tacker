@@ -1156,13 +1156,16 @@ class VnfLcmDriver(abstract_driver.VnfInstanceAbstractDriver):
         if vnf_info['before_error_point'] < EP.NOTIFY_COMPLETED:
             self._vnfm_plugin._update_vnf_scaling(context, vnf_info,
                     'PENDING_' + scale_vnf_request.type, 'ACTIVE')
+            # NOTE: Save the VNF instance before the operation is marked as
+            # COMPLETED, so that its `scaleStatus` is already updated when a
+            # client reacts to the COMPLETED state.
+            vnf_instance.task_state = None
+            vnf_instance.save()
             vnf_lcm_op_occ = vnf_info['vnf_lcm_op_occ']
             vnf_lcm_op_occ.operation_state = 'COMPLETED'
             vnf_lcm_op_occ.resource_changes = resource_changes
             vnf_lcm_op_occ.state_entered_time = timeutils.utcnow()
             vnf_lcm_op_occ.save()
-            vnf_instance.task_state = None
-            vnf_instance.save()
 
         vnf_info['current_error_point'] = EP.NOTIFY_COMPLETED
 
