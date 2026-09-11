@@ -22,13 +22,26 @@ WSGI module, or the ``tacker-api-wsgi`` script generated from the
 ``wsgi_scripts`` entry point for non-editable installations.
 """
 
-import os
+# NOTE: init_backend() can be called only once per process and must run
+# before any other oslo.service module is imported, otherwise the default
+# eventlet backend is selected implicitly. The API has no eventlet hub of
+# its own since it runs under a WSGI server, and oslo.service is imported
+# indirectly through oslo.messaging below. The get_backend_type() guard
+# avoids BackendAlreadySelected when the backend is already initialized
+# by another module imported in the same process, e.g. by Sphinx autodoc
+# during the docs build.
+from oslo_service import backend
 
-from oslo_config import cfg
+if backend.get_backend_type() is None:
+    backend.init_backend(backend.BackendType.THREADING)
 
-from tacker.common import config
-from tacker import objects
-from tacker.sol_refactored import objects as sol_objects
+import os  # noqa: E402
+
+from oslo_config import cfg  # noqa: E402
+
+from tacker.common import config  # noqa: E402
+from tacker import objects  # noqa: E402
+from tacker.sol_refactored import objects as sol_objects  # noqa: E402
 
 
 CONFIG_FILES = ['api-paste.ini', 'tacker.conf']

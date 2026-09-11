@@ -15,5 +15,15 @@
 
 import gettext
 
+from oslo_service import backend
+
 
 gettext.install('tacker')
+
+# NOTE: oslo.service defaults to its eventlet backend when nothing selects
+# one, which no longer exists for tacker: there is no eventlet in the
+# requirements and nothing monkey patches the standard library. Registering
+# the hook here makes threading the default for every entry into the
+# package, the services as well as the unit tests, the config generator and
+# the docs build, while an explicit init_backend() still wins over it.
+backend.register_backend_default_hook(lambda: backend.BackendType.THREADING)
