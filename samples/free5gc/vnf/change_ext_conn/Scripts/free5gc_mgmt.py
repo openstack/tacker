@@ -11,7 +11,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import eventlet
+import concurrent.futures
 import os
 import paramiko
 import time
@@ -137,14 +137,19 @@ class Free5gcMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
 
     def _execute_command(self, commander, ssh_command, timeout, type, retry,
             input_data=None):
-        eventlet.monkey_patch()
         while retry >= 0:
+            # NOTE: A new executor is created per attempt because a
+            # native thread cannot be interrupted from outside; a timed
+            # out attempt keeps its worker thread busy until the command
+            # returns.
+            executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
             try:
-                with eventlet.Timeout(timeout, True):
-                    result = commander.execute_command(
-                        ssh_command, input_data=input_data)
-                    break
-            except eventlet.timeout.Timeout:
+                future = executor.submit(
+                    commander.execute_command, ssh_command,
+                    input_data=input_data)
+                result = future.result(timeout=timeout)
+                break
+            except concurrent.futures.TimeoutError:
                 LOG.debug('It is time out, When execute command: '
                           '{}.'.format(ssh_command))
                 retry -= 1
@@ -155,6 +160,8 @@ class Free5gcMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                         error_message='It is time out, When execute command: '
                                       '{}.'.format(ssh_command))
                 time.sleep(30)
+            finally:
+                executor.shutdown(wait=False)
         if type == 'common':
             if result.get_return_code() != 0:
                 err = result.get_stderr()

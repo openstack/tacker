@@ -12,11 +12,11 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+import concurrent.futures
 import ipaddress
 import os
 import time
 
-import eventlet
 from oslo_log import log as logging
 import paramiko
 
@@ -93,15 +93,19 @@ class PrivateRegistryMgmtDriver(
     def _execute_command(self, commander, ssh_command,
                          timeout=PR_CMD_TIMEOUT_DEFAULT,
                          type=CMD_TYPE_COMMON, retry=0):
-        eventlet.monkey_patch()
         while retry >= 0:
+            # NOTE: A new executor is created per attempt because a
+            # native thread cannot be interrupted from outside; a timed
+            # out attempt keeps its worker thread busy until the command
+            # returns.
+            executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
             try:
-                with eventlet.Timeout(timeout, True):
-                    LOG.debug("execute command: {}".format(ssh_command))
-                    result = commander.execute_command(
-                        ssh_command, input_data=None)
-                    break
-            except eventlet.timeout.Timeout:
+                LOG.debug("execute command: {}".format(ssh_command))
+                future = executor.submit(
+                    commander.execute_command, ssh_command, input_data=None)
+                result = future.result(timeout=timeout)
+                break
+            except concurrent.futures.TimeoutError:
                 err_msg = ("It is time out, When execute command: "
                     "{}.".format(ssh_command))
                 retry -= 1
@@ -114,6 +118,8 @@ class PrivateRegistryMgmtDriver(
                     PR_CMD_RETRY_INTERVAL)
                 LOG.debug(err_msg)
                 time.sleep(PR_CMD_RETRY_INTERVAL)
+            finally:
+                executor.shutdown(wait=False)
         if type == CMD_TYPE_COMMON:
             stderr = result.get_stderr()
             if stderr:
