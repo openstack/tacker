@@ -52,6 +52,10 @@ apidoc_excluded_paths = [
     # TODO(ueha): Excluding 'db/types.py' will be removed after the issue of
     # TypeDecorator is fixed.
     'db/types.py',
+    # The WSGI application is initialized at module import time, so it
+    # cannot be imported by autodoc.
+    'api/wsgi/*',
+    'api/wsgi',
     'hacking']
 apidoc_separate_modules = True
 
