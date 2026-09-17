@@ -25,6 +25,7 @@ import weakref
 import fixtures
 from oslo_config import cfg
 from oslo_messaging import conffixture as messaging_conffixture
+from oslo_service import loopingcall
 import testtools
 
 from tacker.common import config
@@ -39,6 +40,7 @@ CONF = cfg.CONF
 CONF.import_opt('state_path', 'tacker.common.config')
 TRUE_STRING = ['True', '1']
 LOG_FORMAT = "%(asctime)s %(levelname)8s [%(name)s] %(message)s"
+LOG = logging.getLogger(__name__)
 
 ROOTDIR = os.path.dirname(__file__)
 ETCDIR = os.path.join(ROOTDIR, '../../samples/tests/etc')
@@ -106,12 +108,49 @@ class BaseTestCase(testtools.TestCase):
         """Tests that need a non-default config can override this method."""
         self.config_parse(args=args)
 
+    def _stop_looping_calls(self):
+        """Stop the looping calls a test left running.
+
+        A looping call that is never stopped keeps the thread it runs in
+        busy, and futurist joins its worker threads from an atexit
+        handler, so a single leaked looping call is enough to keep the
+        test process from ever exiting. It went unnoticed while
+        oslo.service ran its looping calls in green threads, which the
+        interpreter does not wait for.
+        """
+        for call in self._looping_calls:
+            try:
+                call.stop()
+            except Exception:
+                LOG.exception("Failed to stop a looping call of a test.")
+        self._looping_calls = []
+
+    def setup_looping_call_cleanup(self):
+        """Keep track of the looping calls started by a test.
+
+        Every flavour of looping call spawns through _start of the common
+        base, so hooking it there covers all of them, whichever backend
+        oslo.service runs on.
+        """
+        self._looping_calls = []
+        start = loopingcall.LoopingCallBase._start
+
+        def tracked_start(call, *args, **kwargs):
+            self._looping_calls.append(call)
+            return start(call, *args, **kwargs)
+
+        self.useFixture(fixtures.MonkeyPatch(
+            'oslo_service.loopingcall.LoopingCallBase._start', tracked_start))
+        self.addCleanup(self._stop_looping_calls)
+
     def setUp(self):
         super(BaseTestCase, self).setUp()
 
         # Ensure plugin cleanup is triggered last so that
         # test-specific cleanup has a chance to release references.
         self.addCleanup(self.cleanup_core_plugin)
+
+        self.setup_looping_call_cleanup()
 
         # Configure this first to ensure pm debugging support for setUp()
         if os.environ.get('OS_POST_MORTEM_DEBUG') in TRUE_STRING:
