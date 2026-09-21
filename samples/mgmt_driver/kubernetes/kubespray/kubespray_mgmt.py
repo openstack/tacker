@@ -13,12 +13,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import concurrent.futures
 import ipaddress
 import json
 import os
 import time
 
-import eventlet
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import uuidutils
@@ -303,14 +303,18 @@ class KubesprayMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
         connect.close()
 
     def _execute_command(self, commander, ssh_command, timeout, type, retry):
-        eventlet.monkey_patch()
         while retry >= 0:
+            # NOTE: A new executor is created per attempt because a
+            # native thread cannot be interrupted from outside; a timed
+            # out attempt keeps its worker thread busy until the command
+            # returns.
+            executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
             try:
-                with eventlet.Timeout(timeout, True):
-                    result = commander.execute_command(
-                        ssh_command)
-                    break
-            except eventlet.timeout.Timeout:
+                future = executor.submit(
+                    commander.execute_command, ssh_command)
+                result = future.result(timeout=timeout)
+                break
+            except concurrent.futures.TimeoutError:
                 LOG.debug('It is time out, When execute command: '
                           '{}.'.format(ssh_command))
                 retry -= 1
@@ -321,6 +325,8 @@ class KubesprayMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                         error_message='It is time out, When execute command: '
                                       '{}.'.format(ssh_command))
                 time.sleep(COMMAND_WAIT_RETRY_TIME)
+            finally:
+                executor.shutdown(wait=False)
         if type == 'common':
             if result.get_return_code() != 0 and result.get_stderr():
                 err = result.get_stderr()
@@ -831,23 +837,29 @@ class KubesprayMgmtDriver(vnflcm_abstract_driver.VnflcmMgmtAbstractDriver):
                           'transferring_inventory_path'),
                           ansible.get('kubespray_root_path'),
                           worker_hostname)
+        # NOTE: A native thread cannot be interrupted from outside, so a
+        # timed out node removal keeps its worker thread busy until the
+        # command returns.
+        executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         try:
-            with eventlet.Timeout(K8S_INSTALL_TIMEOUT, True):
-                result, code = self._uninstall_worker_node(
-                    ssh_command, ansible)
-                if code != 0:
-                    msg = 'Fail to remove the worker node {}'.\
-                        format(worker_hostname)
-                    LOG.error(result)
-                    raise exceptions.MgmtDriverOtherError(
-                        error_message=msg)
-                LOG.debug(result)
-        except eventlet.timeout.Timeout:
+            future = executor.submit(
+                self._uninstall_worker_node, ssh_command, ansible)
+            result, code = future.result(timeout=K8S_INSTALL_TIMEOUT)
+            if code != 0:
+                msg = 'Fail to remove the worker node {}'.\
+                    format(worker_hostname)
+                LOG.error(result)
+                raise exceptions.MgmtDriverOtherError(
+                    error_message=msg)
+            LOG.debug(result)
+        except concurrent.futures.TimeoutError:
             msg = 'It is time out while deleting' \
                   ' the worker node {}'.format(worker_hostname)
             LOG.error(msg)
             raise exceptions.MgmtDriverOtherError(
                 error_message=msg)
+        finally:
+            executor.shutdown(wait=False)
 
         # Gets the line of rows where worker_hostname resides
         if operation_type == 'SCALE':
