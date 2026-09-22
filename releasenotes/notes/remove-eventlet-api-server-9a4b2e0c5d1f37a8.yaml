@@ -1,0 +1,13 @@
+---
+upgrade:
+  - |
+    The eventlet based standalone API server ``tacker-server`` has been
+    removed as part of the eventlet removal. Run the Tacker API with a
+    WSGI server such as uWSGI or mod_wsgi using the
+    ``tacker.api.wsgi.api:application`` WSGI application instead, as the
+    devstack plugin does. The configuration options ``bind_host``,
+    ``bind_port``, ``api_workers`` and the socket options of the removed
+    server (``backlog``, ``tcp_keepidle``, ``retry_until_window``,
+    ``max_header_line``, ``use_ssl``, ``ssl_ca_file``, ``ssl_cert_file``
+    and ``ssl_key_file``) have also been removed. The listen address and
+    the number of workers are now configured on the WSGI server side.

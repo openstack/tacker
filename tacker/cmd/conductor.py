@@ -13,9 +13,9 @@
 # NOTE: init_backend() can be called only once per process and must run
 # before any other oslo.service module is imported, otherwise the default
 # eventlet backend is selected implicitly. The get_backend_type() guard
-# avoids BackendAlreadySelected when this module is imported alongside
-# tacker.cmd.eventlet in the same process, e.g. by Sphinx autodoc during
-# the docs build.
+# avoids BackendAlreadySelected when the backend is already initialized
+# by another module imported in the same process, e.g. by Sphinx autodoc
+# during the docs build.
 from oslo_service import backend
 
 if backend.get_backend_type() is None:

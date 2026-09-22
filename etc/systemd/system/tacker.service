@@ -6,7 +6,7 @@ ExecReload = /bin/kill -HUP $MAINPID
 TimeoutStopSec = 300
 KillMode = process
 WorkingDirectory = /tmp
-ExecStart=/usr/local/bin/tacker-server --config-file /etc/tacker/tacker.conf
+ExecStart=/usr/local/bin/uwsgi --procname-prefix tacker-api --ini /etc/tacker/tacker-api-uwsgi.ini
 
 [Install]
 WantedBy = multi-user.target
