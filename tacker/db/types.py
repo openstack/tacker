@@ -47,10 +47,9 @@ class Json(TypeDecorator):
     cache_ok = False
 
     def process_bind_param(self, value, dialect):
-        if dialect.name == 'postgresql':
-            return jsonutils.dumps(value)
-        else:
-            return jsonutils.dump_as_bytes(value)
+        # NOTE: Always return str. PyMySQL 1.2.1 or later sends bytes as a
+        # binary string, which MySQL rejects for a JSON column.
+        return jsonutils.dumps(value)
 
     def process_result_value(self, value, dialect):
         if value is None:

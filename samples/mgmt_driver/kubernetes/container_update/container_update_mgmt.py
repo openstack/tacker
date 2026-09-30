@@ -419,8 +419,7 @@ class ContainerUpdateMgmtDriver(vnflcm_abstract_driver.
                     if match_result:
                         core_v1_api_client.delete_namespaced_pod(
                             namespace=namespace,
-                            name=pod.metadata.name,
-                            body=pod)
+                            name=pod.metadata.name)
 
         # _replace_wait_k8s
         self._replace_wait_k8s(kube_driver, k8s_pod_objs, k8s_clients,

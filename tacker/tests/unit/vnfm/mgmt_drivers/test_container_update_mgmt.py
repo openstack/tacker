@@ -328,3 +328,10 @@ class TestContainerUpdate(base.TestCase):
         self.cntr_update_mgmt.modify_information_end(
             self.context, self.vnf_instance, self.modify_vnf_request, **kwargs)
         self.assertEqual(1, mock_save.call_count)
+        # NOTE: The pod itself must not be given as the body of the delete
+        # API, which is validated as V1DeleteOptions by kubernetes client 37
+        # or later.
+        self.assertEqual(
+            [mock.call(namespace='default', name='vdu2-rldmg'),
+             mock.call(namespace='default', name='vdu2-12345')],
+            mock_delete_namespaced_pod.call_args_list)

@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed that registering a VIM failed with an internal server error when
+    MySQL 8.0 and PyMySQL 1.2.1 or later were used. Values of JSON columns
+    were sent as bytes, which PyMySQL now sends as binary strings, and MySQL
+    rejects binary strings for JSON columns.

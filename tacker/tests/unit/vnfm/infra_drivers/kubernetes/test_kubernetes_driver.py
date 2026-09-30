@@ -558,9 +558,9 @@ class TestKubernetes(base.TestCase):
         plugin = ""
         auth_attr = utils.get_vim_auth_obj()
         with mock.patch('yaml.safe_load') as mock_safe_load:
+            # NOTE: The values of ConfigMap data must be strings.
             mock_safe_load.return_value = {
-                'config': 'test_config', 'test': {
-                    'test1': 'test1'}}
+                'config': 'test_config', 'test': 'test1'}
             self.kubernetes.update(
                 plugin,
                 self.context,

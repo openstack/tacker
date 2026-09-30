@@ -529,6 +529,17 @@ def fake_v1_deployment_error():
         status=client.V1DeploymentStatus(
             replicas=2,
             ready_replicas=1
+        ),
+        spec=client.V1DeploymentSpec(
+            replicas=2,
+            selector=client.V1LabelSelector(
+                match_labels={'app': 'webserver'}
+            ),
+            template=client.V1PodTemplateSpec(
+                metadata=client.V1ObjectMeta(
+                    labels={'app': 'webserver'}
+                )
+            )
         )
     )
 
@@ -570,6 +581,17 @@ def fake_v1_replica_set_error():
         status=client.V1ReplicaSetStatus(
             replicas=2,
             ready_replicas=1
+        ),
+        spec=client.V1ReplicaSetSpec(
+            replicas=2,
+            selector=client.V1LabelSelector(
+                match_labels={'app': 'webserver'}
+            ),
+            template=client.V1PodTemplateSpec(
+                metadata=client.V1ObjectMeta(
+                    labels={'app': 'webserver'}
+                )
+            )
         )
     )
 
@@ -591,7 +613,9 @@ def fake_v1_job():
                 ),
                 spec=client.V1PodSpec(
                     hostname='job',
-                    containers=['image']
+                    containers=[
+                        client.V1Container(name='image')
+                    ]
                 )
             )
         ),
@@ -618,7 +642,9 @@ def fake_v1_job_error():
                 ),
                 spec=client.V1PodSpec(
                     hostname='job',
-                    containers=['image']
+                    containers=[
+                        client.V1Container(name='image')
+                    ]
                 )
             )
         ),
@@ -671,8 +697,6 @@ def fake_v1_volume_attachment_error():
 
 
 def fake_v1_stateful_set():
-    client_config = client.Configuration.get_default_copy()
-    client_config.client_side_validation = False
     return client.V1StatefulSet(
         api_version='apps/v1',
         kind='StatefulSet',
@@ -702,15 +726,12 @@ def fake_v1_stateful_set():
         ),
         status=client.V1StatefulSetStatus(
             replicas=1,
-            ready_replicas=1,
-            local_vars_configuration=client_config
+            ready_replicas=1
         ),
     )
 
 
 def fake_v1_stateful_set_no_volume_claim_templates():
-    client_config = client.Configuration.get_default_copy()
-    client_config.client_side_validation = False
     return client.V1StatefulSet(
         api_version='apps/v1',
         kind='StatefulSet',
@@ -733,15 +754,12 @@ def fake_v1_stateful_set_no_volume_claim_templates():
         ),
         status=client.V1StatefulSetStatus(
             replicas=1,
-            ready_replicas=1,
-            local_vars_configuration=client_config
+            ready_replicas=1
         ),
     )
 
 
 def fake_v1_stateful_set_error():
-    client_config = client.Configuration.get_default_copy()
-    client_config.client_side_validation = False
     return client.V1StatefulSet(
         api_version='apps/v1',
         kind='StatefulSet',
@@ -771,8 +789,7 @@ def fake_v1_stateful_set_error():
         ),
         status=client.V1StatefulSetStatus(
             replicas=2,
-            ready_replicas=1,
-            local_vars_configuration=client_config
+            ready_replicas=1
         )
     )
 
@@ -1027,6 +1044,16 @@ def fake_daemon_set_error():
             desired_number_scheduled=12,
             current_number_scheduled=4,
             number_misscheduled=2,
+        ),
+        spec=client.V1DaemonSetSpec(
+            selector=client.V1LabelSelector(
+                match_labels={'app': 'webserver'}
+            ),
+            template=client.V1PodTemplateSpec(
+                metadata=client.V1ObjectMeta(
+                    labels={'app': 'webserver'}
+                )
+            )
         )
     )
 
