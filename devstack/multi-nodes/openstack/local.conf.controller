@@ -24,7 +24,7 @@ enable_service ovn-northd
 enable_service ovs-vswitchd
 enable_service ovsdb-server
 enable_service placement-api
-enable_service q-ovn-metadata-agent
+enable_service q-ovn-agent
 enable_service q-qos
 enable_service q-svc
 enable_service rabbit

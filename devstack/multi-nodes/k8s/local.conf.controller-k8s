@@ -11,7 +11,7 @@ enable_service ovn-controller
 enable_service ovn-northd
 enable_service ovs-vswitchd
 enable_service ovsdb-server
-enable_service q-ovn-metadata-agent
+enable_service q-ovn-agent
 ADMIN_PASSWORD="secretadmin"
 #CELLSV2_SETUP="singleconductor"
 CONTAINER_ENGINE="crio"

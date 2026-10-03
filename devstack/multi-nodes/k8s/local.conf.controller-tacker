@@ -8,7 +8,7 @@ enable_service ovn-controller
 enable_service ovn-northd
 enable_service ovs-vswitchd
 enable_service ovsdb-server
-enable_service q-ovn-metadata-agent
+enable_service q-ovn-agent
 enable_service tacker
 enable_service tacker-conductor
 ADMIN_PASSWORD="secretadmin"

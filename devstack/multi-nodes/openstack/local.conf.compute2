@@ -16,7 +16,7 @@ enable_service ovn-controller
 enable_service ovs-vswitchd
 enable_service ovsdb-server
 enable_service placement-client
-enable_service q-ovn-metadata-agent
+enable_service q-ovn-agent
 #disable_service tempest
 #disable_service tls-proxy
 ADMIN_PASSWORD="secretadmin"
