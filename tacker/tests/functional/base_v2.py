@@ -37,6 +37,7 @@ MOCK_NOTIFY_CALLBACK_URL = '/notification/callback'
 
 RETRY_WAIT_TIME = 3
 VNF_PACKAGE_UPLOAD_TIMEOUT = 300
+ROLLBACK_START_TIMEOUT = 60
 
 VNFLCM_V2_VERSION = "2.0.0"
 VNFPM_V2_VERSION = "2.1.0"
@@ -417,6 +418,16 @@ class BaseTackerTestV2(base.BaseTestCase):
         # NOTE: It is not necessary to set timeout because the operation
         # itself set timeout and the state will become 'FAILED_TEMP'.
         path = f"/vnflcm/v2/vnf_lcm_op_occs/{lcmocc_id}"
+        # NOTE: Accepting the rollback request only queues it, so the
+        # operation is still in the FAILED_TEMP it was rolled back from
+        # until the conductor picks it up. FAILED_TEMP therefore means
+        # that the rollback has not started yet as long as the operation
+        # has never been seen rolling back, and that the rollback itself
+        # failed once it has. Waiting for the start is bounded so that a
+        # rollback which never starts does not spin here until the job
+        # times out.
+        rolling_back = False
+        start_deadline = time.time() + ROLLBACK_START_TIMEOUT
         while True:
             time.sleep(RETRY_WAIT_TIME)
             _, body = self.tacker_client.do_request(
@@ -425,6 +436,10 @@ class BaseTackerTestV2(base.BaseTestCase):
             if state == 'ROLLED_BACK':
                 return
             if state == 'ROLLING_BACK':
+                rolling_back = True
+                continue
+            if (state == 'FAILED_TEMP' and not rolling_back
+                    and time.time() < start_deadline):
                 continue
 
             raise Exception(f"Operation failed. state: {state}")
