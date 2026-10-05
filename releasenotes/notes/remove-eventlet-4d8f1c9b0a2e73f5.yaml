@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    Tacker no longer depends on eventlet. The library has been removed
+    from the requirements, and none of the services monkey patches the
+    standard library anymore. The API runs as a WSGI application under a
+    WSGI server such as uWSGI, and oslo.service uses its threading
+    backend.
