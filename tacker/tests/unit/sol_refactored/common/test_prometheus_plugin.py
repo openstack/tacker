@@ -34,6 +34,12 @@ from tacker.tests.unit import base
 
 from unittest import mock
 
+# NOTE: freezegun scans the attributes of all loaded modules when it starts.
+# It triggers the lazy imports of kubernetes 37 and the imported modules
+# fail to build pydantic models with FakeDatetime. Then freeze_time() fails
+# without restoring time.time() and the following tests that rely on it hang.
+freezegun.configure(extend_ignore_list=['kubernetes'])
+
 _body_base = {
     'receiver': 'receiver',
     'status': 'firing',

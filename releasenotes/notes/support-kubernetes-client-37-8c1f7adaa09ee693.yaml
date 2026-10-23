@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixed the Kubernetes infra driver of the v1 VNF LCM API failing to
+    generate the Kubernetes objects from manifests with Kubernetes Python
+    client 37 or later, in which the models are based on pydantic. The
+    objects are generated without validation as with the older clients.
+    The sample MgmtDriver for container update is also fixed not to give
+    a Pod object as the body of the API to delete a Pod, which is rejected
+    by the clients.

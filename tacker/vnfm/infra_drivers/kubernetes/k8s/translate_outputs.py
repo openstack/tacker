@@ -129,31 +129,46 @@ class Transformer(object):
             "VolumeAttachment": 'create_volume_attachment',
         }
 
-    def _gen_k8s_obj_from_name(self, obj_name):
+    def _gen_k8s_obj_from_name(self, obj_name, content=None):
         """Generate kubernetes object
 
         The function converts the name passed in to the corresponding
-        kubernetes object and returns it. By default, client_side_validation
-        is True. To skip client-side validation, initialize an empty object,
-        set client_side_validation to False, and pass the configuration to
+        kubernetes object, initializes it with the content and returns it.
+        The object is generated without client-side validation as same as
+        the manifest is passed to kubernetes as is.
+
+        Kubernetes client 37.0.0 or later generates models with pydantic,
+        so the object is generated with `model_construct()` which skips
+        validation. The required fields which are not in the content are
+        set to None to be accessible as same as the older models. For the
+        older models, client_side_validation is set to False and passed to
         the function of initializing the kubernetes object through the
         `local_vars_configuration` parameter.
         """
-        client_config = client.Configuration.get_default_copy()
-        client_config.client_side_validation = False
-        config = '(local_vars_configuration=client_config)'
         try:
-            k8s_obj = eval('client.{}{}'.format(obj_name, config))
-            return k8s_obj
-        except (ValueError, SyntaxError, AttributeError) as e:
+            obj_class = getattr(client, obj_name)
+        except (TypeError, AttributeError) as e:
             msg = '{kind} create failure. Reason={reason}'.format(
                 kind=obj_name, reason=e)
             raise exceptions.InitApiFalse(error=msg)
 
-    def _create_k8s_object(self, kind, file_content_dict):
-        k8s_obj = self._gen_k8s_obj_from_name('V1' + kind)
-        self._init_k8s_obj(k8s_obj, file_content_dict)
+        attrs = self._get_k8s_obj_attrs(obj_class, content or {})
+        if hasattr(obj_class, 'model_construct'):
+            values = {name: None
+                      for name, field in obj_class.model_fields.items()
+                      if field.is_required()}
+            values.update(attrs)
+            return obj_class.model_construct(**values)
+
+        client_config = client.Configuration.get_default_copy()
+        client_config.client_side_validation = False
+        k8s_obj = obj_class(local_vars_configuration=client_config)
+        for name, value in attrs.items():
+            setattr(k8s_obj, name, value)
         return k8s_obj
+
+    def _create_k8s_object(self, kind, file_content_dict):
+        return self._gen_k8s_obj_from_name('V1' + kind, file_content_dict)
 
     def _get_k8s_obj_from_file_content_dict(self, file_content_dict,
                                             namespace=None, scale_info=None):
@@ -291,36 +306,35 @@ class Transformer(object):
         name = name.strip()
         return re.sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
 
-    def _init_k8s_obj(self, obj, content):
+    def _get_k8s_obj_attrs(self, obj_class, content):
+        attrs = {}
         for key, value in content.items():
             param_value = self._get_lower_case_name(key)
             if param_value in SPECIAL_PARAMETERS_IN_MANIFEST:
                 param_value = f'_{param_value}'
-            if hasattr(obj, param_value) and \
-                    not isinstance(value, dict) and \
-                    not isinstance(value, list):
-                setattr(obj, param_value, value)
-            elif isinstance(value, dict):
-                obj_name = obj.openapi_types.get(param_value)
-                if obj_name == 'dict[str, str]':
-                    setattr(obj, param_value, value)
+            # NOTE: The type names of dict and list are such as
+            # 'dict[str, str]' in older models and 'Dict[str, bytes]' in
+            # kubernetes client 37 or later. The values of them are set
+            # as is unless their items are kubernetes objects.
+            obj_name = obj_class.openapi_types.get(param_value)
+            if isinstance(value, dict):
+                if obj_name and obj_name.lower().startswith('dict['):
+                    attrs[param_value] = value
                 else:
-                    rely_obj = self._gen_k8s_obj_from_name(obj_name)
-                    self._init_k8s_obj(rely_obj, value)
-                    setattr(obj, param_value, rely_obj)
+                    attrs[param_value] = self._gen_k8s_obj_from_name(
+                        obj_name, value)
             elif isinstance(value, list):
-                obj_name = obj.openapi_types.get(param_value)
-                if obj_name == 'list[str]':
-                    setattr(obj, param_value, value)
+                rely_obj_name = \
+                    re.findall(r".*\[([^\[\]]*)\].*", obj_name)[0]
+                if hasattr(client, rely_obj_name):
+                    attrs[param_value] = [
+                        self._gen_k8s_obj_from_name(rely_obj_name, v)
+                        for v in value]
                 else:
-                    rely_objs = []
-                    rely_obj_name = \
-                        re.findall(r".*\[([^\[\]]*)\].*", obj_name)[0]
-                    for v in value:
-                        rely_obj = self._gen_k8s_obj_from_name(rely_obj_name)
-                        self._init_k8s_obj(rely_obj, v)
-                        rely_objs.append(rely_obj)
-                    setattr(obj, param_value, rely_objs)
+                    attrs[param_value] = value
+            elif obj_name is not None:
+                attrs[param_value] = value
+        return attrs
 
     def _sort_k8s_obj(self, k8s_objs):
         pos = 0
@@ -338,6 +352,4 @@ class Transformer(object):
         return sorted_k8s_objs
 
     def get_object_meta(self, content):
-        v1_object_meta = client.V1ObjectMeta()
-        self._init_k8s_obj(v1_object_meta, content)
-        return v1_object_meta
+        return self._gen_k8s_obj_from_name('V1ObjectMeta', content)
